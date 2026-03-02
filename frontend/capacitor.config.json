@@ -13,6 +13,11 @@
         "androidAllowMixedContent": true
     },
     "plugins": {
+        "StatusBar": {
+            "overlaysWebView": false,
+            "style": "DARK",
+            "backgroundColor": "#0e344c"
+        },
         "SplashScreen": {
             "launchShowDuration": 0,
             "launchAutoHide": true,

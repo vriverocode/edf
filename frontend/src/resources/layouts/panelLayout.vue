@@ -6,7 +6,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/services/store/auth.services';
 import loaderPage from '@/components/layout/loaderPage.vue';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, inject } from 'vue';
 import logoutModal from '@/components/layout/logoutModal.vue';
 import storage from '@/services/storage'
 import { useNotificationsStore } from '@/services/store/notifications.store'
@@ -18,6 +18,7 @@ const route = useRoute()
 const ready = ref(false)
 const { user } = storeToRefs(useAuthStore())
 const showModal = ref('')
+const emitter = inject('emitter', null)
 const notificationsStore = useNotificationsStore()
 const $q = useQuasar()
 const prevUnread = ref(0)
@@ -26,6 +27,7 @@ const goBack = () => {
   router.go(-1)
 }
 onMounted(() => {
+  if (emitter) emitter.on('logoutModal', () => { showModal.value = 'logout' })
   useAuthStore().currentUser()
     .then((response) => {
       if (user.value.rol_id) {
