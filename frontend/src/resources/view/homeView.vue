@@ -15,7 +15,9 @@ setTimeout(() => {
   <div>
 
     <dashboard-admin v-if="user.rol_id == 1" />
-    <dashboard-client v-if="user.rol_id == 2" />
+    <dashboard-client v-else />
+
+    <!-- <dashboard-client v-if="user.rol_id == 2" /> -->
   </div>
 
 </template>

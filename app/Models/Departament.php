@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+// use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Departament extends Model
 {
@@ -31,5 +31,13 @@ class Departament extends Model
     public function owner()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+    public function peoples()
+    {
+        return $this->hasMany(PeoplesXDepartaments::class, 'departament_id', 'id');
+    }
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 }

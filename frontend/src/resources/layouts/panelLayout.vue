@@ -110,7 +110,8 @@ const showBack = () => {
         </transition>
         <router-view v-slot="{ Component }">
           <transition name="horizontal">
-            <component :is="Component" style="height: 90%;" />
+            <component :is="Component"
+              :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }" />
           </transition>
         </router-view>
       </section>
@@ -125,6 +126,14 @@ const showBack = () => {
 </template>
 
 <style lang="scss">
+.page_continerContent {
+  height: 90%;
+}
+
+.page_continerContentFull {
+  height: 100%;
+}
+
 .text-backButton {
   color: #c9a344 !important;
 }

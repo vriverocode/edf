@@ -6,7 +6,7 @@ import panelLayout from '@/layouts/panelLayout.vue'
 
 import auth from './middlewares/auth'
 import guest from './middlewares/guest'
-
+import role from './middlewares/role'
 
 const routes = [
   { 
@@ -50,17 +50,18 @@ const routes = [
         path: '/admin/users', 
         component: () => import('@/view/admin/usersPage.vue'),
         name:'usersAdmin',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Usuarios'
+          pagTitle: 'Usuarios',
+          roles: ['admin', 'super-admin']
         }
       },
       {
         path: '/admin/finance', 
         component: () => import('@/view/admin/financePage.vue'),
         name:'financePage',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Finanzas'
@@ -70,7 +71,7 @@ const routes = [
       //   path: '/services', 
       //   component: () => import('@/view/admin/servicesPage.vue'),
       //   name:'servicesAdmin',
-      //   beforeEnter: auth,
+      //   beforeEnter: [auth, role],
       //   meta:{
       //     title: 'Bienvenido',
       //     pagTitle: 'Sevicios'
@@ -80,7 +81,7 @@ const routes = [
         path: '/reserves', 
         component: () => import('@/view/admin/reservesPage.vue'),
         name:'reservedAdmin',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Reservas'
@@ -90,7 +91,7 @@ const routes = [
         path: '/balances', 
         component: () => import('@/view/admin/balancesPage.vue'),
         name:'balanceAdmin',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Banlances'
@@ -100,7 +101,7 @@ const routes = [
       //   path: '/config', 
       //   component: () => import('@/view/admin/configPage.vue'),
       //   name:'Configuración',
-      //   beforeEnter: auth,
+      //   beforeEnter: [auth, role],
       //   meta:{
       //     title: 'Bienvenido',
       //     pagTitle: 'Dashboard'
@@ -110,7 +111,7 @@ const routes = [
         path: '/admin/users/list', 
         component: () => import('@/view/admin/Users/usersList.vue'),
         name:'usersList',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Usuarios'
@@ -120,7 +121,7 @@ const routes = [
         path: '/admin/department/list', 
         component: () => import('@/view/admin/Department/departmentList.vue'),
         name:'departmentList',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Apartamentos'
@@ -130,7 +131,7 @@ const routes = [
         path: '/admin/comun-area/list', 
         component: () => import('@/view/admin/ComunAreas/comunAreasList.vue'),
         name:'comunAreasList',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Areas comunes'
@@ -141,7 +142,7 @@ const routes = [
         path: '/admin/users/form/add', 
         component: () => import('@/view/admin/Users/createUser.vue'),
         name:'usersAdd',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Crear Usuario'
@@ -151,7 +152,7 @@ const routes = [
         path: '/admin/users/assing-apartment/:id', 
         component: () => import('@/view/admin/Users/assingApartment.vue'),
         name:'assingDepartment',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Asignar Apartamento'
@@ -161,7 +162,7 @@ const routes = [
         path: '/admin/department/form/add', 
         component: () => import('@/view/admin/Department/createDepartment.vue'),
         name:'departmentAdd',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Agregar apartamento'
@@ -171,7 +172,7 @@ const routes = [
         path: '/admin/comun-area/form/add', 
         component: () => import('@/view/admin/ComunAreas/createComunArea.vue'),
         name:'comunAreaAdd',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Agregar area común'
@@ -181,7 +182,7 @@ const routes = [
         path: '/admin/comun-area/form/update/:id', 
         component: () => import('@/view/admin/ComunAreas/updateComunArea.vue'),
         name:'comunAreaUpdate',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Editar area común'
@@ -191,7 +192,7 @@ const routes = [
         path: '/admin/comun-area/bookings/:id/list', 
         component: () => import('@/view/admin/ComunAreas/bookingsList.vue'),
         name:'comunAreaBookingsList',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Lista de reservaciones'
@@ -201,7 +202,7 @@ const routes = [
         path: '/admin/pay/validate/:id', 
         component: () => import('@/view/admin/Pays/validatePay.vue'),
         name:'PayValidate',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Validar pago'
@@ -211,7 +212,7 @@ const routes = [
         path: '/admin/notices', 
         component: () => import('@/view/admin/Notices/noticesPage.vue'),
         name:'noticesPages',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Noticas/Anuncios'
@@ -221,7 +222,7 @@ const routes = [
         path: '/admin/events', 
         component: () => import('@/view/admin/Events/eventsPage.vue'),
         name:'eventsPages',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Eventos'
@@ -231,7 +232,7 @@ const routes = [
         path: '/admin/events/view/:id',
         component: () => import('@/view/admin/Events/viewEvent.vue'),
         name:'eventViewAdmin',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Detalles de evento'
@@ -241,7 +242,7 @@ const routes = [
         path: '/admin/events/form/add', 
         component: () => import('@/view/admin/Events/createEvent.vue'),
         name:'eventsCreate',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Crear evento'
@@ -251,7 +252,7 @@ const routes = [
         path: '/admin/events/form/update/:id', 
         component: () => import('@/view/admin/Events/updateEvent.vue'),
         name:'eventsUpdate',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Editar evento'
@@ -265,7 +266,7 @@ const routes = [
         path: '/client/reserves/list', 
         component: () => import('@/view/client/Reserves/reserveList.vue'),
         name:'reserveClient',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Reservas'
@@ -275,7 +276,7 @@ const routes = [
         path: '/client/reserves/form/add', 
         component: () => import('@/view/client/Reserves/createReserve.vue'),
         name:'reserveClientAdd',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Reservas'
@@ -285,7 +286,7 @@ const routes = [
         path: '/client/reserves/confirm-reserve/:id', 
         component: () => import('@/view/client/Reserves/confirmReserve.vue'),
         name:'reserveConfirm',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Reservas realizada'
@@ -295,7 +296,7 @@ const routes = [
         path: '/client/reserves/pay-reserve/:id', 
         component: () => import('@/view/client/Payments/payForm.vue'),
         name:'reservePay',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Realiza el pago'
@@ -305,7 +306,7 @@ const routes = [
         path: '/client/pay/details/:id', 
         component: () => import('@/view/client/Payments/payFinish.vue'),
         name:'payConfirm',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Pago realizado!'
@@ -315,7 +316,7 @@ const routes = [
         path: '/client/reserves/view/:id', 
         component: () => import('@/view/client/Reserves/viewReserve.vue'),
         name:'viewReserve',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Detalles de reserva'
@@ -325,7 +326,7 @@ const routes = [
         path: '/client/notifications',
         component: () => import('@/view/client/Notifications/notificationsPage.vue'),
         name:'notificationsPage',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Notificaciones'
@@ -335,7 +336,7 @@ const routes = [
         path: '/client/pays/list',
         component: () => import('@/view/client/Payments/paymentHistory.vue'),
         name:'paymentHistory',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Historial de pagos'
@@ -345,7 +346,7 @@ const routes = [
         path: '/client/department/options',
         component: () => import('@/view/client/Apartments/optionList.vue'),
         name:'apartmentOption',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Gestion de apartamento'
@@ -355,7 +356,7 @@ const routes = [
         path: '/client/department/my-unit',
         component: () => import('@/view/client/Apartments/myUnit.vue'),
         name:'apartmentClient',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Gestion de apartamento'
@@ -365,7 +366,7 @@ const routes = [
         path: '/client/balance/list',
         component: () => import('@/view/client/Quotas/quotasByUserList.vue'),
         name:'quotaList',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Balance de pagos'
@@ -376,7 +377,7 @@ const routes = [
         component: () => import('@/view/client/Payments/payForm.vue'),
 
         name:'quotaPay',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Realiza el pago'
@@ -386,7 +387,7 @@ const routes = [
         path: '/client/quota/view/:id', 
         component: () => import('@/view/client/Quotas/viewQuota.vue'),
         name:'viewQuota',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Detalles de cuota'
@@ -396,7 +397,7 @@ const routes = [
         path: '/client/notices/list',
         component: () => import('@/view/client/Notices/noticesList.vue'),
         name:'noticeList',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Panel informativo'
@@ -406,7 +407,7 @@ const routes = [
         path: '/client/notice/view/:id',
         component: () => import('@/view/client/Notices/noticesView.vue'),
         name:'noticeView',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Información'
@@ -416,7 +417,7 @@ const routes = [
         path: '/client/events', 
         component: () => import('@/view/client/Events/eventsPage.vue'),
         name:'eventsClientPages',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Eventos'
@@ -426,7 +427,7 @@ const routes = [
         path: '/client/events/view/:id',
         component: () => import('@/view/client/Events/viewEvent.vue'),
         name:'eventClientViewAdmin',
-        beforeEnter: auth,
+        beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Detalles de evento'

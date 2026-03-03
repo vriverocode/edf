@@ -31,6 +31,7 @@ class User extends Authenticatable
         'status',
         'device_token',
         'rol_id',
+        'active_time',
     ];
 
     public $appends  =   ['status_label'];
@@ -68,9 +69,22 @@ class User extends Authenticatable
 
         return $status[$this->status];
     }
-    public function apartaments()
+    public function apartments()
     {
         return $this->hasMany(Departament::class);
+    }
+    public function departments()
+    {
+        return $this->hasMany(PeoplesXDepartaments::class)->withPivot('created_by') // Declarar el campo extra
+                ->withTimestamps();
+    }
+    public function departmentsOwner()
+    {
+        return $this->hasMany(PeoplesXDepartaments::class)->where('type', Rol::PROPIETARIO);
+    }
+    public function departmentsInquilino()
+    {
+        return $this->hasMany(PeoplesXDepartaments::class)->where('type', Rol::INQUILINO);
     }
     public function notices()
     {

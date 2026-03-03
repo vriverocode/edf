@@ -20,15 +20,15 @@ Route::middleware('auth:sanctum')->post('/token-movile', [UserController::class,
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        return $request->user();
+        return $request->user()->load('rol');
     });
 
     Route::prefix('users')->name('user.')->group(function () {
         Route::get('/', [UserController::class, 'getOwners']);
-        Route::post('/', [UserController::class, 'store']);
-        Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment']);
-        Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin']);
-        Route::get('/with-publish', [UserController::class, 'getAllUserWithPublish']);
+        Route::post('/', [UserController::class, 'store'])->middleware('role:admin,propietario');
+        Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment'])->middleware('role:admin');
+        Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin'])->middleware('role:admin');
+        Route::get('/with-publish', [UserController::class, 'getAllUserWithPublish'])->middleware('role:admin');
     });
     Route::prefix('apartments')->name('apartment.')->group(function () {
         Route::get('/', [DepartamentController::class, 'paginationApartment']);
@@ -41,9 +41,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/all', [ComunAreaController::class, 'getAll']);
         Route::get('/byId/{id}', [ComunAreaController::class, 'comunAreaById']);
         Route::get('/bySearch', [ComunAreaController::class, 'AreasBySearch']);
-        Route::post('/', [ComunAreaController::class, 'storeArea']);
-        Route::post('/u/{id}', [ComunAreaController::class, 'updateArea']);
-        Route::post('/d/{id}', [ComunAreaController::class, 'deleteArea']);
+        Route::post('/', [ComunAreaController::class, 'storeArea'])->middleware('role:admin');
+        Route::post('/u/{id}', [ComunAreaController::class, 'updateArea'])->middleware('role:admin');
+        Route::post('/d/{id}', [ComunAreaController::class, 'deleteArea'])->middleware('role:admin');
     });
     Route::prefix('bookings')->name('booking.')->group(function () {
         Route::get('/', [BookingController::class, 'getBookingsByUser']);
@@ -52,7 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [BookingController::class, 'getBookingById']);
         Route::get('/byArea/{id}', [BookingController::class, 'getBookingByAreaId']);
         Route::post('/cancel/{id}', [BookingController::class, 'cancelBooking']);
-        Route::get('/pendings', [BookingController::class, 'getPendings']);
+        Route::get('/pendings', [BookingController::class, 'getPendings'])->middleware('role:admin');
     });
     Route::prefix('events')->name('event.')->group(function () {
         Route::get('/', [EventController::class, 'get']);
@@ -71,7 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/bookings', [PayController::class, 'storePay']);
         Route::post('/quotas', [PayController::class, 'storePay']);
         Route::get('/byId/{id}', [PayController::class, 'getPayById']);
-        Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus']);
+        Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus'])->middleware('role:admin');
     });
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [NotificationController::class, 'index']);
@@ -89,8 +89,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [NoticeController::class, 'show']);
         Route::post('/', [NoticeController::class, 'store']);
         Route::post('/set-viewer/{id}', [NoticeController::class, 'setViewer']);
-        Route::post('/set-new-status/{id}', [NoticeController::class, 'setNewStatus']);
-        Route::delete('/{id}', [NoticeController::class, 'delete']);
-        Route::post('/{id}', [NoticeController::class, 'update']);
+        Route::post('/set-new-status/{id}', [NoticeController::class, 'setNewStatus'])->middleware('role:admin');
+        Route::delete('/{id}', [NoticeController::class, 'delete'])->middleware('role:admin');
+        Route::post('/{id}', [NoticeController::class, 'update'])->middleware('role:admin');
     });
 });
