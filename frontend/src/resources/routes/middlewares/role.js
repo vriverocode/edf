@@ -9,17 +9,21 @@ export default function role(to, from, next) {
 
   // 3. Obtienes el rol directamente de tu estado en Pinia
   // (Ajusta 'userRole' al nombre exacto de la variable en tu state o getter)
-  const userRole = authStore.user.rol_id
-  console.log(authStore.user.rol.name)
+  const userRole = authStore.user?.rol?.name || 'Propietario'
 
-  // 4. Verificas si la ruta tiene restricciones de roles
-  if (to.meta.roles && !to.meta.roles.includes(userRole)) {
+  console.log(userRole)
+
+  if(!(to.meta.roles)){
+    return next()
+
+  }
+  if (to.meta.roles && !to.meta.roles.includes(userRole.toLowerCase())) {
     console.warn(`Acceso denegado: El rol ${userRole} no tiene permisos.`)
 
     // Rediriges a una ruta segura (puedes mandarlo al home, a un 403, etc.)
     return next({ name: 'dashboardAdmin' })
   }
-
+  
   // 5. Si tiene el rol correcto, permite el paso
   return next()
 }

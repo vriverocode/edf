@@ -54,6 +54,15 @@
   position: absolute;
   opacity: 0;
 }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 1s ease; /* Puedes ajustar el 0.4s a la velocidad que prefieras */
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0.3;
+}
 
 .boxItem {
   border-radius: 0.8rem;
@@ -84,6 +93,54 @@
   font-weight: 500;
   font-size: 0.95rem;
 }
+
+
+/* Contenedor principal */
+.app-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden; /* Evita el scroll durante la animación */
+}
+
+/* Todas las páginas deben compartir esta clase */
+/* 2. Clase maestra para los Layouts: Obliga a las pantallas a superponerse */
+.pageComponent {
+  position: absolute; /* CRUCIAL: Permite que se encimen */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff; /* Evita que las pantallas actúen como cristales transparentes */
+  backface-visibility: hidden; /* Aceleración por tarjeta gráfica */
+}
+
+
+/* 3. Lógica de animación: Tiempos y suavizado */
+.slide-up-enter-active,
+.slide-up-leave-active,
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: transform 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* =========================================
+   HACIA ADELANTE (Login -> Panel)
+   ========================================= */
+.slide-up-enter-active { z-index: 20; } /* El panel tiene prioridad visual */
+.slide-up-leave-active { z-index: 1; }  /* El login se queda en el fondo */
+
+.slide-up-enter-from { transform: translateY(100%); }
+.slide-up-leave-to { transform: translateY(-5%); } /* El login se hunde muy ligeramente */
+
+/* =========================================
+   HACIA ATRÁS (Panel -> Login)
+   ========================================= */
+.slide-down-enter-active { z-index: 1; }   /* El login reaparece desde el fondo */
+.slide-down-leave-active { z-index: 20; }  /* El panel viejo cae por encima */
+
+.slide-down-leave-to { transform: translateY(100%); }
+.slide-down-enter-from { transform: translateY(-5%); }
 
 @media (max-width: 780px) {
   .boxItem {

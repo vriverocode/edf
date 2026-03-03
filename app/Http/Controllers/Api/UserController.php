@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use Exception;
+use App\Models\Rol;
 use App\Models\User;
 use App\Models\Notice;
 use App\Models\Booking;
 use App\Models\Departament;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\PeoplesXDepartaments;
 use Illuminate\Support\Facades\Validator;
 use App\Notifications\RealtimeNotification;
 
@@ -23,6 +25,8 @@ class UserController extends Controller
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);
         }
+
+
         $user = User::create([
             'name'      =>  $request->name,
             'email'     =>  $request->email,
@@ -30,15 +34,29 @@ class UserController extends Controller
             'phone'     =>  $request->phone,
             'password'  =>  bcrypt($request->password) ,
             'rol_id'    =>  $request->idRol,
+            'parentesco' =>  $request->parentesco ?? null,
+            'active_time' =>  $request->active_time ?? null,
         ]);
 
+        
+
+
+        return $this->returnSuccess(200, 'ok');
+    }
+    private function afteSaveUser($user, $request){
         if ($request->idApartament != 0) {
             Departament::find($request->idApartament)->update([
                 'user_id' => $user->id
             ]);
         }
-
-        return $this->returnSuccess(200, 'ok');
+        if($request->user()->rol_id == Rol::PROPIETARIO){
+            PeoplesXDepartaments::create([
+                'user_id' => $user->id,
+                'departament_id' => $request->idApartament,
+                'type' => $request->idRol ,
+                'created_by' => $request->user()->id
+            ]);
+        }
     }
 
     public function getOwners(Request $request)

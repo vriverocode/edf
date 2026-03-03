@@ -19,7 +19,8 @@ const routes = [
         path:'/login',
         component: () => import('@/view/auth/login.vue'),
         meta:{
-          title: 'Bienvenido'
+          title: 'Bienvenido',
+          depth: 0,
         }
       },
       {
@@ -43,7 +44,9 @@ const routes = [
         beforeEnter: auth,
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Dashboard'
+          pagTitle: 'Dashboard',
+          depth: 1,
+          roles: ['admin', 'super-admin', 'propietario'],
         }
       },
       {
@@ -54,7 +57,8 @@ const routes = [
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Usuarios',
-          roles: ['admin', 'super-admin']
+          roles: ['admin', 'super-admin'],
+          depth: 1,
         }
       },
       {
@@ -64,7 +68,9 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Finanzas'
+          pagTitle: 'Finanzas',
+          roles: ['admin', 'super-admin', 'propietario'],
+          depth: 1,
         }
       },
       // {
@@ -84,7 +90,9 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Reservas'
+          pagTitle: 'Reservas',
+          depth: 2,
+          roles: ['admin', 'super-admin'],
         }
       },
       {
@@ -94,7 +102,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Banlances'
+          pagTitle: 'Banlances',
+          depth: 2,
         }
       },
       // {
@@ -114,7 +123,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Usuarios'
+          pagTitle: 'Usuarios',
+          depth: 2,
         }
       },
       {
@@ -124,7 +134,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Apartamentos'
+          pagTitle: 'Apartamentos',
+          depth: 2,
         }
       },
       {
@@ -134,7 +145,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Areas comunes'
+          pagTitle: 'Areas comunes',
+          depth: 2,
         }
       },
 
@@ -145,7 +157,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Crear Usuario'
+          pagTitle: 'Crear Usuario',
+          depth: 3,
         }
       },
       {
@@ -155,7 +168,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Asignar Apartamento'
+          pagTitle: 'Asignar Apartamento',
+          depth: 3,
         }
       },
       {
@@ -165,7 +179,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Agregar apartamento'
+          pagTitle: 'Agregar apartamento',
+          depth: 3,
         }
       },
       {
@@ -175,7 +190,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Agregar area común'
+          pagTitle: 'Agregar area común',
+          depth: 3,
         }
       },
       {
@@ -185,7 +201,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Editar area común'
+          pagTitle: 'Editar area común',
+          depth: 3,
         }
       },
       {
@@ -195,7 +212,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Lista de reservaciones'
+          pagTitle: 'Lista de reservaciones',
+          depth: 3,
         }
       },
       {
@@ -205,7 +223,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Validar pago'
+          pagTitle: 'Validar pago',
+          depth: 3,
         }
       },
       {
@@ -215,7 +234,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Noticas/Anuncios'
+          pagTitle: 'Noticas/Anuncios',
+          depth: 2,
         }
       },
       {
@@ -225,7 +245,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Eventos'
+          pagTitle: 'Eventos',
+          depth: 2,
         }
       },
       {
@@ -235,7 +256,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Detalles de evento'
+          pagTitle: 'Detalles de evento',
+          depth: 2,
         }
       },
       {
@@ -245,7 +267,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Crear evento'
+          pagTitle: 'Crear evento',
+          depth: 3,
         }
       },
       {
@@ -255,7 +278,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Editar evento'
+          pagTitle: 'Editar evento',
+          depth: 3,
         }
       },
       
@@ -269,7 +293,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Reservas'
+          pagTitle: 'Reservas',
+          depth: 2,
         }
       },
       {
@@ -279,7 +304,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Reservas'
+          pagTitle: 'Reservas',
+          depth: 3,
         }
       },
       {
@@ -289,7 +315,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Reservas realizada'
+          pagTitle: 'Reservas realizada',
+          depth: 3,
         }
       },
       {
@@ -299,7 +326,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Realiza el pago'
+          pagTitle: 'Realiza el pago',
+          depth: 3,
         }
       },
       {
@@ -309,7 +337,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Pago realizado!'
+          pagTitle: 'Pago realizado!',
+          depth: 3,
         }
       },
       {
@@ -319,7 +348,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Detalles de reserva'
+          pagTitle: 'Detalles de reserva',
+          depth: 3,
         }
       },
       {
@@ -329,7 +359,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Notificaciones'
+          pagTitle: 'Notificaciones',
+          depth: 2,
         }
       },
       {
@@ -339,7 +370,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Historial de pagos'
+          pagTitle: 'Historial de pagos',
+          depth: 2,
         }
       },
       {
@@ -349,7 +381,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Gestion de apartamento'
+          pagTitle: 'Gestion de apartamento',
+          depth: 3,
         }
       },
       {
@@ -359,7 +392,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Gestion de apartamento'
+          pagTitle: 'Gestion de apartamento',
+          depth: 3,
         }
       },
       {
@@ -369,7 +403,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Balance de pagos'
+          pagTitle: 'Balance de pagos',
+          depth: 2,
         }
       },
       {
@@ -380,7 +415,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Realiza el pago'
+          pagTitle: 'Realiza el pago',
+          depth: 3,
         }
       },
       {
@@ -390,7 +426,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Detalles de cuota'
+          pagTitle: 'Detalles de cuota',
+          depth: 3,
         }
       },
       {
@@ -400,7 +437,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Panel informativo'
+          pagTitle: 'Panel informativo',
+          depth: 2,
         }
       },
       {
@@ -410,7 +448,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Información'
+          pagTitle: 'Información',
+          depth: 3,
         }
       },
       {
@@ -420,7 +459,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Eventos'
+          pagTitle: 'Eventos',
+          depth: 2,
         }
       },
       {
@@ -430,7 +470,8 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Detalles de evento'
+          pagTitle: 'Detalles de evento',
+          depth: 3,
         }
       },
       
@@ -443,7 +484,8 @@ const routes = [
     name: '404',
     meta: {
       title: 'Página no encontrada',
-      pagTitle: '404'
+      pagTitle: '404',
+      depth: 5,
     }
   }
 ]

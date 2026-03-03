@@ -60,8 +60,8 @@
             "Composer\\Config::disableProcessTimeout",
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"npm run dev\" --names='server,queue,vite'"
         ],
-        "devx": [
-            "@php artisan serve --host 10.10.10.69 --port 8030"
+        "dev2": [
+            "@php artisan serve --host 192.168.1.198 --port 8030"
         ],
         "dev-home": [
             "@php artisan serve --host 192.168.31.20 --port 8030"

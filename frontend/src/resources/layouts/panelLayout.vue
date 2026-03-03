@@ -11,7 +11,7 @@ import logoutModal from '@/components/layout/logoutModal.vue';
 import storage from '@/services/storage'
 import { useNotificationsStore } from '@/services/store/notifications.store'
 import { useQuasar } from 'quasar'
-import { PushNotificationsService } from '@/services/notifications_push/PushNotifications';
+import { PushNotificationsService } from '@/services/notifications_push/pushNotifications';
 
 const router = useRouter()
 const route = useRoute()
@@ -23,6 +23,7 @@ const notificationsStore = useNotificationsStore()
 const $q = useQuasar()
 const prevUnread = ref(0)
 const lastShownId = ref(null)
+const transitionName = ref('slide-up');
 const goBack = () => {
   router.go(-1)
 }
@@ -52,6 +53,16 @@ const getNotifications = () => {
   notificationsStore.bindEchoListener(user.value.id)
 
 }
+const isShowablePage = () => {
+  return (['reserveConfirm', 'reservePay', 'reservePayConfirm', 'quotaPay'].includes(route.name))
+}
+const showNavbar = () => {
+  return ['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)
+}
+const showBack = () => {
+  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'reservePay', 'quotaPay'].includes(route.name))
+}
+
 watch(() => notificationsStore.unreadCount, (newVal, oldVal) => {
   prevUnread.value = newVal
 })
@@ -80,19 +91,19 @@ watch(() => notificationsStore.lastIncoming, (notif) => {
     position: 'top-right'
   })
 })
-const isShowablePage = () => {
-  return (['reserveConfirm', 'reservePay', 'reservePayConfirm', 'quotaPay'].includes(route.name))
-}
-const showNavbar = () => {
-  return ['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)
-}
-const showBack = () => {
-  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'reservePay', 'quotaPay'].includes(route.name))
-}
+
+
+watch(
+  () => route.meta.depth,
+  (toDepth, fromDepth) => {
+    transitionName.value = toDepth > fromDepth ? 'slide-up' : 'slide-down';
+  }
+);
+
 </script>
 
 <template>
-  <div class="h-full bg-white w-full pt-8" style="position: relative; overflow: hidden;">
+  <div class="h-full bg-white w-full pt-2 h-full min-h-screen " style="overflow: hidden;">
     <template v-if="ready">
       <headerLayout class="header__container" v-if="!isShowablePage()" />
       <section :class="{
@@ -100,20 +111,20 @@ const showBack = () => {
         'page__container': showNavbar(),
         'page_continerFull': !showNavbar()
       }">
-        <transition name="horizontal">
-          <div class="md:px-28 md:mx-28">
-            <div class="backButton  flex items-center pt-4 px-4 w-max" v-if="showBack()" @click="goBack()">
-              <q-btn outline round color="backButton" icon="eva-arrow-back-outline" />
-              <div class="ml-2 backButton-text">REGRESAR</div>
-            </div>
+        <div class="row w-full backButton items-center" v-if="showBack()" @click="goBack()">
+          <div class="flex items-center">
+            <q-btn round outline class="text-backButton" icon="eva-arrow-back-outline" />
+            <div class="ml-2 backButton-text">REGRESAR</div>
           </div>
-        </transition>
-        <router-view v-slot="{ Component }">
-          <transition name="horizontal">
-            <component :is="Component"
-              :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }" />
-          </transition>
-        </router-view>
+        </div>
+        
+        <div class="relative w-full overflow-hidden" :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }">
+          <router-view v-slot="{ Component }">
+            <transition :name="transitionName">
+                <component :is="Component" class="inner-page-component" />
+            </transition>
+          </router-view>
+        </div>
       </section>
       <navbarAdmin v-if="['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)"
         @logoutModal="showModal = 'logout'" />
@@ -126,6 +137,25 @@ const showBack = () => {
 </template>
 
 <style lang="scss">
+.inner-page-component {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff; /* Fijo para que no se traslapen las vistas */
+  
+  /* CRUCIAL PARA EL SCROLL */
+  overflow-y: auto; 
+  overflow-x: hidden;
+  
+  /* Hardware acceleration para que la animación fluya mientras haces scroll */
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  
+  /* Opcional: añade un padding inferior para que el contenido no quede tapado por tu navbarAdmin */
+  padding-bottom: 80px; 
+}
 .page_continerContent {
   height: 90%;
 }
