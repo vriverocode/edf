@@ -53,29 +53,8 @@ onMounted(() => {
 
 <template>
     <div class="h-full" style="overflow: auto;">
-        <div class="flex mt-5 justify-between  md:mx-auto items-center md:w-2/6 bg-primary mx-4 "
-            style=" height: 2.8rem; overflow: hidden;border-radius: 0.7rem; ">
-            <div class="text-subtitle1 text-bold text-white text-center bg-primary tabItem leftItem"
-                @click="changeTab('users')" :class="{ 'active': tabActive == 'users' }" style="width: calc(50% - 1px);">
-                Usuarios
-            </div>
-            <div style="height: 100%; width: 2px; background: lightcyan; width: 2px;" />
-            <div class="text-subtitle1 text-bold text-white text-center bg-primary tabItem rightItem"
-                @click="changeTab('admin')" :class="{ 'active': tabActive == 'admin' }" style="width: calc(50% - 1px);">
-                Administradores</div>
-        </div>
-        <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6">
-            <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton " style="border-radius: 0.5rem;"
-                @click="goTo('/admin/users/form/add')">
-                <div class="flex items-center py-1">
-                    <q-icon name="eva-plus-outline" />
-                    <div class="q-pt-xs text-bold pl-1">
-                        Crear nuevo usuario
-                    </div>
-                </div>
-            </q-btn>
-        </div>
-        <div class="mt-4 md:mt-8">
+        
+        <div class="mt-4 md:mt-8" style="height:85%">
             <div class="px-4 md:mx-24 md:pr-12">
                 <div v-for="user in users" :key="user.id"
                     class="md:py-4 py-3 mb-5 userListContainer flex items-center justify-between">
@@ -157,6 +136,17 @@ onMounted(() => {
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6" style="height:10%">
+            <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton " style="border-radius: 0.5rem;"
+                @click="goTo('/admin/users/form/add')">
+                <div class="flex items-center py-1">
+                    <q-icon name="eva-plus-outline" />
+                    <div class="q-pt-xs text-bold pl-1">
+                        Registrar familiar
+                    </div>
+                </div>
+            </q-btn>
         </div>
     </div>
 </template>

@@ -37,26 +37,25 @@ class UserController extends Controller
             'parentesco' =>  $request->parentesco ?? null,
             'active_time' =>  $request->active_time ?? null,
         ]);
-
-        
-
-
+        $this->afteSaveUser($user, $request);
         return $this->returnSuccess(200, 'ok');
     }
     private function afteSaveUser($user, $request){
-        if ($request->idApartament != 0) {
+        if ($request->idApartament != 0 && $request->user()->rol_id == Rol::ADMIN) {
             Departament::find($request->idApartament)->update([
                 'user_id' => $user->id
             ]);
         }
+
         if($request->user()->rol_id == Rol::PROPIETARIO){
             PeoplesXDepartaments::create([
                 'user_id' => $user->id,
                 'departament_id' => $request->idApartament,
-                'type' => $request->idRol ,
+                'type' => $request->idRol == Rol::INQUILINO ? Rol::INQUILINO : Rol::AIRBNB,
                 'created_by' => $request->user()->id
             ]);
         }
+
     }
 
     public function getOwners(Request $request)

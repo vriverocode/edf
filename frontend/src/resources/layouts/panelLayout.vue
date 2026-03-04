@@ -105,13 +105,13 @@ watch(
 <template>
   <div class="h-full bg-white w-full pt-2 h-full min-h-screen " style="overflow: hidden;">
     <template v-if="ready">
-      <headerLayout class="header__container" v-if="!isShowablePage()" />
+      <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
       <section :class="{
         'withoutNav': isShowablePage(),
         'page__container': showNavbar(),
         'page_continerFull': !showNavbar()
       }">
-        <div class="row w-full backButton items-center" v-if="showBack()" @click="goBack()">
+        <div class="row w-full backButton items-center px-2" v-if="showBack()" @click="goBack()">
           <div class="flex items-center">
             <q-btn round outline class="text-backButton" icon="eva-arrow-back-outline" />
             <div class="ml-2 backButton-text">REGRESAR</div>
@@ -153,8 +153,7 @@ watch(
   backface-visibility: hidden;
   transform: translateZ(0);
   
-  /* Opcional: añade un padding inferior para que el contenido no quede tapado por tu navbarAdmin */
-  padding-bottom: 80px; 
+
 }
 .page_continerContent {
   height: 90%;

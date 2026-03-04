@@ -20,7 +20,7 @@ const routes = [
         component: () => import('@/view/auth/login.vue'),
         meta:{
           title: 'Bienvenido',
-          depth: 0,
+          depth: -1,
         }
       },
       {
@@ -45,7 +45,7 @@ const routes = [
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Dashboard',
-          depth: 1,
+          depth: 0,
           roles: ['admin', 'super-admin', 'propietario'],
         }
       },
@@ -371,7 +371,7 @@ const routes = [
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Historial de pagos',
-          depth: 2,
+          depth: 3,
         }
       },
       {
@@ -382,7 +382,7 @@ const routes = [
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Gestion de apartamento',
-          depth: 3,
+          depth: 2,
         }
       },
       {
@@ -404,7 +404,7 @@ const routes = [
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Balance de pagos',
-          depth: 2,
+          depth: 3,
         }
       },
       {
@@ -471,6 +471,17 @@ const routes = [
         meta:{
           title: 'Bienvenido',
           pagTitle: 'Detalles de evento',
+          depth: 3,
+        }
+      },
+      {
+        path: '/client/familiar/list',
+        component: () => import('@/view/client/Familiar/familiarList.vue'),
+        name:'familiarList',
+        beforeEnter: [auth, role],
+        meta:{
+          title: 'Bienvenido',
+          pagTitle: 'Familiares/Habitantes',
           depth: 3,
         }
       },

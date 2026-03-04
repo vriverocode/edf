@@ -38,6 +38,7 @@ const loading = ref(false)
 const disable = ref(true)
 const materialIcons = inject('materialIcons')
 const toPay = ref({})
+const transitionName = ref('horizontal');
 const typePay = () => {
 
   return ['quotaPay'].includes(route.name) ? 'quota' : 'reserve'
@@ -223,13 +224,15 @@ const dataToForm = () => {
 onMounted(() => {
   getToPay()
 })
+
+
 </script>
 <template>
   <div class="pay-form-page h-full md:px-28">
     <q-form @submit="nextStep()" class="h-full">
       <template v-if="ready">
         <div class="pay-form-body">
-          <Transition name="horizontal">
+          <Transition :name="transitionName">
             <div v-if="step === 1" class="pay-form-step1">
               <div class="pay-form-back" @click="stepBack()">
                 <div class="pay-form-back__circle">
@@ -263,7 +266,7 @@ onMounted(() => {
               </q-btn>
             </div>
           </Transition>
-          <Transition name="horizontal">
+          <Transition :name="transitionName">
             <div v-if="step === 2" class="pay-form-step2 h-full md:pt-5" style="overflow: auto;">
               <div class="pay-form-back mb-4" @click="stepBack()">
                 <div class="pay-form-back__circle">
@@ -332,7 +335,7 @@ onMounted(() => {
               </div>
             </div>
           </Transition>
-          <Transition name="horizontal">
+          <Transition :name="transitionName">
             <div v-if="step === 3" class="pay-form-step3 h-full md:pt-5">
               <div class="pay-form-back mb-4" @click="stepBack()">
                 <div class="pay-form-back__circle">

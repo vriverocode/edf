@@ -18,6 +18,7 @@ Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotificatio
 
 Route::middleware('auth:sanctum')->post('/token-movile', [UserController::class, 'saveTokenMovile']);
 Route::middleware('auth:sanctum')->group(function () {
+    //--- Login/Auth ---
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         return $request->user()->load('rol');
@@ -26,6 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('users')->name('user.')->group(function () {
         Route::get('/', [UserController::class, 'getOwners']);
         Route::post('/', [UserController::class, 'store'])->middleware('role:admin,propietario');
+        Route::post('/byPropietario', [UserController::class, 'store'])->middleware('role:propietario');
+
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment'])->middleware('role:admin');
         Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin'])->middleware('role:admin');
         Route::get('/with-publish', [UserController::class, 'getAllUserWithPublish'])->middleware('role:admin');

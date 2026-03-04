@@ -30,6 +30,34 @@
   opacity: 0;
 }
 
+.horizontalBack-enter-active,
+.horizontalBack-leave-active {
+  transition: all 0.5s ease;
+  opacity: 1;
+  width: 100%;
+}
+
+.horizontalBack-enter-active{
+  transform: translatex(0px);
+  transition: all 0.5s ease;
+}
+.horizontalBack-leave-active{
+  transition: all 0.5s ease;
+  transform: translatex(0px);
+}
+.horizontalBack-leave-to {
+  transition: all 0.5s ease;
+  position: absolute;
+  transform: translatex(200px);
+  opacity: 0;
+}
+.horizontalBack-enter-from {
+  transition: all 0.5s ease;
+  transform: translatex(-300px);
+  position: absolute;
+  opacity: 0;
+}
+
 .horizontalPage-enter-active,
 .horizontalPage-leave-active {
   transition: all 0.8s ease;
@@ -131,7 +159,7 @@
 .slide-up-leave-active { z-index: 1; }  /* El login se queda en el fondo */
 
 .slide-up-enter-from { transform: translateY(100%); }
-.slide-up-leave-to { transform: translateY(-5%); } /* El login se hunde muy ligeramente */
+.slide-up-leave-to { transform: translateY(0%); } /* El login se hunde muy ligeramente */
 
 /* =========================================
    HACIA ATRÁS (Panel -> Login)
@@ -140,8 +168,62 @@
 .slide-down-leave-active { z-index: 20; }  /* El panel viejo cae por encima */
 
 .slide-down-leave-to { transform: translateY(100%); }
-.slide-down-enter-from { transform: translateY(-5%); }
+.slide-down-enter-from { transform: translateY(0%); }
 
+/* Contenedor del formulario (Asegúrate de que tus pasos estén aquí dentro) */
+.form-steps-container {
+  position: relative;
+  width: 100%;
+  min-height: 400px; /* Ajusta según el alto de tu form */
+  overflow: hidden;
+}
+
+/* Clase base para cada paso del formulario */
+.form-step {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* =========================================
+   AVANZAR (slide-next): De Derecha a Izquierda
+   ========================================= */
+.slide-next-enter-active,
+.slide-next-leave-active {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
+}
+
+.slide-next-enter-from {
+  transform: translateX(100%); /* Entra desde la derecha */
+  opacity: 0;
+}
+
+.slide-next-leave-to {
+  transform: translateX(-100%); /* Sale hacia la izquierda */
+  opacity: 0;
+}
+
+/* =========================================
+   RETROCEDER (slide-prev): De Izquierda a Derecha
+   ========================================= */
+.slide-prev-enter-active,
+.slide-prev-leave-active {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
+}
+
+.slide-prev-enter-from {
+  transform: translateX(-100%); /* Entra desde la izquierda */
+  opacity: 0;
+}
+
+.slide-prev-leave-to {
+  transform: translateX(100%); /* Sale hacia la derecha */
+  opacity: 0;
+}
 @media (max-width: 780px) {
   .boxItem {
     height: 6rem;

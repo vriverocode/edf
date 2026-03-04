@@ -11,8 +11,6 @@ export default function role(to, from, next) {
   // (Ajusta 'userRole' al nombre exacto de la variable en tu state o getter)
   const userRole = authStore.user?.rol?.name || 'Propietario'
 
-  console.log(userRole)
-
   if(!(to.meta.roles)){
     return next()
 

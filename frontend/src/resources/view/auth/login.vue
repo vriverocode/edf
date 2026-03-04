@@ -130,7 +130,7 @@ const endTutorial = () => {
       <q-dialog v-model="error">
         <q-card class="">
           <q-card-section>
-            <div class="text-h6">errorss</div>
+            <div class="text-h6">errors</div>
           </q-card-section>
           <q-card-section class="q-pt-none text-red-500">
             {{ errorMessage }}

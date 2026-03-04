@@ -48,7 +48,7 @@ watch(
 );
 </script>
 <template>
-  <q-layout view="hHh lpR fFf " class="app-container ">
+  <q-layout view="hHh lpR fFf" class="app-container">
     <router-view class="appMobile " v-slot="{ Component }">
       <transition :name="transitionName">
         <component :is="Component" class="pageComponent" />

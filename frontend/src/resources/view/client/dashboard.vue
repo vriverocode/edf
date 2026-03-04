@@ -56,7 +56,7 @@ const menu = [
   {
     title: 'Familiares',
     icon: atencion,
-    link: '/client/services/list',
+    link: '/client/familiar/list',
   }, 
 ];
 const menuByRol = computed(() => {

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, inject } from 'vue';
+import { onMounted, ref, inject, watch } from 'vue';
 import { Notify } from 'quasar'
 import { useRouter, useRoute } from 'vue-router';
 import { useComunAreaStore } from '@/services/store/comunArea.store';
@@ -27,6 +27,7 @@ const disabledTime = ref(true)
 const ready = ref(false)
 const loading = ref(false)
 const step = ref(1)
+const transitionName = ref('slide-next');
 const formData = ref({
   date: '',
   time_from: '',
@@ -181,13 +182,19 @@ onMounted(() => {
   getComunsArea()
 })
 
+watch(step,
+  (toDepth, fromDepth) => {
+    console.log(toDepth)
+    transitionName.value = toDepth > fromDepth ? 'slide-next' : 'slide-prev';
+  }
+);
 </script>
 <template>
   <div class="md:px-20 md:mx-16  h-full " style="overflow: hidden; position: relative;">
     <div class="h-full" v-if="ready">
       <q-form @submit="nextStep()" class="h-full ">
-        <Transition name="horizontal">
-          <div class="px-3 pt-5" v-if="step == 1">
+        <Transition :name="transitionName">
+          <div class="px-3 pt-5 form-step" v-if="step == 1">
             <div v-for="comunArea in comunAreas" class="row selectAreaItem items-center mb-5 px-4 md:px-5 md:py-5 py-3"
               :key="comunArea.id" @click="selectArea(comunArea.id)">
               <div class="col-10">
@@ -209,12 +216,11 @@ onMounted(() => {
             </div>
           </div>
         </Transition>
-        <Transition name="horizontal">
-          <div class="h-full " style="overflow: hidden;" v-if="step > 1">
-
+        <Transition :name="transitionName">
+          <div class="h-full form-step" style="overflow: hidden;" v-if="step > 1">
             <div class=" w-full h-full ">
               <div style="height: 84%; overflow: auto;" class="pb-5">
-                <div class="row w-full pt-5">
+                <div class="row w-full pt-2">
                   <div class="col-12 px-3">
                     <div class="w-full row selectAreaItem items-center mb-5 pr-4 pl-2 md:px-4 py-2">
                       <div class="text-subtitle1 text-black q-pt-xs col-10 pl-1"
@@ -409,6 +415,13 @@ onMounted(() => {
   </div>
 </template>
 <style lang="scss">
+.form-step {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+
+}
 .q-date__navigation,
 .q-time__clock-position {
   color: black;
