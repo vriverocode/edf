@@ -18,12 +18,13 @@ class EnsureUserHasRole
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
+        $roleName = strtolower($user->rol->name);
 
         if (! $user) {
             return response()->json(['message' => 'No autenticado.'], 401);
         }
 
-        $allowed = array_map('trim', $roles);
+        $allowed = array_map('trim', $roles) ;
         $allowed = array_filter($allowed);
 
         if (empty($allowed)) {
@@ -39,7 +40,7 @@ class EnsureUserHasRole
             }
         } else {
             $user->loadMissing('rol');
-            if ($user->rol && in_array($user->rol->name, $allowed, true)) {
+            if ($user->rol && in_array($roleName, $allowed, true)) {
                 return $next($request);
             }
         }

@@ -13,11 +13,14 @@ return new class extends Migration
     {
         Schema::create('rules', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('code');
+            $table->string('title');
             $table->string('description');
-            $table->string('number');
             $table->string('punish');
             $table->integer('type');
+            $table->integer('severity');
+            $table->integer('active');
+            $table->double('suggest_amount');
             $table->timestamps();
             $table->softDeletes();
         });

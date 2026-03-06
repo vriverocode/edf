@@ -190,12 +190,22 @@ watch(step,
 );
 </script>
 <template>
-  <div class="md:px-20 md:mx-16  h-full " style="overflow: hidden; position: relative;">
-    <div class="h-full" v-if="ready">
+  <div class=" h-full " style="overflow: hidden; position: relative;">
+    <div class="h-full md:px-20 md:mx-16 " v-if="ready">
       <q-form @submit="nextStep()" class="h-full ">
         <Transition :name="transitionName">
-          <div class="px-3 pt-5 form-step" v-if="step == 1">
-            <div v-for="comunArea in comunAreas" class="row selectAreaItem items-center mb-5 px-4 md:px-5 md:py-5 py-3"
+          <div class="px-3 form-step row" v-if="step == 1">
+            <div class="col-md-2 md:px-20 col-4 px-2 md:px-0 my-3" v-for="comunArea in comunAreas"  :key="comunArea.id">
+              <div class="boxItem_v2" @click="selectArea(comunArea.id)">
+                <div class="flex justify-center items-center h-full w-full p-1">
+                  <img :src="'http://192.168.1.198:8030/images/icons/'+comunArea.icon+'.svg'" alt="" style="height:100%">
+                </div>
+              </div>
+              <div class="text-center mt-1  text-title-squad text-ellipsis ellipsis ">
+                {{ comunArea.name}}
+              </div>
+            </div>
+            <!-- <div v-for="comunArea in comunAreas" class="row selectAreaItem items-center mb-5 px-4 md:px-5 md:py-5 py-3"
               :key="comunArea.id" @click="selectArea(comunArea.id)">
               <div class="col-10">
                 <div class="text-subtitle1 text-black q-mt-xs" style="line-height: 1.2; font-weight: 500;">
@@ -213,7 +223,7 @@ watch(step,
                 :class="{ 'text-positive': comunArea.pay_label == 'Gratis', 'text-primary': comunArea.pay_label == 'Pago' }">
                 {{ comunArea.pay_label }}
               </div>
-            </div>
+            </div> -->
           </div>
         </Transition>
         <Transition :name="transitionName">
@@ -223,7 +233,7 @@ watch(step,
                 <div class="row w-full pt-2">
                   <div class="col-12 px-3">
                     <div class="w-full row selectAreaItem items-center mb-5 pr-4 pl-2 md:px-4 py-2">
-                      <div class="text-subtitle1 text-black q-pt-xs col-10 pl-1"
+                      <div class="text-subtitle1 text-black q-pt-xs col-10 pl-2"
                         style="line-height: 1.2; font-weight: 500;">
                         {{ selectedComunArea.name }}
                       </div>
@@ -234,12 +244,14 @@ watch(step,
                         {{ selectedComunArea.pay_label }}
                       </div>
                       <div class="col-12 row mt-1">
-                        <div class="col-3 col-md-1 bg-primary  flex flex-center py-1" style=" border-radius: 0.5rem;">
-                          <div>
-                            <div v-html="iconsApp[selectedComunArea.icon]" />
+                        <div class="col-3 col-md-1   " style=" border-radius: 0.5rem;">
+                          <div class="boxItem_v2" style="height:5rem">
+                            <div class="flex justify-start items-center h-full w-full p-1">
+                              <img :src="'http://192.168.1.198:8030/images/icons/'+selectedComunArea.icon+'.svg'" alt="" style="height:100%">
+                            </div>
                           </div>
                         </div>
-                        <div class="col-8 pl-2">
+                        <div class="col-8">
                           <div class="q-mt-xs text-body2x text-black" style="font-weight: 500;">
                             Costo: S/{{ selectedComunArea.price }}
                             <i style="font-weight: 500;" v-if="selectedComunArea.warranty_price > 0">
@@ -474,7 +486,50 @@ watch(step,
     padding: 0px 1rem;
   }
 }
+.boxImgReserve {
+  border-radius: 0.8rem;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  // border: 2px solid rgb(3, 156, 195) ;
+  height: 7rem;
+  width: 15%;
+  margin: auto;
+  box-shadow: 0px 0.1rem 1rem 0px rgba(0, 0, 0, 0.205);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-color: #2d6fb5;
+  transition: all 0.7s ease-in-out;
+  cursor: pointer;
+
+  &:hover {
+    transform: scale(1.03);
+  }
+  & img{
+    height: 70%;
+  }
+}
+.boxItem_v2 {
+  border-radius: 0.8rem;
+  overflow: visible;
+  position: relative;
+  // border: 2px solid rgb(3, 156, 195) ;
+  width: 100%;
+  //box-shadow: 0px 0.1rem 1rem 0px rgba(0, 0, 0, 0.205);
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  transition: all 0.7s ease-in-out;
+  cursor: pointer;
+
+  &:hover {
+    transform: scale(1.03);
+  }
+}
 @media (max-width: 780px) {
+
   .buttonSection {
     box-shadow: 0px -5px 10px 0px rgb(207 207 207)
   }

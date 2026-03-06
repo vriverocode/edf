@@ -12,12 +12,12 @@ class ComunAreaController extends Controller
     //
     public function paginationAreas(Request $request)
     {
-        $comunAreas = ComunArea::withCount(["bookings", "bookingsToValidate"])->paginate(40);
+        $comunAreas = ComunArea::withCount(["bookings", "bookingsToValidate"])->orderBy('name', 'asc')->paginate(40);
         return $this->returnSuccess(200, $comunAreas);
     }
     public function getAll()
     {
-        $comunAreas = ComunArea::get();
+        $comunAreas = ComunArea::orderBy('name', 'asc')->get();
         return $this->returnSuccess(200, $comunAreas);
     }
     public function comunAreaById($id)
@@ -42,7 +42,8 @@ class ComunAreaController extends Controller
             'max_time_reserve' => $request->maxTime,
             'timeFrom' => $request->timeFrom,
             'timeTo' => $request->timeTo,
-            'rules' => htmlspecialchars($request->rules)
+            'rules' => htmlspecialchars($request->rules),
+            'icon' => $request->imageIcon
         ]);
 
         return $this->returnSuccess(200, 'ok');

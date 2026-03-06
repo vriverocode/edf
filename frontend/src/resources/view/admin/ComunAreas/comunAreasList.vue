@@ -77,9 +77,9 @@ onMounted(() => {
         <template v-if="comunAreas.length > 0">
           <div class="px-2 pt-3 mt-4  apartamentContainer relative" style="" v-for="comunArea in comunAreas"
             :key="comunArea.id">
-            <div class="flex items-center w-full pb-3">
-              <div class="imgItem__container w">
-                <div v-html="iconsApp.comunArea" class="flex flex-center px-0 h-full" />
+            <div class="flex items-center w-full pb-3 pt-2">
+              <div class="imgItem__container "> 
+                <img :src="'http://192.168.1.198:8030/images/icons/'+comunArea.icon+'.svg'" alt="">
               </div>
               <div class="px-2 infoItem">
                 <div class=" text-bold  text-black" style="font-weight: bold; font-size: 1.3rem;">
@@ -133,12 +133,10 @@ onMounted(() => {
             </div>
             <!-- <div class="itemBadge px-8 py-1" :class="{'bg-positive':!apartment.owner, 'bg-negative':apartment.owner}"> -->
             <div class="itemBadge md:px-7 px-4 py-1 bg-positive">
-
               Disponible
             </div>
           </div>
           <div class="flex justify-center mt-4">
-
             <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
               @update:model-value="getApartment()" />
           </div>
@@ -153,7 +151,6 @@ onMounted(() => {
             </div>
           </div>
         </template>
-
       </div>
       <div v-else class="flex flex-center py-24">
         <q-spinner-dots color="primary" size="7rem" />
@@ -188,12 +185,12 @@ onMounted(() => {
   // transform: rotate(45deg);
 }
 
-.imgItem__container {
+/*.imgItem__container {
   width: 4.2rem;
   height: 4.2rem;
   border-radius: 0.8rem;
   background: $primary;
-}
+}*/
 
 .infoItem {
   width: calc(100% - 4.2rem);
@@ -238,8 +235,36 @@ onMounted(() => {
 
   }
 }
+.imgItem__container {
+  border-radius: 0.8rem;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  // border: 2px solid rgb(3, 156, 195) ;
+  width: 4.2rem;
+  height: 4.2rem;
+  box-shadow: 0px 0.1rem 1rem 0px rgba(0, 0, 0, 0.205);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-color: #2d6fb5;
+  transition: all 0.7s ease-in-out;
+  cursor: pointer;
 
+  &:hover {
+    transform: scale(1.03);
+  }
+  & img{
+    height: 90%;
+  }
+}
 @media (max-width: 780px) {
+  .imgItem__container {
+    width: 4.2rem;
+    height: 4.2rem;
+
+  }
   .createButton {
     width: 100%;
   }

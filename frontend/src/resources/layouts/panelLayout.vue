@@ -111,8 +111,8 @@ watch(
         'page__container': showNavbar(),
         'page_continerFull': !showNavbar()
       }">
-        <div class="row w-full backButton items-center px-2" v-if="showBack()" @click="goBack()">
-          <div class="flex items-center">
+        <div class="row w-full backButton items-center px-2 md:px-20 md:mx-16 px-2" v-if="showBack()" >
+          <div class="flex items-center" @click="goBack()">
             <q-btn round outline class="text-backButton" icon="eva-arrow-back-outline" />
             <div class="ml-2 backButton-text">REGRESAR</div>
           </div>

@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\DepartamentController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\NoticeController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\RuleController;
+use App\Http\Controllers\Api\MultaController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
@@ -47,6 +49,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [ComunAreaController::class, 'storeArea'])->middleware('role:admin');
         Route::post('/u/{id}', [ComunAreaController::class, 'updateArea'])->middleware('role:admin');
         Route::post('/d/{id}', [ComunAreaController::class, 'deleteArea'])->middleware('role:admin');
+    });
+    Route::prefix('rules')->name('rule.')->group(function () {
+        Route::get('/', [RuleController::class, 'index']);
+        Route::get('/byId/{id}', [RuleController::class, 'ruleById']);
+        Route::post('/', [RuleController::class, 'store'])->middleware('role:admin');
+        Route::post('/u/{id}', [RuleController::class, 'update'])->middleware('role:admin');
+        Route::post('/d/{id}', [RuleController::class, 'deleteRule'])->middleware('role:admin');
+    });
+    Route::prefix('multas')->name('multa.')->group(function () {
+        Route::get('/', [MultaController::class, 'index']);
+        Route::get('/byId/{id}', [MultaController::class, 'multaById']);
+        Route::post('/', [MultaController::class, 'store'])->middleware('role:admin');
+        Route::post('/u/{id}', [MultaController::class, 'update'])->middleware('role:admin');
+        Route::post('/d/{id}', [MultaController::class, 'deleteMulta'])->middleware('role:admin');
     });
     Route::prefix('bookings')->name('booking.')->group(function () {
         Route::get('/', [BookingController::class, 'getBookingsByUser']);

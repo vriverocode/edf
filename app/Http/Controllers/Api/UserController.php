@@ -25,8 +25,6 @@ class UserController extends Controller
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);
         }
-
-
         $user = User::create([
             'name'      =>  $request->name,
             'email'     =>  $request->email,
@@ -48,16 +46,17 @@ class UserController extends Controller
         }
 
         if($request->user()->rol_id == Rol::PROPIETARIO){
-            PeoplesXDepartaments::create([
+            $people = PeoplesXDepartaments::create([
                 'user_id' => $user->id,
                 'departament_id' => $request->idApartament,
                 'type' => $request->idRol == Rol::INQUILINO ? Rol::INQUILINO : Rol::AIRBNB,
                 'created_by' => $request->user()->id
             ]);
+
+            $this->setAvailableComunAreaToReserve($people);
         }
 
     }
-
     public function getOwners(Request $request)
     {
         $dist =  $request->rol == 1 ? '!=' : '==';
@@ -152,5 +151,8 @@ class UserController extends Controller
             // Silenciar errores de notificación para no romper el flujo
         }
 
+    }
+    public function setAvailableComunAreaToReserve(){
+        
     }
 }
