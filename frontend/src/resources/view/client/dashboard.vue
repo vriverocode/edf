@@ -6,6 +6,7 @@ import anuncios from '@/assets/img/menu/anuncios.svg'
 import atencion from '@/assets/img/menu/atencion.svg'
 import mi_departamento from '@/assets/img/menu/mi_departamento.svg'
 import mis_reservas from '@/assets/img/menu/mis_reservas.svg'
+import defaulticon from '@/assets/img/menu/default-dash.svg'
 import pagos from '@/assets/img/menu/pagos.svg'
 import eventos from '@/assets/img/menu/eventos.svg'
 import { computed } from 'vue';
@@ -50,12 +51,12 @@ const menu = [
   },
   {
     title: 'Visitas',
-    icon: atencion,
+    icon: defaulticon,
     link: '/client/services/list',
   },
   {
     title: 'Familiares',
-    icon: atencion,
+    icon: defaulticon,
     link: '/client/familiar/list',
   }, 
 ];
@@ -77,7 +78,7 @@ const goTo = (url) => {
         <div class="px-3">
           <div class="boxItem " @click="goTo(items.link)" >
             <div class="flex justify-center items-center h-full w-full p-1">
-              <img :src="items.icon" class="w-full md:w-auto h-full" />
+              <img :src="items.icon" class="w-full md:w-auto h-full" :class="{'h-3/5': items.icon.includes('default-dash')}"/>
             </div>
           </div>
         </div>

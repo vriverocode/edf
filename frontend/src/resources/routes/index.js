@@ -481,10 +481,22 @@ const routes = [
         beforeEnter: [auth, role],
         meta:{
           title: 'Bienvenido',
-          pagTitle: 'Familiares/Habitantes',
+          pagTitle: 'Familiares / Habitantes / Airbnb',
           depth: 3,
         }
       },
+      {
+        path: '/client/visit/list',
+        component: () => import('@/view/client/Visits/visitsList.vue'),
+        name:'visitsList',
+        beforeEnter: [auth, role],
+        meta:{
+          title: 'Bienvenido',
+          pagTitle: 'Gestion de visitas',
+          depth: 3,
+        }
+      },
+      
       
     ]
   },

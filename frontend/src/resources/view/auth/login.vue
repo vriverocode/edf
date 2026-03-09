@@ -56,7 +56,7 @@ const authLogin = () => {
       }, 2000)
     })
     .catch((response) => {
-      showNotify('negative', response.status == 505 ? response.data.error : 'Error de conexión')
+      //showNotify('negative', response.status == 505 ? response.data.error : 'Error de conexión')
       loading.value = false;
       error.value = true
       // errorMessage.value = response
