@@ -53,6 +53,7 @@ const selectArea = (id) => {
 const hiddenModal = () => {
   dialog.value = false
 }
+const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
   getComunArea()
 })
@@ -80,7 +81,7 @@ onMounted(() => {
             <div class="flex items-center w-full pb-3 pt-2">
               <div class="imgItem__container ">
                 <img
-                  :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + comunArea.icon + '.svg'"
+                  :src="urlMedia+'/images/icons/' + comunArea.icon + '.svg'"
                   alt="">
               </div>
               <div class="px-2 infoItem">

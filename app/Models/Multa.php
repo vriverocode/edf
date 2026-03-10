@@ -17,4 +17,13 @@ class Multa extends Model
         'pay_id',
         'status',
     ];
+
+    public function rule()
+    {
+        return $this->belongsTo(Rule::class);
+    }
+    public function user()
+    {
+        return $this->belongsTo(Departament::class, 'departament_id', 'id');
+    }
 }

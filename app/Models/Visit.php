@@ -15,6 +15,8 @@ class Visit extends Model
         'dni',
         'type',
         'description',
+        'date',
+        'hour'
     ];
 
     public function departament()

@@ -4,8 +4,8 @@ import storage from '@/services/storage'
  * Service to call HTTP request via Axios
  */
 
-axios.defaults.withCredentials = true
-axios.defaults.withXSRFToken = true
+// axios.defaults.withCredentials = true
+// axios.defaults.withXSRFToken = true
 axios.defaults.baseURL = 'https://website-c67adca2.sfr.hrf.mybluehost.me'
 
 const ApiService = {
@@ -19,12 +19,8 @@ const ApiService = {
   
   setHeader() {
     
-    axios.defaults.headers.common[
-      "Authorization"
-    ] = `Bearer ${this.getToken()}`;
-    axios.defaults.headers.common[
-      "Accept"
-    ] = `application/json`;
+    axios.defaults.headers.common["Authorization"] = `Bearer ${this.getToken()}`;
+    axios.defaults.headers.common["Accept"] = `application/json`;
 
   },
 

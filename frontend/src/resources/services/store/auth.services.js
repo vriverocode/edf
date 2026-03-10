@@ -38,30 +38,47 @@ export const useAuthStore = defineStore('auth', {
       this.user = {};
     },
     async login(credentials) {
+      // return await new Promise((resolve, reject) => {
+      //   // ApiService.setHeader()
+      //   ApiService.get('/sanctum/csrf-cookie')
+      //   .then((response) => {
+      //     ApiService.post('/api/login', credentials)
+      //     .then(({data}) => {
+      //       if(!data.data.token){
+      //         throw data;
+      //       }
+      //       this.saveToken(data.data.token)
+
+      //       this.currentUser().then((res) => {
+      //         resolve(res)
+      //       })
+            
+      //     }).catch(({response}) =>{
+  
+      //       reject(response)
+      //     })
+      //   }).catch(({response}) =>{
+
+      //     reject(response)
+      //   })
+      // }) 
       return await new Promise((resolve, reject) => {
-        // ApiService.setHeader()
-        ApiService.get('/sanctum/csrf-cookie')
-        .then((response) => {
-          ApiService.post('/api/login', credentials)
+        // Elimina la llamada a ApiService.get('/sanctum/csrf-cookie')
+        ApiService.post('/api/login', credentials)
           .then(({data}) => {
             if(!data.data.token){
               throw data;
             }
-            this.saveToken(data.data.token)
-
+            // Aquí guardas el token de Sanctum generado por tu backend
+            this.saveToken(data.data.token) 
+    
             this.currentUser().then((res) => {
               resolve(res)
             })
-            
           }).catch(({response}) =>{
-  
             reject(response)
           })
-        }).catch(({response}) =>{
-
-          reject(response)
-        })
-      }) 
+      })
       .catch((response) => {
         return response
       })
@@ -87,7 +104,7 @@ export const useAuthStore = defineStore('auth', {
       })
       .catch(( response ) => {
         console.log(response)
-        reject('Error al obtener usuario');
+        return ('Error al obtener usuario');
       });
     },
     async logout(){

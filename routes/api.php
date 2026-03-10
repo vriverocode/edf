@@ -109,6 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::prefix('visits')->name('visit.')->group(function () {
         Route::get('/', [VisitController::class, 'getVisitsByUser']);
+        Route::post('/', [VisitController::class, 'storeVisit']);
     });
     Route::prefix('notices')->name('notice.')->group(function () {
         Route::get('/', [NoticeController::class, 'index']);

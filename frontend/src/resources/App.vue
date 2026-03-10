@@ -17,6 +17,10 @@ const $q = useQuasar()
 
 onMounted(async () => {
   $q.addressbarColor.set('#0e344c');
+  const setupStatusBar = async () => {
+  await StatusBar.setStyle({ style: Style.Light }); // O Dark
+  await StatusBar.setBackgroundColor({ color: '#0e344c' }); // Color de tu app
+};
   showSplash();
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {

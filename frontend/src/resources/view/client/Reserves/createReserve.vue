@@ -43,6 +43,7 @@ const temporal = ref([])
 const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
   nextStep()
+  console.log(selectedComunArea)
 }
 
 const backButton = () => {
@@ -177,7 +178,7 @@ const createReserve = () => {
 
     })
 }
-
+const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
   getComunsArea()
 })
@@ -199,7 +200,7 @@ watch(step,
               <div class="boxItem_v2 px-3" @click="selectArea(comunArea.id)">
                 <div class="flex justify-center items-center h-full w-full p-1">
                   <img
-                    :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + comunArea.icon + '.svg'"
+                    :src="mediaUrl+'/images/icons/' + comunArea.icon + '.svg'"
                     alt="" style="height:100%">
                 </div>
               </div>
@@ -207,31 +208,12 @@ watch(step,
                 {{ comunArea.name }}
               </div>
             </div>
-            <!-- <div v-for="comunArea in comunAreas" class="row selectAreaItem items-center mb-5 px-4 md:px-5 md:py-5 py-3"
-              :key="comunArea.id" @click="selectArea(comunArea.id)">
-              <div class="col-10">
-                <div class="text-subtitle1 text-black q-mt-xs" style="line-height: 1.2; font-weight: 500;">
-                  {{ comunArea.name }}
-                </div>
-                <div class="q-mt-xs text-body2 text-black" style="font-weight: 500;">
-                  Costo: S/{{ comunArea.price }}
-                  <i v-if="comunArea.warranty_price > 0">
-                    + S/{{ comunArea.warranty_price }}
-                    <span class="text-warning" style="font-size: 0.75rem;">garantia</span>
-                  </i>
-                </div>
-              </div>
-              <div class="col-2 text-bold text-end" style="font-size: 0.988rem;"
-                :class="{ 'text-positive': comunArea.pay_label == 'Gratis', 'text-primary': comunArea.pay_label == 'Pago' }">
-                {{ comunArea.pay_label }}
-              </div>
-            </div> -->
           </div>
         </Transition>
         <Transition :name="transitionName">
           <div class="h-full form-step" style="overflow: hidden;" v-if="step > 1">
             <div class=" w-full h-full ">
-              <div style="height: 84%; overflow: auto;" class="pb-5">
+              <div style="height: 81%; overflow: auto;" class="pb-5">
                 <div class="row w-full pt-2">
                   <div class="col-12 px-3">
                     <div class="w-full row selectAreaItem items-center mb-5 pr-4 pl-2 md:px-4 py-2">
@@ -250,13 +232,13 @@ watch(step,
                           <div class="boxItem_v2" style="height:5rem">
                             <div class="flex justify-start items-center h-full w-full p-1">
                               <img
-                                :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + selectedComunArea.icon + '.svg'"
+                                :src="mediaUrl+'/images/icons/' + selectedComunArea.icon + '.svg'"
                                 alt="" style="height:100%">
                             </div>
                           </div>
                         </div>
                         <div class="col-8">
-                          <div class="q-mt-xs text-body2x text-black" style="font-weight: 500;">
+                          <div class="q-mt-xs text-body2x text-black"  style="font-weight: 500;">
                             Costo: S/{{ selectedComunArea.price }}
                             <i style="font-weight: 500;" v-if="selectedComunArea.warranty_price > 0">
                               + S/{{ selectedComunArea.warranty_price }}
@@ -392,7 +374,7 @@ watch(step,
                   </template>
                 </div>
               </div>
-              <div style="height: 17%;" class="buttonSection">
+              <div style="height: 19%;" class="buttonSection">
                 <div class="row py-4 ">
                   <div class="col-12 pb-4 px-5">
                     <div class="w-full flex justify-between text-black">
@@ -401,22 +383,23 @@ watch(step,
                         selectedComunArea.warranty_price }}</div>
                     </div>
                   </div>
-
-                  <div class="col-6 flex flex-center ">
-                    <q-btn color="grey-8" class="" style="width: 90%; border-radius: 0.5rem;" @click="backButton()"
-                      v-if="step > 1">
-                      <div class="py-1 md:py-1">
-                        Volver
-                      </div>
-                    </q-btn>
-                  </div>
-                  <div class="col-6 flex flex-center">
-                    <q-btn color="primary" class="" style="width: 90%; border-radius: 0.5rem;" type="submit"
-                      :loading="loading">
-                      <div class="py-1 md:py-1">
-                        {{ step == 3 ? 'Guardar reserva' : 'Siguiente' }}
-                      </div>
-                    </q-btn>
+                  <div class=" col-12 row bottom-nav-content ">
+                    <div class="col-6 flex flex-center ">
+                      <q-btn color="grey-8" class="" style="width: 90%; border-radius: 0.5rem;" @click="backButton()"
+                        v-if="step > 1">
+                        <div class="py-1 md:py-1">
+                          Volver
+                        </div>
+                      </q-btn>
+                    </div>
+                    <div class="col-6 flex flex-center">
+                      <q-btn color="primary" class="" style="width: 90%; border-radius: 0.5rem;" type="submit"
+                        :loading="loading">
+                        <div class="py-1 md:py-1">
+                          {{ step == 3 ? 'Guardar reserva' : 'Siguiente' }}
+                        </div>
+                      </q-btn>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -431,6 +414,22 @@ watch(step,
   </div>
 </template>
 <style lang="scss">
+.bottom-nav-content {
+  position: fixed;
+  bottom:0.70rem;
+  width: 100%;
+  background: white;
+  display: flex;
+  justify-content: space-around;
+  
+  /* IMPORTANTE: Añadimos el margen inferior del sistema */
+  padding-bottom: var(--safe-area-bottom);
+  
+  /* Si quieres un poco más de aire extra: */
+  /* padding-bottom: calc(var(--safe-area-bottom) + 15px); */
+  
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
 .form-step {
   position: absolute;
   top: 0;
