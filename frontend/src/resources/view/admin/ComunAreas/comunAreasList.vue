@@ -79,7 +79,9 @@ onMounted(() => {
             :key="comunArea.id">
             <div class="flex items-center w-full pb-3 pt-2">
               <div class="imgItem__container ">
-                <img :src="'http://192.168.31.20:8030/images/icons/' + comunArea.icon + '.svg'" alt="">
+                <img
+                  :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + comunArea.icon + '.svg'"
+                  alt="">
               </div>
               <div class="px-2 infoItem">
                 <div class=" text-bold  text-black" style="font-weight: bold; font-size: 1.3rem;">

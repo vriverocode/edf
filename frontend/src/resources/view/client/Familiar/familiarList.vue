@@ -68,7 +68,6 @@ onMounted(() => {
                                 </div>
                                 <div class="flex justify-end  items-center pb-3 pt-1 pr-2 md:pr-5 ">
                                     <template v-if="item.user?.status == 2">
-
                                         <div>
                                             <div class="pt-1" v-html="iconsApp.cancelHouse" />
                                             <q-tooltip transition-show="flip-right" transition-hide="flip-left"
@@ -76,7 +75,6 @@ onMounted(() => {
                                                 Moroso
                                             </q-tooltip>
                                         </div>
-
                                     </template>
                                 </div>
                                 <div class="flex justify-end px-2 w-full pt-3 "

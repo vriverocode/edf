@@ -115,8 +115,9 @@ onMounted(() => {
                 <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0">
                   <div class="boxItem_list_v2">
                     <div class="flex justify-center items-center h-full w-full ">
-                      <img :src="'http://192.168.31.20:8030/images/icons/' + reserve.comun_area.icon + '.svg'" alt=""
-                        style="height:100%">
+                      <img
+                        :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + reserve.comun_area.icon + '.svg'"
+                        alt="" style="height:100%">
                     </div>
                   </div>
                 </div>

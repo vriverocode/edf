@@ -92,7 +92,9 @@ onMounted(() => {
             <div class="col-md-6 col-12 mt-1 mb-4 px-2 md:px-12">
 
               <div class="boxImgStore">
-                <img :src="'http://192.168.31.20:8030/images/icons/' + formData.icon.value + '.svg'" alt="">
+                <img
+                  :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + formData.icon.value + '.svg'"
+                  alt="">
               </div>
             </div>
             <div class="col-md-6 col-12 mt-1 mb-4 px-2 md:px-12">

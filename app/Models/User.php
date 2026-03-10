@@ -70,7 +70,7 @@ class User extends Authenticatable
 
         return $status[$this->status];
     }
-    public function apartments()
+    public function apartaments()
     {
         return $this->hasMany(Departament::class);
     }

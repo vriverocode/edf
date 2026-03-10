@@ -15,20 +15,24 @@ return [
     |
     */
 
-    'paths' => ['*'],
+  // config/cors.php
 
-    'allowed_methods' => ['*'],
+'paths' => ['*'],
 
-    'allowed_origins' => ['*'],
+'allowed_methods' => ['*'],
 
-    'allowed_origin_patterns' => ['*'], // ¡Añade esto!
+'allowed_origins' => [
+    '*', // Tu URL de Vue
+],
 
-    'allowed_headers' => ['*'],
+'allowed_origins_patterns' => [],
 
-    'exposed_headers' => [],
+'allowed_headers' => ['*'],
 
-    'max_age' => 0,
+'exposed_headers' => [],
 
-    'supports_credentials' => true,
+'max_age' => 0,
+
+'supports_credentials' => true, // ¡MUY IMPORTANTE! Debe estar en true para Sanctum
 
 ];

@@ -6,7 +6,7 @@ import storage from '@/services/storage'
 
 axios.defaults.withCredentials = true
 axios.defaults.withXSRFToken = true
-axios.defaults.baseURL = import.meta.env.VITE_LARAVEL_API_URL
+axios.defaults.baseURL = 'https://website-c67adca2.sfr.hrf.mybluehost.me'
 
 const ApiService = {
   

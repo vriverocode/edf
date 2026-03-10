@@ -198,8 +198,9 @@ watch(step,
             <div class="col-md-2 col-4 px-1 md:px-0 my-3" v-for="comunArea in comunAreas" :key="comunArea.id">
               <div class="boxItem_v2 px-3" @click="selectArea(comunArea.id)">
                 <div class="flex justify-center items-center h-full w-full p-1">
-                  <img :src="'http://192.168.31.20:8030/images/icons/' + comunArea.icon + '.svg'" alt=""
-                    style="height:100%">
+                  <img
+                    :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + comunArea.icon + '.svg'"
+                    alt="" style="height:100%">
                 </div>
               </div>
               <div class="text-center mt-1  text-title-squad text-ellipsis ellipsis ">
@@ -248,7 +249,8 @@ watch(step,
                         <div class="col-3 col-md-1   " style=" border-radius: 0.5rem;">
                           <div class="boxItem_v2" style="height:5rem">
                             <div class="flex justify-start items-center h-full w-full p-1">
-                              <img :src="'http://192.168.31.20:8030/images/icons/' + selectedComunArea.icon + '.svg'"
+                              <img
+                                :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + selectedComunArea.icon + '.svg'"
                                 alt="" style="height:100%">
                             </div>
                           </div>
