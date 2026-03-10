@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Margen superior (Barra de estado/Notch) */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  
+  /* Margen inferior (Barra de gestos/Home) */
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
 .horizontal-enter-active,
 .horizontal-leave-active {
   transition: all 0.5s ease;
@@ -223,6 +230,21 @@
 .slide-prev-leave-to {
   transform: translateX(100%); /* Sale hacia la derecha */
   opacity: 0;
+}
+.bottom-action-container {
+  /* Estilos generales de posicionamiento */
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+
+  /* SOLUCIÓN: Usar env() para safe areas inferior */
+  /* Usamos calc() para añadir un poco de padding estético (16px) además del inset del sistema */
+  /* El '0px' es un valor por defecto para navegadores de escritorio */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+
+  /* Estilos visuales del contenedor */
+  background-color: white; /* Asegura un fondo limpio para el safe area */
+  border-top: 1px solid #ccc; /* Separación sutil opcional */
 }
 @media (max-width: 780px) {
   .boxItem {

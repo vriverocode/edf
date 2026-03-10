@@ -31,11 +31,15 @@ onMounted(() => {
   if (emitter) emitter.on('logoutModal', () => { showModal.value = 'logout' })
   useAuthStore().currentUser()
     .then((response) => {
+
       if (user.value.rol_id) {
         ready.value = true
         getNotifications()
         PushNotificationsService.init();
+      }else{
+        throw response
       }
+
     })
     .catch(() => {
       console.log('ups')
@@ -60,7 +64,7 @@ const showNavbar = () => {
   return ['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)
 }
 const showBack = () => {
-  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'reservePay', 'quotaPay'].includes(route.name))
+  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'reservePay', 'quotaPay', 'reserveConfirm'].includes(route.name))
 }
 
 watch(() => notificationsStore.unreadCount, (newVal, oldVal) => {

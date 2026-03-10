@@ -69,7 +69,7 @@ const getPaymentAmount = (booking) => {
   }
   return 'Gratis';
 }
-
+const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
   getReserves();
 });
@@ -116,7 +116,7 @@ onMounted(() => {
                   <div class="boxItem_list_v2">
                     <div class="flex justify-center items-center h-full w-full ">
                       <img
-                        :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + reserve.comun_area.icon + '.svg'"
+                        :src="urlMedia+'/images/icons/' + (reserve.comun_area?.icon || 'default') + '.svg'"
                         alt="" style="height:100%">
                     </div>
                   </div>

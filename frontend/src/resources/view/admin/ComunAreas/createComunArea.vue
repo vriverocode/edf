@@ -93,7 +93,7 @@ onMounted(() => {
 
               <div class="boxImgStore">
                 <img
-                  :src="'https://website-c67adca2.sfr.hrf.mybluehost.me/public/images/icons/' + formData.icon.value + '.svg'"
+                  :src="import.meta.env.VITE_LARAVEL_MEDIA_URL+'/images/icons/' + comunArea.icon + '.svg'"
                   alt="">
               </div>
             </div>
