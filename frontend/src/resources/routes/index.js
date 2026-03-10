@@ -9,72 +9,72 @@ import guest from './middlewares/guest'
 import role from './middlewares/role'
 
 const routes = [
-  { 
-    path: '/', 
+  {
+    path: '/',
     component: authLayout,
     redirect: '/login',
     beforeEnter: guest,
     children: [
       {
-        path:'/login',
+        path: '/login',
         component: () => import('@/view/auth/login.vue'),
-        meta:{
+        meta: {
           title: 'Bienvenido',
           depth: -1,
-        }
+        },
       },
       {
-        path:'/register',
+        path: '/register',
         component: () => import('@/view/auth/login.vue'),
-        meta:{
-          title: 'Bienvenido'
-        }
+        meta: {
+          title: 'Bienvenido',
+        },
       },
-    ]
+    ],
   },
-  { 
-    path: '/', 
+  {
+    path: '/',
     component: panelLayout,
     beforeEnter: auth,
     children: [
       {
-        path: '/dashboard', 
-        component: HomeView, 
-        name:'dashboardAdmin',
+        path: '/dashboard',
+        component: HomeView,
+        name: 'dashboardAdmin',
         beforeEnter: auth,
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Dashboard',
           depth: 0,
           roles: ['admin', 'super-admin', 'propietario'],
-        }
+        },
       },
       {
-        path: '/admin/users', 
+        path: '/admin/users',
         component: () => import('@/view/admin/usersPage.vue'),
-        name:'usersAdmin',
+        name: 'usersAdmin',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Usuarios',
           roles: ['admin', 'super-admin'],
           depth: 1,
-        }
+        },
       },
       {
-        path: '/admin/finance', 
+        path: '/admin/finance',
         component: () => import('@/view/admin/financePage.vue'),
-        name:'financePage',
+        name: 'financePage',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Finanzas',
           roles: ['admin', 'super-admin', 'propietario'],
           depth: 1,
-        }
+        },
       },
       // {
-      //   path: '/services', 
+      //   path: '/services',
       //   component: () => import('@/view/admin/servicesPage.vue'),
       //   name:'servicesAdmin',
       //   beforeEnter: [auth, role],
@@ -84,30 +84,30 @@ const routes = [
       //   }
       // },
       {
-        path: '/reserves', 
+        path: '/reserves',
         component: () => import('@/view/admin/reservesPage.vue'),
-        name:'reservedAdmin',
+        name: 'reservedAdmin',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Reservas',
           depth: 2,
           roles: ['admin', 'super-admin'],
-        }
+        },
       },
       {
-        path: '/balances', 
+        path: '/balances',
         component: () => import('@/view/admin/balancesPage.vue'),
-        name:'balanceAdmin',
+        name: 'balanceAdmin',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Banlances',
           depth: 2,
-        }
+        },
       },
       // {
-      //   path: '/config', 
+      //   path: '/config',
       //   component: () => import('@/view/admin/configPage.vue'),
       //   name:'Configuración',
       //   beforeEnter: [auth, role],
@@ -117,388 +117,418 @@ const routes = [
       //   }
       // },
       {
-        path: '/admin/users/list', 
+        path: '/admin/users/list',
         component: () => import('@/view/admin/Users/usersList.vue'),
-        name:'usersList',
+        name: 'usersList',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Usuarios',
           depth: 2,
-        }
+        },
       },
       {
-        path: '/admin/department/list', 
+        path: '/admin/department/list',
         component: () => import('@/view/admin/Department/departmentList.vue'),
-        name:'departmentList',
+        name: 'departmentList',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Apartamentos',
           depth: 2,
-        }
+        },
       },
       {
-        path: '/admin/comun-area/list', 
+        path: '/admin/comun-area/list',
         component: () => import('@/view/admin/ComunAreas/comunAreasList.vue'),
-        name:'comunAreasList',
+        name: 'comunAreasList',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Areas comunes',
           depth: 2,
-        }
+        },
       },
 
       {
-        path: '/admin/users/form/add', 
+        path: '/admin/users/form/add',
         component: () => import('@/view/admin/Users/createUser.vue'),
-        name:'usersAdd',
+        name: 'usersAdd',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Crear Usuario',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/admin/users/assing-apartment/:id', 
+        path: '/admin/users/assing-apartment/:id',
         component: () => import('@/view/admin/Users/assingApartment.vue'),
-        name:'assingDepartment',
+        name: 'assingDepartment',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Asignar Apartamento',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/admin/department/form/add', 
+        path: '/admin/department/form/add',
         component: () => import('@/view/admin/Department/createDepartment.vue'),
-        name:'departmentAdd',
+        name: 'departmentAdd',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Agregar apartamento',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/admin/comun-area/form/add', 
+        path: '/admin/comun-area/form/add',
         component: () => import('@/view/admin/ComunAreas/createComunArea.vue'),
-        name:'comunAreaAdd',
+        name: 'comunAreaAdd',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Agregar area común',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/admin/comun-area/form/update/:id', 
+        path: '/admin/comun-area/form/update/:id',
         component: () => import('@/view/admin/ComunAreas/updateComunArea.vue'),
-        name:'comunAreaUpdate',
+        name: 'comunAreaUpdate',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Editar area común',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/admin/comun-area/bookings/:id/list', 
+        path: '/admin/comun-area/bookings/:id/list',
         component: () => import('@/view/admin/ComunAreas/bookingsList.vue'),
-        name:'comunAreaBookingsList',
+        name: 'comunAreaBookingsList',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Lista de reservaciones',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/admin/pay/validate/:id', 
+        path: '/admin/pay/validate/:id',
         component: () => import('@/view/admin/Pays/validatePay.vue'),
-        name:'PayValidate',
+        name: 'PayValidate',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Validar pago',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/admin/notices', 
+        path: '/admin/notices',
         component: () => import('@/view/admin/Notices/noticesPage.vue'),
-        name:'noticesPages',
+        name: 'noticesPages',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Noticas/Anuncios',
           depth: 2,
-        }
+        },
       },
       {
-        path: '/admin/events', 
+        path: '/admin/events',
         component: () => import('@/view/admin/Events/eventsPage.vue'),
-        name:'eventsPages',
+        name: 'eventsPages',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Eventos',
           depth: 2,
-        }
+        },
       },
       {
         path: '/admin/events/view/:id',
         component: () => import('@/view/admin/Events/viewEvent.vue'),
-        name:'eventViewAdmin',
+        name: 'eventViewAdmin',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Detalles de evento',
           depth: 2,
-        }
+        },
       },
       {
-        path: '/admin/events/form/add', 
+        path: '/admin/events/form/add',
         component: () => import('@/view/admin/Events/createEvent.vue'),
-        name:'eventsCreate',
+        name: 'eventsCreate',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Crear evento',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/admin/events/form/update/:id', 
+        path: '/admin/events/form/update/:id',
         component: () => import('@/view/admin/Events/updateEvent.vue'),
-        name:'eventsUpdate',
+        name: 'eventsUpdate',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Editar evento',
           depth: 3,
-        }
+        },
       },
-      
 
       // ---- client Routes -----
 
       {
-        path: '/client/reserves/list', 
+        path: '/client/reserves/list',
         component: () => import('@/view/client/Reserves/reserveList.vue'),
-        name:'reserveClient',
+        name: 'reserveClient',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Reservas',
           depth: 2,
-        }
+        },
       },
       {
-        path: '/client/reserves/form/add', 
+        path: '/client/reserves/form/add',
         component: () => import('@/view/client/Reserves/createReserve.vue'),
-        name:'reserveClientAdd',
+        name: 'reserveClientAdd',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Reservas',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/client/reserves/confirm-reserve/:id', 
+        path: '/client/reserves/confirm-reserve/:id',
         component: () => import('@/view/client/Reserves/confirmReserve.vue'),
-        name:'reserveConfirm',
+        name: 'reserveConfirm',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Reservas realizada',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/client/reserves/pay-reserve/:id', 
+        path: '/client/reserves/pay-reserve/:id',
         component: () => import('@/view/client/Payments/payForm.vue'),
-        name:'reservePay',
+        name: 'reservePay',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Realiza el pago',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/client/pay/details/:id', 
+        path: '/client/pay/details/:id',
         component: () => import('@/view/client/Payments/payFinish.vue'),
-        name:'payConfirm',
+        name: 'payConfirm',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Pago realizado!',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/client/reserves/view/:id', 
+        path: '/client/reserves/view/:id',
         component: () => import('@/view/client/Reserves/viewReserve.vue'),
-        name:'viewReserve',
+        name: 'viewReserve',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Detalles de reserva',
           depth: 3,
-        }
+        },
       },
       {
         path: '/client/notifications',
         component: () => import('@/view/client/Notifications/notificationsPage.vue'),
-        name:'notificationsPage',
+        name: 'notificationsPage',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Notificaciones',
           depth: 2,
-        }
+        },
       },
       {
         path: '/client/pays/list',
         component: () => import('@/view/client/Payments/paymentHistory.vue'),
-        name:'paymentHistory',
+        name: 'paymentHistory',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Historial de pagos',
           depth: 3,
-        }
+        },
       },
       {
         path: '/client/department/options',
         component: () => import('@/view/client/Apartments/optionList.vue'),
-        name:'apartmentOption',
+        name: 'apartmentOption',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Gestion de apartamento',
           depth: 2,
-        }
+        },
       },
       {
         path: '/client/department/my-unit',
         component: () => import('@/view/client/Apartments/myUnit.vue'),
-        name:'apartmentClient',
+        name: 'apartmentClient',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Gestion de apartamento',
           depth: 3,
-        }
+        },
       },
       {
         path: '/client/balance/list',
         component: () => import('@/view/client/Quotas/quotasByUserList.vue'),
-        name:'quotaList',
+        name: 'quotaList',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Balance de pagos',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/client/quota/pay/:id', 
+        path: '/client/quota/pay/:id',
         component: () => import('@/view/client/Payments/payForm.vue'),
 
-        name:'quotaPay',
+        name: 'quotaPay',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Realiza el pago',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/client/quota/view/:id', 
+        path: '/client/quota/view/:id',
         component: () => import('@/view/client/Quotas/viewQuota.vue'),
-        name:'viewQuota',
+        name: 'viewQuota',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Detalles de cuota',
           depth: 3,
-        }
+        },
       },
       {
         path: '/client/notices/list',
         component: () => import('@/view/client/Notices/noticesList.vue'),
-        name:'noticeList',
+        name: 'noticeList',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Panel informativo',
           depth: 2,
-        }
+        },
       },
       {
         path: '/client/notice/view/:id',
         component: () => import('@/view/client/Notices/noticesView.vue'),
-        name:'noticeView',
+        name: 'noticeView',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Información',
           depth: 3,
-        }
+        },
       },
       {
-        path: '/client/events', 
+        path: '/client/events',
         component: () => import('@/view/client/Events/eventsPage.vue'),
-        name:'eventsClientPages',
+        name: 'eventsClientPages',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Eventos',
           depth: 2,
-        }
+        },
       },
       {
         path: '/client/events/view/:id',
         component: () => import('@/view/client/Events/viewEvent.vue'),
-        name:'eventClientViewAdmin',
+        name: 'eventClientViewAdmin',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Detalles de evento',
           depth: 3,
-        }
+        },
       },
       {
         path: '/client/familiar/list',
         component: () => import('@/view/client/Familiar/familiarList.vue'),
-        name:'familiarList',
+        name: 'familiarList',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
-          pagTitle: 'Familiares / Habitantes / Airbnb',
+          pagTitle: 'Residente / Airbnb',
           depth: 3,
-        }
+        },
+      },
+      {
+        path: '/client/familiar/list',
+        component: () => import('@/view/client/Familiar/familiarList.vue'),
+        name: 'familiarList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Residente / Airbnb',
+          depth: 3,
+        },
+      },
+      {
+        path: '/client/familiar/add',
+        component: () => import('@/view/client/Familiar/createFamiliar.vue'),
+        name: 'familiarAdd',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Crear residente',
+          depth: 4,
+        },
       },
       {
         path: '/client/visit/list',
         component: () => import('@/view/client/Visits/visitsList.vue'),
-        name:'visitsList',
+        name: 'visitsList',
         beforeEnter: [auth, role],
-        meta:{
+        meta: {
           title: 'Bienvenido',
-          pagTitle: 'Gestion de visitas',
+          pagTitle: 'Gestión de visitas',
           depth: 3,
-        }
+        },
       },
-      
-      
-    ]
+      {
+        path: '/client/visit/add',
+        component: () => import('@/view/client/Visits/createVisit.vue'),
+        name: 'visitAdd',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Registrar visita',
+          depth: 4,
+        },
+      },
+    ],
   },
   // Ruta 404 - debe estar al final para capturar todas las rutas no encontradas
   {
@@ -509,8 +539,8 @@ const routes = [
       title: 'Página no encontrada',
       pagTitle: '404',
       depth: 5,
-    }
-  }
+    },
+  },
 ]
 
 const router = createRouter({

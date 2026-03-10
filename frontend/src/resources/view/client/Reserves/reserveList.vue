@@ -112,8 +112,13 @@ onMounted(() => {
               <!-- Contenido principal con imagen y detalles -->
               <div class="flex items-center space-x-4">
                 <!-- Imagen del área -->
-                <div class="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <div v-html="iconsApp[reserve.comun_area.icon]" />
+                <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div class="boxItem_list_v2">
+                    <div class="flex justify-center items-center h-full w-full ">
+                      <img :src="'http://192.168.31.20:8030/images/icons/' + reserve.comun_area.icon + '.svg'" alt=""
+                        style="height:100%">
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Detalles de la reserva -->
@@ -182,7 +187,8 @@ onMounted(() => {
                           <q-item-section>Cancelar reserva</q-item-section>
                         </q-item>
                         <q-separator />
-                        <q-item clickable v-close-popup v-if="reserve.status == 1" @click="goTo('/client/reserves/pay-reserve/' + reserve.id)">
+                        <q-item clickable v-close-popup v-if="reserve.status == 1"
+                          @click="goTo('/client/reserves/pay-reserve/' + reserve.id)">
                           <q-item-section>Pagar</q-item-section>
                         </q-item>
                         <q-item clickable v-close-popup v-if="reserve.status == 3">
@@ -235,12 +241,30 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 /* Estilos adicionales si es necesario */
 .badgeReserve {
   position: absolute;
   right: 0;
   border-bottom-left-radius: 0.5rem;
   top: 0;
+}
+
+.boxItem_list_v2 {
+  border-radius: 0.8rem;
+  overflow: visible;
+  position: relative;
+  // border: 2px solid rgb(3, 156, 195) ;
+  width: 100%;
+  //box-shadow: 0px 0.1rem 1rem 0px rgba(0, 0, 0, 0.205);
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  transition: all 0.7s ease-in-out;
+  cursor: pointer;
+
+  &:hover {
+    transform: scale(1.03);
+  }
 }
 </style>

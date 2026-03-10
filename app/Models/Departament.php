@@ -40,4 +40,8 @@ class Departament extends Model
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
+    public function visits()
+    {
+        return $this->hasMany(Visit::class, 'departament_id', 'id');
+    }
 }

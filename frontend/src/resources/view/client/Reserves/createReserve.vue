@@ -127,14 +127,14 @@ const limitToTime = () => {
   timeToDefalutAssing();
 }
 const timeToDefalutAssing = () => {
-    if (hourOptionsTo.value.length > 0) {
-      const targetHour = hourOptionsTo.value[hourOptionsTo.value.length - 1];
-      const hour = String(targetHour).padStart(2, '0');
-      formData.value.time_to = `${hour}:00`;
-    } else {
-      formData.value.time_to = '';
-    }
+  if (hourOptionsTo.value.length > 0) {
+    const targetHour = hourOptionsTo.value[hourOptionsTo.value.length - 1];
+    const hour = String(targetHour).padStart(2, '0');
+    formData.value.time_to = `${hour}:00`;
+  } else {
+    formData.value.time_to = '';
   }
+}
 
 const showNotify = (type, text) => {
   Notify.create({
@@ -195,14 +195,15 @@ watch(step,
       <q-form @submit="nextStep()" class="h-full ">
         <Transition :name="transitionName">
           <div class="px-3 form-step row" v-if="step == 1">
-            <div class="col-md-2 md:px-20 col-4 px-2 md:px-0 my-3" v-for="comunArea in comunAreas"  :key="comunArea.id">
-              <div class="boxItem_v2" @click="selectArea(comunArea.id)">
+            <div class="col-md-2 col-4 px-1 md:px-0 my-3" v-for="comunArea in comunAreas" :key="comunArea.id">
+              <div class="boxItem_v2 px-3" @click="selectArea(comunArea.id)">
                 <div class="flex justify-center items-center h-full w-full p-1">
-                  <img :src="'http://192.168.1.198:8030/images/icons/'+comunArea.icon+'.svg'" alt="" style="height:100%">
+                  <img :src="'http://192.168.31.20:8030/images/icons/' + comunArea.icon + '.svg'" alt=""
+                    style="height:100%">
                 </div>
               </div>
               <div class="text-center mt-1  text-title-squad text-ellipsis ellipsis ">
-                {{ comunArea.name}}
+                {{ comunArea.name }}
               </div>
             </div>
             <!-- <div v-for="comunArea in comunAreas" class="row selectAreaItem items-center mb-5 px-4 md:px-5 md:py-5 py-3"
@@ -247,7 +248,8 @@ watch(step,
                         <div class="col-3 col-md-1   " style=" border-radius: 0.5rem;">
                           <div class="boxItem_v2" style="height:5rem">
                             <div class="flex justify-start items-center h-full w-full p-1">
-                              <img :src="'http://192.168.1.198:8030/images/icons/'+selectedComunArea.icon+'.svg'" alt="" style="height:100%">
+                              <img :src="'http://192.168.31.20:8030/images/icons/' + selectedComunArea.icon + '.svg'"
+                                alt="" style="height:100%">
                             </div>
                           </div>
                         </div>
@@ -434,6 +436,7 @@ watch(step,
   width: 100%;
 
 }
+
 .q-date__navigation,
 .q-time__clock-position {
   color: black;
@@ -486,6 +489,7 @@ watch(step,
     padding: 0px 1rem;
   }
 }
+
 .boxImgReserve {
   border-radius: 0.8rem;
   overflow: hidden;
@@ -507,10 +511,12 @@ watch(step,
   &:hover {
     transform: scale(1.03);
   }
-  & img{
+
+  & img {
     height: 70%;
   }
 }
+
 .boxItem_v2 {
   border-radius: 0.8rem;
   overflow: visible;
@@ -528,11 +534,13 @@ watch(step,
     transform: scale(1.03);
   }
 }
+
 @media (max-width: 780px) {
 
   .buttonSection {
     box-shadow: 0px -5px 10px 0px rgb(207 207 207)
   }
+
   .form__inputsReverse {
     & .q-field__inner {
 

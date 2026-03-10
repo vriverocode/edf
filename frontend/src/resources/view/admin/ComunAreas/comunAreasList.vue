@@ -78,8 +78,8 @@ onMounted(() => {
           <div class="px-2 pt-3 mt-4  apartamentContainer relative" style="" v-for="comunArea in comunAreas"
             :key="comunArea.id">
             <div class="flex items-center w-full pb-3 pt-2">
-              <div class="imgItem__container "> 
-                <img :src="'http://192.168.1.198:8030/images/icons/'+comunArea.icon+'.svg'" alt="">
+              <div class="imgItem__container ">
+                <img :src="'http://192.168.31.20:8030/images/icons/' + comunArea.icon + '.svg'" alt="">
               </div>
               <div class="px-2 infoItem">
                 <div class=" text-bold  text-black" style="font-weight: bold; font-size: 1.3rem;">
@@ -235,6 +235,7 @@ onMounted(() => {
 
   }
 }
+
 .imgItem__container {
   border-radius: 0.8rem;
   overflow: hidden;
@@ -255,16 +256,19 @@ onMounted(() => {
   &:hover {
     transform: scale(1.03);
   }
-  & img{
+
+  & img {
     height: 90%;
   }
 }
+
 @media (max-width: 780px) {
   .imgItem__container {
     width: 4.2rem;
     height: 4.2rem;
 
   }
+
   .createButton {
     width: 100%;
   }

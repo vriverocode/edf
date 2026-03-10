@@ -56,9 +56,9 @@ const authLogin = () => {
       }, 2000)
     })
     .catch((response) => {
-      //showNotify('negative', response.status == 505 ? response.data.error : 'Error de conexión')
+      showNotify('negative', response.status == 505 ? response.data.error : 'Error de conexión')
       loading.value = false;
-      error.value = true
+      //error.value = true
       // errorMessage.value = response
       console.log(error.value)
       console.log(response.data)
@@ -71,75 +71,75 @@ const endTutorial = () => {
 </script>
 <template>
   <div class="h-full bg-white login-root">
-      <Transition name="fade" mode="out-in">
-        <div class="h-full md:w-1/2 md:mx-auto relative" v-if="tutorialView == 'true'">
-          
-          <div class="absolute inset-0 login__bg" :style="{ backgroundImage: 'url(' + bg + ')' }"></div>
+    <Transition name="fade" mode="out-in">
+      <div class="h-full md:w-1/2 md:mx-auto relative" v-if="tutorialView == 'true'">
 
-          <div class="relative z-10 h-full md:w-full">
-            <section class="mt-0 md:pt-12 ">
-              <q-form @submit="authLogin" class="w-full h-full">
-                <div class="mx-auto form__cont md:px-8">
-                  <div class="w-full h-full">
-                    <div class="relative md:px-10 px-8 h-full w-full form pt-12 md:pt-0">
-                      <img :src="logoWite" alt="logo" class="md:w-1/6 w-2/5 mx-auto mt-12" />
-                      <div class="text-white mt-5 text-center" style="font-weight:600; font-size: 1.6rem">
-                        INGRESO
-                      </div>
-                      <div class="w-full mt-6 md:mt-8 ">
-                        <q-input class="auth_input" color="white" v-model="login.username" :rules="rules('user')" rounded
-                          standout>
-                          <template v-slot:prepend>
-                            <div class="pl-2" style="font-size:1rem; font-weight:500">Usuario</div>
-                          </template>
-                        </q-input>
-                        <q-input class="q-pt-lg auth_input" color="grey-1" v-model="login.password"
-                          :rules="rules('password')" placeholder="••••••••••" :type="isPwd ? 'password' : 'text'" rounded
-                          standout>
-                          <template v-slot:prepend>
-                            <div class="pl-2" style="font-size:1rem; font-weight:500">Contraseña</div>
-                          </template>
-                          <template v-slot:append>
-                            <q-icon :name="isPwd ? 'eva-eye-off-outline' : 'eva-eye-outline'" class="cursor-pointer"
-                              color="grey-1" @click="isPwd = !isPwd" />
-                          </template>
-                        </q-input>
-                        <p class="mt-2 cursor-pointer md:mt-8 text-white text-subtitle1">¿Perdió su contraseña?</p>
-                      </div>
+        <div class="absolute inset-0 login__bg" :style="{ backgroundImage: 'url(' + bg + ')' }"></div>
+
+        <div class="relative z-10 h-full md:w-full">
+          <section class="mt-0 md:pt-12 ">
+            <q-form @submit="authLogin" class="w-full h-full">
+              <div class="mx-auto form__cont md:px-8">
+                <div class="w-full h-full">
+                  <div class="relative md:px-10 px-8 h-full w-full form pt-12 md:pt-0">
+                    <img :src="logoWite" alt="logo" class="md:w-1/6 w-2/5 mx-auto mt-12" />
+                    <div class="text-white mt-5 text-center" style="font-weight:600; font-size: 1.6rem">
+                      INGRESO
                     </div>
-                    <div class="md:px-16 px-6 mt-5 flex justify-center">
-                      <q-btn flat class="btn__login w-auto md:w-1/2" no-caps="" :loading="loading" size="lg"
-                        type="submit">
-                        <div class="text-h6 text-bold md:px-2 px-12 text-white">Ingresar</div>
-                      </q-btn>
+                    <div class="w-full mt-6 md:mt-8 ">
+                      <q-input class="auth_input" color="white" v-model="login.username" :rules="rules('user')" rounded
+                        standout>
+                        <template v-slot:prepend>
+                          <div class="pl-2" style="font-size:1rem; font-weight:500">Usuario</div>
+                        </template>
+                      </q-input>
+                      <q-input class="q-pt-lg auth_input" color="grey-1" v-model="login.password"
+                        :rules="rules('password')" placeholder="••••••••••" :type="isPwd ? 'password' : 'text'" rounded
+                        standout>
+                        <template v-slot:prepend>
+                          <div class="pl-2" style="font-size:1rem; font-weight:500">Contraseña</div>
+                        </template>
+                        <template v-slot:append>
+                          <q-icon :name="isPwd ? 'eva-eye-off-outline' : 'eva-eye-outline'" class="cursor-pointer"
+                            color="grey-1" @click="isPwd = !isPwd" />
+                        </template>
+                      </q-input>
+                      <p class="mt-2 cursor-pointer md:mt-8 text-white text-subtitle1">¿Perdió su contraseña?</p>
                     </div>
                   </div>
+                  <div class="md:px-16 px-6 mt-5 flex justify-center">
+                    <q-btn flat class="btn__login w-auto md:w-1/2" no-caps="" :loading="loading" size="lg"
+                      type="submit">
+                      <div class="text-h6 text-bold md:px-2 px-12 text-white">Ingresar</div>
+                    </q-btn>
+                  </div>
                 </div>
-              </q-form>
-            </section>
-          </div>
+              </div>
+            </q-form>
+          </section>
         </div>
-      </Transition>
-      
-      <Transition name="fade" mode="out-in">
-        <div class="h-full" v-if="tutorialView != 'true'">
-          <tutorial @end="endTutorial()" />
-        </div>
-      </Transition>
-      
-      <q-dialog v-model="error">
-        <q-card class="">
-          <q-card-section>
-            <div class="text-h6">errors</div>
-          </q-card-section>
-          <q-card-section class="q-pt-none text-red-500">
-            {{ errorMessage }}
-          </q-card-section>
-          <q-card-actions align="right">
-            <q-btn flat label="OK" color="primary" v-close-popup />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
+      </div>
+    </Transition>
+
+    <Transition name="fade" mode="out-in">
+      <div class="h-full" v-if="tutorialView != 'true'">
+        <tutorial @end="endTutorial()" />
+      </div>
+    </Transition>
+
+    <q-dialog v-model="error">
+      <q-card class="">
+        <q-card-section>
+          <div class="text-h6">errors</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none text-red-500">
+          {{ errorMessage }}
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="OK" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -157,9 +157,10 @@ const endTutorial = () => {
   background-position: bottom;
   background-repeat: no-repeat;
   /* Aceleramos la imagen de forma aislada */
-  transform: translateZ(0); 
+  transform: translateZ(0);
   will-change: transform;
 }
+
 .auth_input {
   & .q-field__control {
     background: white;

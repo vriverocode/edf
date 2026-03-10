@@ -52,13 +52,13 @@ const menu = [
   {
     title: 'Visitas',
     icon: defaulticon,
-    link: '/client/services/list',
+    link: '/client/visit/list',
   },
   {
-    title: 'Familiares',
+    title: 'Residentes',
     icon: defaulticon,
     link: '/client/familiar/list',
-  }, 
+  },
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
@@ -73,12 +73,12 @@ const goTo = (url) => {
 <template>
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-2  md:px-20" style="overflow-y: auto; height: 100%;">
-      <div class="col-md-3 md:px-20 col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key"
-        >
+      <div class="col-md-3 md:px-20 col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
         <div class="px-3">
-          <div class="boxItem " @click="goTo(items.link)" >
+          <div class="boxItem " @click="goTo(items.link)">
             <div class="flex justify-center items-center h-full w-full p-1">
-              <img :src="items.icon" class="w-full md:w-auto h-full" :class="{'h-3/5': items.icon.includes('default-dash')}"/>
+              <img :src="items.icon" class="w-full md:w-auto "
+                :class="{ 'h-3/5': items.icon.includes('default-dash'), 'h-full': !items.icon.includes('default-dash') }" />
             </div>
           </div>
         </div>

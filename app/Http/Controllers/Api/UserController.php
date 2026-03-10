@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\PeoplesXDepartaments;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use App\Notifications\RealtimeNotification;
 
 class UserController extends Controller
@@ -38,24 +39,138 @@ class UserController extends Controller
         $this->afteSaveUser($user, $request);
         return $this->returnSuccess(200, 'ok');
     }
+
+    /**
+     * Crea usuarios temporales (Airbnb) o habitantes/familiares del propietario.
+     *
+     * @param string tipo - 'airbnb' para alquiler temporal, 'familiar' para familiares que viven con el propietario
+     * @param string name - Nombre completo
+     * @param string email - Correo electrónico (único)
+     * @param int idApartament - ID del departamento
+     * @param string active_time - (Solo Airbnb) Fecha de fin del alquiler (Y-m-d)
+     * @param string parentesco - (Solo Familiar) Relación: padre, madre, hijo, hija, cónyuge, etc.
+     * @param string phone - (Opcional) Teléfono
+     * @param string password - (Opcional) Si no se envía, se genera automáticamente
+     */
+    public function storeResidentUser(Request $request)
+    {
+        $validated = $this->validateTemporaryOrResidentInput($request->all());
+
+        if (count($validated) > 0) {
+            return $this->returnFail(400, $validated[0]);
+        }
+
+        if ($request->user()->rol_id === Rol::PROPIETARIO) {
+            $departament = Departament::find($request->idApartament);
+            if (!$departament || $departament->user_id !== $request->user()->id) {
+                return $this->returnFail(403, 'No tiene permiso para registrar usuarios en este departamento.');
+            }
+        }
+
+        $tipo = $request->type;
+        $isAirbnb = $tipo === 'airbnb';
+
+        $username = $request->username ?? Str::lower(Str::random(8)) . '_' . time();
+        $password = $request->password ?? Str::password(12);
+
+        $userData = [
+            'name'       => $request->name,
+            'email'      => $request->email,
+            'username'   => $username,
+            'phone'      => $request->phone ?? null,
+            'password'   => bcrypt($password),
+            'rol_id'     => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
+            'parentesco' => $isAirbnb ? null : $request->parentesco,
+            'active_time' => $isAirbnb ? $request->active_time : null,
+        ];
+
+        $user = User::create($userData);
+
+        $people = PeoplesXDepartaments::create([
+            'user_id'        => $user->id,
+            'departament_id' => $request->idApartament,
+            'type'           => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
+            'created_by'     => $request->user()->id,
+        ]);
+
+        if ($isAirbnb) {
+            $this->setAvailableComunAreaToReserve($people);
+        }
+
+        return $this->returnSuccess(200, [
+            'message' => $isAirbnb ? 'Usuario temporal (Airbnb) creado correctamente' : 'Familiar/habitante registrado correctamente',
+            'user_id' => $user->id,
+        ]);
+    }
+
+    /**
+     * Obtiene los residentes y usuarios Airbnb registrados por el usuario autenticado (propietario).
+     *
+     * @param Request $request - Usa request->user()->id como created_by
+     */
+    public function getResident(Request $request)
+    {
+        $residents = PeoplesXDepartaments::with(['user.rol', 'departament'])
+            ->where('created_by', $request->user()->id)
+            ->whereIn('type', [Rol::FAMILIAR, Rol::AIRBNB])
+            ->get()
+            ->map(function ($people) {
+                return [
+                    'id'           => $people->id,
+                    'type'         => $people->type,
+                    'type_label'   => $people->type === Rol::AIRBNB ? 'Airbnb' : 'Familiar',
+                    'user'         => $people->user,
+                    'departament'  => $people->departament,
+                    'active_time'  => $people->user?->active_time,
+                    'parentesco'   => $people->user?->parentesco,
+                ];
+            });
+
+        return $this->returnSuccess(200, $residents);
+    }
+
+    private function validateTemporaryOrResidentInput(array $inputs): array
+    {
+        $rules = [
+            'type'         => ['required', 'in:airbnb,familiar'],
+            'name'         => ['required', 'regex:/^[a-zA-Z-À-ÿ .]+$/i'],
+            'email'        => ['required', 'email', 'unique:users'],
+            'idApartament' => ['required', 'integer', 'exists:departaments,id'],
+        ];
+
+        $type = $inputs['type'] ?? null;
+        if ($type === 'airbnb') {
+            $rules['active_time'] = ['required', 'date', 'after_or_equal:today'];
+        }
+        if ($type === 'familiar') {
+            $rules['parentesco'] = ['required', 'string', 'max:50'];
+        }
+
+        $messages = [
+            'type.required'     => 'El tipo de usuario es requerido.',
+            'type.in'           => 'El tipo debe ser "airbnb" o "familiar".',
+            'name.required'     => 'El nombre es requerido.',
+            'name.regex'        => 'Nombre no válido.',
+            'email.required'    => 'El correo electrónico es requerido.',
+            'email.email'       => 'Correo electrónico no válido.',
+            'email.unique'      => 'El correo ya está registrado.',
+            'idApartament.required' => 'El departamento es requerido.',
+            'idApartament.exists'   => 'El departamento no existe.',
+            'active_time.required'  => 'La fecha de fin del alquiler es requerida para usuarios Airbnb.',
+            'active_time.after_or_equal' => 'La fecha de fin debe ser hoy o posterior.',
+            'parentesco.required'   => 'El parentesco es requerido para familiares.',
+        ];
+
+        $validator = Validator::make($inputs, $rules, $messages)->errors();
+        return $validator->all();
+    }
+
     private function afteSaveUser($user, $request){
         if ($request->idApartament != 0 && $request->user()->rol_id == Rol::ADMIN) {
             Departament::find($request->idApartament)->update([
                 'user_id' => $user->id
             ]);
         }
-
-        if($request->user()->rol_id == Rol::PROPIETARIO){
-            $people = PeoplesXDepartaments::create([
-                'user_id' => $user->id,
-                'departament_id' => $request->idApartament,
-                'type' => $request->idRol == Rol::INQUILINO ? Rol::INQUILINO : Rol::AIRBNB,
-                'created_by' => $request->user()->id
-            ]);
-
-            $this->setAvailableComunAreaToReserve($people);
-        }
-
     }
     public function getOwners(Request $request)
     {
@@ -152,7 +267,8 @@ class UserController extends Controller
         }
 
     }
-    public function setAvailableComunAreaToReserve(){
-        
+    public function setAvailableComunAreaToReserve(?PeoplesXDepartaments $people = null)
+    {
+        // TODO: Implementar lógica para habilitar áreas comunes a reservar para el usuario
     }
 }

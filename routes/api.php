@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\NoticeController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RuleController;
 use App\Http\Controllers\Api\MultaController;
+use App\Http\Controllers\Api\VisitController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
@@ -23,13 +24,16 @@ Route::middleware('auth:sanctum')->group(function () {
     //--- Login/Auth ---
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        return $request->user()->load('rol');
+        return $request->user()->load(['rol', 'apartments']);
     });
 
     Route::prefix('users')->name('user.')->group(function () {
         Route::get('/', [UserController::class, 'getOwners']);
+        Route::get('/get-resident', [UserController::class, 'getResident']);
+
         Route::post('/', [UserController::class, 'store'])->middleware('role:admin,propietario');
         Route::post('/byPropietario', [UserController::class, 'store'])->middleware('role:propietario');
+        Route::post('/temporary-or-resident', [UserController::class, 'storeResidentUser'])->middleware('role:admin,propietario');
 
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment'])->middleware('role:admin');
         Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin'])->middleware('role:admin');
@@ -102,6 +106,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('quotas')->name('quota.')->group(function () {
         Route::get('/', [QuotaController::class, 'index']);
         Route::get('/byId/{id}', [QuotaController::class, 'show']);
+    });
+    Route::prefix('visits')->name('visit.')->group(function () {
+        Route::get('/', [VisitController::class, 'getVisitsByUser']);
     });
     Route::prefix('notices')->name('notice.')->group(function () {
         Route::get('/', [NoticeController::class, 'index']);
