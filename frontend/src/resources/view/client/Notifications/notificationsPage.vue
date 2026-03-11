@@ -203,8 +203,13 @@ onMounted(() => {
         </div>
       </div>
       <div v-else>
-        <div class="mt-5 text-center" style="font-weight: bold; font-size: 2rem;">
-          No tienes notificaciones
+        <div class="flex flex-center column empty-results px-4" style="min-height: 60vh;">
+          <q-icon name="eva-bell-outline" size="4rem" color="grey-5" class="q-mb-md" />
+          <div style="font-size: 1.2rem; font-weight: 600;" class="text-grey-7 text-center q-mb-sm">
+            No hay notificaciones
+          </div>
+
+
         </div>
       </div>
     </template>

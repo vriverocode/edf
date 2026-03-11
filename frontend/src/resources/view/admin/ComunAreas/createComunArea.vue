@@ -64,7 +64,7 @@ const createArea = () => {
 
     })
 }
-
+const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 const showNotify = (type, text) => {
   Notify.create({
     color: type,
@@ -92,9 +92,7 @@ onMounted(() => {
             <div class="col-md-6 col-12 mt-1 mb-4 px-2 md:px-12">
 
               <div class="boxImgStore">
-                <img
-                  :src="import.meta.env.VITE_LARAVEL_MEDIA_URL+'/images/icons/' + comunArea.icon + '.svg'"
-                  alt="">
+                <img :src="urlMedia + '/images/icons/' + formData.icon.value + '.svg'" alt="">
               </div>
             </div>
             <div class="col-md-6 col-12 mt-1 mb-4 px-2 md:px-12">

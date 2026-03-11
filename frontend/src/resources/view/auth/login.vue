@@ -35,7 +35,6 @@ const showNotify = (type, text) => {
   Notify.create({
     color: type,
     message: text,
-    position: 'top',
     timeout: 2000
   })
 }

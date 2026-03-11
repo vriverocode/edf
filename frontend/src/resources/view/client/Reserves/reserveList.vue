@@ -115,9 +115,8 @@ onMounted(() => {
                 <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0">
                   <div class="boxItem_list_v2">
                     <div class="flex justify-center items-center h-full w-full ">
-                      <img
-                        :src="urlMedia+'/images/icons/' + (reserve.comun_area?.icon || 'default') + '.svg'"
-                        alt="" style="height:100%">
+                      <img :src="urlMedia + '/images/icons/' + (reserve.comun_area?.icon || 'default') + '.svg'" alt=""
+                        style="height:100%">
                     </div>
                   </div>
                 </div>
@@ -224,7 +223,8 @@ onMounted(() => {
       </div>
     </div>
     <!-- Botón flotante para crear reserva -->
-    <div class="px-4 md:flex  md:justify-center items-center md:w-full md:px-12" style="height: 10%;">
+    <div class="reserve-list-footer px-4 md:flex md:justify-center items-center md:w-full md:px-12"
+      style="min-height: 10%;">
       <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
         style="border-radius: 0.5rem; width: 100%;" @click="goTo('/client/reserves/form/add')">
         <div class="flex items-center py-2">
@@ -244,6 +244,12 @@ onMounted(() => {
 
 <style scoped lang="scss">
 /* Estilos adicionales si es necesario */
+@media (max-width: 780px) {
+  .reserve-list-footer {
+    // padding-bottom: max(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)), 48px);
+  }
+}
+
 .badgeReserve {
   position: absolute;
   right: 0;

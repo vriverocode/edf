@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::table('peoples_x_departments', function (Blueprint $table) {
             //
 
-            $table->unsignedBigInteger('created_by');
-            $table->foreign('created_by')->nulleable()->references('id')->on('users')->onDelete('cascade');
+            // $table->unsignedBigInteger('created_by');
+            // $table->foreign('created_by')->nulleable()->references('id')->on('users')->onDelete('cascade');
+       
         });
     }
 

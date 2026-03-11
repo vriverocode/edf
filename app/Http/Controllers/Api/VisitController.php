@@ -6,6 +6,7 @@ use App\Models\Visit;
 use App\Models\PeoplesXDepartaments;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Exception;
 use Illuminate\Support\Facades\Validator;
 
 class VisitController extends Controller
@@ -15,8 +16,8 @@ class VisitController extends Controller
      */
     public function getVisitsByUser(Request $request)
     {
-        $user = $request->user()->load(['rol', 'apartaments']);
-        $ownedIds = $user->apartments()->pluck('id');
+        $user = $request->user();
+        $ownedIds = $user->apartaments()->pluck('id');
         $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
         $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
 
@@ -50,7 +51,7 @@ class VisitController extends Controller
         }
 
         $user = $request->user();
-        $ownedIds = $user->apartments()->pluck('id');
+        $ownedIds = $user->apartaments()->pluck('id');
         $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
         $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
 
@@ -68,8 +69,8 @@ class VisitController extends Controller
                 'date'           => date('Y-m-d', strtotime($request->date)),
                 'hour'           => $request->hour,
             ]);
-        } catch (\Throwable $e) {
-            return $this->returnFail(500, 'Error al registrar la visita');
+        } catch (Exception $e) {
+            return $this->returnFail(500, $e->getMessage());
         }
 
         return $this->returnSuccess(200, [
@@ -98,7 +99,7 @@ class VisitController extends Controller
             'dni'            => ['required', 'regex:/^[0-9A-Za-z.\-]+$/'],
             'type'           => ['required', 'numeric', 'between:1,4'],
             'date'           => ['required', 'date'],
-            'hour'           => ['required', 'regex:/^[0-9]{2}:[0-9]{2}$/'],
+            'hour'           => ['nullable', 'regex:/^[0-9]{2}:[0-9]{2}$/'],
             'description'    => ['nullable', 'string'],
         ];
 
@@ -114,7 +115,6 @@ class VisitController extends Controller
             'type.between'            => 'El tipo de visita no es válido',
             'date.required'           => 'La fecha de la visita es requerida',
             'date.date'               => 'La fecha de la visita no es válida',
-            'hour.required'           => 'La hora de llegada es requerida',
             'hour.regex'              => 'La hora de llegada no es válida',
         ];
 

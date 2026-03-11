@@ -199,9 +199,7 @@ watch(step,
             <div class="col-md-2 col-4 px-1 md:px-0 my-3" v-for="comunArea in comunAreas" :key="comunArea.id">
               <div class="boxItem_v2 px-3" @click="selectArea(comunArea.id)">
                 <div class="flex justify-center items-center h-full w-full p-1">
-                  <img
-                    :src="mediaUrl+'/images/icons/' + comunArea.icon + '.svg'"
-                    alt="" style="height:100%">
+                  <img :src="mediaUrl + '/images/icons/' + comunArea.icon + '.svg'" alt="" style="height:100%">
                 </div>
               </div>
               <div class="text-center mt-1  text-title-squad text-ellipsis ellipsis ">
@@ -231,14 +229,13 @@ watch(step,
                         <div class="col-3 col-md-1   " style=" border-radius: 0.5rem;">
                           <div class="boxItem_v2" style="height:5rem">
                             <div class="flex justify-start items-center h-full w-full p-1">
-                              <img
-                                :src="mediaUrl+'/images/icons/' + selectedComunArea.icon + '.svg'"
-                                alt="" style="height:100%">
+                              <img :src="mediaUrl + '/images/icons/' + selectedComunArea.icon + '.svg'" alt=""
+                                style="height:100%">
                             </div>
                           </div>
                         </div>
                         <div class="col-8">
-                          <div class="q-mt-xs text-body2x text-black"  style="font-weight: 500;">
+                          <div class="q-mt-xs text-body2x text-black" style="font-weight: 500;">
                             Costo: S/{{ selectedComunArea.price }}
                             <i style="font-weight: 500;" v-if="selectedComunArea.warranty_price > 0">
                               + S/{{ selectedComunArea.warranty_price }}
@@ -383,7 +380,7 @@ watch(step,
                         selectedComunArea.warranty_price }}</div>
                     </div>
                   </div>
-                  <div class=" col-12 row bottom-nav-content ">
+                  <div class=" col-12 row  ">
                     <div class="col-6 flex flex-center ">
                       <q-btn color="grey-8" class="" style="width: 90%; border-radius: 0.5rem;" @click="backButton()"
                         v-if="step > 1">
@@ -414,22 +411,6 @@ watch(step,
   </div>
 </template>
 <style lang="scss">
-.bottom-nav-content {
-  position: fixed;
-  bottom:0.70rem;
-  width: 100%;
-  background: white;
-  display: flex;
-  justify-content: space-around;
-  
-  /* IMPORTANTE: Añadimos el margen inferior del sistema */
-  padding-bottom: var(--safe-area-bottom);
-  
-  /* Si quieres un poco más de aire extra: */
-  /* padding-bottom: calc(var(--safe-area-bottom) + 15px); */
-  
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-}
 .form-step {
   position: absolute;
   top: 0;
@@ -539,7 +520,8 @@ watch(step,
 @media (max-width: 780px) {
 
   .buttonSection {
-    box-shadow: 0px -5px 10px 0px rgb(207 207 207)
+    box-shadow: 0px -5px 10px 0px rgb(207 207 207);
+    // padding-bottom: max(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)), 48px);
   }
 
   .form__inputsReverse {

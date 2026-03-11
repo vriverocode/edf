@@ -36,7 +36,7 @@ onMounted(() => {
         ready.value = true
         getNotifications()
         PushNotificationsService.init();
-      }else{
+      } else {
         throw response
       }
 
@@ -107,58 +107,69 @@ watch(
 </script>
 
 <template>
-  <div class="h-full bg-white w-full pt-2 h-full min-h-screen " style="overflow: hidden;">
-    <template v-if="ready">
-      <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
-      <section :class="{
-        'withoutNav': isShowablePage(),
-        'page__container': showNavbar(),
-        'page_continerFull': !showNavbar()
-      }">
-        <div class="row w-full backButton items-center px-2 md:px-20 md:mx-16 px-2" v-if="showBack()" >
-          <div class="flex items-center" @click="goBack()">
-            <q-btn round outline class="text-backButton" icon="eva-arrow-back-outline" />
-            <div class="ml-2 backButton-text">REGRESAR</div>
+  <div class=" h-full bg-white w-full min-h-screen" style="overflow: hidden;">
+    <div class="panel-layout-root h-full bg-white w-full min-h-screen pt-8">
+      <template v-if="ready">
+        <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
+        <section :class="{
+          'withoutNav': isShowablePage(),
+          'page__container': showNavbar(),
+          'page_continerFull': !showNavbar()
+        }">
+          <div class="row w-full backButton items-center md:px-20 md:mx-16 px-2" v-if="showBack()">
+            <div class="flex items-center" @click="goBack()">
+              <q-btn round outline class="text-backButton" icon="eva-arrow-back-outline" />
+              <div class="ml-2 backButton-text">REGRESAR</div>
+            </div>
           </div>
-        </div>
-        
-        <div class="relative w-full overflow-hidden" :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }">
-          <router-view v-slot="{ Component }">
-            <transition :name="transitionName">
-                <component :is="Component" class="inner-page-component" />
-            </transition>
-          </router-view>
-        </div>
-      </section>
-      <navbarAdmin v-if="['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)"
-        @logoutModal="showModal = 'logout'" />
-      <infoNewSideBar />
 
-      <logoutModal :dialog="(showModal == 'logout')" @closeModal="showModal = ''" />
-    </template>
-    <loaderPage v-else />
+          <div class="relative w-full overflow-hidden"
+            :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }">
+            <router-view v-slot="{ Component }">
+              <transition :name="transitionName">
+                <component :is="Component" class="inner-page-component" />
+              </transition>
+            </router-view>
+          </div>
+        </section>
+        <navbarAdmin v-if="['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)"
+          @logoutModal="showModal = 'logout'" />
+        <infoNewSideBar />
+
+        <logoutModal :dialog="(showModal == 'logout')" @closeModal="showModal = ''" />
+      </template>
+      <loaderPage v-else />
+    </div>
+
   </div>
 </template>
 
 <style lang="scss">
+/* Safe areas: barra de estado (arriba) y barra de navegación/gestos (abajo) */
+.panel-layout-root {
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+
 .inner-page-component {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: #ffffff; /* Fijo para que no se traslapen las vistas */
-  
+  background-color: #ffffff;
+  /* Fijo para que no se traslapen las vistas */
+
   /* CRUCIAL PARA EL SCROLL */
-  overflow-y: auto; 
+  overflow-y: auto;
   overflow-x: hidden;
-  
+
   /* Hardware acceleration para que la animación fluya mientras haces scroll */
   backface-visibility: hidden;
   transform: translateZ(0);
-  
+
 
 }
+
 .page_continerContent {
   height: 90%;
 }

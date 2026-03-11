@@ -72,7 +72,7 @@ const getApartmentsByUser = () => {
 
 const handleSubmit = () => {
   const apartmentId = formData.value.apartment?.id
-  if(!validateData(apartmentId)){
+  if (!validateData(apartmentId)) {
     return
   }
 
@@ -89,18 +89,22 @@ const handleSubmit = () => {
   }
 
   visitStore.storeVisit(payload)
-  .then((response) => {
-    console.log(response)
-  })
-  .finally(() => {
-    loading.value = false;
-  })
+    .then((response) => {
+      console.log(response)
+      showNotify('positive', 'Visita completada')
+      setTimeout(() => {
+        loading.value = false
+        router.go(-1)
+      }, 800)
+    })
+    .catch(() => {
+      showNotify('negative', 'Error al registrar visita')
+    })
+    .finally(() => {
+      loading.value = false;
+    })
 
-  showNotify('positive', 'Formulario de visita completado (pendiente guardar en backend)')
-  setTimeout(() => {
-    loading.value = false
-    router.go(-1)
-  }, 800)
+
 }
 
 const validateData = (apartmentId) => {
@@ -124,10 +128,6 @@ const validateData = (apartmentId) => {
     showNotify('negative', 'Indica la fecha de la visita')
     return false
   }
-  if (!formData.value.hour) {
-    showNotify('negative', 'Indica la hora aproximada de llegada')
-    return false
-  }
   return true
 }
 
@@ -148,17 +148,8 @@ onMounted(() => {
           <div class="text-subtitle2 text-bold text-black">
             Apartamento
           </div>
-          <q-select
-            v-if="!hasNoApartments"
-            borderless
-            dense
-            class="form__inputsCR mt-2"
-            v-model="formData.apartment"
-            option-value="id"
-            option-label="number"
-            :options="apartmentsOptions"
-            behavior="menu"
-          >
+          <q-select v-if="!hasNoApartments" borderless dense class="form__inputsCR mt-2" v-model="formData.apartment"
+            option-value="id" option-label="number" :options="apartmentsOptions" behavior="menu">
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
                 <div class="w-full">
@@ -166,17 +157,11 @@ onMounted(() => {
                     <div class="text-subtitle1" style="font-weight: 500">
                       {{ scope.opt.id != 0 ? '#' : '' }} {{ scope.opt.number }}
                     </div>
-                    <div
-                      v-if="scope.opt.id != 0"
-                      class="text-positive text-subtitle2 pl-2"
-                    >
+                    <div v-if="scope.opt.id != 0" class="text-positive text-subtitle2 pl-2">
                       Tu apartamento
                     </div>
                   </div>
-                  <div
-                    class="text-caption text-grey-6"
-                    v-if="scope.opt.id != 0 && scope.opt.area"
-                  >
+                  <div class="text-caption text-grey-6" v-if="scope.opt.id != 0 && scope.opt.area">
                     {{ scope.opt.area }} mt²
                   </div>
                 </div>
@@ -195,114 +180,69 @@ onMounted(() => {
           <div class="text-subtitle2 text-bold text-black pt-2">
             Nombre completo del visitante
           </div>
-          <q-input
-            borderless
-            clearable
-            dense
-            class="form__inputsCR mt-2"
-            color="primary"
-            v-model="formData.fullname"
+          <q-input borderless clearable dense class="form__inputsCR mt-2" color="primary" v-model="formData.fullname"
             :rules="[
               (val) =>
                 (val && val.length > 0) ||
                 'El nombre del visitante es requerido',
-            ]"
-          />
+            ]" />
         </div>
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">
             Documento de identidad
           </div>
-          <q-input
-            borderless
-            clearable
-            dense
-            class="form__inputsCR mt-2"
-            color="primary"
-            v-model="formData.dni"
-            :rules="[
-              (val) =>
-                (val && val.length > 0) ||
-                'El documento de identidad es requerido',
-            ]"
-          />
+          <q-input borderless clearable dense class="form__inputsCR mt-2" color="primary" v-model="formData.dni" :rules="[
+            (val) =>
+              (val && val.length > 0) ||
+              'El documento de identidad es requerido',
+          ]" />
         </div>
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">
             Tipo de visita
           </div>
-          <q-select
-            borderless
-            dense
-            class="form__inputsCR mt-2"
-            v-model="formData.type"
-            option-value="id"
-            option-label="title"
-            :options="typeOptions"
-            emit-value
-            map-options
-            behavior="menu"
-          />
+          <q-select borderless dense class="form__inputsCR mt-2" v-model="formData.type" option-value="id"
+            option-label="title" :options="typeOptions" emit-value map-options behavior="menu" />
         </div>
 
-        <div class="col-12 md:my-0 my-1 px-2 md:px-12">
+        <div class="col-12 col-md-6 md:my-0 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black pt-2">
             Motivo / descripción (opcional)
           </div>
-          <q-input
-            borderless
-            clearable
-            type="textarea"
-            autogrow
-            dense
-            class="form__inputsCR mt-2"
-            color="primary"
-            v-model="formData.description"
-          />
+          <q-input borderless clearable type="textarea" autogrow dense class="form__inputsCR mt-2" color="primary"
+            v-model="formData.description" />
         </div>
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black pt-2">
             Fecha de la visita
           </div>
-          <q-input borderless dense class="form__inputsCR mt-2" v-model="formData.date" mask="date"
-              :rules="['date']">
-              <template v-slot:append>
-                  <q-icon name="eva-calendar-outline" class="cursor-pointer">
-                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                          <q-date v-model="formData.date" minimal
-                              :options="(date) => date.replace(/\//g, '-') >= new Date().toISOString().split('T')[0]">
-                              <div class="row items-center justify-end">
-                                  <q-btn v-close-popup label="OK" color="primary" flat />
-                              </div>
-                          </q-date>
-                      </q-popup-proxy>
-                  </q-icon>
-              </template>
+          <q-input borderless dense class="form__inputsCR mt-2" v-model="formData.date" mask="date" :rules="['date']">
+            <template v-slot:append>
+              <q-icon name="eva-calendar-outline" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date v-model="formData.date" minimal
+                    :options="(date) => date.replace(/\//g, '-') >= new Date().toISOString().split('T')[0]">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="OK" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
           </q-input>
         </div>
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-bold text-black">
+          <div class="text-subtitle2 text-bold text-black md:mt-2">
             Hora aproximada de llegada
           </div>
-          <q-input
-            borderless
-            dense
-            class="form__inputsCR mt-2"
-            v-model="formData.hour"
-            mask="time"
-            :rules="['time']"
-          >
+          <q-input borderless dense class="form__inputsCR mt-2" v-model="formData.hour" mask="time">
             <template v-slot:append>
               <q-icon name="eva-clock-outline" class="cursor-pointer">
-                <q-popup-proxy
-                  cover
-                  transition-show="scale"
-                  transition-hide="scale"
-                >
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                   <q-time v-model="formData.hour" format24h>
                     <div class="row items-center justify-end">
                       <q-btn v-close-popup label="OK" color="primary" flat />
@@ -314,24 +254,12 @@ onMounted(() => {
           </q-input>
         </div>
 
-        <div
-          class="col-12 my-4 px-2 md:px-12 flex items-center justify-between"
-        >
-          <q-btn
-            flat
-            color="grey-9"
-            class="q-mr-sm"
-            @click="router.push('/client/visit/list')"
-          >
+        <div class="col-12 my-4 px-2 md:px-12 flex items-center justify-between">
+          <q-btn flat color="grey-9" class="q-mr-sm" @click="router.push('/client/visit/list')">
             Volver
           </q-btn>
-          <q-btn
-            color="primary"
-            style="border-radius: 0.5rem"
-            type="submit"
-            :loading="loading"
-            :disable="hasNoApartments"
-          >
+          <q-btn color="primary" style="border-radius: 0.5rem" type="submit" :loading="loading"
+            :disable="hasNoApartments">
             <div class="px-10 py-1">
               Registrar visita
             </div>

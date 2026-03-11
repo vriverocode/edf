@@ -9,36 +9,38 @@ const logout = () => {
 }
 </script>
 <template>
-  <q-tabs no-caps right-icon="-" active-color="terciary" align="justify"
-    class="bg-white text-dark shadow-0 fixed-bottom bottom-tab q-py-md-xs q-px-md-lg flex q-py-xs userNavbar">
-    <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" :to="'/dashboard'" exact>
-      <div class="flex flex-center column">
-        <div v-html="iconsApp.home3" />
-        <span class="q-mt-xs text-dark text-subtitle2">Inicio</span>
-      </div>
-    </q-route-tab>
-    <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" v-if="user.rol_id == 1" :to="'/admin/users'" exact>
-      <div class="flex flex-center column">
-        <div v-html="iconsApp.user3" />
-        <span class="q-mt-xs text-dark text-subtitle2">Usuarios</span>
-      </div>
-    </q-route-tab>
-    <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" :to="'/admin/finance'" exact>
-      <div class="flex flex-center column">
-        <div v-html="iconsApp.finance2" />
-        <span class="q-mt-xs text-dark text-subtitle2">Finanzas</span>
-      </div>
-    </q-route-tab>
-    <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" @click="logout()">
-      <div class="flex flex-center column">
-        <div v-html="iconsApp.exit2" />
-        <!-- <q-icon name="eva-log-out-outline" size="31px" color="grey-6" /> -->
-        <span class="q-mt-xs text-dark text-subtitle2 ">Salir</span>
-      </div>
-    </q-route-tab>
+  <div class="bottom-tab ">
+    <q-tabs no-caps right-icon="-" active-color="terciary" align="justify"
+      class="bg-white text-dark shadow-0  q-py-md-xs q-px-md-lg flex q-py-xs userNavbar">
+      <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" :to="'/dashboard'" exact>
+        <div class="flex flex-center column">
+          <div v-html="iconsApp.home3" />
+          <span class="q-mt-xs text-dark text-subtitle2">Inicio</span>
+        </div>
+      </q-route-tab>
+      <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" v-if="user.rol_id == 1" :to="'/admin/users'" exact>
+        <div class="flex flex-center column">
+          <div v-html="iconsApp.user3" />
+          <span class="q-mt-xs text-dark text-subtitle2">Usuarios</span>
+        </div>
+      </q-route-tab>
+      <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" :to="'/admin/finance'" exact>
+        <div class="flex flex-center column">
+          <div v-html="iconsApp.finance2" />
+          <span class="q-mt-xs text-dark text-subtitle2">Finanzas</span>
+        </div>
+      </q-route-tab>
+      <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" @click="logout()">
+        <div class="flex flex-center column">
+          <div v-html="iconsApp.exit2" />
+          <!-- <q-icon name="eva-log-out-outline" size="31px" color="grey-6" /> -->
+          <span class="q-mt-xs text-dark text-subtitle2 ">Salir</span>
+        </div>
+      </q-route-tab>
 
 
-  </q-tabs>
+    </q-tabs>
+  </div>
 </template>
 
 
@@ -83,6 +85,7 @@ const logout = () => {
 }
 
 .bottom-tab {
+  /* Safe area: evita solapamiento con barra de navegación (3 botones o gestos) */
   border-top: 1.5px solid $grey-5;
   width: 100%;
   height: 10%;
