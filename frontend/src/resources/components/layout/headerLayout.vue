@@ -36,7 +36,7 @@ onMounted(() => {
 <template>
   <section class="md:px-8 md:mx-28 pb-3 px-6 flex justify-between items-stretch bg-primary header__container">
     <div class="flex flex-col justify-between">
-      <div class="pt-1">
+      <div class="pt-2">
         <div v-html="iconsApp.menuDots" style="transform: translateX(-0.2rem);" />
       </div>
       <template v-if="isHomePage">
@@ -59,8 +59,8 @@ onMounted(() => {
     <div class="flex items-start">
       <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader"
         :class="{ 'mt-8 h-28': isHomePage, 'mt-5 h-20': !isHomePage }">
-      <div class="relative" @click="router.push({ name: 'notificationsPage' })">
-        <q-badge class="badgeNotificationCount pt-1" v-if="notificationsStore.unreadCount > 0" color="red"
+      <div class="relative pt-2" @click="router.push({ name: 'notificationsPage' })">
+        <q-badge class="badgeNotificationCount " v-if="notificationsStore.unreadCount > 0" color="red"
           :label="notificationsStore.unreadCount" />
         <q-icon :name="materialIcons.roundNotifications" color="white" size="1.8rem" />
       </div>
