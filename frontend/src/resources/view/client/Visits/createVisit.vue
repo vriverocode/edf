@@ -19,7 +19,8 @@ const typeOptions = ref([
   { id: 1, title: 'Personal' },
   { id: 2, title: 'Entrega' },
   { id: 3, title: 'Servicio' },
-  { id: 4, title: 'Otro' },
+  { id: 4, title: 'Airbnb' },
+  { id: 5, title: 'Otro' },
 ])
 
 const formData = ref({

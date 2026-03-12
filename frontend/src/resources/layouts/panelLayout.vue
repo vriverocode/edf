@@ -12,7 +12,10 @@ import storage from '@/services/storage'
 import { useNotificationsStore } from '@/services/store/notifications.store'
 import { useQuasar } from 'quasar'
 import { PushNotificationsService } from '@/services/notifications_push/pushNotifications';
+import { Capacitor } from '@capacitor/core';
 
+const isNative = ref(Capacitor.isNativePlatform());
+console.log(Capacitor.isNativePlatform())
 const router = useRouter()
 const route = useRoute()
 const ready = ref(false)
@@ -104,11 +107,12 @@ watch(
   }
 );
 
+
 </script>
 
 <template>
   <div class=" h-full bg-white w-full min-h-screen" style="overflow: hidden;">
-    <div class="panel-layout-root h-full bg-white w-full min-h-screen pt-8">
+    <div class="panel-layout-root h-full bg-white w-full min-h-screen " :class="{ 'pt-8': isNative, 'pt-2': !isNative }">
       <template v-if="ready">
         <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
         <section :class="{
@@ -135,7 +139,6 @@ watch(
         <navbarAdmin v-if="['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)"
           @logoutModal="showModal = 'logout'" />
         <infoNewSideBar />
-
         <logoutModal :dialog="(showModal == 'logout')" @closeModal="showModal = ''" />
       </template>
       <loaderPage v-else />

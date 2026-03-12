@@ -117,6 +117,7 @@ const createUser = () => {
             return
         }
         step.value++
+        // autogenerateNameAirbnb()
         return
     }
 
@@ -155,7 +156,13 @@ const createUser = () => {
         })
 }
 
+const autogenerateNameAirbnb = (e) => {
+    console.log(formData.value)
 
+    if(e.id ==  'airbnb'){
+        formData.value.name = 'Airbnb ' + formData.value.apartment.number
+    }
+}
 const showNotify = (type, text) => {
     Notify.create({
         color: type,
@@ -183,7 +190,7 @@ onMounted(() => {
                             Tipo de residente
                         </div>
                         <q-select borderless dense class="form__inputsCR mt-2" v-model="formData.type" option-value="id"
-                            option-label="title" :options="tipoResidentOptions" behavior="menu">
+                            option-label="title" :options="tipoResidentOptions" behavior="menu" @update:model-value="autogenerateNameAirbnb">
                         </q-select>
                     </div>
                     <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
@@ -192,7 +199,7 @@ onMounted(() => {
                         </div>
                         <q-select v-if="!hasNoApartments" borderless dense class="form__inputsCR mt-2"
                             v-model="formData.apartment" option-value="id" option-label="number"
-                            :options="apartmentsOptions" behavior="menu">
+                            :options="apartmentsOptions" behavior="menu" >
 
                             <template v-slot:option="scope">
                                 <q-item v-bind="scope.itemProps">

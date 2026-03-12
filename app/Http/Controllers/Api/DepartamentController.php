@@ -98,11 +98,11 @@ class DepartamentController extends Controller
     {
         $rules = [
             'number'     => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\-]+$/i'],
-            'address'    => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ ., &]+$/i'],
+            'address'    => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .,# &]+$/i'],
             'block'      => ['regex:/^[a-z 0-9 A-Z À-ÿ .]+$/i'],
             'area'       => ['required', 'numeric'],
             'floor'      => ['required', 'numeric'],
-            'description' =>  ['regex:/^[a-z a-z 0-9 A-Z-À-ÿ ., \-]+$/i'],
+            'description' =>  ['nullable','regex:/^[a-z a-z 0-9 A-Z-À-ÿ ., \-]+$/i'],
         ];
         $messages = [
             'number.required'   => 'El número de apartamento es requerido.',

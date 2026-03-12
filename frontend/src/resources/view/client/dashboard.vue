@@ -53,11 +53,13 @@ const menu = [
     title: 'Visitas',
     icon: defaulticon,
     link: '/client/visit/list',
+    roles: [2]
   },
   {
     title: 'Residentes',
     icon: defaulticon,
     link: '/client/familiar/list',
+    roles: [2]
   },
 ];
 const menuByRol = computed(() => {
