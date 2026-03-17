@@ -16,6 +16,20 @@ const materialIcons = inject('materialIcons')
 const pagTitle = ref(route.meta.pagTitle)
 const homePagesNameToHeader = ['dashboardAdmin', 'financePage', 'usersAdmin']
 const isHomePage = ref(homePagesNameToHeader.includes(route.name))
+const ifOwner = ref(user.value.rol.name.toLowerCase() == 'propietario')
+const reserveAreaActive = ref(false)
+const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
+
+const reserveInfo = ref({
+  step:1,
+  icon:null,
+  name:''
+})
+
+const setReserveData = (e) => {
+  reserveInfo.value = e.data
+  reserveAreaActive.value = e.visible
+}
 const changePagTitle = (title) => {
   pagTitle.value = title
 }
@@ -29,46 +43,78 @@ watch(route, (newRoute) => {
 
 onMounted(() => {
   emitter.on('pagTitle', changePagTitle)
+  emitter.on('isReserve', setReserveData)
+
 })
 
 </script>
 
 <template>
-  <section class="md:px-8 md:mx-28 pb-3 px-6 flex justify-between items-stretch bg-primary header__container">
-    <div class="flex flex-col justify-between">
-      <div class="pt-2">
-        <div v-html="iconsApp.menuDots" style="transform: translateX(-0.2rem);" />
+  <div class="md:px-8 md:mx-28 pb-3 px-6 row bg-primary header__container">
+    <section class=" flex justify-between items-stretch col-12">
+      <div class="flex flex-col justify-between">
+        <div class="pt-2">
+          <div v-html="iconsApp.menuDots" style="transform: translateX(-0.2rem);" />
+        </div>
+        <template v-if="isHomePage">
+          <div class="text-white mt-3 mb-2">
+            <div class="mant-title" style="font-weight:400; ">¡Hola!</div>
+            <div class="text-nameHeader" style="">{{ user.name }}</div>
+          </div>
+          <div class="text-white" v-if="ifOwner">
+            <div class="mant-title">Mantenimiento Febrero</div>
+            <div class="text-amtHeader" style="">375.25</div>
+          </div>
+          <div>
+  
+          </div>
+        </template>
+        <template v-if="!isHomePage && !reserveAreaActive">
+          <div class=" text-pagtitle text-white">
+            {{ pagTitle }}
+          </div>
+        </template>
+  
       </div>
-      <template v-if="isHomePage">
-        <div class="text-white mt-3 mb-2">
-          <div class="mant-title" style="font-weight:400; ">¡Hola!</div>
-          <div class="text-nameHeader" style="">{{ user.name }}</div>
+      <div class="flex items-start">
+        <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader"
+          :class="{ 'mt-8 h-28': isHomePage, 'mt-5 h-20': !isHomePage }">
+        <div class="relative pt-2" @click="router.push({ name: 'notificationsPage' })">
+          <q-badge class="badgeNotificationCount " v-if="notificationsStore.unreadCount > 0" color="red"
+            :label="notificationsStore.unreadCount" />
+          <q-icon :name="materialIcons.roundNotifications" color="white" size="1.8rem" />
         </div>
-        <div class="text-white">
-          <div class="mant-title">Mantenimiento Febrero</div>
-          <div class="text-amtHeader" style="">375.25</div>
-        </div>
-      </template>
-      <template v-else>
-        <div class=" text-pagtitle text-white">
-          {{ pagTitle }}
-        </div>
-      </template>
-
-    </div>
-    <div class="flex items-start">
-      <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader"
-        :class="{ 'mt-8 h-28': isHomePage, 'mt-5 h-20': !isHomePage }">
-      <div class="relative pt-2" @click="router.push({ name: 'notificationsPage' })">
-        <q-badge class="badgeNotificationCount " v-if="notificationsStore.unreadCount > 0" color="red"
-          :label="notificationsStore.unreadCount" />
-        <q-icon :name="materialIcons.roundNotifications" color="white" size="1.8rem" />
       </div>
+    </section>
+    <div class="col-12" v-if="reserveAreaActive">
+      <div>
+        <div class="text-white text-reserveTitle pl-0" style="position:relative; z-index:2">
+          Reservar
+        </div>
+        <div class="flex items-center">
+          <img :src="mediaUrl + '/images/icons/' + reserveInfo.icon + '.svg'" alt="" 
+          style="height:5rem; transform:translateX(-15px) translateY(-5px)">
+          <div class="text-reserveData" style="transform:translateX(-15px);">
+            {{ reserveInfo.name }}
+          </div>
+        </div>
+      </div>
+      <div></div>
     </div>
-  </section>
+  </div>
 </template>
 
 <style lang="scss">
+.text-reserveData{
+  font-size: 1.5rem;
+  color: white;
+  font-weight: medium;
+}
+.text-reserveTitle{
+  font-size: 1rem;
+  color: white;
+  font-weight: medium;
+}
 .imgLogoHeader {
   transition: all 0.5s ease;
 }

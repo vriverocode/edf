@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/services/store/auth.services';
 import iconsApp from '@/assets/icons/index'
 import { Capacitor } from '@capacitor/core';
+import { ref } from 'vue'
 
 const isNative = ref(Capacitor.isNativePlatform());
 const emit = defineEmits(['logoutModal'])

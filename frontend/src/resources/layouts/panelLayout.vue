@@ -15,7 +15,6 @@ import { PushNotificationsService } from '@/services/notifications_push/pushNoti
 import { Capacitor } from '@capacitor/core';
 
 const isNative = ref(Capacitor.isNativePlatform());
-console.log(Capacitor.isNativePlatform())
 const router = useRouter()
 const route = useRoute()
 const ready = ref(false)
@@ -208,7 +207,7 @@ watch(
 }
 
 .header__container {
-  max-height: 23%;
+  max-height: 22%;
   height: auto;
   min-height: 16%;
   overflow: hidden;

@@ -160,7 +160,7 @@ const autogenerateNameAirbnb = (e) => {
     console.log(formData.value)
 
     if(e.id ==  'airbnb'){
-        formData.value.name = 'Airbnb ' + formData.value.apartment.number
+        formData.value.username = 'Airbnb' + formData.value.apartment.number
     }
 }
 const showNotify = (type, text) => {
@@ -229,7 +229,7 @@ onMounted(() => {
                     </div>
 
                     <!-- Fecha hasta (solo Airbnb) -->
-                    <div v-if="formData.type?.id === 'airbnb'" class="col-12 md:my-0 my-1 px-2 md:px-12">
+                    <div v-if="formData.type?.id === 'airbnb'" class="col-12 md:my-0 my-1 px-2 md:px-12 md:pt-8">
                         <div class="text-subtitle2 text-bold text-black">
                             Fecha hasta (fin del alquiler)
                         </div>

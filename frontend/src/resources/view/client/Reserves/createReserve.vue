@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, inject, watch } from 'vue';
+import { onMounted, ref, inject, watch, onBeforeUnmount} from 'vue';
 import { Notify } from 'quasar'
 import { useRouter, useRoute } from 'vue-router';
 import { useComunAreaStore } from '@/services/store/comunArea.store';
@@ -43,13 +43,21 @@ const temporal = ref([])
 const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
   nextStep()
-  console.log(selectedComunArea)
 }
 
 const backButton = () => {
   if (step.value == 2) {
     cleanForm()
-    // return
+    visibleBackButton(true)
+    emitter.emit('isReserve', 
+    {
+      visible: false,
+      data:{
+        step: 1,
+        icon: '',
+        name: ''
+      }
+    })
   }
   step.value--
 
@@ -61,9 +69,18 @@ const nextStep = () => {
     createReserve()
     return
   }
-  emitter.emit('pagTitle', step.value == 1 ? 'Agenda tu reserva' : 'Realiza el pago')
+  emitter.emit('pagTitle', '')
   step.value++
-
+  emitter.emit('isReserve', 
+  {
+    visible: true,
+    data:{
+      step: step.value ,
+      icon: selectedComunArea.value.icon,
+      name: selectedComunArea.value.name
+    }
+  })
+  visibleBackButton(false)
 }
 const cleanForm = () => {
   formData.value = {
@@ -153,7 +170,6 @@ const createReserve = () => {
   loading.value = true
   reserveStore.createReserve(formData.value)
     .then((response) => {
-      console.log(response)
       setTimeout(() => {
         loading.value = false
         showNotify('positive', 'Reserva realizada con exito')
@@ -179,13 +195,29 @@ const createReserve = () => {
     })
 }
 const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
+
+const visibleBackButton = (visible) => {
+  const element = document.querySelector('.backButton');
+  element.style.display = visible ? 'flex' : 'none'
+}
 onMounted(() => {
   getComunsArea()
 })
 
+onBeforeUnmount(() => {
+  emitter.emit('isReserve', 
+  {
+    visible: false,
+    data:{
+      step: 1,
+      icon: '',
+      name: ''
+    }
+  })
+});
+
 watch(step,
   (toDepth, fromDepth) => {
-    console.log(toDepth)
     transitionName.value = toDepth > fromDepth ? 'slide-next' : 'slide-prev';
   }
 );
@@ -211,145 +243,39 @@ watch(step,
         <Transition :name="transitionName">
           <div class="h-full form-step" style="overflow: hidden;" v-if="step > 1">
             <div class=" w-full h-full ">
-              <div style="height: 81%; overflow: auto;" class="pb-5">
-                <div class="row w-full pt-2">
-                  <div class="col-12 px-3">
-                    <div class="w-full row selectAreaItem items-center mb-5 pr-4 pl-2 md:px-4 py-2">
-                      <div class="text-subtitle1 text-black q-pt-xs col-10 pl-2"
-                        style="line-height: 1.2; font-weight: 500;">
-                        {{ selectedComunArea.name }}
-                      </div>
-
-                      <div class="text-subtitle2 text-white  px-6"
-                        style="position: absolute; top: 0; right: 0; border-bottom-left-radius: 1rem; letter-spacing: 1px; letter-spacing: 1px;"
-                        :class="{ 'bg-primary': selectedComunArea.pay_label == 'Pago', 'bg-positive': selectedComunArea.pay_label == 'Gratis' }">
-                        {{ selectedComunArea.pay_label }}
-                      </div>
-                      <div class="col-12 row mt-1">
-                        <div class="col-3 col-md-1   " style=" border-radius: 0.5rem;">
-                          <div class="boxItem_v2" style="height:5rem">
-                            <div class="flex justify-start items-center h-full w-full p-1">
-                              <img :src="mediaUrl + '/images/icons/' + selectedComunArea.icon + '.svg'" alt=""
-                                style="height:100%">
-                            </div>
-                          </div>
-                        </div>
-                        <div class="col-8">
-                          <div class="q-mt-xs text-body2x text-black" style="font-weight: 500;">
-                            Costo: S/{{ selectedComunArea.price }}
-                            <i style="font-weight: 500;" v-if="selectedComunArea.warranty_price > 0">
-                              + S/{{ selectedComunArea.warranty_price }}
-                              <span class="text-warning" style="font-size: 0.75rem;">garantia</span>
-                            </i>
-                          </div>
-                          <div class="q-mt-xs text-body2x text-black" style="font-weight: 500;">
-                            Capcidad: {{ selectedComunArea.capacity }} personas
-                          </div>
-                          <div class="q-mt-xs text-body2x text-black" style="font-weight: 500;">
-                            Max. de reserva: {{ selectedComunArea.max_time_reserve }} hora(s)
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+              <div class="w-full max-w-sm mx-auto pt-4 pb-2 px-4" style="height:15%">
+                <div class="relative flex justify-between items-center">
+                  <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1.5 bg-[#d9dee8] z-0"></div>
+                  
+                  <div v-for="n in 4" :key="n" 
+                       class="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm md:text-base transition-colors duration-300"
+                       :class="{
+                         'bg-[#79b5a8] text-white': n < step,      /* Completado: Verde/Teal */
+                         'bg-[#5571b7] text-white': n === step,    /* Actual: Azul oscuro */
+                         'bg-[#d9dee8] text-[#202c44]': n > step   /* Futuro: Gris claro */
+                       }">
+                    {{ n }}
                   </div>
+                </div>
+      
+                <div class="text-center text-[#5571b7] font-bold text-lg md:text-xl mt-4 mb-4">
+                  <span v-if="step === 1">Selecciona área común</span>
+                  <span v-else-if="step === 2">Fecha de reserva</span>
+                  <span v-else-if="step === 3">Información adicional</span>
+                  <span v-else>Confirmación de pago</span>
+                </div>
+              </div>
+              <div style="height: 70%; overflow: auto;" class="pb-5">
+                <div class="row w-full pt-2">
                   <template v-if="step == 2">
-                    <div class="col-12 col-md-6 row">
-                      <div class="col-12 row md:px-5 ">
-                        <div class="col-12 text-subtitle1 headerSection my-1 py-2 px-4">
-                          Selecciona la fecha
+                    <div class="flex flex-center w-full q-px-md">
+                      <q-date mask="DD-MM-YYYY" v-model="formData.date" minimal class="w-full" :options="optionsFn"
+                        @update:model-value="getAvaibleBookingByDay"
+                        :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Aceptar" color="primary" flat />
                         </div>
-                        <div class="col-12 row mt-3 px-3 md:px-2">
-                          <div class="col-12">
-                            <div class="text-subtitle2 text-black" style="font-weight: medium;">
-                              Fecha de reserva:
-                            </div>
-                            <q-input v-model="formData.date" :rules="[val => !(!val) || 'Fecha es requerida']" dense
-                              borderless clearable class="form__inputsReverse mt-1" color="primary">
-                              <template v-slot:append>
-                                <q-icon name="eva-calendar-outline" class="cursor-pointer">
-                                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                    <q-date mask="DD-MM-YYYY" v-model="formData.date" :options="optionsFn"
-                                      @update:model-value="getAvaibleBookingByDay"
-                                      :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
-                                      <div class="row items-center justify-end">
-                                        <q-btn v-close-popup label="Aceptar" color="primary" flat />
-                                      </div>
-                                    </q-date>
-                                  </q-popup-proxy>
-                                </q-icon>
-                              </template>
-                            </q-input>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-12 row md:px-5">
-                        <div class="col-12 text-subtitle1 headerSection my-1 py-2 px-4">
-                          Selecciona la hora
-                        </div>
-                        <div class="col-12 row mt-3 px-3 md:px-2">
-                          <div class="col-6  pr-2 md:pr-4">
-                            <div class="text-subtitle2 text-black" style="font-weight: medium;">
-                              Desde:
-                            </div>
-                            <q-input v-model="formData.time_from" mask="time" :rules="['time']" dense borderless
-                              clearable class="form__inputsReverse mt-1 q-pb-sm" color="primary"
-                              :readonly="disabledTime" :disable="disabledTime">
-                              <template v-slot:append>
-                                <q-icon name="eva-clock-outline" class="cursor-pointer">
-                                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                    <q-time v-model="formData.time_from" :hour-options="hourOptionsFrom"
-                                      :minute-options="minOptionsFrom" @update:model-value="limitToTime" format24h>
-                                      <!-- <q-time v-model="formData.time_from" mask="hh:ss A" :options="hourAvailable"> -->
-
-                                      <div class="row items-center justify-end">
-                                        <q-btn v-close-popup label="Aceptar" color="primary" flat />
-                                      </div>
-                                    </q-time>
-                                  </q-popup-proxy>
-                                </q-icon>
-                              </template>
-                            </q-input>
-
-                          </div>
-                          <div class="col-6  pl-2 md:pl-4">
-                            <div class="text-subtitle2 text-black" style="font-weight: medium;">
-                              Hasta:
-                            </div>
-                            <q-input v-model="formData.time_to" mask="time" :rules="['time']" dense borderless clearable
-                              class="form__inputsReverse mt-1 q-pb-sm" color="primary" :readonly="disabledTime"
-                              :disable="disabledTime">
-                              <template v-slot:append>
-                                <q-icon name="eva-clock-outline" class="cursor-pointer">
-                                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                    <q-time v-model="formData.time_to" format24h :hour-options="hourOptionsTo"
-                                      :minute-options="minOptionsFrom">
-                                      <div class="row items-center justify-end">
-                                        <q-btn v-close-popup label="Aceptar" color="primary" flat />
-                                      </div>
-                                    </q-time>
-                                  </q-popup-proxy>
-                                </q-icon>
-                              </template>
-                            </q-input>
-                          </div>
-                        </div>
-                        <div class="col-12 row mt-0 px-3 md:px-2" v-if="selectedComunArea.type == 2">
-                          <q-checkbox v-model="formData.is_exclusive" color="primary">
-                            <div class="text-grey-9 mt-1">
-                              Reservar de forma exclusiva
-                            </div>
-                          </q-checkbox>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-12 col-md-6  md:px-5">
-                      <div class="w-full text-subtitle1 headerSection my-1 py-2 px-4">
-                        Reglas
-                      </div>
-                      <div class="col-12 row mt-3 px-3 md:px-2">
-                        <div class="text-grey-9" style="font-size: 0.95rem; line-height: 1.7;"
-                          v-html="selectedComunArea.format_rules" />
-                      </div>
+                      </q-date>
                     </div>
 
                   </template>
@@ -371,7 +297,7 @@ watch(step,
                   </template>
                 </div>
               </div>
-              <div style="height: 19%;" class="buttonSection">
+              <div style="height: 15%;" class="buttonSection">
                 <div class="row py-4 ">
                   <div class="col-12 pb-4 px-5">
                     <div class="w-full flex justify-between text-black">
