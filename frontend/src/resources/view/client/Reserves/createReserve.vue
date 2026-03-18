@@ -6,17 +6,22 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
 import { useReserveStore } from '@/services/store/reserve.store';
 import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
+moment.locale('es', {
+  weekdays: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'),
+  monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
+  months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split('_'),
+})
 const myLocale = {
   /* starting with Sunday */
   days: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'),
-  daysShort: 'Dom_Lun_Mar_Mié_Jue_Vie_Sáb'.split('_'),
+  daysShort: 'DO_LU_MA_MI_JU_VI_SA'.split('_'),
   months: 'Enero_Febrero_Marzo_Abril_Mayo_Junio_Julio_Agosto_Septiembre_Octubre_Noviembre_Diciembre'.split('_'),
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
-  firstDayOfWeek: 1, // 0-6, 0 - Sunday, 1 Monday, ...
+  // 0-6, 0 - Sunday, 1 Monday, ...
   format24h: true,
   pluralDay: 'dias'
 }
-
+const tapActive = ref(1)
 const comunAreaStore = useComunAreaStore()
 const reserveStore = useReserveStore()
 const emitter = inject('emitter')
@@ -26,10 +31,10 @@ const router = useRouter()
 const disabledTime = ref(true)
 const ready = ref(false)
 const loading = ref(false)
-const step = ref(1)
+const step = ref(3)
 const transitionName = ref('slide-next');
 const formData = ref({
-  date: '',
+  date: '2026/03/25',
   time_from: '',
   time_to: '',
   note: '',
@@ -65,6 +70,9 @@ const backButton = () => {
 }
 
 const nextStep = () => {
+  if(!validateStepForm()){
+    return
+  }
   if (step.value == 3) {
     createReserve()
     return
@@ -98,6 +106,9 @@ const getComunsArea = () => {
     .then((response) => {
       if (response.code !== 200) throw response
       comunAreas.value = response.data
+      // -- borrar luego --
+      selectedComunArea.value = comunAreas.value.find((area) => area.id == 6)
+      getAvaibleBookingByDay()
       setTimeout(() => {
         ready.value = true
       }, 100)
@@ -105,6 +116,14 @@ const getComunsArea = () => {
     .catch((response) => {
       showNotify('positive', 'Error al obtener areas comunes')
     })
+}
+
+const validateStepForm = () => {
+  if(step.value == 2){
+    !formData.value.date ? showNotify('negative', 'Debe seleccionar la fecha de la reserva') : ''
+    return formData.value.date ? true : false
+  }
+  return true
 }
 const getAvaibleBookingByDay = () => {
 
@@ -122,7 +141,13 @@ const getAvaibleBookingByDay = () => {
     })
 }
 const optionsFn = (date) => {
-  return date >= moment().format('YYYY/MM/DD')
+  const isFutureOrToday = date >= moment().format('YYYY/MM/DD');
+
+  const dayOfWeek = moment(date, 'YYYY/MM/DD').day();
+  const isWeekday = dayOfWeek !== 0 && dayOfWeek !== 6;
+
+  // return isFutureOrToday && isWeekday;
+  return isFutureOrToday
 }
 const limitToTime = () => {
   if (!formData.value.time_from) {
@@ -243,10 +268,9 @@ watch(step,
         <Transition :name="transitionName">
           <div class="h-full form-step" style="overflow: hidden;" v-if="step > 1">
             <div class=" w-full h-full ">
-              <div class="w-full max-w-sm mx-auto pt-4 pb-2 px-4" style="height:15%">
+              <div class="w-full  pt-4 pb-2 px-4" style="height:15%">
                 <div class="relative flex justify-between items-center">
                   <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1.5 bg-[#d9dee8] z-0"></div>
-                  
                   <div v-for="n in 4" :key="n" 
                        class="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm md:text-base transition-colors duration-300"
                        :class="{
@@ -258,40 +282,61 @@ watch(step,
                   </div>
                 </div>
       
-                <div class="text-center text-[#5571b7] font-bold text-lg md:text-xl mt-4 mb-4">
-                  <span v-if="step === 1">Selecciona área común</span>
-                  <span v-else-if="step === 2">Fecha de reserva</span>
-                  <span v-else-if="step === 3">Información adicional</span>
-                  <span v-else>Confirmación de pago</span>
+                <div class="text-center text-[#5571b7] font-bold text-lg md:text-xl mt-3 mb-4">
+                  <div class="font-bold text-2xl" v-if="step === 1">Selecciona área común</div>
+                  <div class="font-bold text-2xl" v-else-if="step === 2">Fecha de reserva</div>
+                  <div class="font-bold text-2xl" v-else-if="step === 3">Selecciona la hora</div>
+                  <div class="font-bold text-2xl" v-else>Confirmación de pago</div>
                 </div>
               </div>
               <div style="height: 70%; overflow: auto;" class="pb-5">
                 <div class="row w-full pt-2">
                   <template v-if="step == 2">
                     <div class="flex flex-center w-full q-px-md">
-                      <q-date mask="DD-MM-YYYY" v-model="formData.date" minimal class="w-full" :options="optionsFn"
-                        @update:model-value="getAvaibleBookingByDay"
+                      <q-date 
+                        color="tealedf" v-model="formData.date" minimal class="w-full calendarReserve" :options="optionsFn"
+                        @update:model-value="getAvaibleBookingByDay" text-color="primary"
                         :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
-                        <div class="row items-center justify-end">
-                          <q-btn v-close-popup label="Aceptar" color="primary" flat />
-                        </div>
                       </q-date>
+                      <div class="w-full px-5">
+                        <div class="bg-primary mt-4 py-2 w-full textInfoContainer">
+                          <div class="text-white dateInfoTitle text-center">Fecha seleccionada:</div>
+                          <div class="text-white dateInfoContent text-center">
+                            {{ formData.date ? moment(formData.date).format('dddd DD [de] MMMM [del] YYYY') : '-----' }}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                   </template>
                   <template v-if="step == 3">
-                    <div class="col-12 col-md-6 row md:px-5">
-                      <div class="col-12 text-subtitle1 headerSection my-1 py-2 px-4">
-                        Información adicional de reserva
-                      </div>
-                      <div class="col-12 row mt-3 px-3 md:px-2">
-                        <div class="col-12">
-                          <div class="text-subtitle2 text-black" style="font-weight: medium;">
-                            Notas
+                    <div class="col-12 col-md-6 row md:px-5 px-4">
+                      <div class="selectedDateBlock flex  items-center justify-between px-4 w-full py-2">
+                        <div>
+                          <div class="text-dateBlockTitle">Fecha elegida</div>
+                          <div class="text-primary text-bold text-dateBlock">
+                            {{ formData.date ? moment(formData.date).format('dddd DD') : '-----' }} 
+                            - {{ selectedComunArea.max_time_reserve == 1 
+                              ? moment.duration(selectedComunArea.max_time_reserve, 'hours').asMinutes() + ' min'
+                              : selectedComunArea.max_time_reserve + ' hrs'
+                            }}
                           </div>
-                          <q-input dense borderless clearable type="textarea" v-model="formData.note"
-                            class="form__inputsReverse mt-1" color="primary" />
                         </div>
+                        <div>
+                          <q-btn outline color="tealedf" rounded no-caps class="backFecha" @click="backButton()">
+                            <div class="text-bold text-sm">
+                              Cambiar fecha
+                            </div>  
+                          </q-btn>
+                        </div>
+                      </div>
+                      <div class="tabBloque flex flex-center w-full pt-5">
+                        <div class="tabBloque__item flex flex-center mx-1 cursor-pointer" 
+                        :class="{'active': tapActive == 1}" @click="tapActive = 1 " >Mañana</div>
+                        <div class="tabBloque__item flex flex-center mx-1 cursor-pointer" 
+                        :class="{'active': tapActive == 2}" @click="tapActive = 2 " >Tarde</div>
+                        <div class="tabBloque__item flex flex-center mx-1 cursor-pointer" 
+                        :class="{'active': tapActive == 3}" @click="tapActive = 3 " >Noche</div>
                       </div>
                     </div>
                   </template>
@@ -299,14 +344,7 @@ watch(step,
               </div>
               <div style="height: 15%;" class="buttonSection">
                 <div class="row py-4 ">
-                  <div class="col-12 pb-4 px-5">
-                    <div class="w-full flex justify-between text-black">
-                      <div style="font-weight: 500; font-size: 1.1rem;">Total a pagar:</div>
-                      <div style="font-weight: 500; font-size: 1.1rem;">S/{{ selectedComunArea.price +
-                        selectedComunArea.warranty_price }}</div>
-                    </div>
-                  </div>
-                  <div class=" col-12 row  ">
+                  <template v-if="step == 4">
                     <div class="col-6 flex flex-center ">
                       <q-btn color="grey-8" class="" style="width: 90%; border-radius: 0.5rem;" @click="backButton()"
                         v-if="step > 1">
@@ -317,15 +355,47 @@ watch(step,
                     </div>
                     <div class="col-6 flex flex-center">
                       <q-btn color="primary" class="" style="width: 90%; border-radius: 0.5rem;" type="submit"
-                        :loading="loading">
+                        :loading="loading"> 
                         <div class="py-1 md:py-1">
                           {{ step == 3 ? 'Guardar reserva' : 'Siguiente' }}
                         </div>
                       </q-btn>
                     </div>
-                  </div>
+                  </template>
+                  <template v-if="step == 4">
+                    <div class="col-12 flex flex-center">
+                      <q-btn color="tealedf" unelevated="" class="" style="width: 90%; border-radius: 2rem;" type="submit"
+                        :loading="loading"> 
+                        <div class="flex w-full flex-center">
+                          <div class="py-2 md:py-1 font-bold mr-2" style="font-size:0.95rem">
+                            Elegir horario
+                          </div>
+                          <div class="flex flex-center" style="height:1.7rem; width:1.7rem; border:2px solid white; border-radius:50%">
+                            <q-icon name="eva-arrow-forward-outline" size="1rem" />
+                          </div>
+                        </div>
+                      </q-btn>
+                    </div>
+                  </template>
+                  <template v-if="step == 2">
+                    <div class="col-12 flex flex-center">
+                      <q-btn color="tealedf" unelevated="" class="" style="width: 90%; border-radius: 2rem;" type="submit"
+                        :loading="loading"> 
+                        <div class="flex w-full flex-center">
+                          <div class="py-2 md:py-1 font-bold mr-2" style="font-size:0.95rem">
+                            Elegir horario
+                          </div>
+                          <div class="flex flex-center" style="height:1.7rem; width:1.7rem; border:2px solid white; border-radius:50%">
+                            <q-icon name="eva-arrow-forward-outline" size="1rem" />
+                          </div>
+                        </div>
+                      </q-btn>
+                    </div>
+                  </template>
                 </div>
               </div>
+           
+           
             </div>
           </div>
         </Transition>
@@ -337,12 +407,116 @@ watch(step,
   </div>
 </template>
 <style lang="scss">
+.tabBloque{
+  &__item{
+    padding: 0.3rem 0.8rem;
+    background: white;
+    border: 2px solid lightgray;
+    border-radius: 1.5rem;
+    font-size: 0.8rem;
+    &.active {
+      color: white;
+      background: $primary;
+    }
+  }
+}
+.backFecha {
+  background: white!important;
+}
+.selectedDateBlock{
+  border: 2px solid lightgray;
+  border-radius: 0.5rem;
+  background: #f0f1f6;
+  & .text-dateBlockTitle{ 
+    font-size: 0.8rem;
+  }
+  & .text-dateBlock{ 
+    font-size: 1.2rem;
+  }
+}
+.dateInfoContent{
+  font-weight: 600;
+  font-size: 1.3rem;
+}
+.textInfoContainer{
+  border-radius: 0.7rem;
+}
+.dateInfoTitle{
+  font-weight: 500;
+  font-size: 0.96rem;
+}
+.bg-tealedf{
+  background-color: #79b5a8!important;
+}
+.text-tealedf{
+  color: #79b5a8!important;
+}
 .form-step {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
+}
+.calendarReserve {
+  border: 2px solid lightgray;
+  border-radius: 0.5rem;
+  background: #f0f1f6;
+  &.q-date{
+    box-shadow: none;
+  }
+  & .q-date__calendar-weekdays .q-date__calendar-item  {
+    opacity: 1!important;
+    margin-top: 0.7rem;
+    margin-bottom: 0.7rem;
 
+    & div{
+      background: #5571b7;
+      color: white;
+      border-radius: 50rem;
+      width: 2rem !important;
+      height: 2rem !important;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+
+    }
+    &:last-child div, &:first-child div{
+
+      color: white;
+      background-color: #e4a243;
+    }
+  }
+  & .q-date__calendar-days .q-date__calendar-item{
+    
+    opacity: 0.5;
+    & button{
+      width: 40px;
+      height: 40px;
+    }
+    &.q-date__calendar-item--out div {
+      color: $primary;
+      font-size: 1.1rem;
+      font-weight: 600!important;
+    }
+    &.q-date__calendar-item--in {
+      opacity: 1!important;
+      & .block{
+        color: $primary;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      &.q-date__calendar-item--in:nth-child(7n + 1) .block, 
+      &.q-date__calendar-item--in:nth-child(7n) .block {
+        color: #e4a243/* Tu color dorado */
+      }
+      & .q-btn--unelevated .block {
+        color: white!important;
+      }
+    }
+  }
+  
 }
 
 .q-date__navigation,
@@ -446,7 +620,7 @@ watch(step,
 @media (max-width: 780px) {
 
   .buttonSection {
-    box-shadow: 0px -5px 10px 0px rgb(207 207 207);
+  
     // padding-bottom: max(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)), 48px);
   }
 
@@ -457,4 +631,4 @@ watch(step,
     }
   }
 }
-</style>
+</style>  
