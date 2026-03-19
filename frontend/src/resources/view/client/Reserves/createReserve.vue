@@ -8,6 +8,7 @@ import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
 moment.locale('es', {
   weekdays: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'),
+  weekdaysShort:'Dom_Lun_Mar_Mie_Jue_Vie_Sab'.split('_'),
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split('_'),
 })
@@ -21,7 +22,7 @@ const myLocale = {
   format24h: true,
   pluralDay: 'dias'
 }
-
+const rulesModal = ref(false)
 const comunAreaStore = useComunAreaStore()
 const reserveStore = useReserveStore()
 const emitter = inject('emitter')
@@ -32,13 +33,16 @@ const disabledTime = ref(true)
 const ready = ref(false)
 const loading = ref(false)
 const step = ref(3)
+const selectedInterval = ref({})
 const transitionName = ref('slide-next');
 const formData = ref({
   date: '2026/03/25',
-  time_from: '',
+  time_from: null,
   time_to: '',
   note: '',
   is_exclusive: false,
+  terms_accept: false,
+  multa_accept: false
 })
 const tapActive = ref(
   moment().format('D') !== moment(formData.value.date).format('D')
@@ -51,7 +55,7 @@ const intervalHorarys = ref({
   ta: [],
   no: []
 })
-const selectedInterval = ref({})
+
 const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
   nextStep()
@@ -80,7 +84,7 @@ const nextStep = () => {
   if (!validateStepForm()) {
     return
   }
-  if (step.value == 3) {
+  if (step.value == 4) {
     createReserve()
     return
   }
@@ -116,7 +120,18 @@ const getComunsArea = () => {
       // -- borrar luego --
       selectedComunArea.value = comunAreas.value.find((area) => area.id == 2)
       getAvaibleBookingByDay()
+      visibleBackButton(false)
       setTimeout(() => {
+        // -- borrar luego --
+        emitter.emit('isReserve',
+          {
+            visible: true,
+            data: {
+              step: step.value,
+              icon: selectedComunArea.value.icon,
+              name: selectedComunArea.value.name
+            }
+          })
         ready.value = true
       }, 100)
     })
@@ -204,6 +219,29 @@ const visibleBackButton = (visible) => {
   const element = document.querySelector('.backButton');
   element.style.display = visible ? 'flex' : 'none'
 }
+const changeTap = (tab) => {
+  tapActive.value = tab;
+}
+const setColor = (status) => {
+  return status == 'Disponible'
+    ? 'primary'
+    : status == 'Últimos'
+      ? 'terciary'
+      : ''
+}
+const setSelectHour = (index) => {
+  selectedInterval.value = intervalHorarys.value[tapActive.value][index];
+  formData.value.time_to = selectedInterval.value.time_to
+  formData.value.time_from = selectedInterval.value.time_from
+  selectedInterval.value.id = tapActive.value +'-'+index;
+}
+const openRuleModal = (status) => {
+  if(!formData.value.time_from){
+    showNotify('negative', 'Selecciona un intervalo de tiempo para tu reserva')
+    return
+  }
+  rulesModal.value = status
+}
 onMounted(() => {
   getComunsArea()
 })
@@ -219,20 +257,6 @@ onBeforeUnmount(() => {
       }
     })
 });
-const setColor = (status) => {
-  return status == 'Disponible'
-    ? 'primary'
-    : status == 'Últimos'
-      ? 'terciary'
-      : ''
-}
-const setSelectHour = (index) => {
-  selectedInterval.value = intervalHorarys.value[tapActive.value][index];
-  formData.value.time_to = selectedInterval.value.time_to
-  formData.value.from = selectedInterval.value.from
-  selectedInterval.value.id = index;
-}
-
 watch(step,
   (toDepth, fromDepth) => {
     transitionName.value = toDepth > fromDepth ? 'slide-next' : 'slide-prev';
@@ -327,24 +351,24 @@ watch(step,
                       <div class="w-full">
                         <div class="tabBloque flex flex-center w-full pt-5">
                           <div class="tabBloque__item flex flex-center mx-1 cursor-pointer"
-                            :class="{ 'active': tapActive == 'ma' }" @click="tapActive = 'ma'">Mañana</div>
+                            :class="{ 'active': tapActive == 'ma' }" @click="changeTap('ma')">Mañana</div>
                           <div class="tabBloque__item flex flex-center mx-1 cursor-pointer"
-                            :class="{ 'active': tapActive == 'ta' }" @click="tapActive = 'ta'">Tarde</div>
+                            :class="{ 'active': tapActive == 'ta' }" @click="changeTap('ta')">Tarde</div>
                           <div class="tabBloque__item flex flex-center mx-1 cursor-pointer"
-                            :class="{ 'active': tapActive == 'no' }" @click="tapActive = 'no'">Noche</div>
+                            :class="{ 'active': tapActive == 'no' }" @click="changeTap('no')">Noche</div>
                         </div>
                         <div class="mt-2 blockHoursContent  py-2 px-3">
                           <template v-if="intervalHorarys[tapActive].length > 0">
                             <div class="flex items-center justify-between blockHoursContent__item my-2 px-4 py-1"
                               v-for="(interval, index) in intervalHorarys[tapActive]"
-                              :class="{ 'activeHour': selectedInterval?.id == index }" :key="index"
+                              :class="{ 'activeHour': selectedInterval?.id == (tapActive+'-'+index)}" :key="index"
                               @click="setSelectHour(index)">
-                              <div class="text_interval">{{ interval.time_from }} - {{
+                              <div class="text_interval pt-1">{{ interval.time_from }} - {{
                                 interval.time_to }}</div>
                               <div>
-                                <q-chip :color="setColor(interval.status)" text-color="white" size="0.8rem">
-                                  <div style="font-size: 0.6rem;" class="py-8">
-                                    {{ interval.status }}
+                                <q-chip :color="selectedInterval?.id !== index ? setColor(interval.status) : 'tealedf'" text-color="white" size="0.8rem">
+                                  <div style="font-size: 0.7rem;" class="">
+                                    {{ selectedInterval?.id !== index ? interval.status : 'Seleccionado'}}
                                   </div>
                                 </q-chip>
                               </div>
@@ -359,9 +383,6 @@ watch(step,
                             </div>
                           </template>
                         </div>
-                      </div>
-                      <div>
-                          
                       </div>
                     </div>
                   </template>
@@ -387,22 +408,6 @@ watch(step,
                       </q-btn>
                     </div>
                   </template>
-                  <template v-if="step == 4">
-                    <div class="col-12 flex flex-center">
-                      <q-btn color="tealedf" unelevated="" class="" style="width: 90%; border-radius: 2rem;"
-                        type="submit" :loading="loading">
-                        <div class="flex w-full flex-center">
-                          <div class="py-2 md:py-1 font-bold mr-2" style="font-size:0.95rem">
-                            Elegir horario
-                          </div>
-                          <div class="flex flex-center"
-                            style="height:1.7rem; width:1.7rem; border:2px solid white; border-radius:50%">
-                            <q-icon name="eva-arrow-forward-outline" size="1rem" />
-                          </div>
-                        </div>
-                      </q-btn>
-                    </div>
-                  </template>
                   <template v-if="step == 2">
                     <div class="col-12 flex flex-center">
                       <q-btn color="tealedf" unelevated="" class="" style="width: 90%; border-radius: 2rem;"
@@ -419,13 +424,119 @@ watch(step,
                       </q-btn>
                     </div>
                   </template>
+                  <template v-if="step == 3">
+                    <div class="col-12 flex flex-center px-5">
+                      <div class="selectedDateBlock flex  items-center justify-between px-4 w-full py-2">
+                        <div>
+                          <div class="text-dateBlockTitle">Reserva</div>
+                          <div class=" text-bold text-dateBlockBottom">
+                            {{ formData.date ? moment(formData.date).format('ddd DD') : '-----' }}
+                            - {{ formData.time_from ? moment(formData.date + ' ' +formData.time_from).format('hh:mm A') : '**:** **' }}
+                          </div>
+                        </div>
+                        <div>
+                          <q-btn color="primary" unelevated rounded no-caps class="" @click="openRuleModal(true)">
+                            <div class="text-bold text-sm">
+                              Confirmar
+                            </div>
+                          </q-btn>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
                 </div>
               </div>
-
-
             </div>
           </div>
+          
         </Transition>
+        <div>
+          <Transition :name="transitionName">
+            <div class="h-full rulesModal px-3" style="overflow: hidden;" v-if="rulesModal">
+              <div class=""  style="overflow:auto; height:80%">
+                <div class="text-center my-3 font-bold text-2xl text-primary">INSTRUCIONES</div>
+                <div class="importantInfo__reserve py-2 pl-3 pr-1">
+                  <div class="text-importantInfo text-grey-7">Importante</div>
+                  <div class="text-importantInfo">
+                    Para usar el área reservada debes leer y aceptar las normas e instrucciones. El incumplimiento puede generar multas y suspensión del uso del área
+                  </div>
+                </div>
+                <div class="rulesContainer mt-4 px-2 pt-2 pb-1">      
+                  <div class="px-2 rulesContainer__Title">
+                    Reglas de uso - {{ selectedComunArea.name }}
+                  </div>
+                  <div class="rulesContainer__Subtitle text-grey-7 px-2">
+                    Seguridad - higiene y convivencia
+                  </div>
+                  <div class="flex items-center ruleDetailContainer my-2 py-2 px-3" v-for="(rule, index) in selectedComunArea.rules_area" :key="rule.id">
+                    <div class="ruleDetailContainer__index flex flex-center" 
+                    :class="{'bg-negative': rule.severity == 2, 'bg-tealedf': rule.severity == 1}">
+                      {{ index + 1 }}
+                    </div>
+                    <div class="ml-2 " style="font-size:0.82rem">
+                      {{ rule.title }}
+                    </div>
+                  </div>
+                </div>
+                <div class="rulesContainer mt-4 px-2 pt-2 pb-1">      
+                  <div class="px-2 rulesContainer__Title">
+                    Saciones y multas
+                  </div>
+                  <div class="rulesContainer__Subtitle text-grey-7 px-2">
+                    Monto referenciales (editables según reglamento interno)
+                  </div>
+                  <div class="flex items-center justify-between ruleDetailContainer my-2 py-2 px-3" >
+                    <div class="ml-1 font-bold" style="font-size:0.82rem">
+                      Infracción
+                    </div>
+                    <div class="mr-1 font-bold" style="font-size:0.82rem">
+                      Multa
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between ruleDetailContainer my-2 py-2 px-3" >
+                    <div class="ml-1 font-bold" style="font-size:0.82rem">
+                      Infracción #1
+                    </div>
+                    <div class="mr-1 font-bold text-negative" style="font-size:0.82rem">
+                      S/ 80.00
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between ruleDetailContainer my-2 py-2 px-3" >
+                    <div class="ml-1 font-bold" style="font-size:0.82rem">
+                      Infracción #2
+                    </div>
+                    <div class="mr-1 font-bold text-negative" style="font-size:0.82rem">
+                      S/ 120.00
+                    </div>
+                  </div>
+                </div>
+                <div class="importantInfo__reserve py-2 pl-1 pr-1 mt-2">
+                  <div class="px-3 rulesContainer__Title">
+                    Aceptacion de términos e instrucciones
+                  </div>
+                  <div class="mt-1">
+                    <q-checkbox
+                    v-model="formData.terms_accept" 
+
+                    checked-icon="eva-checkmark-circle-outline" 
+                    >
+                      <div style="font-size: 0.8rem">
+                        {{'He leido y acepto las normas de usa del area '+ selectedComunArea.name}}
+                      </div>
+                    </q-checkbox>
+
+                  </div>
+                  <div></div>
+                  <div  class="rulesContainer__Subtitle text-grey-7 px-2">
+                    * Debes marcar ambas casillas para continuar con la reserva
+                  </div>
+                </div>
+              </div>
+              <div></div>
+            </div>
+            
+          </Transition>
+        </div>
       </q-form>
     </div>
     <div v-else class="flex flex-center py-24 w-full">
@@ -434,6 +545,50 @@ watch(step,
   </div>
 </template>
 <style lang="scss">
+
+.text-importantInfo{
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.ruleDetailContainer{
+  background: #f0f1f6;
+  border: 2px solid lightgrey;
+  border-radius: 8rem;
+  &__index{
+    height: 1.4rem;
+    width: 1.4rem;
+    border-radius: 50%;
+    color:white;
+    font-size: 0.8rem;
+  }
+}
+.importantInfo__reserve{
+  background: #f0f1f6;
+  border: 2px solid lightgrey;
+
+  border-radius: 0.8rem;
+}
+.rulesContainer{
+  border: 2px solid lightgrey;
+  border-radius: 0.8rem;
+  &__Title{
+    font-size: 0.95rem;
+    font-weight: bold;
+  }
+  &__Subtitle{
+    font-size: 0.78rem;
+    font-weight: 500;
+  }
+
+}
+.rulesModal{
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+}
 .text-title-squadV2 {
   color: #1e5f96;
   font-weight: 500;
@@ -443,7 +598,7 @@ watch(step,
 .text_interval {
   font-size: 1rem;
   font-weight: 500;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease-in;
 }
 
 .blockHoursContent {
@@ -453,7 +608,7 @@ watch(step,
   &__item {
     border: 2px solid lightgray;
     border-radius: 0.8rem;
-    transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease-in;
 
     &.activeHour {
       border: 2px solid #72b9af;
@@ -500,6 +655,9 @@ watch(step,
   & .text-dateBlock {
     font-size: 1.2rem;
   }
+}
+.text-dateBlockBottom{
+  font-size: 1rem;
 }
 
 .dateInfoContent {

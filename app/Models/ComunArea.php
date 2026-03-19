@@ -35,8 +35,12 @@ class ComunArea extends Model
         return $this->hasMany(Booking::class, "comun_area_id");
     }
     public function bookingsToValidate(){
-
         return $this->hasMany(Booking::class, "comun_area_id")->where('status', 2);
+    }
+    public function rulesArea()
+    {
+        return $this->hasMany(Rule::class, "comun_area_id");
+
     }
     
 

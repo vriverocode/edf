@@ -17,7 +17,7 @@ class ComunAreaController extends Controller
     }
     public function getAll()
     {
-        $comunAreas = ComunArea::orderBy('name', 'asc')->get();
+        $comunAreas = ComunArea::with(['rulesArea'])->orderBy('name', 'asc')->get();
         return $this->returnSuccess(200, $comunAreas);
     }
     public function comunAreaById($id)
