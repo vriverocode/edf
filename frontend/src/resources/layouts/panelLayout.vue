@@ -111,7 +111,8 @@ watch(
 
 <template>
   <div class=" h-full bg-white w-full min-h-screen" style="overflow: hidden;">
-    <div class="panel-layout-root h-full bg-white w-full min-h-screen " :class="{ 'pt-8': isNative, 'pt-2': !isNative }">
+    <div class="panel-layout-root h-full bg-white w-full min-h-screen "
+      :class="{ 'pt-8': isNative, 'pt-2': !isNative }">
       <template v-if="ready">
         <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
         <section :class="{
@@ -121,8 +122,10 @@ watch(
         }">
           <div class="row w-full backButton items-center md:px-20 md:mx-16 px-2" v-if="showBack()">
             <div class="flex items-center" @click="goBack()">
-              <q-btn round outline class="text-backButton" icon="eva-arrow-back-outline" />
-              <div class="ml-2 backButton-text">REGRESAR</div>
+              <q-btn color="teal" round outline class="text-backButton flex flex-center" size="0.7rem">
+                <q-icon name="eva-arrow-back-outline" />
+              </q-btn>
+              <div class="ml-2 pt-1 backButton-text">REGRESAR</div>
             </div>
           </div>
 
