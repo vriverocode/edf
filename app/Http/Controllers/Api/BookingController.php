@@ -134,9 +134,7 @@ class BookingController extends Controller
     }
     public function getAvaibleBookingByDay(Request $request, $idArea)
     {
-        // Configuramos la zona horaria
-        $tz = 'America/Caracas';
-        date_default_timezone_set($tz);
+        date_default_timezone_set('America/Caracas');
 
         $area = ComunArea::find($idArea);
         if (!$area) {
@@ -147,73 +145,104 @@ class BookingController extends Controller
         $isToday = $date === date('Y-m-d');
         $currentHour = (int) date('H');
 
-        // Solo traemos reservas activas (status > 0, ya que 0 es "Cancelada")
+        // Solo traemos reservas activas del día
         $bookingsInDay = Booking::where('comun_area_id', $idArea)
             ->where('date', $date)
             ->where('status', '>', 0)
             ->get();
 
-        // Convertimos las horas de inicio y fin del área a enteros (ej: "09:00" -> 9)
         $startHour = (int) substr($area->timeFrom, 0, 2);
         $endHour = (int) substr($area->timeTo, 0, 2);
-        
-        $intervals = [];
-        $intervalSize = 1; // Bloques de 1 hora (puedes vincularlo a $area->max_time_reserve si lo deseas)
+        $intervalSize = $area->max_time_reserve;
 
-        for ($h = $startHour; $h < $endHour; $h += $intervalSize) {
-            $intervalStart = sprintf('%02d:00', $h);
-            $intervalEnd = sprintf('%02d:00', $h + $intervalSize);
+        $blocks = [
+            'ma' => [],
+            'ta' => [],
+            'no' => []
+        ];
 
-            // Si es hoy, no mostrar bloques de horas que ya pasaron
-            if ($isToday && $h <= $currentHour) {
+        for ($hora = $startHour; $hora < $endHour; $hora += $intervalSize) {
+            // Omitir intervalos pasados si es el día actual
+            if ($isToday && $hora <= $currentHour) {
                 continue; 
             }
 
-            // Contar cuántos cupos están ocupados en este intervalo
-            $occupancy = 0;
-            foreach ($bookingsInDay as $booking) {
-                $bStart = (int) substr($booking->time_from, 0, 2);
-                $bEnd = (int) substr($booking->time_to, 0, 2);
+            // 1. Calcular la disponibilidad y el estado usando una función dedicada
+            $availability = $this->calculateIntervalAvailability($hora, $intervalSize, $area->capacity, $bookingsInDay);
 
-                // Validamos si la reserva se cruza con este intervalo de tiempo
-                if ($bStart < ($h + $intervalSize) && $bEnd > $h) {
-                    if ($booking->is_exclusive) {
-                        // Si la reserva es exclusiva, toma toda la capacidad
-                        $occupancy = $area->capacity;
-                        break; 
-                    } else {
-                        // Si no, suma 1 cupo ocupado
-                        $occupancy++;
-                    }
-                }
-            }
-
-            // Calculamos los cupos disponibles
-            $availableSpots = $area->capacity - $occupancy;
-            if ($availableSpots < 0) $availableSpots = 0;
-
-            // Determinamos el estado para enviarlo fácil al Frontend
-            $status = 'Disponible';
-            if ($availableSpots == 0) {
-                $status = 'Ocupado';
-            } elseif ($availableSpots > 0 && $availableSpots <= 2 && $area->capacity > 2) {
-                $status = 'Últimos';
-            }
-
-            $intervals[] = [
-                'time_from' => $intervalStart,
-                'time_to'   => $intervalEnd,
+            $intervalData = [
+                'time_from' => sprintf('%02d:00', $hora),
+                'time_to'   => sprintf('%02d:00', $hora + $intervalSize),
                 'capacity'  => $area->capacity,
-                'available' => $availableSpots,
-                'status'    => $status
+                'available' => $availability['spots'],
+                'status'    => $availability['status']
             ];
+
+            // 2. Determinar a qué bloque pertenece usando otra función dedicada
+            $blockCategory = $this->getTimeBlockCategory($hora);
+            
+            // Asignar al array correspondiente
+            $blocks[$blockCategory][] = $intervalData;
         }
 
         return $this->returnSuccess(200, [
-            'intervals' => $intervals
+            'blocks' => $blocks,
+            'ss' => $bookingsInDay
         ]);
     }
-    
+
+    /**
+     * Calcula los cupos disponibles y el estado de un intervalo de tiempo específico.
+     */
+    private function calculateIntervalAvailability(int $hora, int $intervalSize, int $capacity, $bookings): array
+    {
+        $occupancy = 0;
+
+        foreach ($bookings as $booking) {
+            $bStart = (int) substr($booking->time_from, 0, 2);
+            $bEnd = (int) substr($booking->time_to, 0, 2);
+
+            // Verificar si la reserva choca con el intervalo actual
+            if ($bStart < ($hora + $intervalSize)) {
+                if ($booking->is_exclusive) {
+                    $occupancy = $capacity;
+                    break; // Saturation total, no hace falta seguir iterando
+                }
+                $occupancy++;
+            }
+        }
+
+        // max() asegura que los cupos nunca sean negativos
+        $availableSpots = max(0, $capacity - $occupancy);
+
+        $status = 'Disponible';
+        if ($availableSpots == 0) {
+            $status = 'Ocupado';
+        } elseif ($availableSpots > 0 && $availableSpots <=  (round($capacity * 0.3))) {
+            $status = 'Últimos';
+        }
+
+        return [
+            'spots'  => $availableSpots,
+            'status' => $status
+        ];
+    }
+
+    /**
+     * Devuelve la categoría del bloque de tiempo (mañana, tarde, noche) basado en la hora.
+     */
+    private function getTimeBlockCategory(int $hora): string
+    {
+        if ($hora < 12) {
+            return 'ma';
+        }
+        
+        if ($hora >= 12 && $hora < 18) {
+            return 'ta';
+        }
+        
+        return 'no';
+    }
     public function getPendings()
     {
         $waitStatus = 2;
