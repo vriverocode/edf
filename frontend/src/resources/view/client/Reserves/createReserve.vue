@@ -338,6 +338,9 @@ watch(step,
                         <div class="tabBloque__item flex flex-center mx-1 cursor-pointer" 
                         :class="{'active': tapActive == 3}" @click="tapActive = 3 " >Noche</div>
                       </div>
+                      <div>
+                          
+                      </div>
                     </div>
                   </template>
                 </div>
