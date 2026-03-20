@@ -55,7 +55,7 @@ const intervalHorarys = ref({
   ta: [],
   no: []
 })
-
+const selectedPayData = ref({})
 const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
   nextStep()
@@ -81,7 +81,6 @@ const backButton = () => {
 }
 
 const nextStep = () => {
-  console.log(step.value)
   if (!validateStepForm()) {
     return
   }
@@ -93,6 +92,7 @@ const nextStep = () => {
     rulesModal.value = false
   }
 
+  if(step.value = 4)
   emitter.emit('pagTitle', '')
   step.value++
   emitter.emit('isReserve',
@@ -154,6 +154,11 @@ const validateStepForm = () => {
   if (step.value == 3) {
     !formData.value.terms_accept || !formData.value.multa_accept ? showNotify('negative', 'Debe aceptar los terminos y pagos de multas') : ''
     return formData.value.terms_accept && formData.value.multa_accept ? true : false
+  }
+  if (step.value == 4) {
+    !payFormData.value.pay_method || payFormData.value.pay_method == 0 
+    ? showNotify('negative', 'Debe seleccionar el metodo de pago') : ''
+    return payFormData.value.pay_method && payFormData.value.pay_method != 0 ? true : false
   }
   return true
 }
@@ -267,16 +272,17 @@ const payFormData = ref({
 
 
 const payMethods = [
+  
   {
-    title: 'Tarjeta (crédito / débito)',
+    title: 'Transferencia bancaria',
     id: 1
   },
   {
-    title: 'Transferencia bancaria',
+    title: 'Yape / Plin',
     id: 2
   },
   {
-    title: 'Yape / Plin',
+    title: 'Tarjeta (crédito / débito)',
     id: 3
   },
 
@@ -286,17 +292,17 @@ const payData = [
   [],
   [
     {
-      title: 'N° de cuenta',
-      value: '0000000000000'
-    },
-    {
       title: 'Banco',
       value: 'BCP'
     },
     {
-      title: 'Titular de la cuenta',
-      value: 'Juan Perez'
+      title: 'Cuenta corriente',
+      value: '0000000000000'
     },
+    {
+      title:'CCI',
+      value:'0000000000'
+    }
   ],
   [
     {
@@ -313,6 +319,9 @@ const payData = [
     },
   ],
 ]
+const setPayData = (e) => {
+  selectedPayData.value = payData[e]
+}
 const formatAllToCopy = () => {
   let dataFormatted = ''
   try {
@@ -330,7 +339,7 @@ const formatCopy = (texto) => {
   copyData(texto.replaceAll(' ', '').trim())
 }
 const copyData = (texto) => {
-  const element = document.getElementById('textToPaste')
+  const element = document.getElementById('textToPasteData')
   const textArea = document.createElement('textarea');
   textArea.value = texto
   textArea.style.opacity = 0;
@@ -346,6 +355,22 @@ const copyData = (texto) => {
   }
   finally {
     element.removeChild(textArea);
+  }
+}
+const pegarTexto = async () => {  
+  if (!navigator.clipboard) {
+    console.warn('La API del portapapeles no está disponible. Asegúrate de usar HTTPS o localhost.')
+    return
+  }
+  try {
+    // Leemos el texto del portapapeles del sistema
+    const textoDelPortapapeles = await navigator.clipboard.readText()
+    
+    // Lo asignamos al v-model del segundo input
+    payFormData.value.reference = textoDelPortapapeles
+  } catch (err) {
+    // Esto se ejecutará si el usuario deniega el permiso o el navegador no lo soporta
+    console.error('Error al intentar pegar: ', err)
   }
 }
 onMounted(() => {
@@ -417,7 +442,7 @@ watch(step,
 
                 </div>
               </div>
-              <div :style="{ height: step == 4 ? '76%' : '70%' }" style=" overflow: auto;" class="pb-5">
+              <div :style="{ height: step >= 4 ? '76%' : '70%' }" style=" overflow: auto;" class="pb-5">
                 <div class="row w-full pt-2">
                   <template v-if="step == 2">
                     <div class="flex flex-center w-full q-px-md">
@@ -497,7 +522,7 @@ watch(step,
                     </div>
                   </template>
                   <template v-if="step == 4">
-                    <div class="col-12 col-md-6 row md:px-5 px-4 mt-2">
+                    <div class="col-12 col-md-6 row md:px-5 px-4 mt-1">
                       <div class="w-full">
                         <div class="text-xl font-bold pl-2">
                           Resumen de reserva y pago
@@ -527,9 +552,15 @@ watch(step,
                           </div>
                           <div>
                             <div v-for="method in payMethods" :key="method.id"
+                              :class="{'activeMethodContainer': payFormData.pay_method == method.id}"
                               class="flex items-center justify-between selectMethodItem mb-2 mt-3 py-2 px-3">
-                              <q-radio class="item_method-radio" v-model="payFormData.pay_method"
-                                checked-icon="eva-checkmark-circle-outline" :val="method.id" :label="method.title" />
+                              <q-radio
+                              color="tealedf"
+                                :class="{'activeMethod': payFormData.pay_method == method.id}"
+                                class="item_method-radio" 
+                                v-model="payFormData.pay_method"
+                                checked-icon="eva-checkmark-circle-outline" 
+                                :val="method.id" :label="method.title" @update:model-value="setPayData" />
                             </div>
                           </div>
                         </div>
@@ -555,15 +586,106 @@ watch(step,
                             </div>
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  </template>
+                  <template v-if="step == 5">
+                    <div class="col-12 col-md-6 row md:px-5 px-4 mt-1">
+                      <div class="w-full">
+                        <div class="text-lg font-bold pl-2">
+                          Pago
+                        </div>
+                        <div class="text-caption font-medium pl-2 text-grey-7">
+                          Método seleccionado: 
+                          {{ payMethods.find(method => method.id == payFormData.pay_method).title }}
+                        </div>
+                        <div class="font-medium pl-2 mt-3 " style="font-size:0.9rem">
+                          Datos de cuenta a pagar
+                        </div>
+                        <div class="selectedDateBlock mt-1 px-3 w-full py-2">
+                          <div v-for="(line, index) in selectedPayData" :key="index" class=" my-1 flex items-center justify-between">
+                            <div class="flex items-center " :class="{ 'w-full': line.title == 'QR' }">
+                              <div class="text-md text-grey-10 ">{{ line.title }}: </div>
+                              <img style="width: 8rem;" :src="line.value" alt="" v-if="line.title == 'QR'" class="mx-auto">
+                              <div v-else class="text-md text-grey-10 ml-1">{{ line.value }}</div>
+                            </div>
+                            <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="line.title != 'QR'"
+                              @click="line.title.includes('Titular') ? copyData(line.value) : formatCopy(line.value)" />
+                          </div>
+                        </div>
+                        <div class=" row mt-2 md:px-12">
+                          <div class="col-12 mt-0">
+                            <div class=" md:pr-4">
+                              <q-input color="tealedf" label="Fecha de pago" v-model="payFormData.date" :rules="[val => !(!val) || 'Fecha es requerida']" dense
+                                borderless clearable class="form__inputsReverse mt-1"  accept=".jpg, image/*">
+                                <template v-slot:append>
+                                  <q-icon name="eva-calendar-outline" class="cursor-pointer">
+                                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                                      <q-date mask="DD-MM-YYYY" v-model="payFormData.date"
+                                        :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
+                                        <div class="row items-center justify-end">
+                                          <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                                        </div>
+                                      </q-date>
+                                    </q-popup-proxy>
+                                  </q-icon>
+                                </template>
+                              </q-input>
+        
+                            </div>
+                          </div>
+                          <div class="col-12 mt-0 ">
+                            <div class=" md:pr-4">
+                              <q-input 
+                                color="tealedf"
+                                label="Referencia de pago" 
+                                dense borderless clearable v-model="payFormData.reference" 
+                                class="form__inputsReverse mt-0"
+                                :maxlength="12"
+                                :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']">
 
+                                  <template v-slot:append>
+                                    <q-btn 
+                                      color="tealedf" 
+                                      size="0.1rem" outline style="padding:3px 6px" 
+                                      no-caps
+                                      @click="pegarTexto()"
+                                    >
+                                      <div class="text-xs">
+                                        Pegar
+                                      </div>
+                                    </q-btn>
+                                  </template>
+                                </q-input>
+                            </div>
+                          </div>
+
+                        </div>
+                        <div></div>
+
+                        <div class="selectedDateBlock mt-0 px-3 w-full py-2">
+                          <div class=" flex flex-center column">
+                            <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
+                            <div class="text-center"> 
+                              <div class="text-grey-7 font-medium">
+                                Sube tu comprobante de pago
+                              </div>
+                              <div class="text-grey-6 font-medium">
+                                Pulsa o haz click aqui para carga tu archivo
+                              </div>
+                            </div>
+                            
+                          </div>
+                          <div></div>
+                        </div>
                       </div>
                     </div>
                   </template>
                 </div>
               </div>
-              <div :style="{ height: step == 4 ? '9%' : '15%' }" class="buttonSection">
+              <div :style="{ height: step >= 4 ? '9%' : '15%' }" class="buttonSection">
                 <div class="row py-4 ">
-                  <template v-if="step == 4">
+                  <template v-if="step >= 4">
                     <div class="col-4 flex flex-center ">
                       <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
                         @click="backButton()">
@@ -739,6 +861,7 @@ watch(step,
           </Transition>
         </div>
       </q-form>
+      <div id="textToPasteData" />
     </div>
     <div v-else class="flex flex-center py-24 w-full">
       <q-spinner-dots color="primary" size="7rem" />
@@ -746,6 +869,7 @@ watch(step,
   </div>
 </template>
 <style lang="scss">
+
 .text__amountItem {
   font-size: 1rem;
   font-weight: 500;
@@ -760,13 +884,16 @@ watch(step,
 }
 
 .item_method-radio {
+  width: 100%;
   & .q-radio__inner {
     width: 1rem;
     min-width: 1rem;
     height: 1rem;
     margin-right: 0.5rem;
   }
-
+  & .q-radio__label{
+    width: 100%;
+  }
   & .q-radio__bg {
     top: 0;
     left: 0;
@@ -779,8 +906,12 @@ watch(step,
 .selectMethodItem {
   border: 2px solid lightgrey;
   border-radius: 8rem;
+  transition: all 0.2s ease-in;
 }
-
+.activeMethodContainer{
+  border: 2px solid #72b9af;
+  background: #f0f1f6;
+}
 .text-confirmTitleArea {
   font-size: 1.4rem;
   color: #4d6bb4;
@@ -1083,10 +1214,15 @@ watch(step,
 
 .form__inputsReverse {
   & .q-field__inner {
-    box-shadow: 0px 3px 4px 0px #bfbfbf48;
-    border-radius: 0.5rem;
-    border: 1px solid rgb(223, 223, 223);
+    border-radius: 2rem;
+    border: 2px solid #76b7af;
     padding: 0px 1rem;
+  }
+  &.q-field--dense.q-field--float .q-field__label{
+    display: none;
+  }
+  &.q-field--labeled.q-field--dense .q-field__native {
+    padding-top: 5px;
   }
 }
 
@@ -1151,7 +1287,7 @@ watch(step,
   .form__inputsReverse {
     & .q-field__inner {
 
-      padding: 0.1rem 1rem;
+      padding: 0rem 1rem;
     }
   }
 }

@@ -3,7 +3,7 @@ import { defineConfig, loadEnv } from 'vite' // <--- Importa loadEnv
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
-
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig(({ mode }) => {
 
@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
           new URL('./src/resources/plugins/quasar/quasar-variables.sass', import.meta.url)
         ),
       }),
+      basicSsl()
     ],
     resolve: {
       alias: {
@@ -35,7 +36,7 @@ export default defineConfig(({ mode }) => {
       hmr: {
         host: myIp 
       },
-      origin: `http://${myIp}:${myPort}`,
+      origin: `https://${myIp}:${myPort}`,
       cors: true,
     },
   }
