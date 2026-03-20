@@ -219,8 +219,6 @@ const dataToForm = () => {
   console.log(payFormData.value)
   return { data: dataForm }
 }
-
-
 onMounted(() => {
   getToPay()
 })

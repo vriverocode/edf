@@ -210,21 +210,21 @@ watch(
 }
 
 .header__container {
-  max-height: 22%;
+  max-height: 21%;
   height: auto;
   min-height: 16%;
   overflow: hidden;
 }
 
 .page__container {
-  height: 67%;
+  height: 68%;
   overflow: hidden;
   // overflow-x: hidden;
   // overflow-y: auto;
 }
 
 .page_continerFull {
-  height: 84%;
+  height: 85%;
   overflow: hidden;
   // overflow-x: hidden;
   // overflow-y: auto;

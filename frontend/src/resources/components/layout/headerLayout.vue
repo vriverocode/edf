@@ -21,9 +21,9 @@ const reserveAreaActive = ref(false)
 const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
 
 const reserveInfo = ref({
-  step:1,
-  icon:null,
-  name:''
+  step: 1,
+  icon: null,
+  name: ''
 })
 
 const setReserveData = (e) => {
@@ -66,7 +66,7 @@ onMounted(() => {
             <div class="text-amtHeader" style="">375.25</div>
           </div>
           <div>
-  
+
           </div>
         </template>
         <template v-if="!isHomePage && !reserveAreaActive">
@@ -74,7 +74,7 @@ onMounted(() => {
             {{ pagTitle }}
           </div>
         </template>
-  
+
       </div>
       <div class="flex items-start">
         <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader"
@@ -87,13 +87,13 @@ onMounted(() => {
       </div>
     </section>
     <div class="col-12" v-if="reserveAreaActive">
-      <div>
+      <div style="transform: translateY(-1rem);">
         <div class="text-white text-reserveTitle pl-0" style="position:relative; z-index:2">
           Reservar
         </div>
         <div class="flex items-center">
-          <img :src="mediaUrl + '/images/icons/' + reserveInfo.icon + '.svg'" alt="" 
-          style="height:5rem; transform:translateX(-15px) translateY(-5px)">
+          <img :src="mediaUrl + '/images/icons/' + reserveInfo.icon + '.svg'" alt=""
+            style="height:4.5rem; transform:translateX(-15px) translateY(-5px)">
           <div class="text-reserveData" style="transform:translateX(-15px);">
             {{ reserveInfo.name }}
           </div>
@@ -105,16 +105,18 @@ onMounted(() => {
 </template>
 
 <style lang="scss">
-.text-reserveData{
-  font-size: 1.5rem;
+.text-reserveData {
+  font-size: 1.2rem;
   color: white;
   font-weight: medium;
 }
-.text-reserveTitle{
+
+.text-reserveTitle {
   font-size: 1rem;
   color: white;
   font-weight: medium;
 }
+
 .imgLogoHeader {
   transition: all 0.5s ease;
 }

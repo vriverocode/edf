@@ -15,12 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('code');
             $table->string('title');
-            $table->string('description');
-            $table->string('punish');
+            $table->string('description')->nullable();
+            $table->string('punish')->nullable();
             $table->integer('type');
-            $table->integer('severity');
+            $table->integer('severity')->nullable();
             $table->integer('active');
-            $table->double('suggest_amount');
+            $table->double('suggest_amount')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
