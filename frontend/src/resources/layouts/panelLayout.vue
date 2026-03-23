@@ -66,7 +66,7 @@ const showNavbar = () => {
   return ['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)
 }
 const showBack = () => {
-  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'reservePay', 'quotaPay', 'reserveConfirm'].includes(route.name))
+  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'reservePay', 'quotaPay', 'payConfirm', 'reserveConfirm'].includes(route.name))
 }
 
 watch(() => notificationsStore.unreadCount, (newVal, oldVal) => {

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, inject, watch, onBeforeUnmount } from 'vue';
+import { onMounted, ref, inject, watch, onBeforeUnmount, computed } from 'vue';
 import { Notify } from 'quasar'
 import { useRouter, useRoute } from 'vue-router';
 import { useComunAreaStore } from '@/services/store/comunArea.store';
@@ -32,13 +32,13 @@ const router = useRouter()
 const disabledTime = ref(true)
 const ready = ref(false)
 const loading = ref(false)
-const step = ref(4)
+const step = ref(1)
 const selectedInterval = ref({})
 const transitionName = ref('slide-next');
 const formData = ref({
-  date: '2026/03/25',
-  time_from: '08:00',
-  time_to: '10:00',
+  date: '',
+  time_from: null,
+  time_to: null,
   note: '',
   is_exclusive: false,
   terms_accept: false,
@@ -60,11 +60,11 @@ const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
   nextStep()
 }
-
+const toPayId = ref(null)
 const backButton = () => {
   if (step.value == 2) {
-    cleanForm()
     visibleBackButton(true)
+    formData.value.date = ''
     emitter.emit('isReserve',
       {
         visible: false,
@@ -74,6 +74,22 @@ const backButton = () => {
           name: ''
         }
       })
+  }
+  if (step.value == 3) {
+    tapActive.value =
+      moment().format('D') !== moment(formData.value.date).format('D')
+        ? 'ma'
+        : moment().format('H') < 12
+          ? 'ma' : moment().format('H') >= 12 && moment().format('H') < 18
+            ? 'ta' : 'no'
+    selectedInterval.value = {};
+    formData.value.time_from = null
+    formData.value.to = null
+
+
+  }
+  if (step.value >= 4) {
+    cleanFormPay()
   }
   step.value--
 
@@ -91,8 +107,14 @@ const nextStep = () => {
   } else {
     rulesModal.value = false
   }
+  if (step.value == 5) {
+    !toPayId.value
+      ? createReserve()
+      : createPay(toPayId.value)
 
-  if(step.value = 4)
+    return
+  }
+
   emitter.emit('pagTitle', '')
   step.value++
   emitter.emit('isReserve',
@@ -116,27 +138,24 @@ const cleanForm = () => {
   }
   disabledTime.value = true
 }
+const cleanFormPay = () => {
+  if (step.value == 5) {
+    payFormData.value.vaucher = null
+    payFormData.value.date = ''
+    payFormData.value.reference = ''
+  }
+  else {
+    payFormData.value.pay_method = 0;
+  }
+
+}
 const getComunsArea = () => {
   emitter.emit('pagTitle', 'Selecciona area común')
   comunAreaStore.getAllComunAreas()
     .then((response) => {
       if (response.code !== 200) throw response
       comunAreas.value = response.data
-      // -- borrar luego --
-      selectedComunArea.value = comunAreas.value.find((area) => area.id == 2)
-      getAvaibleBookingByDay()
-      visibleBackButton(false)
       setTimeout(() => {
-        // -- borrar luego --
-        emitter.emit('isReserve',
-          {
-            visible: true,
-            data: {
-              step: step.value,
-              icon: selectedComunArea.value.icon,
-              name: selectedComunArea.value.name
-            }
-          })
         ready.value = true
       }, 100)
     })
@@ -148,17 +167,22 @@ const getComunsArea = () => {
 
 const validateStepForm = () => {
   if (step.value == 2) {
-    !formData.value.date ? showNotify('negative', 'Debe seleccionar la fecha de la reserva') : ''
+    !formData.value.date ? showNotify('negative', 'Debes seleccionar la fecha de la reserva') : ''
     return formData.value.date ? true : false
   }
   if (step.value == 3) {
-    !formData.value.terms_accept || !formData.value.multa_accept ? showNotify('negative', 'Debe aceptar los terminos y pagos de multas') : ''
+    !formData.value.terms_accept || !formData.value.multa_accept ? showNotify('negative', 'Debes aceptar los terminos y pagos de multas') : ''
     return formData.value.terms_accept && formData.value.multa_accept ? true : false
   }
   if (step.value == 4) {
-    !payFormData.value.pay_method || payFormData.value.pay_method == 0 
-    ? showNotify('negative', 'Debe seleccionar el metodo de pago') : ''
+    !payFormData.value.pay_method || payFormData.value.pay_method == 0
+      ? showNotify('negative', 'Debes seleccionar el metodo de pago') : ''
     return payFormData.value.pay_method && payFormData.value.pay_method != 0 ? true : false
+  }
+  if (step.value == 5) {
+    !payFormData.value.date || !payFormData.value.reference || !payFormData.value.vaucher
+      ? showNotify('negative', 'Debes seleccionar completar los datos y subir el comprobante') : ''
+    return payFormData.value.date && payFormData.value.reference && payFormData.value.vaucher ? true : false
   }
   return true
 }
@@ -203,17 +227,17 @@ const createReserve = () => {
   loading.value = true
   reserveStore.createReserve(formData.value)
     .then((response) => {
-      setTimeout(() => {
-        loading.value = false
-        showNotify('positive', !response.data.toPay ? 'Reserva realizada con exito' : 'Pre-reservación realizada')
-
-        if (!response.data.toPay) {
+      showNotify('positive', !response.data.toPay ? 'Reserva realizada con exito' : 'Pre-reservación realizada')
+      if (!response.data.toPay) {
+        setTimeout(() => {
+          rulesModal.value = false
+          loading.value = false
           router.push('/client/reserves/confirm-reserve/' + response.data.id)
-          return
-        }
-
-      }, 2000);
-
+        }, 1000);
+        return
+      }
+      toPayId.value = response.data.id
+      createPay(response.data.id)
     })
     .catch((response) => {
       console.log(response)
@@ -272,7 +296,7 @@ const payFormData = ref({
 
 
 const payMethods = [
-  
+
   {
     title: 'Transferencia bancaria',
     id: 1
@@ -300,8 +324,8 @@ const payData = [
       value: '0000000000000'
     },
     {
-      title:'CCI',
-      value:'0000000000'
+      title: 'CCI',
+      value: '0000000000'
     }
   ],
   [
@@ -321,19 +345,6 @@ const payData = [
 ]
 const setPayData = (e) => {
   selectedPayData.value = payData[e]
-}
-const formatAllToCopy = () => {
-  let dataFormatted = ''
-  try {
-    payData[payFormData.value.pay_method].forEach(data => {
-      if (data.title != 'QR') {
-        dataFormatted += (data.title != 'Titular de la cuenta' ? data.value.replaceAll(' ', '') : data.value) + ' '
-      }
-    });
-  } catch (error) {
-    console.log('Error al copiar la data')
-  }
-  copyData(dataFormatted.trim())
 }
 const formatCopy = (texto) => {
   copyData(texto.replaceAll(' ', '').trim())
@@ -357,7 +368,8 @@ const copyData = (texto) => {
     element.removeChild(textArea);
   }
 }
-const pegarTexto = async () => {  
+
+const pegarTexto = async () => {
   if (!navigator.clipboard) {
     console.warn('La API del portapapeles no está disponible. Asegúrate de usar HTTPS o localhost.')
     return
@@ -365,13 +377,66 @@ const pegarTexto = async () => {
   try {
     // Leemos el texto del portapapeles del sistema
     const textoDelPortapapeles = await navigator.clipboard.readText()
-    
+
     // Lo asignamos al v-model del segundo input
     payFormData.value.reference = textoDelPortapapeles
   } catch (err) {
     // Esto se ejecutará si el usuario deniega el permiso o el navegador no lo soporta
     console.error('Error al intentar pegar: ', err)
   }
+}
+const handleUpload = (event) => {
+  // event.target.files contiene un array con los archivos seleccionados
+  const file = event.target.files[0];
+
+  if (file) {
+    // Validar por seguridad que realmente sea una imagen (útil si arrastran archivos)
+    if (!file.type.startsWith('image/')) {
+      showNotify('negative', 'Por favor, selecciona solo un archivo de imagen.');
+      return;
+    }
+    payFormData.value.vaucher = file;
+    console.log(payFormData.value.vaucher)
+
+  }
+};
+const fileSizeInMB = computed(() => {
+  if (!payFormData.value.vaucher) return 0;
+
+  // Convertir bytes a Megabytes (bytes / 1024 = KB -> KB / 1024 = MB)
+  const size = payFormData.value.vaucher.size / (1024 * 1024);
+
+  // .toFixed(2) recorta los decimales para que se vea limpio (ej: 1.45)
+  return size.toFixed(2);
+});
+
+
+const createPay = (id) => {
+  const dataForm = dataToForm(id)
+  reserveStore.createReservePay(dataForm)
+    .then((response) => {
+      showNotify('positive', 'Pago creado con exito')
+      setTimeout(() => {
+        loading.value = false
+        router.push('/client/pay/details/' + response.data.idPay)
+      }, 1000);
+    })
+    .catch((response) => {
+      loading.value = false
+      showNotify('negative', 'Error al crear el pago')
+
+    })
+}
+const dataToForm = (id) => {
+  const dataForm = new FormData()
+  dataForm.append('amount', formData.value.amount)
+  dataForm.append('vaucher', payFormData.value.vaucher)
+  dataForm.append('reference', payFormData.value.reference)
+  dataForm.append('pay_date', payFormData.value.date)
+  dataForm.append('pay_method', payFormData.value.pay_method)
+  dataForm.append('to_pay_id', id)
+  dataForm.append('type', payFormData.value.type)
+  return { data: dataForm }
 }
 onMounted(() => {
   getComunsArea()
@@ -552,15 +617,12 @@ watch(step,
                           </div>
                           <div>
                             <div v-for="method in payMethods" :key="method.id"
-                              :class="{'activeMethodContainer': payFormData.pay_method == method.id}"
+                              :class="{ 'activeMethodContainer': payFormData.pay_method == method.id }"
                               class="flex items-center justify-between selectMethodItem mb-2 mt-3 py-2 px-3">
-                              <q-radio
-                              color="tealedf"
-                                :class="{'activeMethod': payFormData.pay_method == method.id}"
-                                class="item_method-radio" 
-                                v-model="payFormData.pay_method"
-                                checked-icon="eva-checkmark-circle-outline" 
-                                :val="method.id" :label="method.title" @update:model-value="setPayData" />
+                              <q-radio color="tealedf" :class="{ 'activeMethod': payFormData.pay_method == method.id }"
+                                class="item_method-radio" v-model="payFormData.pay_method"
+                                checked-icon="eva-checkmark-circle-outline" :val="method.id" :label="method.title"
+                                @update:model-value="setPayData" />
                             </div>
                           </div>
                         </div>
@@ -596,17 +658,19 @@ watch(step,
                           Pago
                         </div>
                         <div class="text-caption font-medium pl-2 text-grey-7">
-                          Método seleccionado: 
-                          {{ payMethods.find(method => method.id == payFormData.pay_method).title }}
+                          Método seleccionado:
+                          {{payMethods.find(method => method.id == payFormData.pay_method).title}}
                         </div>
                         <div class="font-medium pl-2 mt-3 " style="font-size:0.9rem">
                           Datos de cuenta a pagar
                         </div>
                         <div class="selectedDateBlock mt-1 px-3 w-full py-2">
-                          <div v-for="(line, index) in selectedPayData" :key="index" class=" my-1 flex items-center justify-between">
+                          <div v-for="(line, index) in selectedPayData" :key="index"
+                            class=" my-1 flex items-center justify-between">
                             <div class="flex items-center " :class="{ 'w-full': line.title == 'QR' }">
                               <div class="text-md text-grey-10 ">{{ line.title }}: </div>
-                              <img style="width: 8rem;" :src="line.value" alt="" v-if="line.title == 'QR'" class="mx-auto">
+                              <img style="width: 8rem;" :src="line.value" alt="" v-if="line.title == 'QR'"
+                                class="mx-auto">
                               <div v-else class="text-md text-grey-10 ml-1">{{ line.value }}</div>
                             </div>
                             <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="line.title != 'QR'"
@@ -616,8 +680,9 @@ watch(step,
                         <div class=" row mt-2 md:px-12">
                           <div class="col-12 mt-0">
                             <div class=" md:pr-4">
-                              <q-input color="tealedf" label="Fecha de pago" v-model="payFormData.date" :rules="[val => !(!val) || 'Fecha es requerida']" dense
-                                borderless clearable class="form__inputsReverse mt-1"  accept=".jpg, image/*">
+                              <q-input color="tealedf" label="Fecha de pago" v-model="payFormData.date"
+                                :rules="[val => !(!val) || 'Fecha es requerida']" dense borderless clearable
+                                class="form__inputsReverse mt-1" accept=".jpg, image/*">
                                 <template v-slot:append>
                                   <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -631,52 +696,72 @@ watch(step,
                                   </q-icon>
                                 </template>
                               </q-input>
-        
+
                             </div>
                           </div>
                           <div class="col-12 mt-0 ">
                             <div class=" md:pr-4">
-                              <q-input 
-                                color="tealedf"
-                                label="Referencia de pago" 
-                                dense borderless clearable v-model="payFormData.reference" 
-                                class="form__inputsReverse mt-0"
-                                :maxlength="12"
+                              <q-input color="tealedf" label="Referencia de pago" dense borderless clearable
+                                v-model="payFormData.reference" class="form__inputsReverse mt-0" :maxlength="12"
                                 :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']">
 
-                                  <template v-slot:append>
-                                    <q-btn 
-                                      color="tealedf" 
-                                      size="0.1rem" outline style="padding:3px 6px" 
-                                      no-caps
-                                      @click="pegarTexto()"
-                                    >
-                                      <div class="text-xs">
-                                        Pegar
-                                      </div>
-                                    </q-btn>
-                                  </template>
-                                </q-input>
+                                <template v-slot:append>
+                                  <q-btn color="tealedf" size="0.1rem" outline style="padding:3px 6px" no-caps
+                                    @click="pegarTexto()">
+                                    <div class="text-xs">
+                                      Pegar
+                                    </div>
+                                  </q-btn>
+                                </template>
+                              </q-input>
                             </div>
                           </div>
-
                         </div>
-                        <div></div>
+                        <div class=" rulesContainer mt-0 px-3 w-full py-2">
+                          <label for="vaucherPay">
+                            <template v-if="!payFormData.vaucher">
+                              <div class=" flex flex-center column">
 
-                        <div class="selectedDateBlock mt-0 px-3 w-full py-2">
-                          <div class=" flex flex-center column">
-                            <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
-                            <div class="text-center"> 
-                              <div class="text-grey-7 font-medium">
-                                Sube tu comprobante de pago
+                                <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
+                                <div class="text-center">
+                                  <div class="text-grey-7 font-medium">
+                                    Sube tu comprobante de pago
+                                  </div>
+                                  <div class="text-grey-6 font-medium">
+                                    Pulsa o haz click aqui para carga tu archivo
+                                  </div>
+                                </div>
                               </div>
-                              <div class="text-grey-6 font-medium">
-                                Pulsa o haz click aqui para carga tu archivo
+                            </template>
+                            <template v-else>
+                              <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                  <q-icon color="tealedf" name="eva-checkmark-circle-2" />
+                                  <div class="ml-1">
+                                    <div class="text-xsImage text-tealedf">Vaucher adjuntado correctamente</div>
+                                    <div class="text-xsImage text-black"> {{ payFormData.vaucher.name.slice(0, 10)
+                                      }}***{{
+                                        payFormData.vaucher.name.slice(-5) }} - {{ fileSizeInMB }} MB</div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            
-                          </div>
+                            </template>
+                          </label>
+                          <input type="file" id="vaucherPay" style="display: none;" accept="image/*"
+                            @change="handleUpload">
                           <div></div>
+                        </div>
+
+                        <div class="selectedDateBlock mt-4 px-1 w-full py-2">
+                          <q-chip color="tealedf" text-color="white" size="0.8rem">
+                            <div style="font-size: 0.7rem;" class="">
+                              Pendiente de validación
+                            </div>
+                          </q-chip>
+                          <div class="text-xsImage  px-2">Tu comprobante será revisado por administración</div>
+                          <div class="text-xsImage text-grey-7  px-2">
+                            Te notificaremos cuando el pago sea validado
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -698,14 +783,22 @@ watch(step,
                       <q-btn outline color="primary" unelevated no-caps class=""
                         style="width: 95%; border-radius: 3rem;" type="submit" :loading="loading">
                         <div class="py-0 md:py-0" style="font-weight: 500;">
-                          Aceptar y continuar
+                          {{ step == 4 ? 'Aceptar y continuar' : 'Realizar reserva' }}
                         </div>
                       </q-btn>
                     </div>
                   </template>
                   <template v-if="step == 2">
-                    <div class="col-12 flex flex-center">
-                      <q-btn color="tealedf" unelevated="" class="" style="width: 90%; border-radius: 2rem;"
+                    <div class="col-3 p-2 flex flex-center ">
+                      <q-btn outline color="grey-8" unelevated no-caps class=""
+                        style="width: 100%; border-radius: 3rem;" @click="backButton()">
+                        <div class="py-0 md:py-0">
+                          Volver
+                        </div>
+                      </q-btn>
+                    </div>
+                    <div class="col-9 pr-2 flex flex-center">
+                      <q-btn color="tealedf" unelevated="" class="" style="width: 100%; border-radius: 2rem;"
                         type="submit" :loading="loading">
                         <div class="flex w-full flex-center">
                           <div class="py-2 md:py-1 font-bold mr-2" style="font-size:0.95rem">
@@ -869,11 +962,15 @@ watch(step,
   </div>
 </template>
 <style lang="scss">
-
 .text__amountItem {
   font-size: 1rem;
   font-weight: 500;
   margin-bottom: 0.1rem;
+}
+
+.text-xsImage {
+  font-size: 0.76rem;
+  font-weight: 600;
 }
 
 .text__amountTotal {
@@ -885,15 +982,18 @@ watch(step,
 
 .item_method-radio {
   width: 100%;
+
   & .q-radio__inner {
     width: 1rem;
     min-width: 1rem;
     height: 1rem;
     margin-right: 0.5rem;
   }
-  & .q-radio__label{
+
+  & .q-radio__label {
     width: 100%;
   }
+
   & .q-radio__bg {
     top: 0;
     left: 0;
@@ -908,10 +1008,12 @@ watch(step,
   border-radius: 8rem;
   transition: all 0.2s ease-in;
 }
-.activeMethodContainer{
+
+.activeMethodContainer {
   border: 2px solid #72b9af;
   background: #f0f1f6;
 }
+
 .text-confirmTitleArea {
   font-size: 1.4rem;
   color: #4d6bb4;
@@ -1126,7 +1228,7 @@ watch(step,
     &:first-child div {
 
       color: white;
-      background-color: #79b5a8;
+      background-color: #e6ab4f;
     }
   }
 
@@ -1156,8 +1258,8 @@ watch(step,
 
       &.q-date__calendar-item--in:nth-child(7n + 1) .block,
       &.q-date__calendar-item--in:nth-child(7n) .block {
-        color: #79b5a8
-          /* Tu color dorado */
+        color: #e6ab4f;
+        /* Tu color dorado */
       }
 
       & .q-btn--unelevated .block {
@@ -1218,9 +1320,11 @@ watch(step,
     border: 2px solid #76b7af;
     padding: 0px 1rem;
   }
-  &.q-field--dense.q-field--float .q-field__label{
+
+  &.q-field--dense.q-field--float .q-field__label {
     display: none;
   }
+
   &.q-field--labeled.q-field--dense .q-field__native {
     padding-top: 5px;
   }

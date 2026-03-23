@@ -83,11 +83,13 @@ onMounted(() => {
                 <img :src="urlMedia + '/images/icons/' + comunArea.icon + '.svg'" alt="">
               </div>
               <div class="px-2 infoItem">
-                <div class=" text-bold  text-black" style="font-weight: bold; font-size: 1.3rem;">
-                  {{ comunArea.name }}
+                <div class=" flex items-center text-bold  text-black" style="font-weight: bold; font-size: 1.3rem;">
+                  {{ comunArea.name }} <div class="ml-2 mt-1" style="font-weight: 500; font-size: 0.89rem;">
+                    ({{ comunArea.type_label }})
+                  </div>
                 </div>
                 <div class="mt-1 ellipsis w-full" style="font-weight: 500; font-size: 0.89rem;">
-                  Costo por uso: {{ comunArea.price == 0 ? 'Sin reserva' : comunArea.price + ' S/.' }}.
+                  Costo por uso{{ if }}: {{ comunArea.price == 0 ? 'Sin reserva' : comunArea.price + ' S/.' }}
                 </div>
                 <div class="mt-1" style="font-weight: 500; font-size: 0.89rem;">
                   Garantia: {{ comunArea.warranty_price == 0 ? 'Sin garantia' : comunArea.warranty_price + ' S/.' }}
@@ -95,6 +97,7 @@ onMounted(() => {
                 <div class="mt-1" style="font-weight: 500; font-size: 0.89rem;">
                   Capacidad: {{ comunArea.capacity }} persona(s)
                 </div>
+
 
               </div>
             </div>

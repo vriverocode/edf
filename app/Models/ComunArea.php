@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ComunArea extends Model
 {
-    //
     use SoftDeletes;
+    
     protected $table = "comun_areas";
 
     protected $fillable = [
@@ -21,28 +21,45 @@ class ComunArea extends Model
         "timeFrom",
         "timeTo",
         "rules",
-        "icon"
+        "icon",
+        "max_cupo",
+        "not_available_days",
+        "type" // <-- IMPORTANTE: Asegúrate de agregar "type" al fillable para poder guardarlo
     ];
-    public $appends  =   ['pay_label', 'format_rules'];
+
+    // Agregamos 'type_label' a la lista de appends
+    public $appends = ['pay_label', 'format_rules', 'type_label'];
 
     public function getPayLabelAttribute(){
         return $this->price == 0 && $this->warranty_price == 0 ? 'Gratis' : 'Pago';
     }
+
     public function getFormatRulesAttribute(){
         return nl2br(htmlspecialchars($this->rules));
     }
+
+    // NUEVO ACCESOR: Crea el atributo "type_label" al vuelo
+    public function getTypeLabelAttribute(){
+        // Usamos la expresión match (disponible en PHP 8+) para mapear el número al texto
+        return match((int) $this->type) {
+            1 => 'Gratis',
+            2 => 'Mixto',
+            3 => 'De pago',
+            4 => 'De pago lista de invitados',
+            default => 'No definido',
+        };
+    }
+
     public function bookings(){
         return $this->hasMany(Booking::class, "comun_area_id");
     }
+
     public function bookingsToValidate(){
         return $this->hasMany(Booking::class, "comun_area_id")->where('status', 2);
     }
+
     public function rulesArea()
     {
         return $this->hasMany(Rule::class, "comun_area_id");
-
     }
-    
-
-
 }

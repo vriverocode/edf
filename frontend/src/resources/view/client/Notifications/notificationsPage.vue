@@ -15,6 +15,8 @@ const load = async (page = 1) => {
   try {
     await notifications.fetch({ page, per_page: 15 })
     await notifications.fetchUnreadCount()
+
+    console.log(notifications.items)
   } finally {
     loading.value = false
     ready.value = true
@@ -124,7 +126,7 @@ onMounted(() => {
           </div>
         </q-btn>
       </div>
-      <div v-if="notifications.item > 0">
+      <div v-if="notifications.items.length > 0">
         <div class="notification-list">
           <q-slide-item v-for="item in notifications.items" :key="item.id" @right="() => deleteItem(item)"
             right-color="red-8" class="my-3 notification-container" style="border-radius: 12px!important;">

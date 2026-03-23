@@ -167,7 +167,7 @@ const createPay = () => {
     })
     .catch((response) => {
       loading.value = false
-      showNotify('positive', 'Error al crear el pago')
+      showNotify('negative', 'Error al crear el pago')
 
     })
 }
@@ -216,7 +216,6 @@ const dataToForm = () => {
   dataForm.append('pay_method', payFormData.value.pay_method)
   dataForm.append('to_pay_id', toPay.value.id)
   dataForm.append('type', payFormData.value.type)
-  console.log(payFormData.value)
   return { data: dataForm }
 }
 onMounted(() => {

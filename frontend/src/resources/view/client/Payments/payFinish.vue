@@ -12,7 +12,7 @@ const pay = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const iconByStatus = [
-  
+
 ]
 // Función para obtener pay por ID
 const getPayById = async (id) => {
@@ -82,7 +82,7 @@ const reloadBooking = () => {
       </div>
     </div>
 
-    <div class="relative z-10 pt-5 pb-2 px-6">
+    <div class="relative z-10 pt-3 pb-2 px-6">
       <!-- Loading State -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">
         <q-spinner-dots color="primary" size="4rem" />
@@ -106,7 +106,7 @@ const reloadBooking = () => {
       </div>
 
       <!-- Success State -->
-      <div v-else-if="pay" class="flex flex-col items-center" >
+      <div v-else-if="pay" class="flex flex-col items-center pb-4">
         <!-- Icono de éxito -->
         <!-- <div class="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
           <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,17 +114,18 @@ const reloadBooking = () => {
           </svg>
         </div> -->
         <div class="mb-4">
-          <img :src="checkIcon" alt="" style="width: 6rem;">
+          <img :src="checkIcon" alt="" style="width: 5.5rem;">
         </div>
 
         <!-- Título de éxito -->
         <h1 class="text-2xl font-bold text-gray-900 mb-2">Pago realizado!</h1>
         <p class="text-gray-600 mb-1 text-center">Tu pago ha sido creado exitosamente</p>
-        <p class="text-gray-600 mb-7 text-center">El equipo de administración lo validara y se te noficará cuando sea confirmado</p>
+        <p class="text-gray-600 mb-5 text-center">El equipo de administración lo validara y se te noficará cuando sea
+          confirmado</p>
 
 
         <!-- Tarjeta de detalles -->
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-sm p-6 mb-8">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-sm p-6 mb-6">
           <div class="space-y-4">
             <!-- Estado del pago -->
             <div class="flex justify-between items-center pb-2"
@@ -133,7 +134,7 @@ const reloadBooking = () => {
               <span class="font-semibold" :class="'text-' + pay.status_color">{{ pay.status_label }}</span>
             </div>
             <!-- Horarios -->
-            <div class="flex justify-between items-center pb-2" v-if="pay.pay_method !=3"
+            <div class="flex justify-between items-center pb-2" v-if="pay.pay_method != 3"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Refencia de pago</span>
               <span class="text-gray-900 font-semibold">{{ pay.reference }}</span>
@@ -169,23 +170,21 @@ const reloadBooking = () => {
             </div>
 
             <!-- Área común -->
-            <div class="flex justify-between items-center pb-2"
-              v-if="pay.booking"
+            <div class="flex justify-between items-center pb-2" v-if="pay.booking"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Reserva</span>
-              <span class="text-gray-900 font-semibold">#{{ pay.booking?.booking_number  || 'Área Común' }}</span>
+              <span class="text-gray-900 font-semibold">#{{ pay.booking?.booking_number || 'Área Común' }}</span>
             </div>
-            <div class="flex justify-between items-center pb-2"
-              v-if="pay.quota"
+            <div class="flex justify-between items-center pb-2" v-if="pay.quota"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Cuota del mes</span>
-              <span class="text-gray-900 font-semibold">{{ pay.quota?.month_label  || '---' }}</span>
+              <span class="text-gray-900 font-semibold">{{ pay.quota?.month_label || '---' }}</span>
             </div>
           </div>
         </div>
 
         <!-- Botones de acción -->
-        <div class="w-full max-w-sm space-y-4">
+        <div class="w-full max-w-sm space-y-0">
           <!-- Botón de descargar recibo -->
           <!-- <button @click="downloadReceipt"
             class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
@@ -198,7 +197,7 @@ const reloadBooking = () => {
           </button> -->
 
           <!-- Enlace de volver al inicio -->
-          <div class="text-center pb-2">
+          <div class="text-center ">
             <button @click="goToHome" class="text-gray-600 font-medium underline hover:text-gray-800 transition-colors">
               Volver al inicio
             </button>

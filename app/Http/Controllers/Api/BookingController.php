@@ -48,7 +48,7 @@ class BookingController extends Controller
     {
         $bookings = Booking::with('comunArea', 'user', 'pay');
         if ($request->user()->id != 1) {
-            $bookings->where('user_id', $request->user()->id)->orderBy('date', 'desc');
+            $bookings->where('user_id', $request->user()->id)->orderBy('date', 'asc');
         }
         $this->applyFilter($bookings, $request);
         return $this->returnSuccess(200, $bookings->get());

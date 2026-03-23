@@ -20,6 +20,31 @@ const iconsOption = [
   { value: 'piscina', name: 'Piscina' },
   { value: 'sauna', name: 'Sauna' },
 ]
+const typeArea = [
+  { value: 1, name: 'Uso gratuito' },
+  { value: 2, name: 'Uso mixto (Gratis y exclusivo)' },
+  { value: 3, name: 'De pago' },
+  { value: 4, name: 'De pago lista de invitados' },
+]
+const severityOptions = [
+  { value: 1, name: 'Baja' },
+  { value: 2, name: 'Media' },
+  { value: 3, name: 'Alta' }
+]
+
+const ruleTypeOptions = [
+  { value: 1, name: 'Norma de convivencia (Sin multa)' },
+  { value: 2, name: 'Falta con amonestación monetaria' }
+]
+const dayNotAvailable = [
+  'Lunes',
+  'Martes',
+  'Miercoles',
+  'Jueves',
+  'Viernes',
+  'Sabado',
+  'Domingo',
+]
 const formData = ref({
   name: '',
   capacity: '',
@@ -27,17 +52,35 @@ const formData = ref({
   warrantyPrice: 0,
   description: '',
   maxTime: 1,
+  max_cupo: 0,
   timeFrom: '',
   timeTo: '',
-  rules: '',
   icon: { value: 'default', name: 'Por defecto' },
+  typeArea: { value: 1, name: 'Uso gratuito' },
+  notAvailable: [],
+  rulesList: [
+    { title: '', code: '', description: '', type: ruleTypeOptions[0], severity: severityOptions[0], suggest_amount: null }
+  ]
 })
 
+const addRule = () => {
+  formData.value.rulesList.push({
+    title: '',
+    description: '',
+    type: ruleTypeOptions[0],
+    severity: severityOptions[0],
+    suggest_amount: null
+  })
+}
+
+const removeRule = (index) => {
+  formData.value.rulesList.splice(index, 1)
+}
 const backButton = () => {
   step.value--
 }
 const nextStep = () => {
-  if (step.value == 1) {
+  if (step.value == 2) {
     createArea()
     return
   }
@@ -79,43 +122,63 @@ onMounted(() => {
 
 </script>
 <template>
-  <div class="md:px-20 md:mx-16 px-2 h-full" style="overflow: hidden; ">
-    <div class="text-center text-black text-h5 text-bold  md:mb-8 mb-4">
+  <div class="md:px-24 px-2 h-full" style="overflow: hidden; ">
+    <div class="text-center text-black text-h5 text-bold  md:mb-8 mb-2 headerForm">
       Datos del area común
     </div>
-    <q-form @submit="nextStep()" class="h-full">
+    <q-form @submit="nextStep()" class="formContent" style="overflow: auto;">
 
       <div class=" w-full h-full">
         <Transition name="horizontal">
 
-          <div class="row w-full" style="height:82%; overflow:auto" v-if="step == 0">
-            <div class="col-md-6 col-12 mt-1 mb-4 px-2 md:px-12">
-
+          <div class="row w-full" style="height:85%; overflow:auto" v-if="step == 0">
+            <div class="col-md-6 col-12 mt-1 mb-4 md:mt-0 px-2 md:px-12">
               <div class="boxImgStore">
                 <img :src="urlMedia + '/images/icons/' + formData.icon.value + '.svg'" alt="">
               </div>
             </div>
-            <div class="col-md-6 col-12 mt-1 mb-4 px-2 md:px-12">
+            <div class="col-md-6 col-12 mt-1 mb-4 px-2 md:mt-0 md:px-12">
               <div class="text-subtitle2 text-black">
                 Icono
               </div>
               <q-select class="form__inputsR mt-1" v-model="formData.icon" :options="iconsOption" option-label="name"
                 option-value="value" dense borderless />
             </div>
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+            <div class="col-md-6 col-12 mt-1 mb-4 px-2 md:mt-0 md:px-12">
+              <div class="text-subtitle2 text-black">
+                Tipo de area común
+              </div>
+              <q-select class="form__inputsR mt-1" v-model="formData.typeArea" :options="typeArea" option-label="name"
+                option-value="value" dense borderless />
+            </div>
+            <div class="col-md-6 col-12 mt-1 md:mt-0 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
                 Nombre del area
               </div>
               <q-input dense borderless clearable v-model="formData.name" class="form__inputsR mt-1" color="primary"
                 :rules="[val => val && val.length > 0 || 'Nombre de area es requerido']" />
             </div>
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+            <div class="col-md-6 col-12 mt-1 md:mt-0 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
                 Aforo
               </div>
               <q-input dense borderless clearable v-model="formData.capacity" class="form__inputsR mt-1" color="primary"
                 :rules="[val => !(!val) || 'El aforo es requerido']" />
             </div>
+
+
+            <div class="col-md-6 col-12 mt-2 md:mt-0 px-2 md:px-12">
+              <div class="text-subtitle2 text-black">
+                Descripción
+              </div>
+              <q-input borderless clearable v-model="formData.description" class="form__inputsR mt-1" color="primary" />
+            </div>
+          </div>
+        </Transition>
+        <Transition name="horizontal">
+          <div class="row w-full" style="height:85%; overflow:auto" v-if="step == 1">
+
+
             <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
                 Precio por reserva
@@ -130,17 +193,13 @@ onMounted(() => {
               <q-input dense borderless clearable v-model="formData.warrantyPrice" class="form__inputsR mt-1"
                 color="primary" hint="Dejar en 0 si no aplica garantia" />
             </div>
-            <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
+            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
-                Descripción
+                Maximo de cupo de reservas
               </div>
-              <q-input borderless clearable v-model="formData.description" class="form__inputsR mt-1" color="primary" />
+              <q-input dense borderless clearable v-model="formData.max_cupo" class="form__inputsR mt-1" color="primary"
+                :rules="[val => !(!val) || 'Establece un maximo de cupos']" />
             </div>
-          </div>
-        </Transition>
-        <Transition name="horizontal">
-          <div class="row w-full" style="height:83%; overflow:auto" v-if="step == 1">
-
             <div class="col-md-6 col-12  row mt-1 px-2 md:px-12">
               <div class="col-12">
                 <div class="text-subtitle2 text-black ">
@@ -149,11 +208,19 @@ onMounted(() => {
                 <q-input dense borderless clearable v-model="formData.maxTime" class="form__inputsR mt-1" autofocus
                   color="primary" :rules="[val => !(!val) || 'Las horas maxima de reserva es necesaria']" />
               </div>
-              <div class="col-12 mt-6">
+
+              <div class="col-12 mt-2 ">
                 <div class="text-subtitle2 text-black">
                   Horas disponibles:
                 </div>
                 <div class="row w-full mt-4">
+                  <div class=" col-12 mt-1 mb-4 md:mt-0">
+                    <div class="text-subtitle2 text-black">
+                      Días no disponible
+                    </div>
+                    <q-select class="form__inputsR mt-1" dense borderless v-model="formData.notAvailable" multiple
+                      :options="dayNotAvailable" use-chips stack-label />
+                  </div>
                   <div class="col-6  pr-2 md:pr-4">
                     <div class="text-body2 text-black" style="font-weight: medium;">
                       Desde:
@@ -195,25 +262,91 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
-              <div class="text-subtitle2 text-black">
-                Normas
-              </div>
-              <q-input dense borderless clearable type="textarea" v-model="formData.rules" class="form__inputsR mt-1"
-                color="primary" :rules="[val => val && val.length > 0 || 'Indica las reglas']" />
+
             </div>
 
           </div>
         </Transition>
-        <div class="w-full flex flex-center" style="height:10%; overflow:hidden">
+        <Transition name="horizontal">
+          <div class="w-full" style="height:85%; overflow:hidden" v-if="step == 2">
+            <div class="col-12 px-2 md:px-12 w-full h-full">
+              <div class="row justify-between items-center bg-white " style="height: 15%;">
+                <div class="text-subtitle1 text-bold text-black">
+                  Reglas y Normas del Área
+                </div>
+                <div>
+                  <q-btn color="primary" label="Agregar regla" @click="addRule" outline rounded dense class="px-3" />
+                </div>
+              </div>
+              <div style="height: 85%; overflow: auto;">
+                <div v-for="(rule, index) in formData.rulesList" :key="index"
+                  class="row w-full relative-position md:mt-14 pb-8 mt-5" style="">
+                  <q-btn v-if="formData.rulesList.length > 1" icon="eva-trash-2-outline" color="negative" dense outline
+                    round @click="removeRule(index)" class="absolute-top-right"
+                    style="top: -15px; right: 5px; z-index: 10;" />
+
+                  <div class="col-md-6 col-12 mt-1 px-2">
+                    <div class="text-subtitle2 text-black">
+                      Título de la regla
+                    </div>
+                    <q-input dense borderless clearable v-model="rule.title" class="form__inputsR mt-1 bg-white"
+                      color="primary" :rules="[val => !!val || 'El título es requerido']" />
+                  </div>
+                  <div class="col-md-6 col-12 mt-1 px-2">
+                    <div class="text-subtitle2 text-black">
+                      N° del articulo
+                    </div>
+                    <q-input dense borderless clearable v-model="rule.code" class="form__inputsR mt-1 bg-white"
+                      color="primary" :rules="[val => !!val || 'N° del articulo del reglamento es requerido']" />
+                  </div>
+
+                  <div class="col-md-6 col-12 mt-1 px-2">
+                    <div class="text-subtitle2 text-black">
+                      Nivel de severidad
+                    </div>
+                    <q-select class="form__inputsR mt-1 bg-white" dense v-model="rule.severity"
+                      :options="severityOptions" option-label="name" option-value="value" borderless />
+                  </div>
+
+                  <div class="col-md-6 col-12 mt-2 px-2">
+                    <div class="text-subtitle2 text-black">
+                      Tipo de regla
+                    </div>
+                    <q-select class="form__inputsR mt-1 bg-white" dense v-model="rule.type" :options="ruleTypeOptions"
+                      option-label="name" option-value="value" borderless />
+                  </div>
+
+                  <div class="col-md-6 col-12 mt-2 px-2" v-if="rule.type.value === 2">
+                    <div class="text-subtitle2 text-black">
+                      Amonestación Monetaria sugerida
+                    </div>
+                    <q-input dense borderless clearable type="number" v-model="rule.suggest_amount"
+                      class="form__inputsR mt-1 bg-white" color="primary" hint="Monto a multar"
+                      :rules="[val => !!val || 'El monto es requerido para este tipo de regla']" />
+                  </div>
+
+                  <div class="col-12 col-md-6 mt-2 px-2">
+                    <div class="text-subtitle2 text-black">
+                      Descripción de la regla
+                    </div>
+                    <q-input borderless clearable type="textarea" rows="2" v-model="rule.description"
+                      class="form__inputsR mt-1 bg-white" dense color="primary" />
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </Transition>
+        <div class="w-full flex flex-center pt-1" style="height:10%; overflow:hidden">
           <div class="w-full px-2 md:px-12 flex justify-center">
-            <q-btn color="grey-7" style="border-radius: 0.5rem;" @click="backButton()" v-if="step == 1" class="me-7">
+            <q-btn color="grey-7" style="border-radius: 0.5rem;" @click="backButton()" v-if="step > 1" class="me-7">
               <div class="md:px-10 px-5 py-1">
                 Volver
               </div>
             </q-btn>
-            <q-btn color="primary " style="border-radius: 0.5rem;" type="submit" :loading="loading">
+            <q-btn color="primary p" style="border-radius: 0.5rem;" type="submit" :loading="loading">
               <div class="md:px-10 px-10 py-1">
                 Siguiente
               </div>
@@ -225,12 +358,20 @@ onMounted(() => {
   </div>
 </template>
 <style lang="scss">
+.headerForm {
+  height: 7%;
+}
+
+.formContent {
+  height: 93%;
+}
+
 .form__inputsR {
   & .q-field__inner {
     box-shadow: 0px 3px 4px 0px #bfbfbf48;
     border-radius: 0.5rem;
     border: 1px solid rgb(223, 223, 223);
-    padding: 0px 1rem;
+    padding: 10px 1rem;
   }
 }
 

@@ -215,10 +215,6 @@ onMounted(() => {
           </div>
           <h3 class="text-lg font-semibold text-gray-900 mb-2">No tienes reservas</h3>
           <p class="text-gray-600 text-center mb-6">Aún no has realizado ninguna reserva de áreas comunes.</p>
-          <button @click="goTo('/client/reserves/form/add')"
-            class="px-6 py-3 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors">
-            Crear primera reserva
-          </button>
         </div>
       </div>
     </div>
