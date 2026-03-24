@@ -51,7 +51,7 @@ const selectArea = (id) => {
   }, 500);
 }
 const hiddenModal = () => {
-  dialog.value = false
+  dialog.value = ''
 }
 const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
@@ -89,7 +89,7 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="mt-1 ellipsis w-full" style="font-weight: 500; font-size: 0.89rem;">
-                  Costo por uso{{ if }}: {{ comunArea.price == 0 ? 'Sin reserva' : comunArea.price + ' S/.' }}
+                  Costo por uso: {{ comunArea.price == 0 ? 'Sin reserva' : comunArea.price + ' S/.' }}
                 </div>
                 <div class="mt-1" style="font-weight: 500; font-size: 0.89rem;">
                   Garantia: {{ comunArea.warranty_price == 0 ? 'Sin garantia' : comunArea.warranty_price + ' S/.' }}

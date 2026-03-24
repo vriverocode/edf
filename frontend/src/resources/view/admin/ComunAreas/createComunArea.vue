@@ -66,6 +66,7 @@ const formData = ref({
 const addRule = () => {
   formData.value.rulesList.push({
     title: '',
+    code: '', 
     description: '',
     type: ruleTypeOptions[0],
     severity: severityOptions[0],
@@ -90,6 +91,8 @@ const nextStep = () => {
 const createArea = () => {
   loading.value = true
   formData.value.imageIcon = formData.value.icon.value;
+  formData.value.type = formData.value.typeArea.value;
+
   comunAreaStore.createComunArea(formData.value)
     .then((response) => {
       if (response.code !== 200) throw response
@@ -262,9 +265,7 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
-
             </div>
-
           </div>
         </Transition>
         <Transition name="horizontal">
@@ -341,7 +342,7 @@ onMounted(() => {
         </Transition>
         <div class="w-full flex flex-center pt-1" style="height:10%; overflow:hidden">
           <div class="w-full px-2 md:px-12 flex justify-center">
-            <q-btn color="grey-7" style="border-radius: 0.5rem;" @click="backButton()" v-if="step > 1" class="me-7">
+            <q-btn color="grey-7" style="border-radius: 0.5rem;" @click="backButton()" v-if="step >= 1" class="me-7">
               <div class="md:px-10 px-5 py-1">
                 Volver
               </div>

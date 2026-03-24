@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\NoticeController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RuleController;
 use App\Http\Controllers\Api\MultaController;
+use App\Http\Controllers\Api\PayMethodController;
 use App\Http\Controllers\Api\VisitController;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -119,5 +120,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/set-new-status/{id}', [NoticeController::class, 'setNewStatus']);
         Route::delete('/{id}', [NoticeController::class, 'delete']);
         Route::post('/{id}', [NoticeController::class, 'update']);
+    });
+    Route::prefix('pay-method')->name('payMethod.')->group(function () {
+        Route::get('/', [PayMethodController::class, 'index']);
+        Route::post('/', [PayMethodController::class, 'store']);
+        Route::get('/byId/{id}', [PayMethodController::class, 'show']);
+        Route::post('/u/{id}', [PayMethodController::class, 'update']);
+        Route::post('/status/{id}', [PayMethodController::class, 'updateStatus']);
     });
 });

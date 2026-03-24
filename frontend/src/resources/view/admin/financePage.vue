@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/services/store/auth.services';
 import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
+import { computed } from 'vue';
 
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
@@ -10,11 +11,20 @@ const menu = [
   {
     title: 'Balance de cuentas',
     icon: iconsApp.payHouse,
-    subtitle: 'Consulta y gestiona pagos',
     link: '/balances',
   },
+  {
+    title: 'Cuentas',
+    icon: iconsApp.bank,
+    link: '/admin/account-data',
+    roles: [1]
+  },
 ];
-
+const menuByRol = computed(() => {
+  const rol = user.value?.rol_id
+  console.log(rol)
+  return menu.filter(item => !item.roles || item.roles.includes(rol))
+})
 const goTo = (url) => {
   router.push(url)
 }
@@ -22,8 +32,8 @@ const goTo = (url) => {
 <template>
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-2  md:px-20">
-      <div class="col-md-3 md:px- col-6 px-10 my-3" v-for="(items, key) in menu" :key="key" @click="goTo(items.link)">
-        <div class="boxItem ">
+      <div class="col-md-3 md:px-20 col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
+        <div class="boxItem" @click="goTo(items.link)">
           <div class="flex justify-center items-center h-full w-full p-1">
             <!-- <img :src="items.icon" class="w-full md:w-auto h-full" /> -->
             <div v-html="items.icon" class="flex justify-center mt-0" />

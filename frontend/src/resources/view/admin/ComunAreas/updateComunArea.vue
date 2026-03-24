@@ -102,6 +102,7 @@ const addRule = () => {
   comunArea.value.rulesList.push({
     id: null, // Importante: id nulo significa que es nueva
     title: '',
+    code: '', 
     description: '',
     type: ruleTypeOptions[0],
     severity: severityOptions[0],
@@ -136,6 +137,7 @@ const formatedData = (response) => {
         return {
           id: rule.id, // FUNDAMENTAL MANTENER EL ID
           title: rule.title,
+          code: rule.code,
           description: rule.description,
           suggest_amount: rule.suggest_amount,
           type: ruleTypeOptions.find(t => t.value === rule.type) || ruleTypeOptions[0],
@@ -277,6 +279,13 @@ onMounted(async () => {
                     <div class="text-subtitle2 text-black">Título de la regla</div>
                     <q-input dense borderless clearable v-model="rule.title" class="form__inputsR mt-1 bg-white"
                       color="primary" :rules="[val => !!val || 'El título es requerido']" />
+                  </div>
+                  <div class="col-md-6 col-12 mt-1 px-2">
+                    <div class="text-subtitle2 text-black">
+                      N° del articulo
+                    </div>
+                    <q-input dense borderless clearable v-model="rule.code" class="form__inputsR mt-1 bg-white"
+                      color="primary" :rules="[val => !!val || 'N° del articulo del reglamento es requerido']" />
                   </div>
 
                   <div class="col-md-6 col-12 mt-1 px-2">

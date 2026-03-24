@@ -73,6 +73,42 @@ const routes = [
           depth: 1,
         },
       },
+      {
+        path: '/admin/account-data',
+        component: () => import('@/view/admin/BankAccount/accountBankList.vue'),
+        name: 'bankAccountPage',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Finanzas',
+          roles: ['admin', 'super-admin'],
+          depth: 1,
+        },
+      },
+      {
+        path: '/admin/account-data/add',
+        component: () => import('@/view/admin/BankAccount/createAccountBank.vue'),
+        name: 'bankAccountPageAdd',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Finanzas',
+          roles: ['admin', 'super-admin'],
+          depth: 2,
+        },
+      },
+      {
+        path: '/admin/account-data/update/:id',
+        component: () => import('@/view/admin/BankAccount/updateAccountBank.vue'),
+        name: 'bankAccountPageAdd',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Finanzas',
+          roles: ['admin', 'super-admin'],
+          depth: 2,
+        },
+      },
       // {
       //   path: '/services',
       //   component: () => import('@/view/admin/servicesPage.vue'),

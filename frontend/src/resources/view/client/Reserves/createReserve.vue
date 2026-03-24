@@ -6,6 +6,7 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
 import { useReserveStore } from '@/services/store/reserve.store';
 import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
+import { usePayMethodStore } from '@/services/store/payMethod.store';
 moment.locale('es', {
   weekdays: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'),
   weekdaysShort: 'Dom_Lun_Mar_Mie_Jue_Vie_Sab'.split('_'),
@@ -25,6 +26,7 @@ const myLocale = {
 const rulesModal = ref(false)
 const comunAreaStore = useComunAreaStore()
 const reserveStore = useReserveStore()
+const paymentMethodStore = usePayMethodStore()
 const emitter = inject('emitter')
 const comunAreas = ref([])
 const selectedComunArea = ref({})
@@ -44,6 +46,7 @@ const formData = ref({
   terms_accept: false,
   multa_accept: false
 })
+
 const tapActive = ref(
   moment().format('D') !== moment(formData.value.date).format('D')
     ? 'ma'
@@ -58,6 +61,7 @@ const intervalHorarys = ref({
 const selectedPayData = ref({})
 const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
+  sanciones()
   nextStep()
 }
 const toPayId = ref(null)
@@ -164,7 +168,15 @@ const getComunsArea = () => {
       showNotify('negative', 'Error al obtener areas comunes')
     })
 }
-
+const getPayMethod = () => {
+  paymentMethodStore.getPayMethod()
+  .then((response) => {
+    payMethods.value= response.data
+  })
+  .catch((response) => {
+    console.log(response)
+  })
+}
 const validateStepForm = () => {
   if (step.value == 2) {
     !formData.value.date ? showNotify('negative', 'Debes seleccionar la fecha de la reserva') : ''
@@ -295,56 +307,10 @@ const payFormData = ref({
 })
 
 
-const payMethods = [
+const payMethods = ref([])
 
-  {
-    title: 'Transferencia bancaria',
-    id: 1
-  },
-  {
-    title: 'Yape / Plin',
-    id: 2
-  },
-  {
-    title: 'Tarjeta (crédito / débito)',
-    id: 3
-  },
-
-]
-
-const payData = [
-  [],
-  [
-    {
-      title: 'Banco',
-      value: 'BCP'
-    },
-    {
-      title: 'Cuenta corriente',
-      value: '0000000000000'
-    },
-    {
-      title: 'CCI',
-      value: '0000000000'
-    }
-  ],
-  [
-    {
-      title: 'N° de télefono',
-      value: '997 245 369'
-    },
-    {
-      title: 'Titular de la cuenta',
-      value: 'Juan Perez'
-    },
-    {
-      title: 'QR',
-      value: 'https://upload.wikimedia.org/wikipedia/commons/d/d7/Commons_QR_code.png'
-    },
-  ],
-]
 const setPayData = (e) => {
-  selectedPayData.value = payData[e]
+  selectedPayData.value = payMethods.value.find(method => method.id == e)
 }
 const formatCopy = (texto) => {
   copyData(texto.replaceAll(' ', '').trim())
@@ -368,7 +334,9 @@ const copyData = (texto) => {
     element.removeChild(textArea);
   }
 }
-
+const optionsFn2 = (date) => {
+    return  date <= moment().format('YYYY/MM/DD');
+  }
 const pegarTexto = async () => {
   if (!navigator.clipboard) {
     console.warn('La API del portapapeles no está disponible. Asegúrate de usar HTTPS o localhost.')
@@ -438,8 +406,14 @@ const dataToForm = (id) => {
   dataForm.append('type', payFormData.value.type)
   return { data: dataForm }
 }
+const sanciones = () => {
+  let saciones = [];
+  let reglasSancionables = selectedComunArea.value.rules_area.filter(area =>  area.suggest_amount)
+  console.log(reglasSancionables)
+}
 onMounted(() => {
   getComunsArea()
+  getPayMethod()
 })
 
 onBeforeUnmount(() => {
@@ -475,6 +449,9 @@ watch(step,
                 <div class="text-center mt-0 pt-1 px-2 text-title-squadV2 text-white text-ellipsis ellipsis "
                   style="background: #2d5eaa; height: 27%;">
                   {{ comunArea.name }}
+                </div>
+                <div v-if="comunArea.type > 1" class="pintype" :class="{ 'bg-warning': comunArea.type == 2, 'bg-positive': comunArea.type > 3 }" >
+                    S/.
                 </div>
               </div>
             </div>
@@ -621,7 +598,7 @@ watch(step,
                               class="flex items-center justify-between selectMethodItem mb-2 mt-3 py-2 px-3">
                               <q-radio color="tealedf" :class="{ 'activeMethod': payFormData.pay_method == method.id }"
                                 class="item_method-radio" v-model="payFormData.pay_method"
-                                checked-icon="eva-checkmark-circle-outline" :val="method.id" :label="method.title"
+                                checked-icon="eva-checkmark-circle-outline" :val="method.id" :label="method.name"
                                 @update:model-value="setPayData" />
                             </div>
                           </div>
@@ -665,16 +642,16 @@ watch(step,
                           Datos de cuenta a pagar
                         </div>
                         <div class="selectedDateBlock mt-1 px-3 w-full py-2">
-                          <div v-for="(line, index) in selectedPayData" :key="index"
+                          <div v-for="(line, index) in selectedPayData.data" :key="index"
                             class=" my-1 flex items-center justify-between">
                             <div class="flex items-center " :class="{ 'w-full': line.title == 'QR' }">
                               <div class="text-md text-grey-10 ">{{ line.title }}: </div>
-                              <img style="width: 8rem;" :src="line.value" alt="" v-if="line.title == 'QR'"
+                              <img style="width: 8rem;" :src="line.data" alt="" v-if="line.type.value == 2"
                                 class="mx-auto">
-                              <div v-else class="text-md text-grey-10 ml-1">{{ line.value }}</div>
+                              <div v-else class="text-md text-grey-10 ml-1">{{ line.data }}</div>
                             </div>
                             <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="line.title != 'QR'"
-                              @click="line.title.includes('Titular') ? copyData(line.value) : formatCopy(line.value)" />
+                              @click="line.title.includes('Titular') ? copyData(line.data) : formatCopy(line.data)" />
                           </div>
                         </div>
                         <div class=" row mt-2 md:px-12">
@@ -686,7 +663,7 @@ watch(step,
                                 <template v-slot:append>
                                   <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                      <q-date mask="DD-MM-YYYY" v-model="payFormData.date"
+                                      <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="optionsFn2" 
                                         :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
                                         <div class="row items-center justify-end">
                                           <q-btn v-close-popup label="Aceptar" color="primary" flat />
@@ -862,7 +839,7 @@ watch(step,
                   <div class="flex items-center ruleDetailContainer my-2 py-2 px-3"
                     v-for="(rule, index) in selectedComunArea.rules_area" :key="rule.id">
                     <div class="ruleDetailContainer__index flex flex-center"
-                      :class="{ 'bg-negative': rule.severity == 2, 'bg-tealedf': rule.severity == 1 }">
+                      :class="{ 'bg-warning': rule.severity == 2, 'bg-negative': rule.severity == 3, 'bg-tealedf': rule.severity == 1 }">
                       {{ index + 1 }}
                     </div>
                     <div class="ml-2 " style="font-size:0.82rem">
@@ -910,7 +887,7 @@ watch(step,
                     <div class="mt-1">
                       <q-checkbox v-model="formData.terms_accept" class="check__accept"
                         checked-icon="eva-checkmark-circle-outline">
-                        <div class="ml-2 accept_text">
+                        <div class="ml-2 pt-1 accept_text">
                           {{ 'He leido y acepto las normas de uso del area ' + selectedComunArea.name }}
                         </div>
                       </q-checkbox>
@@ -919,7 +896,7 @@ watch(step,
                     <div class="mt-1">
                       <q-checkbox v-model="formData.multa_accept" class="check__accept"
                         checked-icon="eva-checkmark-circle-outline">
-                        <div class="ml-2 accept_text ">
+                        <div class="ml-2 accept_text pt-1 ">
                           Acepto las sanciones y cobros por incumplimiento
                         </div>
                       </q-checkbox>
@@ -1032,15 +1009,15 @@ watch(step,
 }
 
 .accept_text {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 500;
 }
 
 .check__accept {
   & .q-checkbox__inner {
-    min-width: 1rem;
-    width: 1rem;
-    height: 1rem;
+    min-width: 1.2rem;
+    width: 1.2rem;
+    height: 1.2rem;
   }
 
   & .q-checkbox__bg {
@@ -1360,9 +1337,23 @@ watch(step,
 .boxContentV2 {
   background: $primary;
   overflow: hidden;
+  position: relative;
   height: 8.1rem;
 }
+.pintype{
+  height: 1.3rem;
+  width: 1.3rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  position: absolute;
+  right:0.25rem;
+  top: 0.3rem;
+  color: white;
+  font-size: 0.68rem;
 
+}
 .boxItem_v2 {
   border-radius: 0.8rem;
   overflow: visible;

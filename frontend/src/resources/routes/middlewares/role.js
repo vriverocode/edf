@@ -1,27 +1,34 @@
 // src/router/middlewares/role.js
+import { useAuthStore } from '@/services/store/auth.services' 
 
-// 1. Importas tu store de Pinia
-import { useAuthStore } from '@/services/store/auth.services' // Ajusta la ruta a donde tengas tu store
-
-export default function role(to, from, next) {
-  // 2. IMPORTANTE: Instancias el store DENTRO de la función del middleware
+export default async function role(to, from, next) {
   const authStore = useAuthStore()
 
-  // 3. Obtienes el rol directamente de tu estado en Pinia
-  // (Ajusta 'userRole' al nombre exacto de la variable en tu state o getter)
+  // 1. Si la ruta no requiere validación de roles, la dejamos pasar inmediatamente
+  if (!to.meta.roles) {
+    return next()
+  }
+
+  // 2. Verificamos si el rol del usuario aún NO está en el state de Pinia
+  if (!authStore.user?.rol?.name) {
+    // Como no está, mandamos a llamar a la API utilizando tu acción existente
+    // El 'await' pausa la navegación de la ruta hasta que la promesa se resuelva
+    await authStore.currentUser()
+  }
+
+  // 3. Una vez que la API responde (o si ya lo teníamos de antes), obtenemos el rol
+  // Nota: Mantuve tu fallback a 'Propietario' en caso de que la API falle o devuelva algo inesperado
   const userRole = authStore.user?.rol?.name || 'Propietario'
 
-  if(!(to.meta.roles)){
-    return next()
-
-  }
+  // 4. Comprobamos si el rol tiene permiso para entrar a la ruta
   if (to.meta.roles && !to.meta.roles.includes(userRole.toLowerCase())) {
+    console.log(`Rol detectado: ${userRole}`)
     console.warn(`Acceso denegado: El rol ${userRole} no tiene permisos.`)
 
-    // Rediriges a una ruta segura (puedes mandarlo al home, a un 403, etc.)
+    // Redirigimos a la ruta por defecto
     return next({ name: 'dashboardAdmin' })
   }
   
-  // 5. Si tiene el rol correcto, permite el paso
+  // 5. Si todo está en orden, permitimos la navegación
   return next()
 }
