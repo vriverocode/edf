@@ -102,7 +102,7 @@ const addRule = () => {
   comunArea.value.rulesList.push({
     id: null, // Importante: id nulo significa que es nueva
     title: '',
-    code: '', 
+    code: '',
     description: '',
     type: ruleTypeOptions[0],
     severity: severityOptions[0],
@@ -285,7 +285,7 @@ onMounted(async () => {
                       N° del articulo
                     </div>
                     <q-input dense borderless clearable v-model="rule.code" class="form__inputsR mt-1 bg-white"
-                      color="primary" :rules="[val => !!val || 'N° del articulo del reglamento es requerido']" />
+                      color="primary" />
                   </div>
 
                   <div class="col-md-6 col-12 mt-1 px-2">
