@@ -100,7 +100,7 @@ const routes = [
       {
         path: '/admin/account-data/update/:id',
         component: () => import('@/view/admin/BankAccount/updateAccountBank.vue'),
-        name: 'bankAccountPageAdd',
+        name: 'bankAccountPageUpdate',
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',

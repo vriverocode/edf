@@ -57,6 +57,7 @@ onMounted(() => {
     error.value = 'ID de reserva no proporcionado'
   }
 })
+const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
 
 // Función para recargar el booking
 const reloadBooking = () => {
@@ -96,12 +97,18 @@ const reloadBooking = () => {
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col items-center w-full ">
           <div class="row w-full mb-3 items-end">
             <div class="flex flex-col items-start col-md-6 col-6 md:pl-5 pl-3 ">
-              <div class="mb-4 pt-5">
-                <div class="bg-primary rounded-xl p-4">
-                  <div v-html="iconsApp[booking.comun_area.icon]" />
+              <div class="mb-4 pt-5 w-3/5">
+                <div class="bg-primary rounded-xl p-4 boxContentV2">
+                  <div class="boxItem_v2-2  md:px-6 ">
+                    <div class="flex justify-center items-center h-full w-full ">
+                      <img :src="mediaUrl + '/images/icons/' + (booking.comun_area?.icon || 'default')+ '.svg'" alt="" style="height:100%">
+                    </div>
+                  </div>
                 </div>
               </div>
-              <h1 class="text-2xl font-bold text-gray-900 md:mb-2">{{booking.comun_area?.name || 'Área Común'}}</h1>
+              <h1 class="text-2xl font-bold text-gray-900 md:mb-2">
+                {{booking.comun_area?.name || 'Área Común'}}
+              </h1>
             </div>
             <div class="col-md-6 col-6 text-right">
               <div class="flex justify-end">
@@ -166,6 +173,20 @@ const reloadBooking = () => {
                 <span class="text-gray-600 font-medium">Horario</span>
                 <span class="text-gray-900 font-semibold">{{ booking.time_from }} - {{ booking.time_to }}</span>
               </div>
+              <div class="flex justify-between items-center pb-2"
+                style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+                <span class="text-gray-600 font-medium">Tipo de reserva</span>
+                <span class="text-gray-900 font-semibold">
+                  <q-chip :color="booking.type_color" size="0.8rem">
+                    <div class="text-white" style="font-weight:600; font-size:0.8rem"> 
+                      {{ booking.type_label }}
+                    </div>
+                  </q-chip>
+                </span>
+              </div>
+
+
+              
             </div>
             <div class="flex flex-center mt-4" @click="dialog = true" v-if="booking.pay">
               <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher" style="text-decoration:dotted">
@@ -219,5 +240,38 @@ const reloadBooking = () => {
   border-left: 1px solid $primary;
   width: fit-content;
   border-bottom-left-radius: 1rem;
+}
+
+.boxContentV2 {
+  background: $primary;
+  overflow: hidden;
+  position: relative;
+  height: 8.1rem;
+  width: 100%;
+}
+.boxItem_v2-2 {
+  border-radius: 0.8rem;
+  overflow: visible;
+  position: relative;
+  // border: 2px solid rgb(3, 156, 195) ;
+  width: 100%;
+  //box-shadow: 0px 0.1rem 1rem 0px rgba(0, 0, 0, 0.205);
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  transition: all 0.7s ease-in-out;
+  cursor: pointer;
+  height: 100%;
+
+  &:hover {
+    transform: scale(1.03);
+  }
+}
+
+@media (max-width: 780px) {
+
+  .boxContentV2 {
+    height: 6.5rem;
+  }
 }
 </style>

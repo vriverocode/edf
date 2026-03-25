@@ -116,7 +116,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full overflow-auto md:px-8 md:mx-28 px-3 pb-6">
+  <div class="h-full overflow-auto md:px-28 px-3 pb-6">
     <template v-if="ready">
       <div class="flex justify-end items-center pt-3">
         <q-btn color="primary" style="border-radius: 0.4rem;" no-caps @click="markAll"

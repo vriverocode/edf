@@ -10,7 +10,7 @@ const loading = ref(false)
 const step = ref(1)
 const typeOfData = [
   { value: 1, name: 'texto' },
-  { value: 2, name: 'imagen' },
+  // { value: 2, name: 'imagen' },
 ]
 
 const formData = ref({
@@ -54,7 +54,7 @@ const createPayMethod = () => {
       if (response.code !== 200) throw response
 
 
-      showNotify('positive', 'Area común creada con exito')
+      showNotify('positive', 'Metodo de pago agregado con exito')
       setTimeout(() => {
         loading.value = false
         router.go(-1)
@@ -63,6 +63,7 @@ const createPayMethod = () => {
     })
     .catch((response) => {
       loading.value = false
+      showNotify('positive', 'Error al crear Metodo de pago')
 
     })
 }
@@ -91,7 +92,7 @@ onMounted(() => {
           <div class="w-full" style="height:85%; overflow:hidden" v-if="step == 1">
             <div class="col-12 px-2 md:px-12 w-full h-full">
               <div class="row w-full" style="height:17%; overflow:hidden">
-                <div class="col-md-6 col-12 mt-1 md:mt-0 px-0 md:px-12">
+                <div class="col-md-6 col-12 mt-1 md:mt-0 px-0 md:px-0">
                   <div class="text-subtitle2 text-black">
                     Nombre 
                   </div>

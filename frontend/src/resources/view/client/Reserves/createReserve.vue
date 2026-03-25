@@ -23,6 +23,7 @@ const myLocale = {
   format24h: true,
   pluralDay: 'dias'
 }
+const typeModalShow = ref(false)
 const rulesModal = ref(false)
 const comunAreaStore = useComunAreaStore()
 const reserveStore = useReserveStore()
@@ -41,6 +42,7 @@ const formData = ref({
   date: '',
   time_from: null,
   time_to: null,
+  typeOfReserve:0,
   note: '',
   is_exclusive: false,
   terms_accept: false,
@@ -61,8 +63,9 @@ const intervalHorarys = ref({
 const selectedPayData = ref({})
 const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
-  sanciones()
-  nextStep()
+  typeModalShow.value = true;
+  visibleBackButton(false)
+  
 }
 const toPayId = ref(null)
 const backButton = () => {
@@ -104,8 +107,11 @@ const nextStep = () => {
   if (!validateStepForm()) {
     return
   }
+  if(step.value == 1) {
+    typeModalShow.value = false
+  }
 
-  if (step.value == 3 && selectedComunArea.value.type == 1) {
+  if (step.value == 3 && formData.value.typeOfReserve == 1) {
     createReserve()
     return
   } else {
@@ -178,6 +184,10 @@ const getPayMethod = () => {
   })
 }
 const validateStepForm = () => {
+  if (step.value == 1) {
+    !formData.value.typeOfReserve || formData.value.typeOfReserve == 0 ? showNotify('negative', 'Debes seleccionar el tipo de reserva') : ''
+    return formData.value.typeOfReserve && formData.value.typeOfReserve != 0 ? true : false ? true : false
+  }
   if (step.value == 2) {
     !formData.value.date ? showNotify('negative', 'Debes seleccionar la fecha de la reserva') : ''
     return formData.value.date ? true : false
@@ -233,7 +243,10 @@ const showNotify = (type, text) => {
 
 const createReserve = () => {
   formData.value.comun_area = selectedComunArea.value.id
-  formData.value.amount = selectedComunArea.value.price + selectedComunArea.value.warranty_price
+  formData.value.amount = formData.value.typeOfReserve > 1
+  ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
+  : 0
+  
   formData.value.exclusive = formData.value.is_exclusive ? 1 : 0;
 
   loading.value = true
@@ -242,9 +255,9 @@ const createReserve = () => {
       showNotify('positive', !response.data.toPay ? 'Reserva realizada con exito' : 'Pre-reservación realizada')
       if (!response.data.toPay) {
         setTimeout(() => {
-          rulesModal.value = false
           loading.value = false
           router.push('/client/reserves/confirm-reserve/' + response.data.id)
+          rulesModal.value = false
         }, 1000);
         return
       }
@@ -281,6 +294,10 @@ const setColor = (status) => {
       : ''
 }
 const setSelectHour = (index) => {
+  if(intervalHorarys.value[tapActive.value][index].status == 'Ocupado'){
+    showNotify('negative', 'Selecciona un intervalo de tiempo disponible')
+    return
+  }
   selectedInterval.value = intervalHorarys.value[tapActive.value][index];
   formData.value.time_to = selectedInterval.value.time_to
   formData.value.time_from = selectedInterval.value.time_from
@@ -312,6 +329,15 @@ const payMethods = ref([])
 const setPayData = (e) => {
   selectedPayData.value = payMethods.value.find(method => method.id == e)
 }
+const setTypeData = (e) => {
+  if(e == 2) formData.value.is_exclusive = true
+  else {
+    formData.value.is_exclusive = false
+  }
+}
+
+
+
 const formatCopy = (texto) => {
   copyData(texto.replaceAll(' ', '').trim())
 }
@@ -343,28 +369,21 @@ const pegarTexto = async () => {
     return
   }
   try {
-    // Leemos el texto del portapapeles del sistema
     const textoDelPortapapeles = await navigator.clipboard.readText()
-
-    // Lo asignamos al v-model del segundo input
     payFormData.value.reference = textoDelPortapapeles
   } catch (err) {
-    // Esto se ejecutará si el usuario deniega el permiso o el navegador no lo soporta
     console.error('Error al intentar pegar: ', err)
   }
 }
 const handleUpload = (event) => {
-  // event.target.files contiene un array con los archivos seleccionados
   const file = event.target.files[0];
 
   if (file) {
-    // Validar por seguridad que realmente sea una imagen (útil si arrastran archivos)
     if (!file.type.startsWith('image/')) {
       showNotify('negative', 'Por favor, selecciona solo un archivo de imagen.');
       return;
     }
     payFormData.value.vaucher = file;
-    console.log(payFormData.value.vaucher)
 
   }
 };
@@ -397,7 +416,7 @@ const createPay = (id) => {
 }
 const dataToForm = (id) => {
   const dataForm = new FormData()
-  dataForm.append('amount', formData.value.amount)
+  dataForm.append('amount', formData.value.amount)  
   dataForm.append('vaucher', payFormData.value.vaucher)
   dataForm.append('reference', payFormData.value.reference)
   dataForm.append('pay_date', payFormData.value.date)
@@ -406,11 +425,44 @@ const dataToForm = (id) => {
   dataForm.append('type', payFormData.value.type)
   return { data: dataForm }
 }
-const sanciones = () => {
+const sanciones = computed(() => {
   let saciones = [];
   let reglasSancionables = selectedComunArea.value.rules_area.filter(area =>  area.suggest_amount)
-  console.log(reglasSancionables)
-}
+  reglasSancionables.forEach(element => {
+    saciones.push(
+      {
+        title: element.title,
+        amount: element.suggest_amount
+      }
+    )
+  });
+  return saciones
+});
+
+const typeOfReserve = [
+  {
+    id:1,
+    title: 'Reserva Compartida',
+    description:'Comparte el espacio con otros residentes según los cupos disponibles',
+    types:[1,2]
+  },
+  {
+    id:2,
+    title: 'Reserva Exclusiva',
+    description:'Uso exclusivo del área completa durante el horario seleccionado',
+    types:[2]
+  },
+  {
+    id:3,
+    title: 'Solo reserva con pago',
+    description:'Uso exclusivo obligatorio del área completa con pago requerido',
+    types:[3]
+  }
+]
+const reservesByType = computed(() => {
+  const type = selectedComunArea.value.type
+  return typeOfReserve.filter(item => !item.types || item.types.includes(type))
+})
 onMounted(() => {
   getComunsArea()
   getPayMethod()
@@ -862,20 +914,13 @@ watch(step,
                       Multa
                     </div>
                   </div>
-                  <div class="flex items-center justify-between ruleDetailContainer my-2 py-1 px-3">
-                    <div class="ml-1 font-bold" style="font-size:0.78rem">
-                      Infracción #1
+                  <div class="flex items-center justify-between ruleDetailContainer my-2 py-1 px-3" 
+                   v-for="(infraccion, index) in sanciones" :key="index">
+                    <div class="ml-1 font-bold text-negative" style="font-size:0.78rem">
+                      {{ infraccion.title }}
                     </div>
                     <div class="mr-1 font-bold text-negative" style="font-size:0.78rem">
-                      S/ 80.00
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between ruleDetailContainer my-1 py-1 px-3">
-                    <div class="ml-1 font-bold" style="font-size:0.78rem">
-                      Infracción #2
-                    </div>
-                    <div class="mr-1 font-bold text-negative" style="font-size:0.78rem">
-                      S/ 120.00
+                      S/ {{ infraccion.amount.toFixed(2) }}
                     </div>
                   </div>
                 </div>
@@ -922,6 +967,73 @@ watch(step,
                     type="submit" :loading="loading">
                     <div class="py-0 md:py-0" style="font-weight: 500;">
                       Aceptar y continuar
+                    </div>
+                  </q-btn>
+                </div>
+              </div>
+            </div>
+
+          </Transition>
+          <Transition :name="transitionName">
+            <div class="h-full rulesModal px-3" style="overflow: hidden;" v-if="typeModalShow">
+              <div class="pb-4" style="overflow:auto; height:91%">
+                <div class="text-center py-2 font-bold text-2xl text-primary">Información del área</div>
+                <div class="pt-2 px-2 text-grey-9" style="font-weight:400; font-size:0.99rem">
+                  {{ selectedComunArea.description }}
+                </div>
+                <div class=" pt-4 px-2 font-bold text-lg text-grey-9">
+                  Cupo por horarios: {{ selectedComunArea.max_cupo }} cupo(s)
+                </div>
+                <div class="pt-2 px-0 text-grey-9" style="font-weight:400; font-size:0.99rem">
+                  <q-chip :color="selectedComunArea.type_color" >
+                    <div class="text-white" style="font-weight:600"> 
+                      {{ selectedComunArea.type_label_large }}
+                    </div>
+                  </q-chip>
+                </div>
+                <div class="text-center pt-4 font-bold text-2xl text-primary">Opción de reserva</div>
+                <div>
+                  <div v-for="type in reservesByType" :key="type.id"
+                    :class="{ 'activeMethodContainer': formData.typeOfReserve == type.id }"
+                    class="flex items-center justify-between selectTypeItem mb-2 mt-3 py-2 px-3">
+                    <q-radio color="tealedf" :class="{ 'activeMethod': formData.typeOfReserve == type.id  }"
+                      class="item_method-radio" v-model="formData.typeOfReserve"
+                      checked-icon="eva-checkmark-circle-outline" :val="type.id"
+                      @update:model-value="setTypeData">
+                      <div class="flex justify-between">
+                        <div style="width:80%">
+                          <div style="font-weight:500;">
+                            {{ type.title }}
+                          </div>
+                          <div class=" text-xs pt-1 text-grey-9">
+                            {{ type.description }}
+                          </div>
+                        </div>
+                        <div v-if="type.id > 1" class="text-negative" style="font-size:0.82rem; font-weight:500;">
+                          S/ {{ selectedComunArea.price.toFixed(2) }}
+                        </div>
+                      </div>
+                    </q-radio>
+                     
+                  </div>
+                </div>
+                
+                
+              </div>
+              <div class="row py-0 " style="height: 9%;">
+                <div class="col-4 flex flex-center">
+                  <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
+                    @click="typeModalShow = false; visibleBackButton(true); formData.typeOfReserve = 0" >
+                    <div class="py-0 md:py-0">
+                      Volver
+                    </div>
+                  </q-btn>
+                </div>
+                <div class="col-8 flex flex-center">
+                  <q-btn outline color="primary" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
+                    type="submit">
+                    <div class="py-0 md:py-0" style="font-weight: 500;">
+                      Continuar
                     </div>
                   </q-btn>
                 </div>
@@ -983,6 +1095,11 @@ watch(step,
 .selectMethodItem {
   border: 2px solid lightgrey;
   border-radius: 8rem;
+  transition: all 0.2s ease-in;
+}
+.selectTypeItem{
+  border: 2px solid lightgrey;
+  border-radius: 0.8rem;
   transition: all 0.2s ease-in;
 }
 
@@ -1307,32 +1424,7 @@ watch(step,
   }
 }
 
-.boxImgReserve {
-  border-radius: 0.8rem;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  // border: 2px solid rgb(3, 156, 195) ;
-  height: 7rem;
-  width: 15%;
-  margin: auto;
-  box-shadow: 0px 0.1rem 1rem 0px rgba(0, 0, 0, 0.205);
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-color: #2d6fb5;
-  transition: all 0.7s ease-in-out;
-  cursor: pointer;
 
-  &:hover {
-    transform: scale(1.03);
-  }
-
-  & img {
-    height: 70%;
-  }
-}
 
 .boxContentV2 {
   background: $primary;

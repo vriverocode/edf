@@ -99,7 +99,8 @@ onMounted(() => {
               <div class="flex justify-between items-start mb-2">
                 <div class="flex-1">
                   <h3 class="text-lg font-bold text-gray-900 mb-2">
-                    {{ reserve.comun_area?.name || 'Área Común' }}
+                    {{ reserve.comun_area?.name || 'Área Común' }} 
+                    
                   </h3>
                 </div>
                 <!-- Estado badge -->
@@ -146,7 +147,12 @@ onMounted(() => {
                   <div class="flex items-center text-sm text-gray-700">
                     <div v-html="iconsApp.moneyIcon" />
                     <span class="font-medium">
-                      {{ getPaymentAmount(reserve) }}
+                      {{ getPaymentAmount(reserve) }} 
+                      <q-chip color="deep-purple-10"  v-if="reserve.type == 2">
+                        <div class="text-white" style="font-weight:600; font-size:0.8rem"> 
+                          {{ reserve.type_label }}
+                        </div>
+                      </q-chip>
                     </span>
                   </div>
                 </div>
