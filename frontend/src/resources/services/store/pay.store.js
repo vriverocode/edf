@@ -148,6 +148,21 @@ export const usePayStore = defineStore('Pay', {
       })
 
     },
+    async createCulqiPay(data) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw 'No session';
+        
+        ApiService.setHeader();
+        ApiService.post('/api/pays/culqi-payment', data)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response.data.error || 'Error al procesar pago');
+          });
+      });
+    },
     formatFiltersQuery(filters){
       const queryParams = new URLSearchParams();
       Object.keys(filters).forEach(key => {

@@ -7,6 +7,9 @@ import { useReserveStore } from '@/services/store/reserve.store';
 import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
 import { usePayMethodStore } from '@/services/store/payMethod.store';
+import culqiCheckout from '@/components/layout/culqiCheckout.vue';
+
+
 moment.locale('es', {
   weekdays: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'),
   weekdaysShort: 'Dom_Lun_Mar_Mie_Jue_Vie_Sab'.split('_'),
@@ -117,7 +120,11 @@ const nextStep = () => {
   } else {
     rulesModal.value = false
   }
+  if(step.value == 4 && selectedPayData.value.id == 3) {
+    prepareCulqiData()
+  }
   if (step.value == 5) {
+    
     !toPayId.value
       ? createReserve()
       : createPay(toPayId.value)
@@ -231,8 +238,6 @@ const optionsFn = (date) => {
   // return isFutureOrToday && isWeekday;
   return isFutureOrToday
 }
-
-
 const showNotify = (type, text) => {
   Notify.create({
     color: type,
@@ -328,6 +333,15 @@ const payMethods = ref([])
 
 const setPayData = (e) => {
   selectedPayData.value = payMethods.value.find(method => method.id == e)
+} 
+const prepareCulqiData = () => {
+
+  formData.value.comun_area = selectedComunArea.value.id
+  formData.value.amount = formData.value.typeOfReserve > 1
+  ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
+  : 0
+  
+  formData.value.exclusive = formData.value.is_exclusive ? 1 : 0;
 }
 const setTypeData = (e) => {
   if(e == 2) formData.value.is_exclusive = true
@@ -479,6 +493,12 @@ onBeforeUnmount(() => {
       }
     })
 });
+const culqiSuccess = (data) => {
+  // Como la reserva ya se creó en el backend tras el pago:
+  // router.push({ name: 'confirm-reserve', params: { id: data.idBooking } });
+
+  alert('Bien ahi prepago')
+};
 watch(step,
   (toDepth, fromDepth) => {
     transitionName.value = toDepth > fromDepth ? 'slide-next' : 'slide-prev';
@@ -681,117 +701,126 @@ watch(step,
                     </div>
                   </template>
                   <template v-if="step == 5">
-                    <div class="col-12 col-md-6 row md:px-5 px-4 mt-1">
+                    <div class="col-12  row md:px-5 px-4 mt-1">
                       <div class="w-full">
                         <div class="text-lg font-bold pl-2">
                           Pago
                         </div>
                         <div class="text-caption font-medium pl-2 text-grey-7">
                           Método seleccionado:
-                          {{payMethods.find(method => method.id == payFormData.pay_method).title}}
+                          {{selectedPayData.name}}
                         </div>
-                        <div class="font-medium pl-2 mt-3 " style="font-size:0.9rem">
-                          Datos de cuenta a pagar
-                        </div>
-                        <div class="selectedDateBlock mt-1 px-3 w-full py-2">
-                          <div v-for="(line, index) in selectedPayData.data" :key="index"
-                            class=" my-1 flex items-center justify-between">
-                            <div class="flex items-center " :class="{ 'w-full': line.title == 'QR' }">
-                              <div class="text-md text-grey-10 ">{{ line.title }}: </div>
-                              <img style="width: 8rem;" :src="line.data" alt="" v-if="line.type.value == 2"
-                                class="mx-auto">
-                              <div v-else class="text-md text-grey-10 ml-1">{{ line.data }}</div>
-                            </div>
-                            <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="line.title != 'QR'"
-                              @click="line.title.includes('Titular') ? copyData(line.data) : formatCopy(line.data)" />
+                        <template v-if="selectedPayData.id !== 3">
+                          <div class="font-medium pl-2 mt-3 " style="font-size:0.9rem">
+                            Datos de cuenta a pagar
                           </div>
-                        </div>
-                        <div class=" row mt-2 md:px-12">
-                          <div class="col-12 mt-0">
-                            <div class=" md:pr-4">
-                              <q-input color="tealedf" label="Fecha de pago" v-model="payFormData.date"
-                                :rules="[val => !(!val) || 'Fecha es requerida']" dense borderless clearable
-                                class="form__inputsReverse mt-1" accept=".jpg, image/*">
-                                <template v-slot:append>
-                                  <q-icon name="eva-calendar-outline" class="cursor-pointer">
-                                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                      <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="optionsFn2" 
-                                        :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
-                                        <div class="row items-center justify-end">
-                                          <q-btn v-close-popup label="Aceptar" color="primary" flat />
-                                        </div>
-                                      </q-date>
-                                    </q-popup-proxy>
-                                  </q-icon>
-                                </template>
-                              </q-input>
-
+                          <div class="selectedDateBlock mt-1 px-3 w-full py-2" >
+                            <div v-for="(line, index) in selectedPayData.data" :key="index"
+                              class=" my-1 flex items-center justify-between">
+                              <div class="flex items-center " :class="{ 'w-full': line.title == 'QR' }">
+                                <div class="text-md text-grey-10 ">{{ line.title }}: </div>
+                                <img style="width: 8rem;" :src="line.data" alt="" v-if="line.type.value == 2"
+                                  class="mx-auto">
+                                <div v-else class="text-md text-grey-10 ml-1">{{ line.data }}</div>
+                              </div>
+                              <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="line.title != 'QR'"
+                                @click="line.title.includes('Titular') ? copyData(line.data) : formatCopy(line.data)" />
+                            </div>
+                          </div> 
+                          <div class=" row mt-2 md:px-12">
+                            <div class="col-12 mt-0">
+                              <div class=" md:pr-4">
+                                <q-input color="tealedf" label="Fecha de pago" v-model="payFormData.date"
+                                  :rules="[val => !(!val) || 'Fecha es requerida']" dense borderless clearable
+                                  class="form__inputsReverse mt-1" accept=".jpg, image/*">
+                                  <template v-slot:append>
+                                    <q-icon name="eva-calendar-outline" class="cursor-pointer">
+                                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                                        <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="optionsFn2" 
+                                          :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
+                                          <div class="row items-center justify-end">
+                                            <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                                          </div>
+                                        </q-date>
+                                      </q-popup-proxy>
+                                    </q-icon>
+                                  </template>
+                                </q-input>
+  
+                              </div>
+                            </div>
+                            <div class="col-12 mt-0 ">
+                              <div class=" md:pr-4">
+                                <q-input color="tealedf" label="Referencia de pago" dense borderless clearable
+                                  v-model="payFormData.reference" class="form__inputsReverse mt-0" :maxlength="12"
+                                  :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']">
+  
+                                  <template v-slot:append>
+                                    <q-btn color="tealedf" size="0.1rem" outline style="padding:3px 6px" no-caps
+                                      @click="pegarTexto()">
+                                      <div class="text-xs">
+                                        Pegar
+                                      </div>
+                                    </q-btn>
+                                  </template>
+                                </q-input>
+                              </div>
                             </div>
                           </div>
-                          <div class="col-12 mt-0 ">
-                            <div class=" md:pr-4">
-                              <q-input color="tealedf" label="Referencia de pago" dense borderless clearable
-                                v-model="payFormData.reference" class="form__inputsReverse mt-0" :maxlength="12"
-                                :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']">
-
-                                <template v-slot:append>
-                                  <q-btn color="tealedf" size="0.1rem" outline style="padding:3px 6px" no-caps
-                                    @click="pegarTexto()">
-                                    <div class="text-xs">
-                                      Pegar
+                          <div class=" rulesContainer mt-0 px-3 w-full py-2">
+                            <label for="vaucherPay">
+                              <template v-if="!payFormData.vaucher">
+                                <div class=" flex flex-center column">
+  
+                                  <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
+                                  <div class="text-center">
+                                    <div class="text-grey-7 font-medium">
+                                      Sube tu comprobante de pago
                                     </div>
-                                  </q-btn>
-                                </template>
-                              </q-input>
-                            </div>
-                          </div>
-                        </div>
-                        <div class=" rulesContainer mt-0 px-3 w-full py-2">
-                          <label for="vaucherPay">
-                            <template v-if="!payFormData.vaucher">
-                              <div class=" flex flex-center column">
-
-                                <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
-                                <div class="text-center">
-                                  <div class="text-grey-7 font-medium">
-                                    Sube tu comprobante de pago
-                                  </div>
-                                  <div class="text-grey-6 font-medium">
-                                    Pulsa o haz click aqui para carga tu archivo
+                                    <div class="text-grey-6 font-medium">
+                                      Pulsa o haz click aqui para carga tu archivo
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </template>
-                            <template v-else>
-                              <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                  <q-icon color="tealedf" name="eva-checkmark-circle-2" />
-                                  <div class="ml-1">
-                                    <div class="text-xsImage text-tealedf">Vaucher adjuntado correctamente</div>
-                                    <div class="text-xsImage text-black"> {{ payFormData.vaucher.name.slice(0, 10)
-                                      }}***{{
-                                        payFormData.vaucher.name.slice(-5) }} - {{ fileSizeInMB }} MB</div>
+                              </template>
+                              <template v-else>
+                                <div class="flex items-center justify-between">
+                                  <div class="flex items-center">
+                                    <q-icon color="tealedf" name="eva-checkmark-circle-2" />
+                                    <div class="ml-1">
+                                      <div class="text-xsImage text-tealedf">Vaucher adjuntado correctamente</div>
+                                      <div class="text-xsImage text-black"> {{ payFormData.vaucher.name.slice(0, 10)
+                                        }}***{{
+                                          payFormData.vaucher.name.slice(-5) }} - {{ fileSizeInMB }} MB</div>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </template>
-                          </label>
-                          <input type="file" id="vaucherPay" style="display: none;" accept="image/*"
-                            @change="handleUpload">
-                          <div></div>
-                        </div>
-
-                        <div class="selectedDateBlock mt-4 px-1 w-full py-2">
-                          <q-chip color="tealedf" text-color="white" size="0.8rem">
-                            <div style="font-size: 0.7rem;" class="">
-                              Pendiente de validación
-                            </div>
-                          </q-chip>
-                          <div class="text-xsImage  px-2">Tu comprobante será revisado por administración</div>
-                          <div class="text-xsImage text-grey-7  px-2">
-                            Te notificaremos cuando el pago sea validado
+                              </template>
+                            </label>
+                            <input type="file" id="vaucherPay" style="display: none;" accept="image/*"
+                              @change="handleUpload">
+                            <div></div>
                           </div>
-                        </div>
+                          <div class="selectedDateBlock mt-4 px-1 w-full py-2">
+                            <q-chip color="tealedf" text-color="white" size="0.8rem">
+                              <div style="font-size: 0.7rem;" class="">
+                                Pendiente de validación
+                              </div>
+                            </q-chip>
+                            <div class="text-xsImage  px-2">Tu comprobante será revisado por administración</div>
+                            <div class="text-xsImage text-grey-7  px-2">
+                              Te notificaremos cuando el pago sea validado
+                            </div>
+                          </div>
+                        </template>
+                        <template v-else>
+                          <div class="text-md text-grey-10  w-full flex flex-center pt-10">
+                            <culqiCheckout 
+                                :externalData="formData"
+                                @success="culqiSuccess"
+                              />
+                          </div>
+                        </template>
                       </div>
                     </div>
                   </template>
