@@ -11,8 +11,8 @@ use Illuminate\Notifications\Notification;
 use NotificationChannels\Fcm\FcmChannel;
 use NotificationChannels\Fcm\FcmMessage;
 use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
-
-class RealtimeNotification extends Notification implements ShouldQueue
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+class RealtimeNotification extends Notification implements ShouldBroadcastNow
 {
     use Queueable;
 

@@ -117,7 +117,7 @@ onMounted(() => {
                             <div class="flex items-center py-1">
                                 <q-icon name="eva-plus-outline" />
                                 <div class="q-pt-xs text-bold pl-1">
-                                    Registrar familiar
+                                    Registrar familiar/residente
                                 </div>
                             </div>
                         </q-btn>

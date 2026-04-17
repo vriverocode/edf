@@ -72,7 +72,7 @@ class UserController extends Controller
 
         $username = $request->username ?? Str::lower(Str::random(8)) . '_' . time();
         $password = $request->password ?? Str::password(12);
-
+        $date = $isAirbnb ?   strtotime($request->active_time) : null;
         $userData = [
             'name'       => $request->name,
             'email'      => $request->email,
@@ -81,7 +81,7 @@ class UserController extends Controller
             'password'   => bcrypt($password),
             'rol_id'     => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
             'parentesco' => $isAirbnb ? null : $request->parentesco,
-            'active_time' => $isAirbnb ? $request->active_time : null,
+            'active_time' => $isAirbnb ? date('Y-m-d', $date) : null,
         ];
 
         $user = User::create($userData);

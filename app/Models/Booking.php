@@ -20,11 +20,12 @@ class Booking extends Model
         "time_from",
         "time_to",
         "amount",
+        "type",
         "note",
         "status",
         "is_exclusive"
     ];
-    public $appends  =   ["booking_hour", "status_label", "status_color", "status_color"];
+    public $appends  =   ["booking_hour", "status_label", "status_color", "status_color", 'type_label', "type_color"];
 
     public function comunArea(): BelongsTo
     {
@@ -52,6 +53,26 @@ class Booking extends Model
             "Exitoso"
         ];
         return  $status[$this->status];
+    }
+    public function getTypeLabelAttribute()
+    {
+        $types = [
+            "Cancelada",
+            "Compartida",
+            "Exclusiva",
+            "De pago"
+        ];
+        return  $types[$this->type];
+    }
+    public function getTypeColorAttribute()
+    {
+        return match((int) $this->type) {
+            1 => 'blue-9',
+            2 => 'deep-purple-10',
+            3 => 'light-green-13',
+            4 => 'De pago lista de invitados',
+            default => 'No definido',
+        };
     }
     public function getStatusColorAttribute()
     {

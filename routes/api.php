@@ -96,6 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/quotas', [PayController::class, 'storePay']);
         Route::get('/byId/{id}', [PayController::class, 'getPayById']);
         Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus']);
+        Route::post('/culqi-payment', [PayController::class, 'processCulqiPayment']);
     });
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [NotificationController::class, 'index']);

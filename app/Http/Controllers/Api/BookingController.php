@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Booking;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\ComunArea;
+use App\Models\User;
+use App\Notifications\RealtimeNotification;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
-use App\Notifications\RealtimeNotification;
-use App\Models\User;
-use Exception;
-use Illuminate\Support\Facades\Notification as NotificationFacade;
 
 class BookingController extends Controller
 {
@@ -32,8 +33,9 @@ class BookingController extends Controller
                 'time_from' => $request->time_from,
                 'time_to' => $request->time_to,
                 'amount' => $request->amount,
+                'type' => $request->typeOfReserve,
                 'note' => $request->note,
-                'status' => $request->amount > 0 ? 1 : 3,
+                'status' =>  $request->typeOfReserve == 1 ? 3 : 1,
                 'is_exclusive' => $request->exclusive
             ]);
         } catch (Exception $th) {
@@ -41,7 +43,7 @@ class BookingController extends Controller
         }
         $this->sendNotification($booking);
 
-        return $this->returnSuccess(200, ['toPay' => $booking->amount > 0, 'id' => $booking->id]);
+        return $this->returnSuccess(200, ['toPay' => !($booking->type == 1), 'id' => $booking->id]);
     }
 
     public function getBookingsByUser(Request $request)
@@ -160,7 +162,7 @@ class BookingController extends Controller
             'ta' => [],
             'no' => []
         ];
-
+        $mm = [];
         for ($hora = $startHour; $hora < $endHour; $hora += $intervalSize) {
             // Omitir intervalos pasados si es el día actual
             if ($isToday && $hora <= $currentHour) {
@@ -168,8 +170,10 @@ class BookingController extends Controller
             }
 
             // 1. Calcular la disponibilidad y el estado usando una función dedicada
-            $availability = $this->calculateIntervalAvailability($hora, $intervalSize, $area->capacity, $bookingsInDay);
+            $availability = $this->calculateIntervalAvailability($hora, $intervalSize, $area->max_cupo??100, $bookingsInDay);
 
+
+            array_push($mm, $availability);
             $intervalData = [
                 'time_from' => sprintf('%02d:00', $hora),
                 'time_to'   => sprintf('%02d:00', $hora + $intervalSize),
@@ -187,7 +191,7 @@ class BookingController extends Controller
 
         return $this->returnSuccess(200, [
             'blocks' => $blocks,
-            'ss' => $bookingsInDay
+            'ss' => $mm,
         ]);
     }
 
@@ -197,16 +201,15 @@ class BookingController extends Controller
     private function calculateIntervalAvailability(int $hora, int $intervalSize, int $capacity, $bookings): array
     {
         $occupancy = 0;
+        $intervalEnd = $hora + $intervalSize;
 
         foreach ($bookings as $booking) {
             $bStart = (int) substr($booking->time_from, 0, 2);
             $bEnd = (int) substr($booking->time_to, 0, 2);
-
-            // Verificar si la reserva choca con el intervalo actual
-            if ($bStart < ($hora + $intervalSize)) {
+            if ($bStart < $intervalEnd && $bEnd > $hora) {
                 if ($booking->is_exclusive) {
                     $occupancy = $capacity;
-                    break; // Saturation total, no hace falta seguir iterando
+                    break; // Saturación total para este intervalo específico, dejamos de iterar
                 }
                 $occupancy++;
             }
@@ -218,7 +221,7 @@ class BookingController extends Controller
         $status = 'Disponible';
         if ($availableSpots == 0) {
             $status = 'Ocupado';
-        } elseif ($availableSpots > 0 && $availableSpots <=  (round($capacity * 0.3))) {
+        } elseif ($availableSpots > 0 && $availableSpots <= (round($capacity * 0.3))) {
             $status = 'Últimos';
         }
 
@@ -276,78 +279,8 @@ class BookingController extends Controller
 
         return $validator->all() ;
     }
-    private function setRangeAvailableBooking($date, $area)
-    {
 
-        if ($date == date('Y-m-d')) {
-            $hour = date('H'); // get formatDate
-            return range(intval($hour + 1), $this->formatTimeForAvailable($area->timeTo)); // set default available hours
-        }
-        return range($this->formatTimeForAvailable($area->timeFrom), $this->formatTimeForAvailable($area->timeTo));
-    }
-    private function filterAvailableTimeBooking($bookingInDay, $area)
-    {
-        if ($area->type == 2) {
-            return $this->filterIsExclusiveArea($bookingInDay);
-        }
-        return $this->filterNoExclusiveArea($bookingInDay, $area);
-    }
-    private function filterIsExclusiveArea($bookingInDay)
-    {
-        $notAvailableFrom = [];
-        $notAvailableTo = [];
-        foreach ($bookingInDay as $booking) {
-            array_push($notAvailableFrom, $this->formatTimeForAvailable($booking->time_from)); //add init hour of booking
 
-            array_push($notAvailableTo, $this->formatTimeForAvailable($booking->time_to)); //add more hours of booking
-
-            if ($booking->booking_hour > 1) {
-                for ($i = 1; $i < $booking->booking_hour; $i++) {
-                    array_push($notAvailableFrom, $this->formatTimeForAvailable($booking->time_from, + $i)); //add more hours of booking
-                    array_push($notAvailableTo, $this->formatTimeForAvailable($booking->time_from, + $i)); //add more hours of booking
-                }
-            }
-        }
-        return [
-            "From" => $notAvailableFrom,
-            "To" => $notAvailableTo,
-        ];
-    }
-    private function filterNoExclusiveArea($booking, $area)
-    {
-        $bookingInDay = $booking->groupBy(function ($item, $key) {
-            return substr($item->time_from, 0, 2);
-        });
-
-        $notAvailableFrom = [];
-        $notAvailableTo = [];
-
-        foreach ($bookingInDay as $booking) {
-            if ($area->capacity == count($booking)) {
-                array_push($notAvailableFrom, $this->formatTimeForAvailable($booking[0]->time_from)); //add init hour of booking
-                array_push($notAvailableTo, $this->formatTimeForAvailable($booking[0]->time_to)); //add more hours of booking
-                if ($booking[0]->booking_hour > 1) {
-                    for ($i = 1; $i < $booking[0]->booking_hour; $i++) {
-                        array_push($notAvailableFrom, $this->formatTimeForAvailable($booking[0]->time_from) + $i);
-                        array_push($notAvailableTo, $this->formatTimeForAvailable($booking[0]->time_from) + $i);
-                    }
-                }
-            }
-        }
-        return [
-            "From" => $notAvailableFrom,
-            "To" => $notAvailableTo,
-        ];
-    }
-    private function formattedResult($availableFrom, $notAvailable)
-    {
-        $format = array_diff($availableFrom, $notAvailable); // diff between available and not available
-        return array_values($format); // format simple array
-    }
-    private function formatTimeForAvailable($day)
-    {
-        return intval(substr($day, 0, 2));
-    }
     private function sendNotification($booking)
     {
         $users = [
@@ -391,7 +324,7 @@ class BookingController extends Controller
                 ));
             }
         } catch (\Throwable $e) {
-            // Silenciar errores de notificación para no romper el flujo
+            Log::error('Fallo al enviar notificación de reserva: ' . $e->getMessage());
         }
     }
     private function pedingToPayReserveNotification($users, $booking)
@@ -419,7 +352,7 @@ class BookingController extends Controller
                 ));
             }
         } catch (\Throwable $e) {
-            // Silenciar errores de notificación para no romper el flujo
+            Log::error('Fallo al enviar notificación de reserva: ' . $e->getMessage());
         }
     }
     private function cancelReserveNotification($users, $booking)
@@ -447,7 +380,7 @@ class BookingController extends Controller
                 ));
             }
         } catch (\Throwable $e) {
-            // Silenciar errores de notificación para no romper el flujo
+            Log::error('Fallo al enviar notificación de reserva: ' . $e->getMessage());
         }
     }
 }

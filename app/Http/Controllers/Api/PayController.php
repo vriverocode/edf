@@ -9,9 +9,10 @@ use App\Models\Booking;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Quota;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Validator; 
 use App\Notifications\RealtimeNotification;
+use Illuminate\Support\Facades\DB;
 
 class PayController extends Controller
 {
@@ -123,6 +124,71 @@ class PayController extends Controller
         }
 
         return $this->returnSuccess(200, $return);
+    }
+    public function processCulqiPayment(Request $request)
+    {
+        $rules = [
+            'token'         => ['required', 'string'],
+            'email'         => ['required', 'email'],
+            'amount'        => ['required', 'numeric'],
+            // Campos de la reserva (según tu BookingController)
+            'comun_area_id' => ['required', 'exists:comun_areas,id'],
+            'date'          => ['required', 'date'],
+            'time_from'     => ['required'],
+            'time_to'       => ['required'],
+            'type'          => ['required', 'numeric'], // 1: Cuota, 2: Reserva
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return $this->returnFail(400, $validator->errors()->first());
+        }
+
+        try {
+            // 2. Intentar el cobro en Culqi primero
+            $response = Http::withToken(env('CULQI_SECRET_KEY'), 'Bearer')
+                ->post('https://api.culqi.com/v2/charges', [
+                    'amount'        => (int)($request->amount * 100),
+                    'currency_code' => 'PEN',
+                    'email'         => $request->email,
+                    'source_id'     => $request->token,
+                    'description'   => 'Pago y creación de reserva automática',
+                ]);
+
+            $culqiData = $response->json();
+
+            if ($response->successful()) {
+                // 3. El pago es válido, ahora creamos los registros en la BD
+                return DB::transaction(function () use ($request, $culqiData) {
+                    
+
+                    // Creamos el registro del Pago (Pay)
+                    $pay = \App\Models\Pay::create([
+                        "user_id"    => $request->user()->id,
+                        "amount"     => $request->amount,
+                        "reference"  => $culqiData['id'], // ID de transacción de Culqi
+                        "pay_id"     => 'CULQI-' . $request->comun_area_id . '-' . rand(100, 999),
+                        "pay_date"   => date("Y-m-d"),
+                        "type"       => 2, // Tipo Pago de Reserva
+                        "pay_method" => 3, // Online
+                        "status"     => 1  // Aprobado
+                    ]);
+
+                    // Ejecutamos tus acciones post-pago y notificaciones
+                    // $this->afterPayAction($pay);
+                    // $this->sendNotification($pay);
+
+                    return $this->returnSuccess(200, [
+                        "idPay" => $pay->id
+                    ]);
+                });
+            }
+
+            return $this->returnFail(400, $culqiData['user_message'] ?? 'Pago rechazado');
+
+        } catch (\Exception $e) {
+            return $this->returnFail(500, 'Error procesando la operación');
+        }
     }
     private function afterPayAction($pay)
     {

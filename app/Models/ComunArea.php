@@ -28,7 +28,7 @@ class ComunArea extends Model
     ];
 
     // Agregamos 'type_label' a la lista de appends
-    public $appends = ['pay_label', 'format_rules', 'type_label'];
+    public $appends = ['pay_label', 'format_rules', 'type_label', 'type_label_large', 'type_color'];
 
     public function getPayLabelAttribute(){
         return $this->price == 0 && $this->warranty_price == 0 ? 'Gratis' : 'Pago';
@@ -45,6 +45,26 @@ class ComunArea extends Model
             1 => 'Gratis',
             2 => 'Mixto',
             3 => 'De pago',
+            4 => 'De pago lista de invitados',
+            default => 'No definido',
+        };
+    }
+    public function getTypeLabelLargeAttribute(){
+        // Usamos la expresión match (disponible en PHP 8+) para mapear el número al texto
+        return match((int) $this->type) {
+            1 => 'Uso compartido',
+            2 => 'Uso mixto (Compartido y Exclusivo)',
+            3 => 'Uso exclusivo',
+            4 => 'De pago lista de invitados',
+            default => 'No definido',
+        };
+    }
+    public function getTypeColorAttribute(){
+        // Usamos la expresión match (disponible en PHP 8+) para mapear el número al texto
+        return match((int) $this->type) {
+            1 => 'blue-9',
+            2 => 'deep-purple-10',
+            3 => 'light-green-13',
             4 => 'De pago lista de invitados',
             default => 'No definido',
         };

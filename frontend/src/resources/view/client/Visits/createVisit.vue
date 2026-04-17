@@ -146,7 +146,7 @@ onMounted(() => {
     <q-form @submit="handleSubmit">
       <div class="row w-full">
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-bold text-black">
+          <div class="text-subtitle2 text-bold text-black pt-2">
             Apartamento
           </div>
           <q-select v-if="!hasNoApartments" borderless dense class="form__inputsCR mt-2" v-model="formData.apartment"

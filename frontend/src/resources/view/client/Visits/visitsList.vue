@@ -62,7 +62,7 @@ onMounted(() => {
     <template v-if="ready">
       <div class="h-full" style="overflow: auto;">
         <template v-if="visits.length > 0">
-          <div class="mt-4 md:mt-8" style="height:85%">
+          <div class="mt-4 md:mt-8" style="height:85%; overflow:scroll">
             <div class="px-4 md:mx-24 md:pr-12">
               <q-slide-item v-for="visit in visits" :key="visit.id" @right="() => deleteItem(visit.id)"
                 right-color="red-8" class="my-3 listVisit-container" style="border-radius: 12px!important;">
@@ -70,7 +70,7 @@ onMounted(() => {
                   <div class="row items-center" style="border-radius: 12px;">
                     <q-icon name="eva-trash-2-outline" />
                     <div class="ml-1 text-subtitle2">
-                      Borrar notificación
+                      Borrar Visita
                     </div>
                   </div>
                 </template>
@@ -136,9 +136,9 @@ onMounted(() => {
             </div>
           </div>
           <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6" style="height:10%">
-            <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton" style="border-radius: 0.5rem;"
+            <q-btn color="primary" unelevated class="w-full mt-4 md:mt-0 md:mx-5 createButton" style="border-radius: 0.5rem;"
               @click="goTo('/client/visit/add')">
-              <div class="flex items-center py-1">
+              <div class="flex items-center ">
                 <q-icon name="eva-plus-outline" />
                 <div class="q-pt-xs text-bold pl-1">
                   Registrar visita
@@ -198,11 +198,13 @@ onMounted(() => {
 
 .createButton {
   width: auto;
+  height: 50px;
 }
 
 @media (max-width: 780px) {
   .createButton {
     width: 100%;
+    height: auto;
   }
 }
 </style>
