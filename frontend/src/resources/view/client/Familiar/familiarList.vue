@@ -106,7 +106,6 @@ onMounted(() => {
                                             </q-tooltip>
                                         </q-btn>
                                     </div>
-
                                 </div>
                             </div>
                         </div>

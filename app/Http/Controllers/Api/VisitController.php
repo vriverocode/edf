@@ -87,7 +87,7 @@ class VisitController extends Controller
             2 => 'Entrega',
             3 => 'Servicio',
             4 => 'AirBnb',
-            5    => 'Otro',
+            5 => 'Otro',
         ];
         return $labels[$type] ?? 'Visita';
     }
