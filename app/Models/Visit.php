@@ -16,7 +16,9 @@ class Visit extends Model
         'type',
         'description',
         'date',
-        'hour'
+        'hour', 
+        'status',
+        'airbnb_rent_id'
     ];
 
     public function departament()

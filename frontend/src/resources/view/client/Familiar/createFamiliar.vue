@@ -86,15 +86,25 @@ const airbnbFormData = ref({
 
 })
 
+const airbnbGuests = ref([])
+watch(() => airbnbFormData.value.quantity, (newVal) => {
+    const count = parseInt(newVal) || 0
+    if (count > airbnbGuests.value.length) {
+        const diff = count - airbnbGuests.value.length
+        for (let i = 0; i < diff; i++) {
+            airbnbGuests.value.push({ name: '', document: '', photo: null })
+        }
+    } else if (count < airbnbGuests.value.length) {
+        airbnbGuests.value = airbnbGuests.value.slice(0, count)
+    }
+})
+
 const titleOfSection = [
     'Tipo y asignación',
     'Datos del residente',
     'Registro de Airbnb',
     'Datos de Airbnb'   
-
 ]
-
-
 const isAirbnb = () => formData.value.type?.id === 'airbnb'
 const isFamiliar = () => formData.value.type?.id === 'familiar'
 
@@ -195,15 +205,15 @@ const validatorStep = () => {
             showNotify('negative', 'Cantidad de personas es requerido')
             return false
         }
-        if ( !airbnbFormData.value.name) {
+        if ( !airbnbFormData.value.nameTo) {
             showNotify('negative', 'Nombre de reservador es requerido')
             return false
         }
-        if ( !formData.value.init_time) {
+        if ( !airbnbFormData.value.init_time) {
             showNotify('negative', 'Fecha de inicio es requerido')
             return false
         }
-        if ( !formData.value.end_time) {
+        if ( !airbnbFormData.value.end_time) {
             showNotify('negative', 'Fecha de finalización es requerido')
             return false
         }
@@ -373,7 +383,7 @@ onMounted(() => {
                         <div class="text-subtitle2 text-bold text-black">
                             Números de personas
                         </div>
-                        <q-input borderless clearable  type="number" v-model="airbnbFormData.quantity" dense class="form__inputsCR mt-2" 
+                        <q-input borderless clearable  type="number" v-model="airbnbFormData.quantity" dense class="form__inputsCR mt-1" 
                             color="primary" :rules="[val => val && val > 0 || 'Cantidad de personas es requerido']" />
                     </div>
                     <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
@@ -388,12 +398,12 @@ onMounted(() => {
                         <div class="text-subtitle2 text-bold text-black">
                             Fecha desde (Inicio del alquiler)
                         </div>
-                        <q-input borderless dense class="form__inputsCR mt-2" v-model="airbnbFormData.init_time" 
-                            :rules="[val => val  || 'Fecha de fin de alquiler es requerida']">
+                        <q-input borderless dense class="form__inputsCR mt-1" v-model="airbnbFormData.init_time" 
+                            :rules="[val => !(!val)  || 'Fecha de fin de alquiler es requerida']">
                             <template v-slot:append>
                                 <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                        <q-date v-model="airbnbFormData.active_time" minimal mask="DD/MM/YYYY"
+                                        <q-date v-model="airbnbFormData.init_time" minimal mask="DD/MM/YYYY"
                                             :options="(date) => date.replace(/\//g, '-') >= new Date().toISOString().split('T')[0]">
                                             <div class="row items-center justify-end">
                                                 <q-btn v-close-popup label="OK" color="primary" flat />
@@ -409,12 +419,12 @@ onMounted(() => {
                         <div class="text-subtitle2 text-bold text-black">
                             Fecha hasta (fin del alquiler)
                         </div>
-                        <q-input borderless dense class="form__inputsCR mt-2" v-model="airbnbFormData.end_time" 
+                        <q-input borderless dense class="form__inputsCR mt-1" v-model="airbnbFormData.end_time" 
                             :rules="[val => !(!val)  || 'Fecha de fin de alquiler es requerida']">
                             <template v-slot:append>
                                 <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                        <q-date v-model="airbnbFormData.active_time" minimal mask="DD/MM/YYYY"
+                                        <q-date v-model="airbnbFormData.end_time" minimal mask="DD/MM/YYYY"
                                             :options="(date) => date.replace(/\//g, '-') >= new Date().toISOString().split('T')[0]">
                                             <div class="row items-center justify-end">
                                                 <q-btn v-close-popup label="OK" color="primary" flat />
@@ -443,6 +453,51 @@ onMounted(() => {
                         </div>
                     </div>
 
+                </div>
+            </Transition>
+            <Transition name="horizontal">
+                <div class="row w-full" v-if="step == 3">
+                    
+                    <div class="col-12" v-for="(guest, index) in airbnbGuests" :key="index">
+                        <div class="text-subtitle1 text-bold text-primary mt-4 mb-2 px-2 md:px-12">
+                            Persona {{ index + 1 }}
+                        </div>
+                        
+                        <div class="row w-full">
+                            <div class="col-md-6 col-12 my-1 px-2 md:px-12">
+                                <div class="text-subtitle2 text-bold text-black">Nombre completo</div>
+                                <q-input borderless clearable v-model="guest.name" dense class="form__inputsCR mt-2" color="primary" />
+                            </div>
+                            
+                            <div class="col-md-6 col-12 my-1 px-2 md:px-12">
+                                <div class="text-subtitle2 text-bold text-black">Documento de identidad</div>
+                                <q-input borderless clearable v-model="guest.document" dense class="form__inputsCR mt-2" color="primary" />
+                            </div>
+                            
+                            <div class="col-12 my-1 px-2 md:px-12">
+                                <div class="text-subtitle2 text-bold text-black">Foto de la persona</div>
+                                <q-file borderless clearable v-model="guest.photo" dense class="form__inputsCR mt-2" color="primary" accept="image/*" label="Cargar foto">
+                                    <template v-slot:prepend>
+                                        <q-icon name="eva-cloud-upload-outline" />
+                                    </template>
+                                </q-file>
+                            </div>
+                        </div>
+                        <q-separator class="mt-4 q-mx-md" v-if="index < airbnbGuests.length - 1" />
+                    </div>
+
+                    <div class="col-12 pb-8 mt-6 px-2 md:px-12 flex items-center justify-between">
+                        <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
+                            <q-btn color="grey-9" style="border-radius: 0.5rem;" @click="step--">
+                                <div class="px-8 py-1">Volver</div>
+                            </q-btn>
+                        </div>
+                        <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
+                            <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
+                                <div class="px-8 py-1">Registrar Airbnb</div>
+                            </q-btn>
+                        </div>
+                    </div>
                 </div>
             </Transition>
         </q-form>

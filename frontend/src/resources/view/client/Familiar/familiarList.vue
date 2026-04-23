@@ -111,11 +111,11 @@ onMounted(() => {
                         </div>
                     </div>
                     <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6" style="height:10%">
-                        <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton "
+                        <q-btn color="primary" unelevated class="w-full mt-5 md:mt-0 md:mb-5 md:mx-5 createButton "
                             style="border-radius: 0.5rem;" @click="goTo('/client/familiar/add')">
                             <div class="flex items-center py-1">
                                 <q-icon name="eva-plus-outline" />
-                                <div class="q-pt-xs text-bold pl-1">
+                                <div class=" text-bold pl-1">
                                     Registrar familiar/residente
                                 </div>
                             </div>
