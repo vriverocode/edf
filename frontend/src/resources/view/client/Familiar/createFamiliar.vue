@@ -79,7 +79,7 @@ const formData = ref({
     parentesco: ''
 })
 const airbnbFormData = ref({
-    nameTo:'',
+    nameTo: '',
     quantity: 0,
     init_time: null,
     end_time: null
@@ -103,7 +103,7 @@ const titleOfSection = [
     'Tipo y asignación',
     'Datos del residente',
     'Registro de Airbnb',
-    'Datos de Airbnb'   
+    'Datos de Airbnb'
 ]
 const isAirbnb = () => formData.value.type?.id === 'airbnb'
 const isFamiliar = () => formData.value.type?.id === 'familiar'
@@ -116,52 +116,79 @@ const formatDateForApi = (date) => {
     return date
 }
 const nextStep = () => {
-   if(!validatorStep()){
-    return false
-   }
-   if(step.value == 1 && isFamiliar()){
-    createUser()
-    return
-   }
-   step.value++
+    if (!validatorStep()) {
+        return false
+    }
+    if (step.value == 1 && isFamiliar()) {
+        createUser()
+        return
+    }
+    if (step.value == 3) {
+        createUser()
+        return
+    }
+    step.value++
 }
 const createUser = () => {
     loading.value = true
     formData.value.idApartament = formData.value.apartment?.id
 
-    const payload = {
-        type: formData.value.type?.id,
-        name: formData.value.name,
-        email: formData.value.email,
-        phone: formData.value.phone || null,
-        username: formData.value.username || null,
-        password: formData.value.password || null,
-        idApartament: formData.value.idApartament,
-    }
+    // Como estamos enviando imágenes, usamos FormData en lugar de un objeto JSON
+    const payloadForm = new FormData();
+
+    // Datos base del residente / cuenta
+    payloadForm.append('type', formData.value.type?.id);
+    payloadForm.append('name', formData.value.name);
+    payloadForm.append('email', formData.value.email);
+    payloadForm.append('idApartament', formData.value.idApartament);
+
+    if (formData.value.phone) payloadForm.append('phone', formData.value.phone);
+    if (formData.value.username) payloadForm.append('username', formData.value.username);
+    if (formData.value.password) payloadForm.append('password', formData.value.password);
 
     if (isAirbnb()) {
-        payload.active_time = formatDateForApi(formData.value.active_time)
-    }
-    if (isFamiliar()) {
-        payload.parentesco = formData.value.parentesco
+        // La fecha de corte para el usuario de la app
+        payloadForm.append('active_time', formatDateForApi(airbnbFormData.value.end_time));
+        payloadForm.append('end_time', formatDateForApi(airbnbFormData.value.end_time));
+        // Datos generales del alquiler Airbnb
+        payloadForm.append('airbnb[nameTo]', airbnbFormData.value.nameTo);
+        payloadForm.append('airbnb[quantity]', airbnbFormData.value.quantity);
+        payloadForm.append('airbnb[init_time]', formatDateForApi(airbnbFormData.value.init_time));
+        payloadForm.append('airbnb[end_time]', formatDateForApi(airbnbFormData.value.end_time));
+
+        // Datos del Paso 3 (Las personas y sus fotos)
+        airbnbGuests.value.forEach((guest, index) => {
+            payloadForm.append(`airbnb[guests][${index}][name]`, guest.name);
+            payloadForm.append(`airbnb[guests][${index}][document]`, guest.document);
+            if (guest.photo) {
+                // Adjuntamos el archivo de imagen directamente
+                payloadForm.append(`airbnb[guests][${index}][photo]`, guest.photo);
+            }
+        });
     }
 
-    userStore.createResident(payload)
-    .then((response) => {
-        showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
-        setTimeout(() => {
+    if (isFamiliar()) {
+        payloadForm.append('parentesco', formData.value.parentesco);
+    }
+
+    // Enviamos el FormData a tu Store
+    userStore.createResident(payloadForm)
+        .then((response) => {
+            showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
+            setTimeout(() => {
+                loading.value = false
+                router.go(-1)
+            }, 1000);
+        })
+        .catch((response) => {
+            console.log(response)
             loading.value = false
-            router.go(-1)
-        }, 1000);
-    })
-    .catch((response) => {
-        console.log(response)
-        loading.value = false
-        showNotify('negative', response?.message || response)
-    })
+            showNotify('negative', response?.message || response)
+        })
 }
 
-const validatorStep = () => { 
+
+const validatorStep = () => {
     if (step.value == 0) {
         const apartmentId = formData.value.apartment?.id
         if (!apartmentId || apartmentId === 0) {
@@ -176,54 +203,66 @@ const validatorStep = () => {
         //     showNotify('negative', 'Indica la fecha de fin del alquiler')
         //     return false
         // }
-        
+
         if (isFamiliar() && !formData.value.parentesco) {
             showNotify('negative', 'Indica el parentesco')
             return false
         }
     }
     if (step.value == 1) {
-        if ( !formData.value.name) {
+        if (!formData.value.name) {
             showNotify('negative', 'Nombre es requerido')
             return false
         }
-        if ( !formData.value.email) {
+        if (!formData.value.email) {
             showNotify('negative', 'correo electronico es requerido')
             return false
         }
-        if ( !formData.value.phone) {
-            showNotify('negative', 'Telefono es requerido')
-            return false
-        }
-        if ( !formData.value.password && formData.value.password.length < 8) {
+        if (!formData.value.password && formData.value.password.length < 8) {
             showNotify('negative', 'Contraseña es necesaria y debe tener una longitud de 8 caracteres')
             return false
         }
     }
     if (step.value == 2) {
-        if ( !airbnbFormData.value.quantity || airbnbFormData.value.quantity <= 0) {
+        if (!airbnbFormData.value.quantity || airbnbFormData.value.quantity <= 0) {
             showNotify('negative', 'Cantidad de personas es requerido')
             return false
         }
-        if ( !airbnbFormData.value.nameTo) {
+        if (!airbnbFormData.value.nameTo) {
             showNotify('negative', 'Nombre de reservador es requerido')
             return false
         }
-        if ( !airbnbFormData.value.init_time) {
+        if (!airbnbFormData.value.init_time) {
             showNotify('negative', 'Fecha de inicio es requerido')
             return false
         }
-        if ( !airbnbFormData.value.end_time) {
+        if (!airbnbFormData.value.end_time) {
             showNotify('negative', 'Fecha de finalización es requerido')
             return false
+        }
+    }
+    if (step.value == 3) {
+        // Validamos que el array no esté vacío si se puso una cantidad
+        if (airbnbGuests.value.length === 0 && airbnbFormData.value.quantity > 0) {
+            showNotify('negative', 'Debe completar los datos de los huéspedes');
+            return false;
+        }
+
+        // Validación manual adicional por si acaso
+        for (let i = 0; i < airbnbGuests.value.length; i++) {
+            const guest = airbnbGuests.value[i];
+            if (!guest.name || !guest.document || !guest.photo) {
+                showNotify('negative', `Faltan datos en la Persona ${i + 1}`);
+                return false;
+            }
         }
     }
     return true
 }
 const autogenerateNameAirbnb = (e) => {
 
-    if(e.id ==  'airbnb'){
-        formData.value.username = 'Airbnb' + formData.value.apartment.number + '-'+ Math.floor(Math.random() * 10000) + 1;
+    if (e.id == 'airbnb') {
+        formData.value.username = 'Airbnb' + formData.value.apartment.number + '-' + Math.floor(Math.random() * 10000) + 1;
     }
 }
 const showNotify = (type, text) => {
@@ -253,7 +292,8 @@ onMounted(() => {
                             Tipo de residente
                         </div>
                         <q-select borderless dense class="form__inputsCR mt-2" v-model="formData.type" option-value="id"
-                            option-label="title" :options="tipoResidentOptions" behavior="menu" @update:model-value="autogenerateNameAirbnb">
+                            option-label="title" :options="tipoResidentOptions" behavior="menu"
+                            @update:model-value="autogenerateNameAirbnb">
                         </q-select>
                     </div>
                     <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
@@ -262,7 +302,7 @@ onMounted(() => {
                         </div>
                         <q-select v-if="!hasNoApartments" borderless dense class="form__inputsCR mt-2"
                             v-model="formData.apartment" option-value="id" option-label="number"
-                            :options="apartmentsOptions" behavior="menu" >
+                            :options="apartmentsOptions" behavior="menu">
 
                             <template v-slot:option="scope">
                                 <q-item v-bind="scope.itemProps">
@@ -291,7 +331,7 @@ onMounted(() => {
                         </q-banner>
                     </div>
 
-                   
+
                     <!-- Parentesco (solo Familiar) -->
                     <div v-if="formData.type?.id === 'familiar'" class="col-12 md:my-0 my-1 px-2 md:px-12">
                         <div class="text-subtitle2 text-bold text-black">
@@ -343,7 +383,8 @@ onMounted(() => {
                             Contraseña
                         </div>
                         <q-input borderless clearable v-model="formData.password" dense class="form__inputsCR mt-2"
-                            color="primary" :type="isPwd ? 'password' : 'text'">
+                            color="primary" :type="isPwd ? 'password' : 'text'"
+                            :rules="[val => val && val.length > 0 || 'Correo electrónico es requerido', val => val.length >= 8 || 'Contraseña debe tener 8 caracteres']">
                             <template v-slot:append>
                                 <q-icon :name="isPwd ? 'eva-eye-off-outline' : 'eva-eye-outline'" class="cursor-pointer"
                                     @click="isPwd = !isPwd" />
@@ -355,10 +396,10 @@ onMounted(() => {
                             Teléfono
                         </div>
                         <phoneNumberInput v-model="formData.phone" label="Teléfono" placeholder="412-1234567"
-                            class="phoneUser" :rules="[val => !!val || 'El teléfono es requerido']" />
+                            class="phoneUser" />
                     </div>
 
-                    <div class="col-12 pb-8 mt-2 px-2 md:px-12 flex items-center justify-between">
+                    <div class="col-12 pb-8 mt-2 md:mt-7 px-2 md:px-12 flex items-center justify-between">
                         <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
                             <q-btn color="grey-9 " style="border-radius: 0.5rem;" @click="step--">
                                 <div class="px-8 py-1 ">
@@ -369,7 +410,7 @@ onMounted(() => {
                         <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
                             <q-btn color="primary " style="border-radius: 0.5rem;" type="submit" :loading="loading">
                                 <div class="px-8 py-1 ">
-                                    {{isFamiliar() ? 'Registrar' : 'Siguiente'}}
+                                    {{ isFamiliar() ? 'Registrar' : 'Siguiente' }}
                                 </div>
                             </q-btn>
                         </div>
@@ -383,23 +424,24 @@ onMounted(() => {
                         <div class="text-subtitle2 text-bold text-black">
                             Números de personas
                         </div>
-                        <q-input borderless clearable  type="number" v-model="airbnbFormData.quantity" dense class="form__inputsCR mt-1" 
-                            color="primary" :rules="[val => val && val > 0 || 'Cantidad de personas es requerido']" />
+                        <q-input borderless clearable type="number" v-model="airbnbFormData.quantity" dense
+                            class="form__inputsCR mt-1" color="primary"
+                            :rules="[val => val && val > 0 || 'Cantidad de personas es requerido']" />
                     </div>
                     <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
                         <div class="text-subtitle2 text-bold text-black">
                             A nombre de
                         </div>
-                        <q-input borderless clearable  v-model="airbnbFormData.nameTo" dense class="form__inputsCR mt-1" 
+                        <q-input borderless clearable v-model="airbnbFormData.nameTo" dense class="form__inputsCR mt-1"
                             color="primary" :rules="[val => val && val.length > 0 || 'Este nombre es requerido']" />
                     </div>
-                     <!-- Fecha hasta (solo Airbnb) -->
-                    <div  class="col-12 md:my-0 my-1 px-2 md:px-12 md:pt-8">
+                    <!-- Fecha hasta (solo Airbnb) -->
+                    <div class="col-12 md:my-0 my-1 px-2 md:px-12 md:pt-8">
                         <div class="text-subtitle2 text-bold text-black">
                             Fecha desde (Inicio del alquiler)
                         </div>
-                        <q-input borderless dense class="form__inputsCR mt-1" v-model="airbnbFormData.init_time" 
-                            :rules="[val => !(!val)  || 'Fecha de fin de alquiler es requerida']">
+                        <q-input borderless dense class="form__inputsCR mt-1" v-model="airbnbFormData.init_time"
+                            :rules="[val => !(!val) || 'Fecha de fin de alquiler es requerida']">
                             <template v-slot:append>
                                 <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -415,12 +457,12 @@ onMounted(() => {
                         </q-input>
                     </div>
 
-                    <div  class="col-12 md:my-0 my-1 px-2 md:px-12 md:pt-8">
+                    <div class="col-12 md:my-0 my-1 px-2 md:px-12 md:pt-8">
                         <div class="text-subtitle2 text-bold text-black">
                             Fecha hasta (fin del alquiler)
                         </div>
-                        <q-input borderless dense class="form__inputsCR mt-1" v-model="airbnbFormData.end_time" 
-                            :rules="[val => !(!val)  || 'Fecha de fin de alquiler es requerida']">
+                        <q-input borderless dense class="form__inputsCR mt-1" v-model="airbnbFormData.end_time"
+                            :rules="[val => !(!val) || 'Fecha de fin de alquiler es requerida']">
                             <template v-slot:append>
                                 <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -457,26 +499,31 @@ onMounted(() => {
             </Transition>
             <Transition name="horizontal">
                 <div class="row w-full" v-if="step == 3">
-                    
+
                     <div class="col-12" v-for="(guest, index) in airbnbGuests" :key="index">
                         <div class="text-subtitle1 text-bold text-primary mt-4 mb-2 px-2 md:px-12">
                             Persona {{ index + 1 }}
                         </div>
-                        
+
                         <div class="row w-full">
                             <div class="col-md-6 col-12 my-1 px-2 md:px-12">
                                 <div class="text-subtitle2 text-bold text-black">Nombre completo</div>
-                                <q-input borderless clearable v-model="guest.name" dense class="form__inputsCR mt-2" color="primary" />
+                                <q-input borderless v-model="guest.name" dense class="form__inputsCR mt-2"
+                                    color="primary" lazy-rules :rules="[val => !!val || 'El nombre es obligatorio']" />
                             </div>
-                            
+
                             <div class="col-md-6 col-12 my-1 px-2 md:px-12">
                                 <div class="text-subtitle2 text-bold text-black">Documento de identidad</div>
-                                <q-input borderless clearable v-model="guest.document" dense class="form__inputsCR mt-2" color="primary" />
+                                <q-input borderless v-model="guest.document" dense class="form__inputsCR mt-2"
+                                    color="primary" lazy-rules
+                                    :rules="[val => !!val || 'El documento es obligatorio']" />
                             </div>
-                            
+
                             <div class="col-12 my-1 px-2 md:px-12">
                                 <div class="text-subtitle2 text-bold text-black">Foto de la persona</div>
-                                <q-file borderless clearable v-model="guest.photo" dense class="form__inputsCR mt-2" color="primary" accept="image/*" label="Cargar foto">
+                                <q-file borderless v-model="guest.photo" dense class="form__inputsCR mt-2"
+                                    color="primary" accept="image/*" label="Cargar foto" lazy-rules
+                                    :rules="[val => !!val || 'La foto es obligatoria']">
                                     <template v-slot:prepend>
                                         <q-icon name="eva-cloud-upload-outline" />
                                     </template>

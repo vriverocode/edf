@@ -35,8 +35,8 @@ const getVisits = () => {
 }
 
 const formatDate = (date) => {
-  if (!date) return '-'
-  return moment(date).format('DD MMM YYYY  HH:mm')
+  if (!date) return ''
+  return moment(date).format('DD MMM YYYY ')
 }
 
 const deleteItem = (item) => {
@@ -74,7 +74,7 @@ onMounted(() => {
                     </div>
                   </div>
                 </template>
-                <div class="md:py-4 visitListContainer flex items-center justify-between">
+                <div class="md:py-4 pt-1 visitListContainer flex items-center justify-between">
                   <div class="flex items-center pb-2 pl-2 md:pl-5">
                     <div
                       style="height: 2.8rem; width: 2.8rem; background: #1976d2; border-radius: 0.5rem; font-size: 1.5rem; font-weight: bold;"
@@ -90,19 +90,19 @@ onMounted(() => {
                           DNI: {{ visit.dni }}
                         </div>
                         <div class="text-caption text-grey-6">
-                          Dpto: #{{ visit.departament?.number || 'Apt. N/A' }}
+                          #{{ visit.departament?.number || 'Apt. N/A' }} - {{ formatDate(visit.date) }}
                         </div>
 
                       </div>
-                      <div class="text-caption text-grey-6">
+                      <!-- <div class="text-caption text-grey-6">
                         {{ formatDate(visit.created_at) }}
-                      </div>
+                      </div> -->
                       <div v-if="visit.description" class="text-caption text-grey-7 mt-1" style="max-width: 300px;">
                         {{ visit.description }}
                       </div>
                     </div>
                   </div>
-                  <div class="flex justify-end px-2 pb-2 pt-1 pr-2 md:pr-5 w-full"
+                  <div class="flex justify-end px-2 pb-0 pt-1 pr-2 md:pr-5 w-full"
                     style="border-top: 1px solid #e0e0e0;">
                     <q-btn icon="eva-eye-outline" class="mx-1" color="primary" flat size="0.9rem"
                       @click="noDisponible()">
@@ -136,8 +136,8 @@ onMounted(() => {
             </div>
           </div>
           <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6" style="height:10%">
-            <q-btn color="primary" unelevated class="w-full mt-4r md:mt-0 md:mx-5 createButton" style="border-radius: 0.5rem;"
-              @click="goTo('/client/visit/add')">
+            <q-btn color="primary" unelevated class="w-full mt-4r md:mt-0 md:mx-5 createButton"
+              style="border-radius: 0.5rem;" @click="goTo('/client/visit/add')">
               <div class="flex items-center ">
                 <q-icon name="eva-plus-outline" />
                 <div class="q-pt-xs text-bold pl-1">

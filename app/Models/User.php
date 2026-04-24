@@ -32,6 +32,7 @@ class User extends Authenticatable
         'device_token',
         'rol_id',
         'active_time',
+        'end_time',
         'parentesco',
     ];
 

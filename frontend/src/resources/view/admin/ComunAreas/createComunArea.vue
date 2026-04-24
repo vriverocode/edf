@@ -66,7 +66,7 @@ const formData = ref({
 const addRule = () => {
   formData.value.rulesList.push({
     title: '',
-    code: '', 
+    code: '',
     description: '',
     type: ruleTypeOptions[0],
     severity: severityOptions[0],

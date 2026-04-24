@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "999203662518",
+    "project_id": "pacifik-app",
+    "storage_bucket": "pacifik-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:999203662518:android:821b6816e516c974ffd417",
+        "android_client_info": {
+          "package_name": "com.edfteam.edfapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2QBbEdDxG2pXkQ3GYHiwdCvU8EPH-1k0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

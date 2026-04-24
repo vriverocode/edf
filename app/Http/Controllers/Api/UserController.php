@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers\Api;
 
-use Exception;
-use App\Models\Rol;
-use App\Models\User;
-use App\Models\Notice;
+use App\Http\Controllers\Controller;
+use App\Models\AirbnbRent;
 use App\Models\Booking;
 use App\Models\Departament;
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use App\Models\Notice;
 use App\Models\PeoplesXDepartaments;
+use App\Models\Rol;
+use App\Models\User;
+use App\Models\Visit;
+use App\Notifications\RealtimeNotification;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use App\Notifications\RealtimeNotification;
 
 class UserController extends Controller
 {
@@ -60,47 +64,106 @@ class UserController extends Controller
             return $this->returnFail(400, $validated[0]);
         }
 
-        if ($request->user()->rol_id === Rol::PROPIETARIO) {
-            $departament = Departament::find($request->idApartament);
-            if (!$departament || $departament->user_id !== $request->user()->id) {
-                return $this->returnFail(403, 'No tiene permiso para registrar usuarios en este departamento.');
+        // Iniciamos la transacción para asegurar integridad total
+        DB::beginTransaction();
+
+        try {
+            if ($request->user()->rol_id === Rol::PROPIETARIO) {
+                $departament = Departament::find($request->idApartament);
+                if (!$departament || $departament->user_id !== $request->user()->id) {
+                    throw new Exception('No tiene permiso para registrar usuarios en este apartamento.');
+                }
             }
+
+            $tipo = $request->type;
+            $isAirbnb = $tipo === 'airbnb';
+
+            // Preparación de credenciales
+            $username = $request->username ?? Str::lower(Str::random(8)) . '_' . time();
+            $password = $request->password ?? Str::password(12);
+            $dateEnd = $isAirbnb ? strtotime($request->active_time) : null;
+
+            // 1. Crear el Usuario principal (el que accede a la app)
+            $user = User::create([
+                'name'        => $request->name,
+                'email'       => $request->email,
+                'username'    => $username,
+                'phone'       => $request->phone ?? null,
+                'password'    => bcrypt($password),
+                'rol_id'      => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
+                'parentesco'  => $isAirbnb ? null : $request->parentesco,
+                'active_time' => $isAirbnb ? date('Y-m-d', $dateEnd) : null,
+            ]);
+
+            // 2. Vincular usuario al apartamento
+            $people = PeoplesXDepartaments::create([
+                'user_id'        => $user->id,
+                'departament_id' => $request->idApartament,
+                'type'           => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
+                'created_by'     => $request->user()->id,
+            ]);
+
+            if ($isAirbnb) {
+                $airbnbData = $request->input('airbnb');
+
+                // 3. Registrar la Renta en AirbnbRent
+                $rent = AirbnbRent::create([
+                    'departament_id' => $request->idApartament,
+                    'assing_to'      => $user->id,
+                    'name_to'        => $airbnbData['nameTo'],
+                    'created_by'     => $request->user()->id,
+                    'quantity'       => $airbnbData['quantity'],
+                    'init_day'       => date('Y-m-d', strtotime($airbnbData['init_time'])),
+                    'end_date'       => date('Y-m-d', strtotime($airbnbData['end_time'])),
+                    'status'         => 1,
+                ]);
+
+                // 4. Registrar a los acompañantes como Visitas (Type 3)
+                if (isset($airbnbData['guests']) && is_array($airbnbData['guests'])) {
+                    foreach ($airbnbData['guests'] as $index => $guest) {
+                        
+                        $photoPath = null;
+                        // Manejo de la foto si existe
+                        if ($request->hasFile("airbnb.guests.{$index}.photo")) {
+                            $file = $request->file("airbnb.guests.{$index}.photo");
+                            $photoPath = $file->store('airbnb_photos', 'public');
+                        }
+
+                        Visit::create([
+                            'departament_id' => $request->idApartament,
+                            'fullname'       => $guest['name'],
+                            'dni'            => $guest['document'],
+                            'type'           => 3, // Tipo 3 según requerimiento
+                            'photo'          => $photoPath ?  $photoPath : null,
+                            'date'           => date('Y-m-d', strtotime($airbnbData['init_time'])),
+                            'hour'           => date('H:i'),
+                            'status'         => 1,
+                            'airbnb_rent_id' => $rent->id,
+                        ]);
+                    }
+                }
+
+                // Lógica adicional (ej: habilitar áreas comunes)
+                if (method_exists($this, 'setAvailableComunAreaToReserve')) {
+                    $this->setAvailableComunAreaToReserve($people);
+                }
+            }
+
+            // Confirmamos todos los cambios
+            DB::commit();
+
+            return $this->returnSuccess(200, [
+                'message' => $isAirbnb ? 'Airbnb y acompañantes registrados' : 'Residente registrado con éxito',
+                'user_id' => $user->id,
+            ]);
+
+        } catch (Exception $e) {
+            // Si algo falla, se deshace todo (Usuario, Renta y Visitas)
+            DB::rollBack();
+            Log::error("Error en storeResidentUser: " . $e->getMessage());
+            
+            return $this->returnFail(500, "No se pudo completar el registro: " . $e->getMessage());
         }
-
-        $tipo = $request->type;
-        $isAirbnb = $tipo === 'airbnb';
-
-        $username = $request->username ?? Str::lower(Str::random(8)) . '_' . time();
-        $password = $request->password ?? Str::password(12);
-        $date = $isAirbnb ?   strtotime($request->active_time) : null;
-        $userData = [
-            'name'       => $request->name,
-            'email'      => $request->email,
-            'username'   => $username,
-            'phone'      => $request->phone ?? null,
-            'password'   => bcrypt($password),
-            'rol_id'     => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
-            'parentesco' => $isAirbnb ? null : $request->parentesco,
-            'active_time' => $isAirbnb ? date('Y-m-d', $date) : null,
-        ];
-
-        $user = User::create($userData);
-
-        $people = PeoplesXDepartaments::create([
-            'user_id'        => $user->id,
-            'departament_id' => $request->idApartament,
-            'type'           => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
-            'created_by'     => $request->user()->id,
-        ]);
-
-        if ($isAirbnb) {
-            $this->setAvailableComunAreaToReserve($people);
-        }
-
-        return $this->returnSuccess(200, [
-            'message' => $isAirbnb ? 'Usuario temporal (Airbnb) creado correctamente' : 'Familiar/habitante registrado correctamente',
-            'user_id' => $user->id,
-        ]);
     }
 
     /**
@@ -133,36 +196,29 @@ class UserController extends Controller
     {
         $rules = [
             'type'         => ['required', 'in:airbnb,familiar'],
-            'name'         => ['required', 'regex:/^[a-zA-Z-À-ÿ .]+$/i'],
-            'email'        => ['required', 'email', 'unique:users'],
+            'name'         => ['required', 'string', 'max:255'],
+            'email'        => ['required', 'email', 'unique:users,email'],
             'idApartament' => ['required', 'integer', 'exists:departaments,id'],
         ];
 
-        $type = $inputs['type'] ?? null;
-        if ($type === 'airbnb') {
-            $rules['active_time'] = ['required', 'date', 'after_or_equal:today'];
-        }
-        if ($type === 'familiar') {
-            $rules['parentesco'] = ['required', 'string', 'max:50'];
+        if (($inputs['type'] ?? '') === 'airbnb') {
+            $rules['active_time'] = ['required', 'date'];
+            $rules['airbnb.nameTo'] = ['required', 'string'];
+            $rules['airbnb.quantity'] = ['required', 'integer', 'min:1'];
+            $rules['airbnb.init_time'] = ['required', 'date'];
+            $rules['airbnb.end_time'] = ['required', 'date', 'after_or_equal:airbnb.init_time'];
+            
+            // Validaciones para cada acompañante
+            $rules['airbnb.guests'] = ['required', 'array'];
+            $rules['airbnb.guests.*.name'] = ['required', 'string'];
+            $rules['airbnb.guests.*.document'] = ['required', 'string'];
+            $rules['airbnb.guests.*.photo'] = ['nullable', 'image', 'max:4096']; // Max 4MB
+        } else {
+            $rules['parentesco'] = ['required', 'string'];
         }
 
-        $messages = [
-            'type.required'     => 'El tipo de usuario es requerido.',
-            'type.in'           => 'El tipo debe ser "airbnb" o "familiar".',
-            'name.required'     => 'El nombre es requerido.',
-            'name.regex'        => 'Nombre no válido.',
-            'email.required'    => 'El correo electrónico es requerido.',
-            'email.email'       => 'Correo electrónico no válido.',
-            'email.unique'      => 'El correo ya está registrado.',
-            'idApartament.required' => 'El departamento es requerido.',
-            'idApartament.exists'   => 'El departamento no existe.',
-            'active_time.required'  => 'La fecha de fin del alquiler es requerida para usuarios Airbnb.',
-            'active_time.after_or_equal' => 'La fecha de fin debe ser hoy o posterior.',
-            'parentesco.required'   => 'El parentesco es requerido para familiares.',
-        ];
-
-        $validator = Validator::make($inputs, $rules, $messages)->errors();
-        return $validator->all();
+        $validator = Validator::make($inputs, $rules);
+        return $validator->fails() ? $validator->errors()->all() : [];
     }
 
     private function afteSaveUser($user, $request){
