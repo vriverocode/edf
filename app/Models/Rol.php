@@ -9,9 +9,9 @@ class Rol extends Model
     public const ADMIN = 1;
     public const PROPIETARIO = 2;
     public const INQUILINO = 3;
-    public const FAMILIAR = 5;
-    public const AIRBNB = 6;
-    public const TRABAJADOR = 7;
+    public const FAMILIAR = 4;
+    public const AIRBNB = 5;
+    public const TRABAJADOR = 6;
 
 
     /** Nombres de rol para uso en middleware (deben coincidir con roles.name en BD) */

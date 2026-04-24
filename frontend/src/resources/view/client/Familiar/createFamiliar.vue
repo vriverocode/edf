@@ -436,7 +436,7 @@ onMounted(() => {
                             color="primary" :rules="[val => val && val.length > 0 || 'Este nombre es requerido']" />
                     </div>
                     <!-- Fecha hasta (solo Airbnb) -->
-                    <div class="col-12 md:my-0 my-1 px-2 md:px-12 md:pt-8">
+                    <div class="col-md-6 col-12 md:my-0 my-1 px-2 md:px-12 md:pt-8">
                         <div class="text-subtitle2 text-bold text-black">
                             Fecha desde (Inicio del alquiler)
                         </div>
@@ -457,7 +457,7 @@ onMounted(() => {
                         </q-input>
                     </div>
 
-                    <div class="col-12 md:my-0 my-1 px-2 md:px-12 md:pt-8">
+                    <div class="col-md-6 col-12 md:my-0 my-1 px-2 md:px-12 md:pt-8">
                         <div class="text-subtitle2 text-bold text-black">
                             Fecha hasta (fin del alquiler)
                         </div>

@@ -113,6 +113,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [VisitController::class, 'getVisitsByUser']);
         Route::post('/', [VisitController::class, 'storeVisit']);
     });
+    Route::prefix('security/visits')->name('security.visit.')->middleware('role:trabajador')->group(function () {
+        Route::get('/', [VisitController::class, 'getVisitsForSecurity']);
+        Route::post('/arrived/{id}', [VisitController::class, 'markVisitArrived']);
+    });
     Route::prefix('notices')->name('notice.')->group(function () {
         Route::get('/', [NoticeController::class, 'index']);
         Route::get('/byId/{id}', [NoticeController::class, 'show']);

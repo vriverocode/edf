@@ -564,6 +564,18 @@ const routes = [
           depth: 4,
         },
       },
+      {
+        path: '/security/visit/list',
+        component: () => import('@/view/security/Visits/visitsSecurityList.vue'),
+        name: 'visitsSecurityList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Control de visitas',
+          roles: ['trabajador'],
+          depth: 3,
+        },
+      },
     ],
   },
   // Ruta 404 - debe estar al final para capturar todas las rutas no encontradas

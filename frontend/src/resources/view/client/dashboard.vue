@@ -25,6 +25,7 @@ const menu = [
     title: 'Reservas',
     icon: mis_reservas,
     link: '/client/reserves/list',
+    roles: [2, 3, 4]
   },
   {
     title: 'Pagos',
@@ -61,6 +62,12 @@ const menu = [
     link: '/client/familiar/list',
     roles: [2]
   },
+  {
+    title: 'Visitas/Airbnb',
+    icon: defaulticon,
+    link: '/security/visit/list',
+    roles: [6]
+  },
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
@@ -74,7 +81,7 @@ const goTo = (url) => {
 </script>
 <template>
   <div class="h-full w-full px-2">
-    <div class="row md:pt-10 pt-2  md:px-20" style="overflow-y: auto; height: 100%;">
+    <div class="row md:pt-10 pt-2  md:px-20" style="overflow-y: auto; max-height: 100%;">
       <div class="col-md-3 md:px-20 col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
         <div class="px-3">
           <div class="boxItem " @click="goTo(items.link)">

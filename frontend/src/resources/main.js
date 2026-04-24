@@ -23,6 +23,7 @@ import {
 import {
   Quasar,
   Notify,
+  Dialog,
   AddressbarColor
 } from 'quasar'
 
@@ -54,6 +55,7 @@ const emitter = mitt()
 myApp.use(Quasar, {
   plugins: {
     Notify,
+    Dialog,
     AddressbarColor
   },
   iconSet: quasarIconSet,

@@ -102,35 +102,43 @@ onMounted(() => {
                       </div>
                     </div>
                   </div>
-                  <div class="flex justify-end px-2 pb-0 pt-1 pr-2 md:pr-5 w-full"
+                  <div class="flex justify-between items-center py-1 pr-2 md:pr-5 w-full"
                     style="border-top: 1px solid #e0e0e0;">
-                    <q-btn icon="eva-eye-outline" class="mx-1" color="primary" flat size="0.9rem"
-                      @click="noDisponible()">
-                      <q-tooltip transition-show="flip-right" transition-hide="flip-left"
-                        class="bg-black text-body2 px-2">
-                        Ver detalles
-                      </q-tooltip>
-                    </q-btn>
-                    <q-btn icon="eva-edit-2-outline" class="mx-1" color="grey-8" flat size="0.9rem"
-                      @click="noDisponible()">
-                      <q-tooltip transition-show="flip-right" transition-hide="flip-left"
-                        class="bg-black text-body2 px-2">
-                        Editar
-                      </q-tooltip>
-                    </q-btn>
-                    <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.9rem"
-                      @click="noDisponible()">
-                      <q-tooltip transition-show="flip-right" transition-hide="flip-left"
-                        class="bg-black text-body2 px-2">
-                        Eliminar
-                      </q-tooltip>
-                    </q-btn>
+                      <div class="badgeStatus flex flex-center px-2" :class="'bg-'+visit.status_color">
+                        <div class="text-caption text-white text-bold">
+                          {{ visit.status_label }}
+                        </div>
+                      </div>
+                      <div class="">
+                        <q-btn icon="eva-eye-outline" class="mx-1" color="primary" flat size="0.9rem"
+                          @click="noDisponible()">
+                          <q-tooltip transition-show="flip-right" transition-hide="flip-left"
+                            class="bg-black text-body2 px-2">
+                            Ver detalles
+                          </q-tooltip>
+                        </q-btn>
+                        <q-btn icon="eva-edit-2-outline" class="mx-1" color="grey-8" flat size="0.9rem"
+                          @click="noDisponible()">
+                          <q-tooltip transition-show="flip-right" transition-hide="flip-left"
+                            class="bg-black text-body2 px-2">
+                            Editar
+                          </q-tooltip>
+                        </q-btn>
+                        <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.9rem"
+                          @click="noDisponible()">
+                          <q-tooltip transition-show="flip-right" transition-hide="flip-left"
+                            class="bg-black text-body2 px-2">
+                            Eliminar
+                          </q-tooltip>
+                        </q-btn>
+                      </div>
                   </div>
                   <div class="badgeType">
                     <div class="text-caption text-white text-bold">
                       {{ visit.type_label }}
                     </div>
                   </div>
+                  
                 </div>
               </q-slide-item>
             </div>
@@ -181,6 +189,13 @@ onMounted(() => {
   font-size: 0.8rem;
   padding: 0.2rem 0.9rem;
   border-bottom-left-radius: 12px;
+}
+.badgeStatus {
+  color: white;
+  font-size: 0.8rem;
+  height: 30px;
+  border-bottom-right-radius: 45px;
+  border-top-right-radius: 45px;
 }
 
 .listVisit-container {

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Exception;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Carbon;
 
 class VisitController extends Controller
 {
@@ -31,12 +32,14 @@ class VisitController extends Controller
                     'fullname'      => $visit->fullname,
                     'dni'           => $visit->dni,
                     'type'          => $visit->type,
-                    'type_label'    => $this->getTypeLabel($visit->type),
+                    'type_label'    => $visit->type_label,
                     'description'   => $visit->description,
                     'date'          => $visit->date,
                     'hour'          => $visit->hour,
                     'departament'   => $visit->departament,
                     'created_at'    => $visit->created_at,
+                    'status_label'  => $visit->status_label,
+                    'status_color'  => $visit->status_color,
                 ];
             });
 
@@ -80,17 +83,63 @@ class VisitController extends Controller
 
     }
 
-    private function getTypeLabel(int $type): string
+    /**
+     * Lista de visitas para conserje/seguridad: pendientes de llegada.
+     * Restringido por middleware `role:trabajador`.
+     */
+    public function getVisitsForSecurity(Request $request)
     {
-        $labels = [
-            1 => 'Personal',
-            2 => 'Entrega',
-            3 => 'AirBnb',
-            4 => 'Servicio',
-            5 => 'Otro',
-        ];
-        return $labels[$type] ?? 'Visita';
+        $today = Carbon::now()->toDateString();
+
+        $visits = Visit::with(['departament', 'airbnb'])
+            ->where('status', 1) // Pendiente de llegada
+            ->whereDate('date', '>=', $today)
+            ->orderBy('date', 'asc')
+            ->orderBy('hour', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->returnSuccess(200, $visits);
     }
+
+    /**
+     * Marca una visita como llegada confirmada (status = 2).
+     * Restringido por middleware `role:trabajador`.
+     */
+    public function markVisitArrived(Request $request, int $id)
+    {
+        $visit = Visit::find($id);
+        if (! $visit) {
+            return $this->returnFail(404, 'Visita no encontrada');
+        }
+
+        if ((int) $visit->status === 2) {
+            return $this->returnSuccess(200, [
+                'message' => 'La visita ya está marcada como llegada',
+                'id' => $visit->id,
+                'status' => $visit->status,
+                'status_label' => $visit->status_label,
+                'status_color' => $visit->status_color,
+            ]);
+        }
+
+        try {
+            $visit->status = 2;
+            $visit->save();
+        } catch (Exception $e) {
+            return $this->returnFail(500, $e->getMessage());
+        }
+
+        return $this->returnSuccess(200, [
+            'message' => 'Llegada confirmada',
+            'id' => $visit->id,
+            'status' => $visit->status,
+            'status_label' => $visit->status_label,
+            'status_color' => $visit->status_color,
+        ]);
+    }
+
+    
 
     private function validateFieldsFromInput($inputs)
     {
