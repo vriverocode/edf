@@ -63,7 +63,13 @@ const menu = [
     roles: [2]
   },
   {
-    title: 'Visitas/Airbnb',
+    title: 'Airbnb',
+    icon: defaulticon,
+    link: '/security/airbnb/list',
+    roles: [6]
+  },
+  {
+    title: 'Visitas',
     icon: defaulticon,
     link: '/security/visit/list',
     roles: [6]

@@ -6,9 +6,10 @@ use App\Models\Visit;
 use App\Models\PeoplesXDepartaments;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\AirbnbRent;
+use App\Models\Departament;
 use Exception;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Carbon;
 
 class VisitController extends Controller
 {
@@ -18,14 +19,35 @@ class VisitController extends Controller
     public function getVisitsByUser(Request $request)
     {
         $user = $request->user();
+        $search = trim((string) $request->query('search', ''));
+        $statusFilters = $this->parseStatusFilters($request->query('status', []));
+        $departamentId = $request->query('departament_id');
         $ownedIds = $user->apartaments()->pluck('id');
         $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
         $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
 
-        $visits = Visit::with('departament')
+        $visitsQuery = Visit::with('departament')
             ->whereIn('departament_id', $apartmentIds)
+            ->when($departamentId, function ($query) use ($departamentId) {
+                $query->where('departament_id', (int) $departamentId);
+            })
+            ->when(count($statusFilters) > 0, function ($query) use ($statusFilters) {
+                $query->whereIn('status', $statusFilters);
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('fullname', 'like', "%{$search}%")
+                        ->orWhere('dni', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('departament', function ($departamentQuery) use ($search) {
+                            $departamentQuery->where('number', 'like', "%{$search}%");
+                        });
+                });
+            })
             ->orderBy('created_at', 'desc')
-            ->get()
+            ->get();
+
+        $visits = $visitsQuery
             ->map(function ($visit) {
                 return [
                     'id'            => $visit->id,
@@ -89,17 +111,142 @@ class VisitController extends Controller
      */
     public function getVisitsForSecurity(Request $request)
     {
-        $today = Carbon::now()->toDateString();
+        $search = trim((string) $request->query('search', ''));
+        $statusFilters = $this->parseStatusFilters($request->query('status', []));
+        $departamentId = $request->query('departament_id');
 
         $visits = Visit::with(['departament', 'airbnb'])
             ->where('status', 1) // Pendiente de llegada
-            ->whereDate('date', '>=', $today)
+            ->where('airbnb_rent_id', null)
+            ->when($departamentId, function ($query) use ($departamentId) {
+                $query->where('departament_id', (int) $departamentId);
+            })
+            ->when(count($statusFilters) > 0, function ($query) use ($statusFilters) {
+                $query->whereIn('status', $statusFilters);
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('fullname', 'like', "%{$search}%")
+                        ->orWhere('dni', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('departament', function ($departamentQuery) use ($search) {
+                            $departamentQuery->where('number', 'like', "%{$search}%");
+                        });
+                });
+            })
             ->orderBy('date', 'asc')
             ->orderBy('hour', 'asc')
             ->orderBy('created_at', 'desc')
             ->get();
 
         return $this->returnSuccess(200, $visits);
+    }
+    public function getAirbnbForSecurity(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+        $statusFilters = $this->parseStatusFilters($request->query('status', []));
+        $departamentId = $request->query('departament_id');
+
+        $visits = AirbnbRent::with(['guest', 'departament', 'user', 'creator'])
+            ->where('status', 1) // Pendiente de llegada
+            ->when($departamentId, function ($query) use ($departamentId) {
+                $query->where('departament_id', (int) $departamentId);
+            })
+            ->when(count($statusFilters) > 0, function ($query) use ($statusFilters) {
+                $query->whereIn('status', $statusFilters);
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('name_to', 'like', "%{$search}%")
+                        ->orWhere('quantity', 'like', "%{$search}%")
+                        ->orWhereHas('departament', function ($departamentQuery) use ($search) {
+                            $departamentQuery->where('number', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('guest', function ($guestQuery) use ($search) {
+                            $guestQuery->where('fullname', 'like', "%{$search}%")
+                                ->orWhere('dni', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->orderBy('init_day', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->returnSuccess(200, $visits);
+    }
+
+    public function getVisitFilterOptionsByUser(Request $request)
+    {
+        $user = $request->user();
+        $ownedIds = $user->apartaments()->pluck('id');
+        $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
+        $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
+
+        $apartments = Departament::query()
+            ->whereIn('id', $apartmentIds)
+            ->whereHas('visits')
+            ->orderBy('number', 'asc')
+            ->get(['id', 'number'])
+            ->map(function ($departament) {
+                return [
+                    'label' => 'Apt. #' . $departament->number,
+                    'value' => $departament->id,
+                ];
+            })
+            ->values();
+
+        return $this->returnSuccess(200, [
+            'statuses' => $this->getVisitStatusOptions(),
+            'apartments' => $apartments,
+        ]);
+    }
+
+    public function getVisitFilterOptionsForSecurity(Request $request)
+    {
+        $apartments = Departament::query()
+            ->whereHas('visits', function ($query) {
+                $query->whereNull('airbnb_rent_id');
+            })
+            ->orderBy('number', 'asc')
+            ->get(['id', 'number'])
+            ->map(function ($departament) {
+                return [
+                    'label' => 'Apt. #' . $departament->number,
+                    'value' => $departament->id,
+                ];
+            })
+            ->values();
+
+        return $this->returnSuccess(200, [
+            'statuses' => $this->getVisitStatusOptions(),
+            'apartments' => $apartments,
+        ]);
+    }
+
+    public function getAirbnbFilterOptionsForSecurity(Request $request)
+    {
+        $apartments = Departament::query()
+            ->whereHas('visits', function ($query) {
+                $query->whereNotNull('airbnb_rent_id');
+            })
+            ->orderBy('number', 'asc')
+            ->get(['id', 'number'])
+            ->map(function ($departament) {
+                return [
+                    'label' => 'Apt. #' . $departament->number,
+                    'value' => $departament->id,
+                ];
+            })
+            ->values();
+
+        return $this->returnSuccess(200, [
+            'statuses' => [
+                ['label' => 'Cancelada', 'value' => 0],
+                ['label' => 'Pendiente de llegada', 'value' => 1],
+                ['label' => 'Completada', 'value' => 2],
+            ],
+            'apartments' => $apartments,
+        ]);
     }
 
     /**
@@ -171,5 +318,36 @@ class VisitController extends Controller
         $validator = Validator::make($inputs, $rules, $messages)->errors();
 
         return $validator->all();
+    }
+
+    private function parseStatusFilters($statusInput): array
+    {
+        if (is_string($statusInput) && $statusInput !== '') {
+            $statusInput = explode(',', $statusInput);
+        }
+
+        if (!is_array($statusInput)) {
+            return [];
+        }
+
+        return collect($statusInput)
+            ->filter(function ($value) {
+                return $value !== '' && $value !== null;
+            })
+            ->map(function ($value) {
+                return (int) $value;
+            })
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function getVisitStatusOptions(): array
+    {
+        return [
+            ['label' => 'Cancelada', 'value' => 0],
+            ['label' => 'Pendiente de llegada', 'value' => 1],
+            ['label' => 'Llegada confirmada', 'value' => 2],
+        ];
     }
 }

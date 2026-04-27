@@ -565,6 +565,18 @@ const routes = [
         },
       },
       {
+        path: '/security/airbnb/list',
+        component: () => import('@/view/security/Visits/airbnbList.vue'),
+        name: 'airbnbsSecurityList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Control de visitas',
+          roles: ['trabajador'],
+          depth: 3,
+        },
+      },
+      {
         path: '/security/visit/list',
         component: () => import('@/view/security/Visits/visitsSecurityList.vue'),
         name: 'visitsSecurityList',
@@ -573,7 +585,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Control de visitas',
           roles: ['trabajador'],
-          depth: 3,
+          depth: 2,
         },
       },
     ],

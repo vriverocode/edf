@@ -111,11 +111,17 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::prefix('visits')->name('visit.')->group(function () {
         Route::get('/', [VisitController::class, 'getVisitsByUser']);
+        Route::get('/search', [VisitController::class, 'getVisitsByUser']);
+        Route::get('/filter-options', [VisitController::class, 'getVisitFilterOptionsByUser']);
         Route::post('/', [VisitController::class, 'storeVisit']);
     });
-    Route::prefix('security/visits')->name('security.visit.')->middleware('role:trabajador')->group(function () {
-        Route::get('/', [VisitController::class, 'getVisitsForSecurity']);
-        Route::post('/arrived/{id}', [VisitController::class, 'markVisitArrived']);
+    Route::prefix('security')->name('security.visit.')->middleware('role:trabajador')->group(function () {
+        Route::get('/visits', [VisitController::class, 'getVisitsForSecurity']);
+        Route::get('/visits/search', [VisitController::class, 'getVisitsForSecurity']);
+        Route::get('/visits/filter-options', [VisitController::class, 'getVisitFilterOptionsForSecurity']);
+        Route::post('/visits/arrived/{id}', [VisitController::class, 'markVisitArrived']);
+        Route::get('/airbnb', [VisitController::class, 'getAirbnbForSecurity']);
+        Route::get('/airbnb/filter-options', [VisitController::class, 'getAirbnbFilterOptionsForSecurity']);
     });
     Route::prefix('notices')->name('notice.')->group(function () {
         Route::get('/', [NoticeController::class, 'index']);

@@ -21,14 +21,6 @@ class Visit extends Model
         'airbnb_rent_id'
     ];
     public $appends  =   ["status_label", "status_color", "type_label"];
-    public function departament()
-    {
-        return $this->belongsTo(Departament::class);
-    }
-    public function airbnb()
-    {
-        return $this->belongsTo(AirbnbRent::class, "airbnb_rent_id");
-    }
     public function getStatusLabelAttribute()
     {
         $statusLabels = [
@@ -57,5 +49,13 @@ class Visit extends Model
             5 => 'Otro',
         ];
         return $labels[$this->type] ?? 'Visita';
+    }
+    public function departament()
+    {
+        return $this->belongsTo(Departament::class);
+    }
+    public function airbnb()
+    {
+        return $this->belongsTo(AirbnbRent::class, "airbnb_rent_id");
     }
 }

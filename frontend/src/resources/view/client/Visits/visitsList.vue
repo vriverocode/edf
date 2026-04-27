@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useVisitStore } from '@/services/store/visits.store';
 import moment from 'moment';
 import { Notify } from 'quasar';
+import filterModal from '@/components/visits/filterModal.vue';
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -14,6 +15,15 @@ const visitStore = useVisitStore()
 const ready = ref(false)
 const visits = ref([])
 const router = useRouter()
+const filters = ref({
+  search: '',
+  status: [],
+  departament_id: '',
+})
+const modal = ref('')
+const activeFilterSearch = ref('')
+const statusOptions = ref([])
+const apartmentOptions = ref([])
 
 const goTo = (url) => {
   router.push(url)
@@ -21,7 +31,7 @@ const goTo = (url) => {
 
 const getVisits = () => {
   ready.value = false
-  visitStore.getVisitsByUser()
+  visitStore.getVisitsByUser(filters.value)
     .then((response) => {
       if (response.code !== 200) throw response
       visits.value = response.data
@@ -31,6 +41,31 @@ const getVisits = () => {
     })
     .catch(() => {
       ready.value = true
+    })
+}
+
+const isUsingFilter = () => {
+  const hasStatus = Array.isArray(filters.value.status) && filters.value.status.length > 0
+  const hasApartment = !!filters.value.departament_id
+  activeFilterSearch.value = filters.value.search || hasStatus || hasApartment ? 'active-filter' : ''
+}
+
+const getVisitsWithFilter = (newFilter) => {
+  filters.value = { ...filters.value, ...newFilter }
+  isUsingFilter()
+  getVisits()
+}
+
+const loadFilterOptions = () => {
+  visitStore.getVisitFilterOptionsByUser()
+    .then((response) => {
+      if (response.code !== 200) throw response
+      statusOptions.value = response.data?.statuses || []
+      apartmentOptions.value = response.data?.apartments || []
+    })
+    .catch(() => {
+      statusOptions.value = []
+      apartmentOptions.value = []
     })
 }
 
@@ -53,6 +88,7 @@ const noDisponible = () => {
   showNotify('terciary', 'No disponible')
 }
 onMounted(() => {
+  loadFilterOptions()
   getVisits()
 })
 </script>
@@ -61,6 +97,9 @@ onMounted(() => {
   <div class="h-full">
     <template v-if="ready">
       <div class="h-full" style="overflow: auto;">
+        <div class="flex justify-end md:pr-5 px-4 pt-4">
+          <q-btn outline color="primary" :class="activeFilterSearch" icon="eva-funnel-outline" @click="modal = 'filter'" />
+        </div>
         <template v-if="visits.length > 0">
           <div class="mt-4 md:mt-8" style="height:85%; overflow:scroll">
             <div class="px-4 md:mx-24 md:pr-12">
@@ -177,9 +216,25 @@ onMounted(() => {
         <q-spinner-dots color="primary" size="7rem" />
       </div>
     </template>
+
+    <filterModal
+      :dialog="modal === 'filter'"
+      :current-filters="filters"
+      :status-options="statusOptions"
+      :apartment-options="apartmentOptions"
+      title="Filtrar mis visitas"
+      search-label="Buscar por nombre, DNI o apartamento"
+      @closeModal="modal = ''"
+      @updateList="getVisitsWithFilter"
+    />
   </div>
 </template>
 <style lang="scss">
+.q-btn.active-filter {
+  background: $primary !important;
+  color: white !important;
+}
+
 .badgeType {
   position: absolute;
   right: 0;
