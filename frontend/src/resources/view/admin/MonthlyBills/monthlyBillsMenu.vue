@@ -8,21 +8,23 @@ import { computed } from 'vue';
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
-  {
-    title: 'Balance de cuentas',
-    icon: iconsApp.payHouse,
-    link: '/balances',
-  },
-  {
-    title: 'Cuentas',
-    icon: iconsApp.bank,
-    link: '/admin/account-data',
+{
+    title: 'Gastos mensuales',
+    icon: iconsApp.bills,
+    link: '/admin/monthly_bills/list',
     roles: [1]
   },
   {
-    title: 'Gastos Mensuales',
-    icon: iconsApp.bills,
-    link: '/admin/monthly_bills/menu',
+    title: 'Medición de agua',
+    icon: iconsApp.water3,
+    link: '/admin/monthly_bills/water_read',
+    roles: [1]
+  },
+  
+  {
+    title: 'Cuotas especiales',
+    icon: iconsApp.specialBill,
+    link: '/admin/monthly_bills/list',
     roles: [1]
   },
 ];

@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\RuleController;
 use App\Http\Controllers\Api\MultaController;
 use App\Http\Controllers\Api\PayMethodController;
 use App\Http\Controllers\Api\VisitController;
+use App\Http\Controllers\Api\MonthlyBillsController;
+use App\Http\Controllers\Api\WaterReadingController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
@@ -132,5 +134,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [PayMethodController::class, 'show']);
         Route::post('/u/{id}', [PayMethodController::class, 'update']);
         Route::post('/status/{id}', [PayMethodController::class, 'updateStatus']);
+    });
+
+    Route::prefix('monthly-bills')->name('monthlyBills.')->group(function () {
+        Route::get('/', [MonthlyBillsController::class, 'index']);
+        Route::get('/byId/{id}', [MonthlyBillsController::class, 'show']);
+        Route::post('/', [MonthlyBillsController::class, 'store']);
+        Route::post('/u/{id}', [MonthlyBillsController::class, 'update']);
+    });
+
+    Route::prefix('water-readings')->name('waterReadings.')->group(function () {
+        Route::get('/', [WaterReadingController::class, 'index']);
+        Route::get('/byId/{id}', [WaterReadingController::class, 'show']);
+        Route::post('/', [WaterReadingController::class, 'store']);
+        Route::post('/u/{id}', [WaterReadingController::class, 'update']);
     });
 });
