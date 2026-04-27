@@ -14,6 +14,9 @@ class Quota extends Model
 
     protected $fillable = [
         "departament_id",
+        "water_reading_id",
+        "maintenance_amount",
+        "water_amount",
         "amount",
         "number",
         "month",

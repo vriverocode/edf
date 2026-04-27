@@ -28,6 +28,9 @@ class DepartamentController extends Controller
         if ($request->find == 'available') {
             $departaments = Departament::where('user_id', null)->get();
         }
+        if ($request->find == 'allWithUser') {
+            $departaments = Departament::where('user_id', '!=', null)->get();
+        }
         return $this->returnSuccess(200, $departaments);
     }
 

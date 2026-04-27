@@ -176,7 +176,7 @@ watch(
 }
 
 .page_continerContent {
-  height: 90%;
+  height: 92%;
 }
 
 .page_continerContentFull {
@@ -198,7 +198,7 @@ watch(
 }
 
 .backButton {
-  height: 10%;
+  height: 8%;
 
   & .q-btn--outline:before {
     border-width: 3px;
