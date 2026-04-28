@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { Notify } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { useApartmentStore } from '@/services/store/apartment.store'
@@ -132,13 +132,42 @@ const submit = async () => {
   }
 }
 
+const validateForm = () => {
+  if (!formData.value.photo) {
+    showNotify('negative', 'Debes subir la foto del medidor')
+    return false
+  };
+  return true;
+}
+const handleUpload = (event) => {
+  const file = event.target.files[0];
+
+  if (file) {
+    if (!file.type.startsWith('image/')) {
+      showNotify('negative', 'Por favor, selecciona solo un archivo de imagen.');
+      return;
+    }
+    formData.value.photo = file;
+
+  }
+};
+const fileSizeInMB = computed(() => {
+  if (!formData.value.photo) return 0;
+
+  // Convertir bytes a Megabytes (bytes / 1024 = KB -> KB / 1024 = MB)
+  const size = formData.value.photo.size / (1024 * 1024);
+
+  // .toFixed(2) recorta los decimales para que se vea limpio (ej: 1.45)
+  return size.toFixed(2);
+});
+
 onMounted(() => {
   loadReading()
 })
 </script>
 
 <template>
-  <div class="md:px-20 md:mx-16 px-2 h-full" style="overflow: auto;">
+  <div class="md:px-20 md:mx-16 px-2  h-full" style="overflow: auto;">
     <div class="text-center text-black text-h5 text-bold my-2">
       Editar medición de agua
     </div>
@@ -149,92 +178,73 @@ onMounted(() => {
 
     <q-form v-else @submit="submit()">
       <div class="row w-full">
-        <div class="col-12 mt-1 px-2 md:px-12">
+        <div class="col-12 mt-1  px-2 md:px-12">
           <div class="text-subtitle2 text-black">Departamento</div>
-          <q-select
-            dense
-            borderless
-            class="form__inputsR mt-1"
-            v-model="formData.departament"
-            :options="departamentOptions"
-            option-label="label"
-            option-value="value"
-            use-input
-            input-debounce="250"
-            :loading="deptLoading"
-            @filter="(val, update) => { update(() => searchDepartaments(val)) }"
-            :rules="[val => !!val || 'El departamento es requerido']"
-          />
+          <q-select dense borderless class="form__inputsR mt-1" v-model="formData.departament"
+            :options="departamentOptions" option-label="label" option-value="value" use-input input-debounce="250"
+            :loading="deptLoading" @filter="(val, update) => { update(() => searchDepartaments(val)) }"
+            :rules="[val => !!val || 'El departamento es requerido']" />
         </div>
 
         <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Mes</div>
-          <q-select
-            dense
-            borderless
-            class="form__inputsR mt-1"
-            v-model="formData.month"
-            :options="monthOptions"
-            option-label="name"
-            option-value="value"
-            :rules="[val => !!val || 'El mes es requerido']"
-          />
+          <q-select dense borderless class="form__inputsR mt-1" v-model="formData.month" :options="monthOptions"
+            option-label="name" option-value="value" :rules="[val => !!val || 'El mes es requerido']" />
         </div>
 
         <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Año</div>
-          <q-input
-            dense
-            borderless
-            clearable
-            class="form__inputsR mt-1"
-            color="primary"
-            type="number"
-            v-model.number="formData.year"
-            :rules="[val => !!val || 'El año es requerido']"
-          />
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number"
+            v-model.number="formData.year" :rules="[val => !!val || 'El año es requerido']" />
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Lectura anterior</div>
-          <q-input
-            dense
-            borderless
-            clearable
-            class="form__inputsR mt-1"
-            v-model="formData.previous_reading"
-            mask="###.###.###,##"
-            reverse-fill-mask
-            inputmode="decimal"
-            :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura anterior es requerida']"
-          />
+          <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.previous_reading"
+            mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
+            :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura anterior es requerida']" />
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Lectura actual</div>
-          <q-input
-            dense
-            borderless
-            clearable
-            class="form__inputsR mt-1"
-            v-model="formData.current_reading"
-            mask="###.###.###,##"
-            reverse-fill-mask
-            inputmode="decimal"
-            :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura actual es requerida']"
-          />
+          <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.current_reading"
+            mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
+            :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura actual es requerida']" />
         </div>
+        <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
+          <div class=" photoContainer mt-0 px-3 w-full py-2">
+            <label for="vaucherPay" class="cursor-pointer">
+              <template v-if="!formData.photo">
+                <div class=" flex flex-center column">
 
-        <div class="col-12 mt-2 px-2 md:px-12">
-          <div class="text-subtitle2 text-black">Foto comprobante del medidor</div>
-          <q-file
-            dense
-            borderless
-            clearable
-            class="form__inputsR mt-1"
-            v-model="formData.photo"
-            accept=".jpg,.jpeg,.png,.webp,image/*"
-          />
+                  <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
+                  <div class="text-center">
+                    <div class="text-grey-7 font-medium">
+                      Sube la foto del medidor
+                    </div>
+                    <div class="text-grey-6 font-medium">
+                      Pulsa o haz click aqui para carga tu archivo
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <q-icon color="tealedf" name="eva-checkmark-circle-2" />
+                    <div class="ml-1">
+                      <div class="text-xsImage text-tealedf">Comprobante de medidor</div>
+                      <div class="text-xsImage text-black"> {{ formData.photo.name.slice(0, 10)
+                        }}***{{
+                          formData.photo.name.slice(-5) }} - {{ fileSizeInMB }} MB</div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </label>
+            <input type="file" id="vaucherPay" style="display: none;" accept="image/*" @change="handleUpload">
+            <div></div>
+          </div>
           <div v-if="formData.currentPhotoUrl" class="mt-2">
             <a :href="formData.currentPhotoUrl" target="_blank" class="text-primary text-caption">
               Ver foto actual
@@ -253,6 +263,12 @@ onMounted(() => {
 </template>
 
 <style lang="scss">
+.photoContainer {
+  border: 2px solid lightgray;
+  border-radius: 1rem;
+  cursor: pointer;
+}
+
 .form__inputsR {
   & .q-field__inner {
     box-shadow: 0px 3px 4px 0px #bfbfbf48;
@@ -270,4 +286,3 @@ onMounted(() => {
   }
 }
 </style>
-

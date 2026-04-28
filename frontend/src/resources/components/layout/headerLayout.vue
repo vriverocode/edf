@@ -50,7 +50,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="md:px-8 md:mx-28 pb-3 px-6 row bg-primary header__container">
+  <div class="md:px-8 md:mx-28 pb-2 px-6 row bg-primary header__container">
     <section class=" flex justify-between items-stretch col-12">
       <div class="flex flex-col justify-between">
         <div class="pt-2">
@@ -78,7 +78,7 @@ onMounted(() => {
       </div>
       <div class="flex items-start">
         <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader"
-          :class="{ 'mt-8 h-28': isHomePage, 'mt-5 h-20': !isHomePage }">
+          :class="{ 'mt-8 h-26': isHomePage, 'mt-5 h-20': !isHomePage }">
         <div class="relative pt-2" @click="router.push({ name: 'notificationsPage' })">
           <q-badge class="badgeNotificationCount " v-if="notificationsStore.unreadCount > 0" color="red"
             :label="notificationsStore.unreadCount" />
@@ -137,12 +137,12 @@ onMounted(() => {
 }
 
 .text-amtHeader {
-  font-size: 2rem;
-  font-weight: 400;
+  font-size: 1.9rem;
+  font-weight: 500;
 }
 
 .badgeNotificationCount {
-  top: -0.1rem;
+  top: 0.19rem;
   right: -0.3rem;
   position: absolute;
   z-index: 2;

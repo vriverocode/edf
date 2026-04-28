@@ -677,6 +677,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/water_readings/view/:id',
+        component: () => import('@/view/admin/WaterReadings/waterReadingDetails.vue'),
+        name: 'waterReadingDetails',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalle medición de agua',
+          roles: ['admin'],
+          depth: 5,
+        },
+      },
+      {
         path: '/admin/water_readings/edit/:id',
         component: () => import('@/view/admin/WaterReadings/waterReadingEditForm.vue'),
         name: 'waterReadingsEdit',

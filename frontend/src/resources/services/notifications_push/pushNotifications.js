@@ -4,7 +4,7 @@ import axios from 'axios'
 import storage from '@/services/storage'
 
 // Ajusta esta URL a tu API real de Laravel
-const API_URL = 'http://192.168.31.20:8030//api/token-movile'
+const API_URL = 'https://website-c67adca2.sfr.hrf.mybluehost.me/api/token-movile'
 export const PushNotificationsService = {
   async init() {
     // Solo ejecutar en el celular, no en el navegador web

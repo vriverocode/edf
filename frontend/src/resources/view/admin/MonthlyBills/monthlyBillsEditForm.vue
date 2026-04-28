@@ -11,21 +11,21 @@ const monthlyBillsStore = useMonthlyBillsStore()
 const loading = ref(false)
 const loadingData = ref(false)
 
-const parseMaskedMoney = (value) => {
+const parseMaskedMoney = (value, decimal = 2) => {
   if (value === null || value === undefined) return null
   const raw = String(value).trim()
   if (!raw) return null
   const normalized = raw.replaceAll('.', '').replace(',', '.')
   const n = Number.parseFloat(normalized)
   if (!Number.isFinite(n)) return null
-  return Number(n.toFixed(2))
+  return Number(n.toFixed(decimal))
 }
 
-const formatMaskedMoney = (value) => {
+const formatMaskedMoney = (value, decimals = 2) => {
   if (value === null || value === undefined) return ''
   const n = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(n)) return ''
-  const fixed = n.toFixed(2)
+  const fixed = n.toFixed(decimals)
   const [intPart, decPart] = fixed.split('.')
   const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   return `${withThousands},${decPart}`
@@ -73,7 +73,7 @@ watch(
     const consumption = Number(formData.value.total_water_consumption_m3)
     if (amount === null || !Number.isFinite(consumption) || consumption <= 0) return
     const computedPrice = amount / consumption
-    formData.value.water_price_per_m3 = Number.isFinite(computedPrice) ? formatMaskedMoney(computedPrice) : ''
+    formData.value.water_price_per_m3 = Number.isFinite(computedPrice) ? formatMaskedMoney(computedPrice, 4) : ''
   }
 )
 
@@ -97,7 +97,7 @@ const loadBill = async () => {
     formData.value.total_maintenance_budget = formatMaskedMoney(bill.total_maintenance_budget)
     formData.value.total_water_bill_amount = bill.total_water_bill_amount === null ? '' : formatMaskedMoney(bill.total_water_bill_amount)
     formData.value.total_water_consumption_m3 = bill.total_water_consumption_m3
-    formData.value.water_price_per_m3 = formatMaskedMoney(bill.water_price_per_m3)
+    formData.value.water_price_per_m3 = formatMaskedMoney(bill.water_price_per_m3, 4)
   } catch (err) {
     showNotify('negative', err?.error || err?.message || 'No se pudo cargar el presupuesto')
   } finally {
@@ -118,14 +118,14 @@ const submit = async () => {
         formData.value.total_water_consumption_m3 === null || formData.value.total_water_consumption_m3 === ''
           ? null
           : Number(formData.value.total_water_consumption_m3),
-      water_price_per_m3: parseMaskedMoney(formData.value.water_price_per_m3)
+      water_price_per_m3: parseMaskedMoney(formData.value.water_price_per_m3, 4)
     }
 
     const response = await monthlyBillsStore.updateMonthlyBill(billId.value, payload)
     if (response?.code !== 200) throw response
 
     showNotify('positive', 'Presupuesto mensual actualizado con éxito')
-    router.push('/admin/monthly_bills/view/' + billId.value)
+    router.go(-1);
   } catch (err) {
     showNotify('negative', err?.error || err?.message || 'No se pudo actualizar el presupuesto')
   } finally {
@@ -139,7 +139,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="md:px-20 md:mx-16 px-2 h-full" style="overflow: auto;">
+  <div class="md:px-20 md:mx-16 px-2 pb-8 h-full" style="overflow: auto;">
     <div class="text-center text-black text-h5 text-bold my-2">
       Editar presupuesto mensual
     </div>
@@ -152,93 +152,42 @@ onMounted(() => {
       <div class="row w-full">
         <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Mes</div>
-          <q-select
-            dense
-            borderless
-            class="form__inputsR mt-1"
-            v-model="formData.month"
-            :options="monthOptions"
-            option-label="name"
-            option-value="value"
-            :rules="[val => !!val || 'El mes es requerido']"
-          />
+          <q-select dense borderless class="form__inputsR mt-1" v-model="formData.month" :options="monthOptions"
+            option-label="name" option-value="value" :rules="[val => !!val || 'El mes es requerido']" />
         </div>
 
         <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Año</div>
-          <q-input
-            dense
-            borderless
-            clearable
-            class="form__inputsR mt-1"
-            color="primary"
-            type="number"
-            v-model.number="formData.year"
-            :rules="[val => !!val || 'El año es requerido']"
-          />
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number"
+            v-model.number="formData.year" :rules="[val => !!val || 'El año es requerido']" />
         </div>
 
         <div class="col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Presupuesto total a distribuir (S/.)</div>
-          <q-input
-            dense
-            borderless
-            clearable
-            class="form__inputsR mt-1"
-            color="primary"
-            v-model="formData.total_maintenance_budget"
-            mask="###.###.###,##"
-            reverse-fill-mask
-            inputmode="decimal"
-            :rules="[val => parseMaskedMoney(val) !== null || 'El presupuesto total es requerido']"
-          />
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
+            v-model="formData.total_maintenance_budget" mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
+            :rules="[val => parseMaskedMoney(val) !== null || 'El presupuesto total es requerido']" />
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Monto total recibo de agua (S/.)</div>
-          <q-input
-            dense
-            borderless
-            clearable
-            class="form__inputsR mt-1"
-            color="primary"
-            v-model="formData.total_water_bill_amount"
-            mask="###.###.###,##"
-            reverse-fill-mask
-            inputmode="decimal"
-          />
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
+            v-model="formData.total_water_bill_amount" mask="###.###.###,##" reverse-fill-mask inputmode="decimal" />
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Consumo total de agua (m³)</div>
-          <q-input
-            dense
-            borderless
-            clearable
-            class="form__inputsR mt-1"
-            color="primary"
-            type="number"
-            step="0.001"
-            v-model.number="formData.total_water_consumption_m3"
-          />
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number" step="0.001"
+            v-model.number="formData.total_water_consumption_m3" />
         </div>
 
         <div class="col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Costo unitario de agua por m³ (S/.)</div>
-          <q-input
-            dense
-            borderless
-            clearable
-            class="form__inputsR mt-1"
-            color="primary"
-            v-model="formData.water_price_per_m3"
-            mask="###.###.###,##"
-            reverse-fill-mask
-            inputmode="decimal"
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
+            v-model="formData.water_price_per_m3" mask="###.###.###,####" reverse-fill-mask inputmode="decimal"
             :readonly="waterPriceReadonly"
             :rules="[val => parseMaskedMoney(val) !== null || 'El costo unitario de agua es requerido']"
-            :hint="waterPriceReadonly ? 'Calculado automáticamente (Monto / Consumo)' : 'Ingresa el costo unitario si no registras los totales'"
-          />
+            :hint="waterPriceReadonly ? 'Calculado automáticamente (Monto / Consumo)' : 'Ingresa el costo unitario si no registras los totales'" />
         </div>
 
         <div class="col-12 mb-2 px-2 md:px-12 flex justify-end mt-4">
@@ -269,4 +218,3 @@ onMounted(() => {
   }
 }
 </style>
-

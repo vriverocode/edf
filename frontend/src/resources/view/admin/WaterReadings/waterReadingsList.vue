@@ -108,31 +108,15 @@ onMounted(() => {
   <div class="h-full" style="overflow: hidden;">
     <div style="height: 100%; overflow: hidden;">
       <div class="px-2 pb-6 pt-0 md:px-28 h-full">
-        <div class="flex justify-between md:pr-5 pr-1 items-center gap-2" style="height: 7%;">
+        <div class="flex justify-between md:pr-5 pr-1 items-center md:px-8" style="height: 7%;">
           <div class="row items-center w-full">
             <div class="col-7 col-md-4 pr-2">
-              <q-select
-                dense
-                borderless
-                class="form__inputsR"
-                v-model="selectedMonth"
-                :options="monthOptions"
-                option-label="name"
-                option-value="value"
-                emit-value
-                map-options
-                @update:model-value="onChangeMonth"
-              />
+              <q-select dense borderless class="form__inputsR" v-model="selectedMonth" :options="monthOptions"
+                option-label="name" option-value="value" emit-value map-options @update:model-value="onChangeMonth" />
             </div>
             <div class="col-5 col-md-2">
-              <q-input
-                dense
-                borderless
-                class="form__inputsR"
-                type="number"
-                v-model.number="selectedYear"
-                @update:model-value="onChangeYear"
-              />
+              <q-input dense borderless class="form__inputsR" type="number" v-model.number="selectedYear"
+                @update:model-value="onChangeYear" />
             </div>
           </div>
         </div>
@@ -141,24 +125,23 @@ onMounted(() => {
           <q-spinner-dots color="primary" size="7rem" />
         </div>
 
-        <div v-else class="pt-3 md:px-5 pb-8" style="height: 83%; overflow: auto;">
+        <div v-else class="pt-5 md:px-5 pb-8" style="height: 83%; overflow: auto;">
           <template v-if="readings.length > 0">
             <div class="space-y-0">
-              <div
-                v-for="r in readings"
-                :key="r.id"
-                class="bg-white bills__container mb-5"
-                style="position: relative;"
-              >
-                <div class="pb-4 pt-2">
+              <div v-for="r in readings" :key="r.id" class="bg-white bills__container mb-5" style="position: relative;">
+                <div class="pb-3 pt-2">
                   <div class="flex justify-between items-center pb-1 px-4" style="border-bottom: 1px solid lightgrey">
-                    <div class="text-lg font-bold text-gray-900 mb-0">
-                      Depto: {{ r.departament?.number ?? r.departament_id }}
+                    <div class="text-lg font-bold text-gray-900 mb-0" style="text-decoration: underline;"
+                      @click="goTo('/admin/water_readings/view/' + r.id)">
+                      Dpt: {{ r.departament?.number ?? r.departament_id }} • {{ r.month_label }} {{ r.year }}
                     </div>
                     <div flat rounded color="primary" size="sm" class="ml-3 cursor-pointer">
                       <div v-html="iconsApp.optionsBook" />
                       <q-menu>
                         <q-list style="min-width: 150px">
+                          <q-item clickable v-close-popup @click="goTo('/admin/water_readings/view/' + r.id)">
+                            <q-item-section>Ver detalle</q-item-section>
+                          </q-item>
                           <q-item clickable v-close-popup @click="goTo('/admin/water_readings/edit/' + r.id)">
                             <q-item-section>Modificar</q-item-section>
                           </q-item>
@@ -180,28 +163,14 @@ onMounted(() => {
                       Consumo (m³):
                       <div class="font-medium">{{ consumption(r) ?? '-' }}</div>
                     </div>
-                    <div class="col-6 text-sm text-gray-700 mt-2 flex column items-end">
-                      Precio m³ (S/.):
-                      <div class="font-medium">{{ r.m3_price }}</div>
-                    </div>
-                    <div class="col-12 text-sm text-gray-700 mt-2">
-                      Subtotal agua (S/.):
-                      <div class="font-medium">S/. {{ subtotal(r) ?? '-' }}</div>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div class="flex justify-center mt-4">
-              <q-pagination
-                v-model="page"
-                color="primary"
-                :max="lastPage"
-                :max-pages="4"
-                :boundary-numbers="false"
-                @update:model-value="fetchReadings()"
-              />
+              <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
+                @update:model-value="fetchReadings()" />
             </div>
           </template>
 
@@ -223,13 +192,8 @@ onMounted(() => {
 
         <div v-if="!loading && ready" style="height: 10%;">
           <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6">
-            <q-btn
-              color="primary"
-              unelevated
-              class="w-full mt-5 md:mx-5 createButton"
-              style="border-radius: 0.5rem;"
-              @click="goTo('/admin/water_readings/form/add')"
-            >
+            <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton" style="border-radius: 0.5rem;"
+              @click="goTo('/admin/water_readings/form/add')">
               <div class="flex items-center py-1">
                 <q-icon name="eva-plus-outline" />
                 <div class="q-pt-xs text-bold pl-1">
@@ -249,6 +213,7 @@ onMounted(() => {
   border: 2px solid lightgray;
   border-radius: 1rem;
 }
+
 .form__inputsR {
   & .q-field__inner {
     box-shadow: 0px 3px 4px 0px #bfbfbf48;
@@ -258,4 +223,3 @@ onMounted(() => {
   }
 }
 </style>
-

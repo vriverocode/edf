@@ -8,7 +8,7 @@ import { computed } from 'vue';
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
-{
+  {
     title: 'Gastos mensuales',
     icon: iconsApp.bills,
     link: '/admin/monthly_bills/list',
@@ -20,13 +20,13 @@ const menu = [
     link: '/admin/monthly_bills/water_read',
     roles: [1]
   },
-  
-  {
-    title: 'Cuotas especiales',
-    icon: iconsApp.specialBill,
-    link: '/admin/monthly_bills/list',
-    roles: [1]
-  },
+
+  // {
+  //   title: 'Cuotas especiales',
+  //   icon: iconsApp.specialBill,
+  //   link: '/admin/monthly_bills/list',
+  //   roles: [1]
+  // },
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
