@@ -13,12 +13,20 @@ import { computed } from 'vue';
 
 const { user } = storeToRefs(useAuthStore());
 const router = useRouter();
+const hasQuotasPending = computed(() => {
+  const quotas = 0;
+  user.value.apartaments.forEach(apartament => {
+      quotas+= apartament.pending_quotas_count;
+  });
+  return quotas;
+})
 const menu = [
 
   {
     title: 'Mi Departamento',
     icon: mi_departamento,
     link: '/client/department/options',
+    badgePay: hasQuotasPending,
     roles: [2]
   },
   {
@@ -77,9 +85,10 @@ const menu = [
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
-  console.log(rol)
   return menu.filter(item => !item.roles || item.roles.includes(rol))
 })
+
+
 
 const goTo = (url) => {
   router.push(url)
@@ -91,6 +100,9 @@ const goTo = (url) => {
       <div class="col-md-3 md:px-20 col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
         <div class="px-3">
           <div class="boxItem " @click="goTo(items.link)">
+            <div v-if="items.badgePay">
+              <div class="bagdePay" />
+            </div>
             <div class="flex justify-center items-center h-full w-full p-1">
               <img :src="items.icon" class="w-full md:w-auto "
                 :class="{ 'h-3/5': items.icon.includes('default-dash'), 'h-full': !items.icon.includes('default-dash') }" />
@@ -105,4 +117,6 @@ const goTo = (url) => {
   </div>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+
+</style>

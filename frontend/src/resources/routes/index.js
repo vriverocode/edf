@@ -622,7 +622,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Balance de pagos',
+          pagTitle: 'Cuotas de mantenimientos',
           depth: 3,
         },
       },

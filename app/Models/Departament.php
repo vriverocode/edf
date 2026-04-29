@@ -49,4 +49,7 @@ class Departament extends Model
     public function quotas() {
         return $this->hasMany(Quota::class, 'departament_id');
     }
+    public function pendingQuotas() {
+        return $this->hasMany(Quota::class, 'departament_id')->where('status','!=', 3);
+    }
 }

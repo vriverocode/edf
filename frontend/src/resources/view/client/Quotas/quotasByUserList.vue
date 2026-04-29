@@ -144,7 +144,7 @@ onMounted(() => {
                     <span class="font-medium">S/. {{ quota.amount }}</span>
                   </div>
                   <!-- Fecha de pago -->
-                  <div class="flex items-center text-sm text-gray-700 col-12 pt-2 md:pt-0 col-md-2 ">
+                  <div class="flex items-center text-sm text-gray-700 col-12 pt-2 md:pt-0 col-md-4 ">
                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
@@ -158,7 +158,7 @@ onMounted(() => {
             </div>
 
             <!-- Sección inferior - Acciones -->
-            <div class="px-4 py-2 md:py-3 bg-gray-50 border-t" :class="`bg-${quota.status_color}`" @click="goTo(quota)">
+            <div class="px-4 py-2 md:py-3 bg-gray-50 border-t cursor-pointer" :class="`bg-${quota.status_color}`" @click="goTo(quota)">
               <div class="flex justify-center items-center">
                 <div class="flex items-center">
                   <!-- Icono de estado -->

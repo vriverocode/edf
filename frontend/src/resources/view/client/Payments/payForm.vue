@@ -231,13 +231,6 @@ onMounted(() => {
         <div class="pay-form-body">
           <Transition :name="transitionName">
             <div v-if="step === 1" class="pay-form-step1">
-              <div class="pay-form-back" @click="stepBack()">
-                <div class="pay-form-back__circle">
-                  <q-icon name="eva-arrow-back-outline" size="1.8rem" />
-                </div>
-                <span class="pay-form-back__text">REGRESAR</span>
-              </div>
-
               <div class="text-center mt-4">
                 <h1 class="pay-form-title">PAGAR</h1>
                 <p class="pay-form-subtitle">{{ paymentSubtitle }}</p>
@@ -265,12 +258,6 @@ onMounted(() => {
           </Transition>
           <Transition :name="transitionName">
             <div v-if="step === 2" class="pay-form-step2 h-full md:pt-5" style="overflow: auto;">
-              <div class="pay-form-back mb-4" @click="stepBack()">
-                <div class="pay-form-back__circle">
-                  <q-icon :name="materialIcons.outlinedArrowBack" color="white" size="1.2rem" />
-                </div>
-                <span class="pay-form-back__text">REGRESAR</span>
-              </div>
               <div v-if="payFormData.pay_method !== 3">
                 <div class="dataPayCard pt-6 pb-3 px-3 md:px-8 md:py-8" style="transform: translateY(-0.4rem);">
                   <div class="pb-5 text-h6 text-bold text-black">

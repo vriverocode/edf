@@ -66,7 +66,7 @@ const showNavbar = () => {
   return ['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)
 }
 const showBack = () => {
-  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'reservePay', 'quotaPay', 'payConfirm', 'reserveConfirm'].includes(route.name))
+  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'reservePay', 'payConfirm', 'reserveConfirm'].includes(route.name))
 }
 
 watch(() => notificationsStore.unreadCount, (newVal, oldVal) => {
@@ -114,8 +114,10 @@ watch(
     <div class="panel-layout-root h-full bg-white w-full min-h-screen "
       :class="{ 'pt-8': isNative, 'pt-2': !isNative }">
       <template v-if="ready">
-        <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
-        <section :class="{
+         <transition :name="'fade'">
+           <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
+         </transition>
+        <section class="principal" :class="{
           'withoutNav': isShowablePage(),
           'page__container': showNavbar(),
           'page_continerFull': !showNavbar()

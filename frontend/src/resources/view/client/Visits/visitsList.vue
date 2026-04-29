@@ -96,13 +96,13 @@ onMounted(() => {
 <template>
   <div class="h-full">
     <template v-if="ready">
-      <div class="h-full" style="overflow: auto;">
-        <div class="flex justify-end md:pr-5 px-4 pt-4">
+      <div class="h-full" style="overflow: hidden;">
+        <div class="flex justify-end column  items-end md:pr-36 px-4 pt-0" style="height:8%;overflow:hidden">
           <q-btn outline color="primary" :class="activeFilterSearch" icon="eva-funnel-outline" @click="modal = 'filter'" />
         </div>
         <template v-if="visits.length > 0">
-          <div class="mt-4 md:mt-8" style="height:85%; overflow:scroll">
-            <div class="px-4 md:mx-24 md:pr-12">
+          <div class="pt-4 md:pt-4 pb-8"  style="height:82%; overflow:auto">
+            <div class="px-4 md:px-32">
               <q-slide-item v-for="visit in visits" :key="visit.id" @right="() => deleteItem(visit.id)"
                 right-color="red-8" class="my-3 listVisit-container" style="border-radius: 12px!important;">
                 <template v-slot:right>

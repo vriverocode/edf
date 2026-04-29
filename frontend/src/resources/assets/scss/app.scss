@@ -91,12 +91,21 @@
 }
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 1s ease; /* Puedes ajustar el 0.4s a la velocidad que prefieras */
+  transition: all 0.5s ease; /* Puedes ajustar el 0.4s a la velocidad que prefieras */
+  
+}
+.fade-leave-active {
+  transition-delay: 0.8s;
 }
 
 .fade-enter-from,
 .fade-leave-to {
-  opacity: 0.3;
+  opacity: 0;
+}
+.fade-leave-to {
+  opacity: 0;
+  width: 80%;
+  height: 0rem;
 }
 
 .bg-tealedf {
@@ -267,5 +276,33 @@
   }
   .text-title-squad {
     font-size: 0.95rem;
+  }
+}
+.bagdePay {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  height: 1.12rem;
+  width: 1.12rem;
+  background: #f3bb04;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 5px #f3bb04;
+    transform: scale(1.01);
+  }
+  50% {
+    box-shadow: 0 0 0  0 #f3bb04;
+    transform: scale(1);
+  }
+  70% {
+    box-shadow: 0 0 0 0 #f3bb04;
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.01);
+    box-shadow: 0 0 0 5px #f3bb04;
   }
 }

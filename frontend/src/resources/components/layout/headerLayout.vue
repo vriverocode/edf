@@ -62,6 +62,7 @@ onMounted(() => {
             <div class="text-nameHeader" style="">{{ user.name }}</div>
           </div>
           <div class="text-white" v-if="ifOwner">
+
             <div class="mant-title">Mantenimiento Febrero</div>
             <div class="text-amtHeader" style="">375.25</div>
           </div>
@@ -78,7 +79,7 @@ onMounted(() => {
       </div>
       <div class="flex items-start">
         <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader"
-          :class="{ 'mt-8 h-22': isHomePage, 'mt-5 h-20': !isHomePage }">
+          :class="{ 'mt-8 h-20 md:h-32': isHomePage, 'mt-5 h-20': !isHomePage }">
         <div class="relative pt-2" @click="router.push({ name: 'notificationsPage' })">
           <q-badge class="badgeNotificationCount " v-if="notificationsStore.unreadCount > 0" color="red"
             :label="notificationsStore.unreadCount" />
