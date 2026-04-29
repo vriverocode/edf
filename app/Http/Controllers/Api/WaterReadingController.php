@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\MonthlyBills;
 use App\Models\WaterReading;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -63,6 +64,11 @@ class WaterReadingController extends Controller
 
     public function store(Request $request)
     {
+        // $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
+        // ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
+        // :0;
+        $priceWater = 0;
+        
         try {
             $validated = $request->validate([
                 'departament_id' => ['required', 'integer', 'exists:departaments,id',
@@ -102,7 +108,7 @@ class WaterReadingController extends Controller
             'year' => $validated['year'],
             'previous_reading' => $validated['previous_reading'],
             'current_reading' => $validated['current_reading'],
-            'm3_price' => $validated['m3_price'] ?? 0,
+            'm3_price' => $validated['m3_price'] ?? $priceWater,
         ];
 
         $photoColumn = $this->resolvePhotoColumn();
