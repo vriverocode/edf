@@ -67,12 +67,14 @@ const markGuestArrived = (guest) => {
         if (response.code !== 200) throw response
         showNotify('primary', response.message || 'Llegada confirmada')
         emit('updated')
+        closeModal()
       })
       .catch((err) => {
         const msg = err?.error || err?.message || 'No se pudo actualizar la visita'
         showNotify('negative', msg)
       })
       .finally(() => {
+        
         loadingGuestId.value = null
       })
   })
@@ -115,6 +117,9 @@ const markGuestArrived = (guest) => {
                   <div class="text-caption text-grey-7">
                     {{ formatDate(guest.date) }}
                     <template v-if="guest.hour">· {{ guest.hour }}</template>
+                  </div>
+                  <div class="text-caption text-grey-7" v-if="guest.arrived_date">
+                    Llegada: {{ moment(guest.arrived_date).format('DD/MM/YYYY hh:mm A')}}
                   </div>
                 </div>
               </div>

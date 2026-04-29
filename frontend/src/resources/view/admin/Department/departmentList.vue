@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { Notify } from 'quasar';
 import iconsApp from '@/assets/icons/index'
 import { useApartmentStore } from '@/services/store/apartment.store';
 
@@ -18,6 +19,11 @@ const goTo = (url) => {
 }
 
 const apartments = ref([])
+const ownersWithoutApartment = ref([])
+const changeOwnerModal = ref(false)
+const selectedApartment = ref(null)
+const selectedOwner = ref(null)
+const modalLoading = ref(false)
 
 const getApartment = () => {
   ready.value =  false;
@@ -39,6 +45,62 @@ const getApartment = () => {
   .catch(() =>{
 
   })
+}
+
+const openChangeOwnerModal = async (apartment) => {
+  selectedApartment.value = apartment
+  selectedOwner.value = null
+  changeOwnerModal.value = true
+  modalLoading.value = true
+  try {
+    const response = await apartmentStore.getOwnersWithoutApartment()
+    if (response.code !== 200) throw response
+    ownersWithoutApartment.value = response.data
+  } catch (error) {
+    Notify.create({
+      type: 'negative',
+      message: 'No se pudo cargar propietarios disponibles'
+    })
+    changeOwnerModal.value = false
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+const assignNewOwner = async () => {
+  if (!selectedApartment.value || !selectedOwner.value) {
+    Notify.create({
+      type: 'warning',
+      message: 'Selecciona un propietario para continuar'
+    })
+    return
+  }
+  modalLoading.value = true
+  try {
+    const payload = {
+      idApartament: selectedApartment.value.id,
+      user: selectedOwner.value
+    }
+    const response = await apartmentStore.assignApartment(payload)
+    if (response.code !== 200) throw response
+    Notify.create({
+      type: 'positive',
+      message: 'Propietario asignado correctamente'
+    })
+    changeOwnerModal.value = false
+    getApartment()
+  } catch (error) {
+    Notify.create({
+      type: 'negative',
+      message: typeof error === 'string' ? error : 'No se pudo asignar el propietario'
+    })
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+const goToOwnerInfo = (apartmentId) => {
+  router.push('/admin/department/owner-info/' + apartmentId)
 }
 
 onMounted(() =>{
@@ -74,14 +136,20 @@ onMounted(() =>{
             <div class="mt-1" style="font-weight: 500; font-size: 0.89rem;">
               Area: {{apartment.area}} mt²
             </div>
+            <div class="mt-1" style="font-weight: 500; font-size: 0.89rem;">
+              % Participación: {{ apartment.participation_percentage }}%
+            </div>
           </div>
         </div>
         <div class="flex w-full justify-end py-1" style="border-top: 1px solid lightgrey;">
           <div>
-            <q-btn icon="eva-person-outline" class="mx-1" flat color="primary" round size="0.85rem" />
+            <q-btn icon="eva-person-outline" class="mx-1" flat color="primary" round size="0.85rem" @click="goToOwnerInfo(apartment.id)" />
           </div>
           <div>
-            <q-btn icon="eva-settings-outline" class="mx-1" flat color="primary" round size="0.85rem" />
+            <q-btn icon="eva-swap-outline" class="mx-1" flat color="warning" round size="0.85rem" @click="openChangeOwnerModal(apartment)" />
+          </div>
+          <div>
+            <q-btn icon="eva-settings-outline" class="mx-1" flat color="primary" round size="0.85rem" @click="goTo('/admin/apartments/edit/'+apartment.id)" />
           </div>
           <div>
             <q-btn icon="eva-trash-2-outline" class="mx-1" flat color="negative" round size="0.85rem" />
@@ -110,6 +178,36 @@ onMounted(() =>{
           size="7rem"
         />
     </div>
+    <q-dialog v-model="changeOwnerModal" persistent>
+      <q-card style="min-width: 320px; width: 95%; max-width: 480px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Cambiar propietario</div>
+        </q-card-section>
+        <q-card-section>
+          <div class="text-subtitle2 q-mb-sm" v-if="selectedApartment">
+            Departamento #{{ selectedApartment.number }}
+          </div>
+          <q-select
+            v-model="selectedOwner"
+            :options="ownersWithoutApartment"
+            option-label="name"
+            option-value="id"
+            emit-value
+            map-options
+            outlined
+            dense
+            label="Propietario disponible"
+            :loading="modalLoading"
+            :disable="modalLoading"
+            no-option-label="No hay propietarios sin apartamento"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" color="grey-7" v-close-popup :disable="modalLoading" />
+          <q-btn color="primary" label="Guardar cambio" :loading="modalLoading" @click="assignNewOwner" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <style lang="scss">

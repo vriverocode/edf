@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use phpDocumentor\Reflection\DocBlock\Tags\Return_;
+
 // use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Departament extends Model
@@ -21,8 +23,8 @@ class Departament extends Model
         'description',
         'code_pay',
         'floor',
-        'user_id'
-
+        'user_id',
+        'participation_percentage',
     ];
     public function getInterNumberAttribute()
     {
@@ -43,5 +45,8 @@ class Departament extends Model
     public function visits()
     {
         return $this->hasMany(Visit::class, 'departament_id', 'id');
+    }
+    public function quotas() {
+        return $this->hasMany(Quota::class, 'departament_id');
     }
 }

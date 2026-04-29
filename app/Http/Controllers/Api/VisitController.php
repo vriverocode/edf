@@ -116,7 +116,6 @@ class VisitController extends Controller
         $departamentId = $request->query('departament_id');
 
         $visits = Visit::with(['departament', 'airbnb'])
-            ->where('status', 1) // Pendiente de llegada
             ->where('airbnb_rent_id', null)
             ->when($departamentId, function ($query) use ($departamentId) {
                 $query->where('departament_id', (int) $departamentId);
@@ -147,8 +146,7 @@ class VisitController extends Controller
         $statusFilters = $this->parseStatusFilters($request->query('status', []));
         $departamentId = $request->query('departament_id');
 
-        $visits = AirbnbRent::with(['guest', 'departament', 'user', 'creator'])
-            ->where('status', 1) // Pendiente de llegada
+        $visits = AirbnbRent::with(['guest', 'departament', 'user', 'creator'])// Pendiente de llegada
             ->when($departamentId, function ($query) use ($departamentId) {
                 $query->where('departament_id', (int) $departamentId);
             })
@@ -260,7 +258,13 @@ class VisitController extends Controller
             return $this->returnFail(404, 'Visita no encontrada');
         }
 
+        $airbnbValidation = $this->validateAirbnbVisitForArrival($visit);
+        if (!$airbnbValidation['valid']) {
+            return $this->returnFail(400, $airbnbValidation['message']);
+        }
+
         if ((int) $visit->status === 2) {
+            $this->syncAirbnbRentStatusIfCompleted($visit);
             return $this->returnSuccess(200, [
                 'message' => 'La visita ya está marcada como llegada',
                 'id' => $visit->id,
@@ -272,7 +276,9 @@ class VisitController extends Controller
 
         try {
             $visit->status = 2;
+            $visit->arrived_date = date("Y-m-d H:i:s");
             $visit->save();
+            $this->syncAirbnbRentStatusIfCompleted($visit);
         } catch (Exception $e) {
             return $this->returnFail(500, $e->getMessage());
         }
@@ -287,6 +293,48 @@ class VisitController extends Controller
     }
 
     
+
+    private function validateAirbnbVisitForArrival(Visit $visit): array
+    {
+        if (!$visit->airbnb_rent_id) {
+            return ['valid' => true, 'message' => null];
+        }
+
+        $airbnbRent = AirbnbRent::with('guest')->find($visit->airbnb_rent_id);
+        if (!$airbnbRent) {
+            return ['valid' => false, 'message' => 'La renta Airbnb asociada no existe'];
+        }
+
+        $belongsToRent = $airbnbRent->guest->contains(function ($guest) use ($visit) {
+            return (int) $guest->id === (int) $visit->id;
+        });
+
+        if (!$belongsToRent) {
+            return ['valid' => false, 'message' => 'La visita no pertenece a la renta Airbnb indicada'];
+        }
+
+        return ['valid' => true, 'message' => null];
+    }
+
+    private function syncAirbnbRentStatusIfCompleted(Visit $visit): void
+    {
+        if (!$visit->airbnb_rent_id) {
+            return;
+        }
+
+        $airbnbRent = AirbnbRent::find($visit->airbnb_rent_id);
+        if (!$airbnbRent) {
+            return;
+        }
+
+        $pendingGuests = Visit::where('airbnb_rent_id', $visit->airbnb_rent_id)
+            ->where('status', 1)
+            ->count();
+
+        if ($pendingGuests === 0) {
+            $airbnbRent->update(['status' => 2]);
+        }
+    }
 
     private function validateFieldsFromInput($inputs)
     {

@@ -51,12 +51,22 @@ class DepartamentController extends Controller
             'block' => $request->block,
             'area' => $request->area,
             'description' => $request->description,
-            'floor' => $request->floor
+            'floor' => $request->floor,
+            'participation_percentage' => $request->participation_percentage,
         ]);
 
         return $this->returnSuccess(200, 'ok');
     }
+    public function getApartmentById($id)
+    {
+        $apartments = Departament::with(["owner"])->find($id);
 
+        if (!$apartments) {
+            return $this->returnFail(400, "Apartamento no encontrado");
+        }
+
+        return $this->returnSuccess(200, $apartments);
+    }
 
     public function assingApartment(Request $request)
     {
@@ -84,9 +94,18 @@ class DepartamentController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Departament $departament)
+    public function updateApartment(Request $request, $id)
     {
-        //
+        $validated = $this->validateFieldsFromInput($request->all());
+        if (count($validated) > 0) {
+            return $this->returnFail(400, $validated[0]);
+        }
+
+        $apartment = Departament::find($id);
+        if (!$apartment) return $this->returnFail(404, 'No encontrado');
+
+        $apartment->update($request->all());
+        return $this->returnSuccess(200, $apartment);
     }
 
     /**
@@ -106,6 +125,7 @@ class DepartamentController extends Controller
             'area'       => ['required', 'numeric'],
             'floor'      => ['required', 'numeric'],
             'description' =>  ['nullable','regex:/^[a-z a-z 0-9 A-Z-À-ÿ ., \-]+$/i'],
+            'participation_percentage' => ['required', 'numeric'],
         ];
         $messages = [
             'number.required'   => 'El número de apartamento es requerido.',
@@ -118,9 +138,10 @@ class DepartamentController extends Controller
             'floor.required'    => 'Número de piso es requerida',
             'floor.numeric'     => 'Número de piso no valido',
             'description.regex' => 'Nota no valida',
+            'participation_percentage.required' => 'Porcentaje de participacion es requerido',
+            'participation_percentage.numeric' => 'Porcentaje de participacion no valido',
+
         ];
-
-
          $validator = Validator::make($inputs, $rules, $messages)->errors();
 
         return $validator->all() ;

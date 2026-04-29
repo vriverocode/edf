@@ -149,7 +149,7 @@ export const useVisitStore = defineStore('Visit', {
           throw ''
         }
         ApiService.setHeader()
-        ApiService.post(`/api/security/visits/${id}/arrived`)
+        ApiService.post(`/api/security/visits/arrived/${id}`)
           .then(({ data }) => {
             if (data.code != 200) throw data
             resolve(data)

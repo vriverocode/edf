@@ -134,6 +134,17 @@ import { useRouter } from 'vue-router';
           />
       </div>
       <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+        <div class="text-subtitle2 text-black">Porcentaje de participación (%)</div>
+        <q-input
+          dense borderless clearable
+          v-model="formData.participation_percentage"
+          class="form__inputsR mt-1"
+          type="number"
+          step="0.0000000001"
+          :rules="[ val => val !== null && val !== '' || 'El porcentaje es necesario']"
+        />
+      </div>
+      <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
         <div class="text-subtitle2 text-black">
           Notas
         </div>

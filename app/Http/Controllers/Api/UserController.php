@@ -240,6 +240,16 @@ class UserController extends Controller
 
         return $this->returnSuccess(200, $owners);
     }
+    public function getOwnersWithoutApartment()
+    {
+        $owners = User::with('rol')
+            ->where('rol_id', Rol::PROPIETARIO)
+            ->whereDoesntHave('apartaments')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return $this->returnSuccess(200, $owners);
+    }
     public function getCountPendingsForAdmin()
     {
         $noticeTypeForAnnunce = 2;

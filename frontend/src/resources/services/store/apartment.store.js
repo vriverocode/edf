@@ -30,7 +30,7 @@ export const useApartmentStore = defineStore('Apartment', {
         if (!ApiService.getToken()) {
           throw '';
         }
-        ApiService.get('/api/users/byId/'+id)
+        ApiService.get('/api/apartments/byId/'+id)
         .then(({data}) => {
           if(data.code !=200) throw data;
   
@@ -115,6 +115,48 @@ export const useApartmentStore = defineStore('Apartment', {
         
       })
 
+    },
+    async updateApartment(id, data) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.post('/api/apartments/u/' + id, data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response.data.error);
+          });
+      });
+    },
+    async getOwnersWithoutApartment() {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.get('/api/users/without-apartment')
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response.data.error);
+          });
+      });
+    },
+    async assignApartment(data) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.post('/api/users/assing_apartmet', data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response.data.error);
+          });
+      });
     },
     
   },

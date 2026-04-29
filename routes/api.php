@@ -27,12 +27,15 @@ Route::middleware('auth:sanctum')->group(function () {
     //--- Login/Auth ---
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        return $request->user()->load(['rol', 'apartaments']);
+        return $request->user()->load(['rol', 'apartaments' => function ($query) {
+            $query->withCount('quotas');
+        }]);
     });
 
     Route::prefix('users')->name('user.')->group(function () {
         Route::get('/', [UserController::class, 'getOwners']);
         Route::get('/get-resident', [UserController::class, 'getResident']);
+        Route::get('/without-apartment', [UserController::class, 'getOwnersWithoutApartment']);
 
         Route::post('/', [UserController::class, 'store']);
         Route::post('/byPropietario', [UserController::class, 'store']);
@@ -45,6 +48,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('apartments')->name('apartment.')->group(function () {
         Route::get('/', [DepartamentController::class, 'paginationApartment']);
         Route::post('/', [DepartamentController::class, 'storeApartment']);
+        Route::post('/u/{id}', [DepartamentController::class, 'updateApartment']);
+        Route::get('/byId/{id}', [DepartamentController::class, 'getApartmentById']);
+
         Route::get('/byFind', [DepartamentController::class, 'apartmentsByfind']);
         Route::get('/byUser', [DepartamentController::class, 'getApartmentsByUser']);
     });

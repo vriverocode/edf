@@ -124,7 +124,7 @@ const submit = async () => {
     if (response?.code !== 200) throw response
 
     showNotify('positive', 'Medición actualizada con éxito')
-    router.push('/admin/water_readings/list')
+    router.go(-1)
   } catch (err) {
     showNotify('negative', err?.error || err?.message || 'No se pudo actualizar la medición')
   } finally {
@@ -132,13 +132,13 @@ const submit = async () => {
   }
 }
 
-const validateForm = () => {
-  if (!formData.value.photo) {
-    showNotify('negative', 'Debes subir la foto del medidor')
-    return false
-  };
-  return true;
-}
+// const validateForm = () => {
+//   if (!formData.value.photo) {
+//     showNotify('negative', 'Debes subir la foto del medidor')
+//     return false
+//   };
+//   return true;
+// }
 const handleUpload = (event) => {
   const file = event.target.files[0];
 

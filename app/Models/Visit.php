@@ -17,6 +17,7 @@ class Visit extends Model
         'description',
         'date',
         'hour', 
+        'arrived_date',
         'status',
         'airbnb_rent_id'
     ];
