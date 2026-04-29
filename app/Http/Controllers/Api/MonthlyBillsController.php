@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncWaterReadingsFromMonthlyBillJob;
 use App\Models\MonthlyBills;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -97,6 +98,8 @@ class MonthlyBillsController extends Controller
             'total_water_consumption_m3' => $validated['total_water_consumption_m3'] ?? null,
         ]);
 
+        SyncWaterReadingsFromMonthlyBillJob::dispatch($monthlyBill->id);
+
         return $this->returnSuccess(200, $monthlyBill);
     }
 
@@ -145,6 +148,8 @@ class MonthlyBillsController extends Controller
             'total_water_bill_amount' => $validated['total_water_bill_amount'] ?? null,
             'total_water_consumption_m3' => $validated['total_water_consumption_m3'] ?? null,
         ]);
+
+        SyncWaterReadingsFromMonthlyBillJob::dispatch($monthlyBill->id);
 
         return $this->returnSuccess(200, $monthlyBill);
     }

@@ -18,5 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->reportable(function (\Throwable $e) {
+            if (str_contains($e->getMessage(), 'stty')) {
+                return false; 
+            }
+        });
     })->create();

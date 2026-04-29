@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\PayMethodController;
 use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\MonthlyBillsController;
 use App\Http\Controllers\Api\WaterReadingController;
+use App\Http\Controllers\Api\FinancialAccountController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
@@ -160,5 +161,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [WaterReadingController::class, 'show']);
         Route::post('/', [WaterReadingController::class, 'store']);
         Route::post('/u/{id}', [WaterReadingController::class, 'update']);
+    });
+
+    Route::prefix('financial-accounts')->name('financialAccounts.')->group(function () {
+        Route::get('/', [FinancialAccountController::class, 'index']);
+        Route::get('/currencies', [FinancialAccountController::class, 'currencies']);
+        Route::get('/byId/{id}', [FinancialAccountController::class, 'show']);
+        Route::post('/', [FinancialAccountController::class, 'store']);
+        Route::post('/u/{id}', [FinancialAccountController::class, 'update']);
+        Route::post('/status/{id}', [FinancialAccountController::class, 'updateStatus']);
     });
 });

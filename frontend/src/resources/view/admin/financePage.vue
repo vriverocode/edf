@@ -16,7 +16,7 @@ const menu = [
   {
     title: 'Cuentas',
     icon: iconsApp.bank,
-    link: '/admin/account-data',
+    link: '/admin/accounts',
     roles: [1]
   },
   {
@@ -25,6 +25,13 @@ const menu = [
     link: '/admin/monthly_bills/menu',
     roles: [1]
   },
+  {
+    title: 'Transacciones',
+    icon: iconsApp.bills,
+    link: '/admin/monthly_bills/menu',
+    roles: [1]
+  },
+
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
