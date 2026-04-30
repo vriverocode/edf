@@ -14,9 +14,9 @@ import { computed } from 'vue';
 const { user } = storeToRefs(useAuthStore());
 const router = useRouter();
 const hasQuotasPending = computed(() => {
-  const quotas = 0;
+  let quotas = 0;
   user.value.apartaments.forEach(apartament => {
-      quotas+= apartament.pending_quotas_count;
+    quotas += apartament.pending_quotas_count;
   });
   return quotas;
 })
@@ -117,6 +117,4 @@ const goTo = (url) => {
   </div>
 </template>
 
-<style lang="scss" scoped>
-
-</style>
+<style lang="scss" scoped></style>

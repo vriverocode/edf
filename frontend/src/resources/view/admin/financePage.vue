@@ -25,12 +25,12 @@ const menu = [
     link: '/admin/monthly_bills/menu',
     roles: [1]
   },
-  {
-    title: 'Transacciones',
-    icon: iconsApp.bills,
-    link: '/admin/monthly_bills/menu',
-    roles: [1]
-  },
+  // {
+  //   title: 'Transacciones',
+  //   icon: iconsApp.bills,
+  //   link: '/admin/monthly_bills/menu',
+  //   roles: [1]
+  // },
 
 ];
 const menuByRol = computed(() => {

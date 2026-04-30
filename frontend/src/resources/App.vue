@@ -4,7 +4,7 @@ import { onMounted, onUnmounted } from 'vue';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App } from '@capacitor/app';
 import { ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { StatusBar, Style } from '@capacitor/status-bar';
 
 const showSplash = async () => {
@@ -14,6 +14,9 @@ const showSplash = async () => {
   })
 }
 const $q = useQuasar()
+const router = useRouter()
+const route = useRoute();
+const transitionName = ref('slide-up'); // Transición por defecto
 
 onMounted(async () => {
   $q.addressbarColor.set('#0e344c');
@@ -22,10 +25,11 @@ onMounted(async () => {
     await StatusBar.setBackgroundColor({ color: '#0e344c' }); // Color de tu app
   };
   showSplash();
+  setupStatusBar()
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {
       // Si hay historial en el stack de navegación, retrocedemos
-      window.history.back();
+      router.go(-1);
     } else {
       // Si no hay a dónde ir atrás, cerramos la app
       App.exitApp();
@@ -38,8 +42,7 @@ onUnmounted(() => {
   App.removeAllListeners();
 });
 
-const route = useRoute();
-const transitionName = ref('slide-up'); // Transición por defecto
+
 
 
 watch(
