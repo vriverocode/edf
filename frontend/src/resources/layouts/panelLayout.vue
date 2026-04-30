@@ -60,13 +60,13 @@ const getNotifications = () => {
 
 }
 const isShowablePage = () => {
-  return (['reserveConfirm', 'reservePay', 'reservePayConfirm', 'quotaPay'].includes(route.name))
+  return (['reserveConfirm', 'reservePayConfirm'].includes(route.name))
 }
 const showNavbar = () => {
   return ['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)
 }
 const showBack = () => {
-  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'reservePay', 'payConfirm', 'reserveConfirm'].includes(route.name))
+  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'payConfirm', 'reserveConfirm'].includes(route.name))
 }
 
 watch(() => notificationsStore.unreadCount, (newVal, oldVal) => {
@@ -131,7 +131,7 @@ watch(
             </div>
           </div>
 
-          <div class="relative w-full overflow-hidden"
+          <div class="relative w-full overflow-hidden pt-3"
             :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }">
             <router-view v-slot="{ Component }">
               <transition :name="transitionName">

@@ -37,6 +37,10 @@ class Quota extends Model
     {
         return $this->hasOne(Pay::class);
     }
+    public function waterReading(): BelongsTo
+    {
+        return $this->belongsTo(WaterReading::class, 'water_reading_id', 'id');
+    }
     public function getStatusLabelAttribute()
     {
         $statusLabels = [

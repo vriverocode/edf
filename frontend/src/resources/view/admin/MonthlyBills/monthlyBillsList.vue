@@ -174,12 +174,12 @@ onMounted(() => {
                   </div>
 
                   <div class="row px-4 pt-1">
-                    <div class="col-8">
+                    <div class="col-8 col-md-6">
                       <div class="text-sm text-gray-700 mt-1">
                         Presupuesto mantenimiento: <div class="font-medium">S/. {{ bill.total_maintenance_budget }}</div>
                       </div>
                     </div>
-                    <div class="col-4 col-md-6 text-sm text-gray-700 mt-1 flex column items-end">
+                    <div class="col-4 col-md-6 text-sm text-gray-700 mt-1  flex column items-end">
                       Agua (S/. total): <div class="font-medium">{{ bill.total_water_bill_amount ?? '-' }}</div>
                     </div>
                     <div class="col-6 col-md-6 text-sm text-gray-700 mt-2 ">

@@ -2,14 +2,40 @@ import { defineStore } from 'pinia'
 import ApiService from '@/services/axios'
 import storage from '@/services/storage'
 export const useAuthStore = defineStore('auth', {
-  state: () => ({ user: {} }),
+  state: () => ({
+    user: {},
+    currency: storage.getItem("currency") || null,
+    currencySymbol: storage.getItem("currency_symbol") || null,
+  }),
   actions: {
     setAuth({data}){
       this.setUser(data)
+      this.setCurrencyConfig(data)
       // this.setIsAdmin(user.data.user)
-    },
+    },  
     setUser(user){
       this.user = user;
+    },
+    setCurrencyConfig(authPayload) {
+      const {
+        currency,
+        currencySymbol
+      } = authPayload
+
+      this.currency = currency
+      this.currencySymbol = currencySymbol
+
+      if (currency) {
+        storage.setItem("currency", currency)
+      } else {
+        storage.deleteItem("currency")
+      }
+
+      if (currencySymbol) {
+        storage.setItem("currency_symbol", currencySymbol)
+      } else {
+        storage.deleteItem("currency_symbol")
+      }
     },
     setIsAdmin(user){
       // storage.setItem("is_admin",  user.rol_id !== '3' ? true : false);
@@ -35,7 +61,11 @@ export const useAuthStore = defineStore('auth', {
     },
     logoutAction(){
       storage.deleteItem("access_token");
+      storage.deleteItem("currency");
+      storage.deleteItem("currency_symbol");
       this.user = {};
+      this.currency = null;
+      this.currencySymbol = null;
     },
     async login(credentials) {
       // return await new Promise((resolve, reject) => {

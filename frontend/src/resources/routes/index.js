@@ -502,6 +502,30 @@ const routes = [
           depth: 5,
         },
       },
+      {
+        path: '/admin/quotas/pays',
+        component: () => import('@/view/admin/Quotas/quotasMenu.vue'),
+        name: 'quotasPaysMenu',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Menu de quotas',
+          roles: ['admin'],
+          depth: 1,
+        },
+      },
+      {
+        path: '/admin/quotas/pays',
+        component: () => import('@/view/admin/WaterReadings/waterReadingEditForm.vue'),
+        name: 'quotasPays',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Listado de quotas de mantenimiento mensual',
+          roles: ['admin'],
+          depth: 5,
+        },
+      },
 
       // ---- client Routes -----
 
@@ -636,6 +660,28 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Realiza el pago',
           depth: 3,
+        },
+      },
+      {
+        path: '/client/quota/water-detail/:id',
+        component: () => import('@/view/client/Payments/waterDetailClient.vue'),
+        name: 'quotaWaterDetailClient',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalle de agua',
+          depth: 4,
+        },
+      },
+      {
+        path: '/client/quota/maintenance-detail/:id',
+        component: () => import('@/view/client/Payments/maintenanceDetailClient.vue'),
+        name: 'quotaMaintenanceDetailClient',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalle de mantenimiento',
+          depth: 4,
         },
       },
       {

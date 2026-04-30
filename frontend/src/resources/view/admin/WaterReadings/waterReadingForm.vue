@@ -94,7 +94,7 @@ const submit = async () => {
     if (response?.code !== 200) throw response
 
     showNotify('positive', 'Medición registrada con éxito')
-    router.push('/admin/water_readings/list')
+    router.go(-1)
   } catch (err) {
     showNotify('negative', err?.error || err?.message || 'No se pudo registrar la medición')
   } finally {

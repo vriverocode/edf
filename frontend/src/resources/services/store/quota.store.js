@@ -85,6 +85,40 @@ export const useQuotaStore = defineStore('Quota', {
         
       })
     },
+    async getClientWaterDetailByQuotaId(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.get('/api/quotas/client-water-detail/' + id)
+        .then(({data}) => {
+          if(data.code !=200) throw data;
+  
+          resolve(data);
+        }).catch(( {response}) => {
+          console.log(response)
+          reject(response?.data?.error || 'Error al obtener detalle de medicion de agua');
+        });
+      })
+    },
+    async getClientMaintenanceDetailByQuotaId(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.get('/api/quotas/client-maintenance-detail/' + id)
+        .then(({data}) => {
+          if(data.code !=200) throw data;
+  
+          resolve(data);
+        }).catch(( {response}) => {
+          console.log(response)
+          reject(response?.data?.error || 'Error al obtener detalle de mantenimiento');
+        });
+      })
+    },
     async getQuotaByArea(area){
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {

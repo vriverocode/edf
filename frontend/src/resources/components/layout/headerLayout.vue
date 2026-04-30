@@ -1,7 +1,7 @@
 <script setup>
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/services/store/auth.services';
-import { inject, ref, onMounted, watch } from 'vue';
+import { inject, ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useNotificationsStore } from '@/services/store/notifications.store'
 import iconsApp from '@/assets/icons/index'
@@ -40,7 +40,13 @@ watch(route, (newRoute) => {
 
 
 
-
+const hasPendingToPay = computed(() => {
+  let quotas = 0;
+  user.value.apartaments.forEach(apartament => {
+    quotas += apartament.pending_quotas_count;
+  });
+  return quotas;
+})
 onMounted(() => {
   emitter.on('pagTitle', changePagTitle)
   emitter.on('isReserve', setReserveData)
@@ -64,7 +70,7 @@ onMounted(() => {
           <div class="text-white" v-if="ifOwner">
 
             <div class="mant-title">Mantenimiento Febrero</div>
-            <div class="text-amtHeader" style="">375.25</div>
+            <div class="text-amtHeader" style="">{{user.currency_symbol}} {{user.apartaments[0].pending_amount_quota}}</div>
           </div>
           <div>
 

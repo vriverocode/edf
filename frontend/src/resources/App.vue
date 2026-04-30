@@ -6,7 +6,7 @@ import { App } from '@capacitor/app';
 import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { StatusBar, Style } from '@capacitor/status-bar';
-
+import { Capacitor } from '@capacitor/core';
 const showSplash = async () => {
   await SplashScreen.show({
     autoHide: true,
@@ -17,15 +17,30 @@ const $q = useQuasar()
 const router = useRouter()
 const route = useRoute();
 const transitionName = ref('slide-up'); // Transición por defecto
-
-onMounted(async () => {
-  $q.addressbarColor.set('#0e344c');
-  const setupStatusBar = async () => {
+const setupStatusBar2 = async () => {
+  // Check if the app is running on iOS or Android
+  if (Capacitor.isNativePlatform()) {
+    try {
+      // Your existing StatusBar code goes here
+      // Example: await StatusBar.setStyle({ style: 'DARK' });
+    } catch (error) {
+      console.error('Error configuring StatusBar:', error);
+    }
+  } else {
+    // Optional: Log that it's running on the web
+    console.log('Running on web: StatusBar plugin ignored.');
+  }
+};
+const setupStatusBar = async () => {
     await StatusBar.setStyle({ style: Style.Light }); // O Dark
     await StatusBar.setBackgroundColor({ color: '#0e344c' }); // Color de tu app
   };
+onMounted(async () => {
+  $q.addressbarColor.set('#0e344c');
+  
   showSplash();
   setupStatusBar()
+  setupStatusBar2
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {
       // Si hay historial en el stack de navegación, retrocedemos

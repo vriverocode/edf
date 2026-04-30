@@ -1,14 +1,15 @@
 <script setup>
-import { ref, inject, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, inject, watch } from 'vue';
 import transfer from '@/assets/img/util/transfer.webp'
-import yape from '@/assets/img/util/yape.webp'
 import cash from '@/assets/img/util/cash.webp'
 import { useRoute, useRouter } from 'vue-router';
 import { useReserveStore } from '@/services/store/reserve.store'
 import { useQuotaStore } from '@/services/store/quota.store'
+import { usePayMethodStore } from '@/services/store/payMethod.store'
 import { useNotificationsStore } from '@/services/store/notifications.store'
+import { useAuthStore } from '@/services/store/auth.services'
+import { storeToRefs } from 'pinia';
 import iconsApp from '@/assets/icons/index'
-import logo from '@/assets/img/logo/logo-white.webp'
 import moment from 'moment';
 import { Notify } from 'quasar';
 
@@ -23,14 +24,14 @@ const myLocale = {
   pluralDay: 'dias'
 }
 
+
 const route = useRoute()
 const router = useRouter()
 const reserveStore = useReserveStore()
 const quotaStore = useQuotaStore()
-const emitter = inject('emitter', null)
-const openLogout = () => {
-  if (emitter) emitter.emit('logoutModal')
-}
+const payMethodStore = usePayMethodStore()
+const authStore = useAuthStore()
+const { currencySymbol } = storeToRefs(authStore)
 
 const ready = ref(false)
 const step = ref(1)
@@ -38,7 +39,7 @@ const loading = ref(false)
 const disable = ref(true)
 const materialIcons = inject('materialIcons')
 const toPay = ref({})
-const transitionName = ref('horizontal');
+const transitionName = ref('slide-next');
 const typePay = () => {
 
   return ['quotaPay'].includes(route.name) ? 'quota' : 'reserve'
@@ -56,11 +57,7 @@ const payFormData = ref({
 
 const notificationsStore = useNotificationsStore()
 
-const payMethods = [
-  { title: 'Tarjeta de crédito o débito', value: 1, img: null },
-  { title: 'Transferencia Bancaria', value: 2, img: transfer },
-  { title: 'Otros', value: 3, img: cash }
-]
+const payMethods = ref([])
 
 const paymentSubtitle = computed(() => {
   if (!toPay.value || !Object.keys(toPay.value).length) return ''
@@ -70,20 +67,80 @@ const paymentSubtitle = computed(() => {
       ? `RESERVA ${String(toPay.value.comun_area.name).toUpperCase()}`
       : 'PAGO'
 })
+const isQuotaPayment = computed(() => typePay() === 'quota')
+const safeAmount = (value) => Number(value ?? 0)
+const maintenanceAmount = computed(() => safeAmount(toPay.value?.maintenance_amount))
+const waterAmount = computed(() => safeAmount(toPay.value?.water_amount))
+const waterConsumptionM3 = computed(() => safeAmount(toPay.value?.water_consumption_m3))
+const waterPricePerM3 = computed(() => safeAmount(toPay.value?.water_price_per_m3))
+const maintenanceParticipation = computed(() => safeAmount(
+  toPay.value?.maintenance_participation_percentage ?? toPay.value?.departament?.participation_percentage
+))
+const maintenanceBudget = computed(() => safeAmount(toPay.value?.maintenance_budget_total))
+const waterDetailsLink = computed(() => (
+  toPay.value?.id ? `/client/quota/water-detail/${toPay.value.id}` : null
+))
+const maintenanceDetailsLink = computed(() => (
+  toPay.value?.id ? `/client/quota/maintenance-detail/${toPay.value.id}` : null
+))
+const amountPrefix = computed(() => currencySymbol.value || 'S/')
 
 // pay_method 1=Tarjeta, 2=Transferencia, 3=Otros
-const payData = [
-  [],
-  [], // 1 Tarjeta: sin datos para copiar (pasarela u otro flujo)
-  [
-    { title: 'N° de cuenta', value: '0000000000000' },
-    { title: 'Banco', value: 'BCP' },
-    { title: 'Titular de la cuenta', value: 'Juan Perez' },
-  ],
-  [
-    { title: 'Dirección de entrega', value: 'Lobby edificio central, Horario de 8:00 - 15:00' },
-  ],
-]
+const payData = computed(() => {
+  const defaultData = [
+    [],
+    [],
+    [],
+    [],
+  ]
+  payMethods.value.forEach((method) => {
+    defaultData[method.value] = Array.isArray(method.data) ? method.data : []
+  })
+  return defaultData
+})
+
+const normalizeMethodValue = (method) => {
+  if (method?.type !== undefined && method?.type !== null) return Number(method.type)
+  if (method?.value !== undefined && method?.value !== null) return Number(method.value)
+  if (method?.id !== undefined && method?.id !== null) return Number(method.id)
+  return null
+}
+
+const normalizeMethodData = (method) => {
+  if (Array.isArray(method?.data)) {
+    return method.data.map((item) => ({
+      title: item?.title ?? '',
+      value: item?.data ?? item?.value ?? ''
+    }))
+  }
+  return []
+}
+
+const getPayMethodsAvailables = () => {
+  payMethodStore.getPayMethod()
+    .then((response) => {
+      if (response.code !== 200) throw response
+
+      const methods = (response.data || [])
+        .filter((method) => Number(method.status) === 1)
+        .map((method) => {
+          const value = normalizeMethodValue(method)
+          return {
+            title: method.name || `Método ${value}`,
+            value,
+            img: value === 2 ? transfer : (value === 3 ? cash : null),
+            data: normalizeMethodData(method),
+          }
+        })
+        .filter((method) => method.value !== null)
+
+      payMethods.value = methods
+    })
+    .catch(() => {
+      payMethods.value = []
+      showNotify('negative', 'No se pudieron cargar los métodos de pago')
+    })
+}
 
 const nextStep = () => {
   if (step.value == 3 || (step.value == 2 && payFormData.value.pay_method == 3)) {
@@ -92,7 +149,7 @@ const nextStep = () => {
   }
 
   if (step.value == 2) {
-    disable.value = true
+    // disable.value = true
   }
   step.value++
 
@@ -149,6 +206,10 @@ const showNotify = (type, text) => {
     timeout: 2000
   })
 }
+
+const goTo = (url) => {
+ router.push(url) 
+}
 const createPay = () => {
   const storeToUse = typePay() == 'quota'
     ? quotaStore.createQuotaPay
@@ -175,7 +236,7 @@ const createPay = () => {
 const formatAllToCopy = () => {
   let dataFormatted = ''
   try {
-    payData[payFormData.value.pay_method].forEach(data => {
+    ;(payData.value[payFormData.value.pay_method] || []).forEach(data => {
       if (data.title != 'QR') {
         dataFormatted += (data.title != 'Titular de la cuenta' ? data.value.replaceAll(' ', '') : data.value) + ' '
       }
@@ -220,227 +281,267 @@ const dataToForm = () => {
 }
 onMounted(() => {
   getToPay()
+  getPayMethodsAvailables()
+})
+
+watch(step, (toStep, fromStep) => {
+  transitionName.value = toStep > fromStep ? 'slide-next' : 'slide-prev'
 })
 
 
 </script>
 <template>
-  <div class="pay-form-page h-full md:px-28">
-    <q-form @submit="nextStep()" class="h-full">
-      <template v-if="ready">
-        <div class="pay-form-body">
-          <Transition :name="transitionName">
-            <div v-if="step === 1" class="pay-form-step1">
-              <div class="text-center mt-4">
-                <h1 class="pay-form-title">PAGAR</h1>
-                <p class="pay-form-subtitle">{{ paymentSubtitle }}</p>
-              </div>
+  <div class=" h-full " style="overflow: hidden; position: relative;">
+    <div class="h-full md:px-20 md:mx-16 " v-if="ready">
+      <q-form @submit="nextStep()" class="h-full pay-form-wrapper">
+        <template v-if="ready">
+          <div class="pay-form-body">
+            <Transition :name="transitionName">
+              <div v-if="step === 1" class="pay-form-step1">
+                <div class="text-center mt-0">
+                  <div class="pay-form-title">PAGAR</div>
+                  <p class="pay-form-subtitle">{{ paymentSubtitle }}</p>
+                </div>
 
-              <div class="pay-form-amount-box">
-                <span class="pay-form-amount-prefix">S/</span>
-                <span class="pay-form-amount-value">{{ toPay.amount != null ? Number(toPay.amount).toFixed(2) : '0.00'
-                }}</span>
-              </div>
-
-              <p class="pay-form-select-label">Seleccionar medio</p>
-              <div class="pay-form-methods">
-                <button v-for="method in payMethods" :key="method.value" type="button" class="pay-form-method-card"
-                  :class="{ 'pay-form-method-card--active': payFormData.pay_method === method.value }"
-                  @click="selectPayMethod(method.value)">
-                  <span class="pay-form-method-card__text">{{ method.title }}</span>
-                </button>
-              </div>
-
-              <q-btn class="pay-form-btn-submit" type="submit" :loading="loading" :disable="disable" unelevated no-caps>
-                PAGAR
-              </q-btn>
-            </div>
-          </Transition>
-          <Transition :name="transitionName">
-            <div v-if="step === 2" class="pay-form-step2 h-full md:pt-5" style="overflow: auto;">
-              <div v-if="payFormData.pay_method !== 3">
-                <div class="dataPayCard pt-6 pb-3 px-3 md:px-8 md:py-8" style="transform: translateY(-0.4rem);">
-                  <div class="pb-5 text-h6 text-bold text-black">
-                    Paga tu reserva
-                    <div class="text-grey-7 mt-1" style="font-size: 0.85rem;line-height: 1.3;">
-                      <template v-if="payFormData.pay_method === 1">Completa el formulario en el siguiente paso para
-                        registrar tu pago con tarjeta.</template>
-                      <template v-else>Asegúrate de pagar correctamente, utiliza los datos que te aparecen
-                        acá.</template>
+                <div class="pay-form-breakdown mt-3" v-if="isQuotaPayment">
+                  <div class="pb-1" style="border-bottom: 1px solid lightgrey">
+                    <div class="pay-form-breakdown__detail">
+                      <span>Consumo:</span>
+                      <span>{{ waterConsumptionM3.toFixed(2) }} m3</span>
+                    </div>
+                    <div class="pay-form-breakdown__detail">
+                      <span>Precio del m3:</span>
+                      <span> {{ amountPrefix }} {{waterPricePerM3.toFixed(2)}}</span>
+                    </div>
+                    <div class="pay-form-breakdown__row mt-2" @click="goTo(waterDetailsLink)" style="text-decoration:underline" >
+                      <span>Agua</span>
+                      <span>{{ amountPrefix }} {{ waterAmount.toFixed(2) }}</span>
                     </div>
                   </div>
-                  <template v-if="payData[payFormData.pay_method]?.length">
-                    <div v-for="(data, key) in payData[payFormData.pay_method]" :key="key"
-                      class="mb-5 flex items-center justify-between">
-                      <div :class="{ 'w-full': data.title == 'QR' }">
-                        <div class="text-body2 mb-1 text-grey-7">{{ data.title }}</div>
-                        <img style="width: 8rem;" :src="data.value" alt="" v-if="data.title == 'QR'" class="mx-auto">
-                        <div v-else style="font-size: 1.05rem;" class="text-black text-bold">{{ data.value }}</div>
+                
+                  <div class="pt-1" >
+                    <div class="pay-form-breakdown__detail">
+                      <span>% Participación:</span>
+                      <span>{{ maintenanceParticipation.toFixed(2)}} %</span> 
+                    </div>
+                    <div class="pay-form-breakdown__detail">
+                      <span>Presupuesto mantenimiento {{ toPay.month_label }}:</span>
+                      <span>{{ amountPrefix }} {{ maintenanceBudget.toFixed(2) }}</span>
+                    </div>
+                    <div class="pay-form-breakdown__row mt-2" @click="goTo(maintenanceDetailsLink)" style="text-decoration:underline" >
+                      <span>Mantenimiento</span>
+                      <span>{{ amountPrefix }} {{ maintenanceAmount.toFixed(2) }}</span>
+                    </div>
+
+                  </div>
+                </div>
+
+                <div class="pay-form-amount-box mb-3 mt-4">
+                  <span class="pay-form-amount-prefix">{{ amountPrefix }}</span>
+                  <span class="pay-form-amount-value flex flex-center">{{ toPay.amount != null ? Number(toPay.amount).toFixed(2) : '0.00'
+                  }}</span>
+                </div>
+
+                <div class="pay-form-select-label">Seleccionar medio</div>
+                <div class="pay-form-methods mt-2">
+                  <button v-for="method in payMethods" :key="method.value" type="button" class="pay-form-method-card"
+                    :class="{ 'pay-form-method-card--active': payFormData.pay_method === method.value }"
+                    @click="selectPayMethod(method.value)">
+                    <span class="pay-form-method-card__text">{{ method.title }}</span>
+                  </button>
+                </div>
+
+                <q-btn class="pay-form-btn-submit" type="submit" :loading="loading" :disable="disable" unelevated no-caps>
+                  PAGAR
+                </q-btn>
+              </div>
+            </Transition>
+            <Transition :name="transitionName">
+              <div v-if="step === 2" class="pay-form-step-wrapper">
+                <div class="pay-form-step-content">
+                  <div class="col-12 col-md-6 row md:px-5 px-4 mt-1">
+                    <div class="w-full">
+                      <div class="text-xl font-bold pl-2">
+                        Resumen de pago
                       </div>
-                      <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="data.title != 'QR'"
-                        @click="data.title.includes('Titular') ? copyData(data.value) : formatCopy(data.value)" />
+                      <div class="selectedDateBlock mt-2 px-3 w-full py-2">
+                        <div class="flex justify-between items-center w-full py-1" v-if="toPay.comun_area">
+                          <div class="text__amountItem">Servicio</div>
+                          <div class="text__amountItem">{{ toPay.comun_area.name }}</div>
+                        </div>
+                        <div class="flex justify-between items-center w-full py-1" v-if="toPay.month_label">
+                          <div class="text__amountItem">Mes</div>
+                          <div class="text__amountItem">{{ toPay.month_label }}</div>
+                        </div>
+                        <div class="flex justify-between items-center w-full mt-1" style="border-top: 2px solid #8b8e9446;">
+                          <div class="text__amountTotal">Total</div>
+                          <div class="text__amountTotal">{{ amountPrefix }} {{ Number(toPay.amount || 0).toFixed(2) }}</div>
+                        </div>
+                      </div>
+
+                      <div class="rulesContainer mt-4 px-2 pt-2 pb-1">
+                        <div class="px-2 rulesContainer__Title">
+                          Datos para el pago
+                        </div>
+                        <template v-if="payFormData.pay_method !== 3">
+                          <template v-if="payData[payFormData.pay_method]?.length">
+                            <div v-for="(data, key) in payData[payFormData.pay_method]" :key="key"
+                              class="my-2 py-1 px-3 flex items-center justify-between ruleDetailContainer">
+                              <div :class="{ 'w-full': data.title == 'QR' }">
+                                <div class="text-body2 mb-1 text-grey-7">{{ data.title }}</div>
+                                <img style="width: 8rem;" :src="data.value" alt="" v-if="data.title == 'QR'" class="mx-auto">
+                                <div v-else style="font-size: 1.05rem;" class="text-black text-bold">{{ data.value }}</div>
+                              </div>
+                              <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="data.title != 'QR'"
+                                @click="data.title.includes('Titular') ? copyData(data.value) : formatCopy(data.value)" />
+                            </div>
+                            <div class="flex flex-center my-3 cursor-pointer">
+                              <div v-html="iconsApp.copyIcon" />
+                              <div class="ml-1 text-primary" @click="formatAllToCopy()"
+                                style="font-size: 1.02rem; font-weight: medium;">Copiar datos</div>
+                            </div>
+                          </template>
+                        </template>
+                        <template v-else>
+                          <div class="text-center text-black text-moneyEfectivo py-3 px-2">
+                            Dirigete a nuestra oficina para finalizar tu pago en efectivo.
+                          </div>
+                          <div class="my-2 text-center text-grey-8 text-subtitle1 px-4 py-4 box-data">
+                            Av. Alfredo Benavides 430, Miraflores 15074.
+                          </div>
+                          <div class="mt-4 mb-2 text-center" v-if="toPay.booking_number">
+                            <div class="text-moneyEfectivo text-black">Codigo de reservacion:</div>
+                            <div class="flex flex-center">
+                              <div class="text-primary text-h5 mt-2 box-data pl-4 pr-3 py-3 flex items-center">
+                                #00{{ toPay.booking_number }}
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
                     </div>
-                    <div class="flex flex-center mt-6 cursor-pointer">
-                      <div v-html="iconsApp.copyIcon" />
-                      <div class="ml-1 text-primary" @click="formatAllToCopy()"
-                        style="font-size: 1.02rem; font-weight: medium;">Copiar datos</div>
+                  </div>
+                </div>
+                <div class="buttonSection">
+                  <div class="row py-4">
+                    <div class="col-4 flex flex-center">
+                      <q-btn outline color="grey-8" unelevated no-caps style="width: 90%; border-radius: 3rem;" @click="stepBack()">
+                        Volver
+                      </q-btn>
                     </div>
-                  </template>
+                    <div class="col-8 flex flex-center">
+                      <q-btn outline color="primary" unelevated no-caps style="width: 95%; border-radius: 3rem;"
+                        type="submit" :loading="loading" :disable="disable">
+                        {{ payFormData.pay_method === 3 ? 'Confirmar pago' : 'Ya hice el pago' }}
+                      </q-btn>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div v-else>
-                <div class="dataPayCard pt-6 pb-3 px-3 md:px-8 md:py-8" style="transform: translateY(-0.4rem);">
-                  <div class="pb-7 text-h6 text-bold text-black">
-                    Paga tu reserva
-                    <div class=" text-grey-7 mt-1" style="font-size: 0.85rem;line-height: 1.3;">
-                      Dirigete a nuestra oficina, para finalizar tu reserva
-                    </div>
-                  </div>
-                  <div class="text-center text-black text-moneyEfectivo">
-                    Dirigete a la siguiente ubicación de nuestra oficina para realizar el abono en efectivo:
-                  </div>
-                  <div class="md:px-8">
-                    <div class="my-4 text-center text-grey-8 text-subtitle1 px-4 py-4 box-data">
-                      Av. Alfredo Benavides 430, Miraflores 15074.
-                    </div>
-                  </div>
-                  <div class="mt-7 mb-4 text-center" v-if="toPay.booking_number">
-                    <div class="text-moneyEfectivo text-black">El codigo de tu reservación es:</div>
-                    <div class="flex flex-center">
-                      <div class="text-primary text-h5  mt-4 box-data pl-4 pr-3 py-3 flex items-center">
-                        #00{{ toPay.booking_number }}
-                        <div class="ml-2">
-                          <div v-html="iconsApp.copyIcon" />
+            </Transition>
+            <Transition :name="transitionName">
+              <div v-if="step === 3" class="pay-form-step-wrapper">
+                <div class="pay-form-step-content">
+                  <div class="col-12 row md:px-5 px-4 mt-1">
+                    <div class="w-full">
+                      <div class="text-lg font-bold pl-2">
+                        Pago
+                      </div>
+                      <div class="text-caption font-medium pl-2 text-grey-7">
+                        Método seleccionado:
+                        {{ payMethods.find((m) => m.value === payFormData.pay_method)?.title || '-' }}
+                      </div>
+                      <div class="font-medium pl-2 mt-3" style="font-size:0.9rem">
+                        Completa los datos del comprobante
+                      </div>
+                      <div class="selectedDateBlock mt-1 px-3 w-full py-2">
+                        <div class="row mt-1">
+                          <div class="col-12 mt-0">
+                            <div class="md:pr-4">
+                              <q-input v-model="payFormData.date" label="Fecha de pago"
+                                :rules="[val => !(!val) || 'Fecha es requerida']" dense borderless clearable
+                                class="form__inputsPay mt-1" color="primary" accept=".jpg, image/*">
+                                <template v-slot:append>
+                                  <q-icon name="eva-calendar-outline" class="cursor-pointer">
+                                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                                      <q-date mask="DD-MM-YYYY" v-model="payFormData.date"
+                                        :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
+                                        <div class="row items-center justify-end">
+                                          <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                                        </div>
+                                      </q-date>
+                                    </q-popup-proxy>
+                                  </q-icon>
+                                </template>
+                              </q-input>
+                            </div>
+                          </div>
+                          <div class="col-12 mt-2">
+                            <div class="md:pr-4">
+                              <q-input dense borderless clearable v-model="payFormData.reference" label="Referencia de pago"
+                                class="form__inputsPay mt-1" :maxlength="12" color="primary"
+                                :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="rulesContainer mt-2 px-3 w-full py-2">
+                        <div class="text-subtitle2 text-black mb-2">
+                          Vaucher de pago
+                        </div>
+                        <q-file v-model="payFormData.vaucher" dense borderless clearable class="form__inputsPay mt-1"
+                          color="primary" @update:model-value="onFileChange">
+                          <template v-slot:append>
+                            <q-icon name="eva-folder-add-outline" class="cursor-pointer" />
+                          </template>
+                          <template v-slot:selected>
+                            <div class="row items-center q-gutter-x-sm">
+                              <q-icon name="eva-checkmark-circle-2-outline" color="positive" size="sm" />
+                              <div>Archivo subido</div>
+                            </div>
+                          </template>
+                        </q-file>
+                      </div>
+                      <div class="selectedDateBlock mt-4 px-1 w-full py-2">
+                        <q-chip color="tealedf" text-color="white" size="0.8rem">
+                          <div style="font-size: 0.7rem;">
+                            Pendiente de validación
+                          </div>
+                        </q-chip>
+                        <div class="text-xsImage px-2">Tu comprobante será revisado por administración</div>
+                        <div class="text-xsImage text-grey-7 px-2">
+                          Te notificaremos cuando el pago sea validado
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </Transition>
-          <Transition :name="transitionName">
-            <div v-if="step === 3" class="pay-form-step3 h-full md:pt-5">
-              <div class="pay-form-back mb-4" @click="stepBack()">
-                <div class="pay-form-back__circle">
-                  <q-icon :name="materialIcons.outlinedArrowBack" color="white" size="1.2rem" />
-                </div>
-                <span class="pay-form-back__text">REGRESAR</span>
-              </div>
-              <div class="dataPayCard p-5 pb-3 px-3 md:px-8 md:py-8" style="transform: translateY(-0.4rem);">
-                <div class="pb-7 text-h6 text-bold text-black">
-                  Confirma tu pago
-                  <div class=" text-grey-7 mt-1" style="font-size: 0.85rem;line-height: 1.3;">
-                    Completa el formulario
-                  </div>
-                </div>
-                <div class=" row mt-1 px-1 md:px-12">
-                  <div class="col-12 mt-0">
-                    <div class="text-subtitle2 text-black">
-                      Fecha de pago:
+                <div class="buttonSection">
+                  <div class="row py-4">
+                    <div class="col-4 flex flex-center">
+                      <q-btn outline color="grey-8" unelevated no-caps style="width: 90%; border-radius: 3rem;" @click="stepBack()">
+                        Volver
+                      </q-btn>
                     </div>
-                    <div class="pr-2 md:pr-4">
-                      <q-input v-model="payFormData.date" :rules="[val => !(!val) || 'Fecha es requerida']" dense
-                        borderless clearable class="form__inputsPay mt-1" color="primary" accept=".jpg, image/*">
-                        <template v-slot:append>
-                          <q-icon name="eva-calendar-outline" class="cursor-pointer">
-                            <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                              <q-date mask="DD-MM-YYYY" v-model="payFormData.date"
-                                :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
-                                <div class="row items-center justify-end">
-                                  <q-btn v-close-popup label="Aceptar" color="primary" flat />
-                                </div>
-                              </q-date>
-                            </q-popup-proxy>
-                          </q-icon>
-                        </template>
-                      </q-input>
-
-                    </div>
-                  </div>
-                  <div class="col-12 mt-2 ">
-                    <div class="text-subtitle2 text-black ">
-                      Referencia de pago
-                    </div>
-                    <div class="pr-2 md:pr-4">
-                      <q-input dense borderless clearable v-model="payFormData.reference" class="form__inputsPay mt-1"
-                        :maxlength="12" color="primary"
-                        :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']" />
-                    </div>
-                  </div>
-                  <div class="col-12 mt-2 mb-4">
-                    <div class="text-subtitle2 text-black ">
-                      Vaucher de pago
-                    </div>
-                    <div class="pr-2 md:pr-4">
-                      <q-file v-model="payFormData.vaucher" dense borderless clearable class="form__inputsPay mt-1"
-                        color="primary" @update:model-value="onFileChange">
-                        <template v-slot:append>
-                          <q-icon name="eva-folder-add-outline" class="cursor-pointer">
-                          </q-icon>
-                        </template>
-                        <template v-slot:selected>
-                          <div class="row items-center q-gutter-x-sm">
-                            <q-icon name="eva-checkmark-circle-2-outline" color="positive" size="sm" />
-                            <div>Archivo subido</div>
-                          </div>
-                        </template>
-                      </q-file>
+                    <div class="col-8 flex flex-center">
+                      <q-btn outline color="primary" unelevated no-caps style="width: 95%; border-radius: 3rem;"
+                        type="submit" :loading="loading" :disable="disable">
+                        Finalizar
+                      </q-btn>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </Transition>
-        </div>
-
-        <div v-if="step === 2 || step === 3" class="pay-form-summary md:px-20 md:mx-20" style="height: 22%;">
-          <div class="py-3 summarySection">
-            <div class="mb-3 md:px-16 px-5">
-              <div class="flex justify-between items-center py-2" style="border-bottom: 1px solid lightgrey; "
-                v-if="toPay.comun_area">
-                <div class="text-subtitle2 text-grey-8">Reserva</div>
-                <div class="text-subtitle1 text-bold text-black">{{ toPay.comun_area.name }}</div>
-              </div>
-              <div class="flex justify-between items-center py-2" style="border-bottom: 1px solid lightgrey; "
-                v-if="toPay.month">
-                <div class="text-subtitle2 text-grey-8">Mes</div>
-                <div class="text-subtitle1 text-bold text-black">{{ toPay.month_label }}</div>
-              </div>
-              <div class="flex justify-between items-center py-2" style="border-bottom: 1px solid lightgrey;">
-                <div class="text-subtitle2 text-grey-8">Total</div>
-                <div class="text-subtitle1 text-bold text-black">S/. {{ toPay.amount }}</div>
-              </div>
-            </div>
-            <div class="flex flex-center w-full">
-              <q-btn color="secondary" class="pay-form-btn-summary" style="width: 90%; border-radius: 0.5rem;"
-                type="submit" :loading="loading" :disable="disable" unelevated no-caps>
-                {{ step === 3 ? 'Finalizar' : payFormData.pay_method === 3 ? 'Confirmar pago' : 'Ya hice el pago' }}
-              </q-btn>
-            </div>
+            </Transition>
           </div>
+
+        </template>
+        <div v-else class="flex flex-center  h-full">
+          <q-spinner-dots color="primary" size="7rem" />
         </div>
 
-        <footer v-if="step === 1" class="pay-form-footer">
-          <router-link to="/client/department/options" class="pay-form-footer__item">
-            <q-icon name="eva-home" size="2rem" class="pay-form-footer__icon" />
-            <span>Home</span>
-          </router-link>
-          <router-link to="/client/pays/list" class="pay-form-footer__item">
-            <q-icon name="eva-trending-up" size="2rem" class="pay-form-footer__icon" />
-            <span>Finanzas</span>
-          </router-link>
-          <a href="#" class="pay-form-footer__item pay-form-footer__item--link" @click.prevent="openLogout">
-            <q-icon name="eva-log-out" size="2rem" class="pay-form-footer__icon" />
-            <span>Salir</span>
-          </a>
-        </footer>
-      </template>
-      <div v-else class="flex flex-center  h-full">
-        <q-spinner-dots color="primary" size="7rem" />
-      </div>
-
-    </q-form>
+      </q-form>
+    </div>
     <div id="textToPaste" />
   </div>
 </template>
@@ -450,6 +551,11 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: #fff;
+}
+
+.pay-form-wrapper {
+  display: flex;
+  flex-direction: column;
 }
 
 .pay-form-header {
@@ -503,14 +609,22 @@ onMounted(() => {
 .pay-form-body {
   flex: 1;
   overflow: auto;
-  padding: 1rem 1.5rem 1.5rem;
+  padding: 0rem 1.5rem 1.5rem;
+}
+
+.pay-form-step-wrapper {
+  height: 100%;
+  overflow: hidden;
+}
+
+.pay-form-step-content {
+  height: 91%;
+  overflow: auto;
 }
 
 .pay-form-step1 {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  max-width: 28rem;
   margin: 0 auto;
 }
 
@@ -559,10 +673,49 @@ onMounted(() => {
   font-weight: 500;
 }
 
+.pay-form-breakdown {
+  border: 1px solid #e3e6ea;
+  border-radius: 1rem;
+  background: #f8fafc;
+  padding: 0.8rem 1rem;
+}
+
+.pay-form-breakdown__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.pay-form-breakdown__row + .pay-form-breakdown__row {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.pay-form-breakdown__detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.35rem;
+  color: #4b5563;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.pay-form-breakdown__link {
+  margin-left: 0.5rem;
+  color: #1763a6;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .pay-form-amount-box {
   background: #eef2f5;
   border-radius: 3rem;
-  padding: 1rem 1.5rem;
+  padding: 0.2rem 1.5rem;
   text-align: center;
   border: none;
   display: flex;
@@ -578,10 +731,9 @@ onMounted(() => {
 }
 
 .pay-form-amount-value {
-  font-size: 3.5rem;
+  font-size: 2.8rem;
   font-weight: 800;
   color: #1763a6;
-  line-height: 1;
 }
 
 .pay-form-select-label {
@@ -647,41 +799,47 @@ onMounted(() => {
   display: block;
 }
 
-.pay-form-footer {
-  background: #f4f5f7;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-}
-
-.pay-form-footer__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  color: #1763a6;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-
-  &.pay-form-footer__item--link {
-    background: none;
-    border: none;
-  }
-}
-
-.pay-form-footer__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
-  color: #1763a6;
-}
-
 .pay-form-btn-summary {
   border-radius: 0.5rem !important;
+}
+
+.buttonSection {
+  height: 9%;
+}
+
+.rulesContainer {
+  border: 1px solid #d6dbe2;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.rulesContainer__Title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.ruleDetailContainer {
+  border: 1px solid #e6e8eb;
+  border-radius: 0.8rem;
+}
+
+.selectedDateBlock {
+  border: 1px solid #d6dbe2;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.text__amountItem {
+  font-size: 0.95rem;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.text__amountTotal {
+  font-size: 1.05rem;
+  color: #1f2937;
+  font-weight: 700;
 }
 
 /* --- Estilos existentes (pasos 2 y 3) --- */

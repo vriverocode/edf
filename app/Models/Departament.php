@@ -4,7 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use phpDocumentor\Reflection\DocBlock\Tags\Return_;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Models\Quota; 
 
 // use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,7 +14,7 @@ class Departament extends Model
     /** @use HasFactory<\Database\Factories\Api\DepartamentControllerFactory> */
     use HasFactory;
 
-    public $appends  =   ["inter_number"];
+    public $appends  =   ["inter_number", "pending_amount_quota"];
 
     protected $fillable = [
         'number',
@@ -51,5 +52,13 @@ class Departament extends Model
     }
     public function pendingQuotas() {
         return $this->hasMany(Quota::class, 'departament_id')->where('status','!=', 3);
+    }
+    protected function pendingAmountQuota(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => Quota::where('departament_id', $this->id)
+                            ->where('status', '!=', 3)
+                            ->value('amount')
+        );
     }
 }

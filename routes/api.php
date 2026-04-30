@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\MonthlyBillsController;
 use App\Http\Controllers\Api\WaterReadingController;
 use App\Http\Controllers\Api\FinancialAccountController;
+use App\Models\Currency;
+use App\Models\FinancialAccount;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
@@ -28,9 +30,17 @@ Route::middleware('auth:sanctum')->group(function () {
     //--- Login/Auth ---
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        return $request->user()->load(['rol', 'apartaments' => function ($query) {
+        $user = $request->user()->load(['rol',  'apartaments' => function ($query) {
             $query->withCount('pendingQuotas');
         }]);
+
+        $currency = Currency::first();
+
+        $userData = $user->toArray();
+        $userData['currency'] = $currency?->id ?? 1;
+        $userData['currency_symbol'] = $currency?->symbol ?? 'S/';
+
+        return $userData;
     });
 
     Route::prefix('users')->name('user.')->group(function () {
@@ -117,6 +127,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('quotas')->name('quota.')->group(function () {
         Route::get('/', [QuotaController::class, 'index']);
         Route::get('/byId/{id}', [QuotaController::class, 'show']);
+        Route::get('/client-water-detail/{id}', [QuotaController::class, 'clientWaterDetail']);
+        Route::get('/client-maintenance-detail/{id}', [QuotaController::class, 'clientMaintenanceDetail']);
     });
     Route::prefix('visits')->name('visit.')->group(function () {
         Route::get('/', [VisitController::class, 'getVisitsByUser']);
