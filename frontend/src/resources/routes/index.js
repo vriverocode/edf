@@ -515,6 +515,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/quotas/maintenance/list',
+        component: () => import('@/view/admin/Quotas/quotasMaintenaceList.vue'),
+        name: 'quotasMaintenanceList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Cuotas de mantenimiento',
+          roles: ['admin'],
+          depth: 1,
+        },
+      },
+      {
         path: '/admin/quotas/pays',
         component: () => import('@/view/admin/WaterReadings/waterReadingEditForm.vue'),
         name: 'quotasPays',

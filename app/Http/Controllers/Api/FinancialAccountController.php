@@ -19,7 +19,6 @@ class FinancialAccountController extends Controller
         $formatted = $accounts->map(function ($account) {
             $account->status_label = (int) $account->status === 1 ? 'Activo' : 'Inactivo';
             $account->status_color = (int) $account->status === 1 ? 'bg-green-500' : 'bg-red-500';
-            $account->type_label = (int) $account->type === 2 ? 'Egreso' : 'Ingreso';
             return $account;
         });
 

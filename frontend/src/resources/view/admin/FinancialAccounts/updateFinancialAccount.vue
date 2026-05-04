@@ -14,7 +14,8 @@ const accountId = route.params.id
 
 const typeOptions = [
   { label: 'Ingreso', value: 1 },
-  { label: 'Egreso', value: 2 }
+  { label: 'Egreso', value: 2 },
+  { label: 'Mixta', value: 3 }
 ]
 
 const statusOptions = [
@@ -180,9 +181,15 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="w-full px-2 pt-3 flex justify-center">
-        <q-btn flat color="grey-7" class="me-3" @click="router.push('/admin/financial-accounts')">Cancelar</q-btn>
-        <q-btn color="primary" type="submit" :loading="loading">Actualizar</q-btn>
+      <div class="col-12 my-4 px-2 flex items-center justify-between">
+        <q-btn outline="" color="grey-9" class="q-mr-sm" @click="router.go(-1)">
+          Volver
+        </q-btn>
+        <q-btn color="primary" style="border-radius: 0.5rem" type="submit" :loading="loading">
+          <div class="px-10 py-1">
+            Guardar
+          </div>
+        </q-btn>
       </div>
     </q-form>
   </div>

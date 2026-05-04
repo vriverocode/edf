@@ -8,7 +8,7 @@ class Transaction extends Model
 {
     //
 
-    protected $fillable = ['financial_account_id', 'transaction_category_id', 'amount', 'date', 'reference', 'description', 'status', 'type'];
+    protected $fillable = ['financial_account_id', 'transaction_category_id', 'pay_id', 'amount', 'date', 'reference', 'description', 'status', 'type'];
     public function financialAccount()
     {
         return $this->belongsTo(FinancialAccount::class);

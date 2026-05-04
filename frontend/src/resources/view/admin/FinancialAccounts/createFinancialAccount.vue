@@ -11,7 +11,8 @@ const currencies = ref([])
 
 const typeOptions = [
   { label: 'Ingreso', value: 1 },
-  { label: 'Egreso', value: 2 }
+  { label: 'Egreso', value: 2 },
+  { label: 'Mixta', value: 3 }
 ]
 
 const statusOptions = [
@@ -120,7 +121,7 @@ onMounted(() => {
       </div>
 
       <div class="col-12 my-4 px-2 flex items-center justify-between">
-        <q-btn outline="" color="grey-9" class="q-mr-sm" @click="router.push('/admin/financial-accounts')">
+        <q-btn outline="" color="grey-9" class="q-mr-sm" @click="router.go(-1)">
           Volver
         </q-btn>
         <q-btn color="primary" style="border-radius: 0.5rem" type="submit" :loading="loading">
