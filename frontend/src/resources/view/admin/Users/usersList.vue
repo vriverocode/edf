@@ -98,9 +98,9 @@ onMounted(() => {
             </div>
           </div>
           <div class="flex justify-end  items-center pb-3 pt-1 pr-2 md:pr-5 ">
-            <div v-if="user.apartaments.length == 0">
+            <div>
               <q-btn :icon="materialIcons.outlinedAddHomeWork" class="mx-1" flat color="yellow-9" round size="0.9rem"
-                @click="goTo('/admin/users/assing-apartment/' + user.id)">
+                @click="goTo('/admin/users/assign-property/' + user.id)">
 
               </q-btn>
             </div>

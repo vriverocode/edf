@@ -22,6 +22,14 @@ use Illuminate\Support\Str;
 class UserController extends Controller
 {
     //
+    public function getUserById($id)
+    {
+        $user = User::with(['units'])->find($id);
+        if (!$user) {
+            return $this->returnFail(404, 'Usuario no encontrado');
+        }
+        return $this->returnSuccess(200, $user);
+    }
     public function store(Request $request)
     {
 

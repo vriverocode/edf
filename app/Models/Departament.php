@@ -13,7 +13,9 @@ class Departament extends Model
 {
     /** @use HasFactory<\Database\Factories\Api\DepartamentControllerFactory> */
     use HasFactory;
-
+    const TYPE_DEPARTAMENTO = 1;
+    const TYPE_ESTACIONAMIENTO = 2;
+    const TYPE_DEPOSITO = 3;
     public $appends  =   ["inter_number", "pending_amount_quota"];
 
     protected $fillable = [

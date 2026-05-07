@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import iconsApp from '@/assets/icons/index'
-import moment from 'moment';
 import { useApartmentStore } from '@/services/store/apartment.store'
+import moment from 'moment';
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split(
@@ -50,7 +50,6 @@ onMounted(() => {
 
       <!-- Content -->
       <div v-else class="px-4 py-6 md:px-28">
-        <!-- Lista de reservas -->
         <div v-if="apartments.length > 0" class="space-y-3 md:px-12">
           <q-expansion-item v-for="apartment in apartments" :key="apartment.id" class="aparmentExpand">
             <template v-slot:header>

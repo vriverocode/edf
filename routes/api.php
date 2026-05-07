@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('users')->name('user.')->group(function () {
         Route::get('/', [UserController::class, 'getOwners']);
+        Route::get('/byId/{id}', [UserController::class, 'getUserById']);
         Route::get('/get-resident', [UserController::class, 'getResident']);
         Route::get('/without-apartment', [UserController::class, 'getOwnersWithoutApartment']);
 
@@ -53,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/temporary-or-resident', [UserController::class, 'storeResidentUser']);
 
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment']);
+        Route::post('/assign-property', [DepartamentController::class, 'assignProperty']);
         Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin']);
         Route::get('/with-publish', [UserController::class, 'getAllUserWithPublish']);
     });

@@ -15,7 +15,9 @@ class DepartamentController extends Controller
      */
     public function paginationApartment(Request $request)
     {
-        $departaments = Departament::with('owner')->paginate(15);
+        // Por defecto busca tipo 1 (Departamentos)
+        $type = $request->input('type', 1); 
+        $departaments = Departament::with('owner')->where('type', $type)->paginate(15);
         return $this->returnSuccess(200, $departaments);
     }
 
@@ -24,14 +26,17 @@ class DepartamentController extends Controller
      */
     public function apartmentsByfind(Request $request)
     {
-        $departaments = [];
+        $departaments = Departament::query();
         if ($request->find == 'available') {
-            $departaments = Departament::where('user_id', null)->get();
+            $departaments->where('user_id', null);
+            if ($request->has('type')) {
+                $departaments->where('type', $request->type);
+            }
         }
         if ($request->find == 'allWithUser') {
-            $departaments = Departament::where('user_id', '!=', null)->get();
+            $departaments->where('user_id', '!=', null);
         }
-        return $this->returnSuccess(200, $departaments);
+        return $this->returnSuccess(200, $departaments->get());
     }
 
     /**
@@ -39,23 +44,21 @@ class DepartamentController extends Controller
      */
     public function storeApartment(Request $request)
     {
-        //
         $validated = $this->validateFieldsFromInput($request->all());
-        if (count($validated) > 0) {
-            return $this->returnFail(400, $validated[0]);
-        }
+        if (count($validated) > 0) return $this->returnFail(400, $validated[0]);
 
         Departament::create([
             'number' => $request->number,
             'address' => $request->address,
             'block' => $request->block,
-            'area' => $request->area,
+            'area' => $request->area ?? 0, // Si es nulo, guardamos 0
+            'floor' => $request->floor ?? 'N/A', // Si es nulo
             'description' => $request->description,
-            'floor' => $request->floor,
             'participation_percentage' => $request->participation_percentage,
+            'type' => $request->type ?? 1, // Nuevo campo
         ]);
 
-        return $this->returnSuccess(200, 'ok');
+        return $this->returnSuccess(200, 'Creado con éxito');
     }
     public function getApartmentById($id)
     {
@@ -118,32 +121,29 @@ class DepartamentController extends Controller
 
     private function validateFieldsFromInput($inputs)
     {
+        $isDepartment = isset($inputs['type']) && $inputs['type'] == 1;
+
         $rules = [
-            'number'     => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\-]+$/i'],
-            'address'    => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .,# &]+$/i'],
-            'block'      => ['regex:/^[a-z 0-9 A-Z À-ÿ .]+$/i'],
-            'area'       => ['required', 'numeric'],
-            'floor'      => ['required', 'numeric'],
-            'description' =>  ['nullable','regex:/^[a-z a-z 0-9 A-Z-À-ÿ ., \-]+$/i'],
+            'type'       => ['required', 'in:1,2,3'],
+            'number'     => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\\-]+$/i'],
             'participation_percentage' => ['required', 'numeric'],
+            'description' => ['nullable','regex:/^[a-z a-z 0-9 A-Z-À-ÿ ., \\-]+$/i'],
         ];
-        $messages = [
-            'number.required'   => 'El número de apartamento es requerido.',
-            'number.regex'      => 'número de apartamento no valido',
-            'address.required'  => 'Dirección es requerida.',
-            'address.regex'     => 'Dirección no valida',
-            'block.regex'       => 'Número de bloque no valido',
-            'area.required'     => 'Area es requerida',
-            'area.numeric'      => 'Area no valida',
-            'floor.required'    => 'Número de piso es requerida',
-            'floor.numeric'     => 'Número de piso no valido',
-            'description.regex' => 'Nota no valida',
-            'participation_percentage.required' => 'Porcentaje de participacion es requerido',
-            'participation_percentage.numeric' => 'Porcentaje de participacion no valido',
 
-        ];
-         $validator = Validator::make($inputs, $rules, $messages)->errors();
+        // Validaciones estrictas solo si es Departamento
+        if ($isDepartment) {
+            $rules['address'] = ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .,# &]+$/i'];
+            $rules['area']    = ['required', 'numeric'];
+            $rules['floor']   = ['required'];
+            $rules['block']   = ['nullable', 'regex:/^[a-z 0-9 A-Z À-ÿ .]+$/i'];
+        } else {
+            $rules['address'] = ['nullable'];
+            $rules['area']    = ['nullable'];
+            $rules['floor']   = ['nullable'];
+            $rules['block']   = ['nullable'];
+        }
 
-        return $validator->all() ;
+        $validator = Validator::make($inputs, $rules);
+        return $validator->errors()->all();
     }
 }

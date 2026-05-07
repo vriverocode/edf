@@ -246,19 +246,19 @@ const routes = [
         },
       },
       {
-        path: '/admin/users/assing-apartment/:id',
-        component: () => import('@/view/admin/Users/assingApartment.vue'),
-        name: 'assingDepartment',
-        beforeEnter: [auth, role],
+        path: '/admin/users/assign-property/:id',
+        component: () => import('@/view/admin/Users/assignPropertyPage.vue'),
+        name: 'assignProperty',
         meta: {
-          title: 'Bienvenido',
-          pagTitle: 'Asignar Apartamento',
-          depth: 3,
+          pagTitle: 'Gestión de Propiedades',
+          title: 'Gestión de Propiedades',
+          roles: ['admin'],
+          depth: 4,
         },
       },
       {
         path: '/admin/department/form/add',
-        component: () => import('@/view/admin/Department/createDepartment.vue'),
+        component: () => import('@/view/admin/Department/createUnit.vue'),
         name: 'departmentAdd',
         beforeEnter: [auth, role],
         meta: {
@@ -832,7 +832,6 @@ const routes = [
           depth: 2,
         },
       },
-      
     ],
   },
   // Ruta 404 - debe estar al final para capturar todas las rutas no encontradas

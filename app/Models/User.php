@@ -73,6 +73,18 @@ class User extends Authenticatable
     }
     public function apartaments()
     {
+        return $this->hasMany(Departament::class)->where('type', Departament::TYPE_DEPARTAMENTO);
+    }
+    public function parkingLots()
+    {
+        return $this->hasMany(Departament::class)->where('type', Departament::TYPE_ESTACIONAMIENTO);
+    }
+    public function deposits()
+    {
+        return $this->hasMany(Departament::class)->where('type', Departament::TYPE_DEPOSITO);
+    }
+    public function units()
+    {
         return $this->hasMany(Departament::class);
     }
     public function departments()
