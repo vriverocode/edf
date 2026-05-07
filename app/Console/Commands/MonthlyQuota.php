@@ -5,7 +5,9 @@ namespace App\Console\Commands;
 use App\Models\Departament;
 use App\Models\MonthlyBills;
 use App\Models\Quota;
+use App\Models\User;
 use App\Models\WaterReading;
+use App\Notifications\RealtimeNotification;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -43,6 +45,7 @@ class MonthlyQuota extends Command
 
         foreach ($departaments as $departament) {
             $this->makeQuotaOfMonth($departament, $month, $year, $budgetConfig);
+            
         }
 
         $this->info("Cuotas generadas exitosamente para el periodo $month/$year.");
@@ -91,12 +94,13 @@ class MonthlyQuota extends Command
                 // 3. Monto Total
                 $totalAmount = $maintenanceAmount + $waterAmount;
 
-                Quota::create([
+                // Asignamos la creación a la variable $quota
+                $quota = Quota::create([
                     'departament_id'     => $departament->id,
-                    'water_reading_id'   => $waterReadingId, // ID para el desglose detallado
-                    'maintenance_amount' => $maintenanceAmount, // Desglose mantenimiento
-                    'water_amount'       => $waterAmount,       // Desglose agua
-                    'amount'             => $totalAmount,        // Suma final
+                    'water_reading_id'   => $waterReadingId, 
+                    'maintenance_amount' => $maintenanceAmount, 
+                    'water_amount'       => $waterAmount,       
+                    'amount'             => $totalAmount,        
                     'number'             => 'A' . substr($departament->number, -3) . '-' . $month . rand(1000, 9999),
                     'month'              => $month,
                     'due_date'           => $year . '-' . $month . '-10',
@@ -104,6 +108,11 @@ class MonthlyQuota extends Command
                     'description'        => 'Cuota mensual: ' . $this->labelMonth($month) . ' ' . $year,
                     'status'             => 1
                 ]);
+
+                // Disparamos la notificación
+                if ($quota) {
+                    $this->sendNotifications($quota);
+                }
 
             } catch (Exception $th) {
                 Log::error("Error generando cuota para departamento {$departament->id}: " . $th->getMessage());
@@ -117,5 +126,31 @@ class MonthlyQuota extends Command
             ->where('month', $month)
             ->whereYear('created_at', $year) // O usar una columna 'year' si la tienes
             ->exists();
+    }
+    private function sendNotifications($quota)
+    {
+        $year = date('Y');
+        $users = [
+            "client" => User::find($quota->departament->user_id),
+        ];
+        $dataNotificaction = [
+            "title" => "Cuota general mes: ".$this->labelMonth($quota->month),
+            "message" => "Hola, te hacemos llegar la cuota de mantenimiento por el mes: " . $this->labelMonth($quota->month) . ' ' . $year
+                . ". Por favor mantenerse al día",
+            "url" => "/client/quota/pay/" . $quota->id,
+            "meta" =>  ['quota_id' => $quota->id, 'color'=>'amber-8'],
+        ];
+
+        try {            
+            $users["client"]->notify(new RealtimeNotification(
+                title: $dataNotificaction["title"],
+                message: $dataNotificaction["message"],
+                url: $dataNotificaction["url"],
+                meta: $dataNotificaction["meta"],
+            ));
+        } catch (\Throwable $e) {
+            Log::error("Error generando cuota para departamento 00: " . $e->getMessage());
+
+        }
     }
 }

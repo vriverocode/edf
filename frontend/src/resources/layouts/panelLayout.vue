@@ -31,7 +31,7 @@ const goBack = () => {
 }
 onMounted(() => {
   if (emitter) emitter.on('logoutModal', () => { showModal.value = 'logout' })
-  useAuthStore().currentUser()
+    useAuthStore().currentUser()
     .then((response) => {
 
       if (user.value.rol_id) {
@@ -83,15 +83,34 @@ watch(() => notificationsStore.lastIncoming, (notif) => {
   // Si es cliente y es una notificación de "Reserva creada", NO mostrar toast
   const isClient = user.value?.rol_id && user.value.rol_id != 1
   const title = notif.title || notif?.data?.title
+  const color = notif?.meta?.color || notif?.data?.meta.color
   const message = notif.message || notif?.data?.message || 'Nueva notificación recibida'
 
   if (isClient && title === 'Reserva creada') {
     return
   }
 
+  useAuthStore().currentUser()
+    .then((response) => {
+
+      if (user.value.rol_id) {
+        ready.value = true
+        getNotifications()
+        PushNotificationsService.init();
+      } else {
+        throw response
+      }
+
+    })
+    .catch(() => {
+      console.log('ups')
+      storage.deleteItem("access_token");
+      router.push('/login')
+    })
+
   $q.notify({
     classes: 'q-mt-lg',
-    color: 'primary',
+    color: color ?? 'primary',
     message: `${title ? title + '' : ''}`,
     icon: 'eva-bell-outline',
     position: 'top-right'

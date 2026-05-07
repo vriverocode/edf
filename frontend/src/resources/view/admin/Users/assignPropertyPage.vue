@@ -118,7 +118,7 @@ onMounted(loadData);
                             </g>
                           </svg>
 
-                          <span class="font-medium"> Piso {{ apartment.floor }}</span>
+                          <span class="font-medium"> Piso {{ apartment?.floor || '--' }}</span>
                         </div>
                       </div>
                     </div>
@@ -153,7 +153,7 @@ onMounted(loadData);
                       </div>
                       <div class="flex my-2">
                         <div class="text-black font-medium">Tipo:</div>
-                        <div class="ml-1 text-black font-medium">{{ 'Departamento' }}</div>
+                        <div class="ml-1 text-black font-medium">{{ apartment.type_label}}</div>
                       </div>
                       <div class="flex my-2">
                         <div class="text-black font-medium">Nro interno:</div>

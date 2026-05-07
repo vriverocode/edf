@@ -9,8 +9,8 @@ import { computed } from 'vue';
 const { user } = storeToRefs(useAuthStore())
 const hasQuotasPending = computed(() => {
   let quotas = 0;
-  user.value.apartaments.forEach(apartament => {
-    quotas += apartament.pending_quotas_count;
+  user.value.units.forEach(unit => {
+    quotas += unit.pending_quotas_count;
   });
   return quotas;
 })
@@ -30,7 +30,7 @@ const menu = [
     title: 'Cuotas / Mantenimiento ',
     icon: iconsApp.contract,
     link: '/client/balance/list',
-    badgePay: hasQuotasPending,
+    badgePay: hasQuotasPending.value > 0,
   },
 
 

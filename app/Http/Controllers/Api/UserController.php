@@ -252,7 +252,7 @@ class UserController extends Controller
     {
         $owners = User::with('rol')
             ->where('rol_id', Rol::PROPIETARIO)
-            ->whereDoesntHave('apartaments')
+            // ->whereDoesntHave('apartaments')
             ->orderBy('name', 'asc')
             ->get();
 

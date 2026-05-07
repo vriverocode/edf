@@ -142,7 +142,7 @@ onMounted(() => {
 
         <div v-else class="pt-3 md:px-5 pb-8" style="height: 83%; overflow:auto">
           <template v-if="bills.length > 0">
-            <div class="space-y-0">
+            <div class="">
               <div
                 v-for="bill in bills"
                 :key="bill.id"

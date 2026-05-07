@@ -82,7 +82,7 @@ const assignNewOwner = async () => {
       idApartament: selectedApartment.value.id,
       user: selectedOwner.value
     }
-    const response = await apartmentStore.assignApartment(payload)
+    const response = await apartmentStore.assignProperty(payload)
     if (response.code !== 200) throw response
     Notify.create({
       type: 'positive',
@@ -91,6 +91,7 @@ const assignNewOwner = async () => {
     changeOwnerModal.value = false
     getApartment()
   } catch (error) {
+    console.log(error)
     Notify.create({
       type: 'negative',
       message: typeof error === 'string' ? error : 'No se pudo asignar el propietario'
@@ -114,7 +115,7 @@ onMounted(() => { getApartment() })
 
 <template>
   <div class="h-full" style="overflow: auto;">
-    <div class="px-4 md:px-0 md:flex md:justify-between items-center w-full md:w-6/6 mt-5 md:mx-5">
+    <div class="px-4 md:px-0 md:flex md:justify-between items-center w-full md:w-6/6 mt-5 md:px-28 ">
       <div class="w-full md:w-1/3 mb-4 md:mb-0">
         <q-select dense borderless v-model="unitType" :options="unitTypesOptions" emit-value map-options
           class="form__inputsTypeDepart" />
@@ -129,7 +130,7 @@ onMounted(() => { getApartment() })
         </q-btn>
       </div>
     </div>
-    <div class="mt-5 md:mt-8 px-2 md:mx-24  pb-5" style="overflow: auto;" v-if="ready">
+    <div class="mt-5 md:mt-8 px-2 md:px-28  pb-5" style="overflow: auto;" v-if="ready">
       <template v-if="apartments.length > 0">
         <div class="px-2 pt-3 mt-4  apartamentContainer relative" style="" v-for="apartment in apartments"
           :key="apartment.id">
@@ -144,9 +145,11 @@ onMounted(() => { getApartment() })
               <div class="mt-1 ellipsis w-full" style="font-weight: 500; font-size: 0.89rem;">
                 Ubicación: {{ apartment.address }}
               </div>
-              <div class="mt-1" style="font-weight: 500; font-size: 0.89rem;">
-                Area: {{ apartment.area }} mt²
-              </div>
+              <template v-if="apartment.type == 1">
+                <div class="mt-1" style="font-weight: 500; font-size: 0.89rem;">
+                  Area: {{ apartment.area }} mt²
+                </div>
+              </template>
               <div class="mt-1" style="font-weight: 500; font-size: 0.89rem;">
                 % Participación: {{ apartment.participation_percentage }}%
               </div>
@@ -191,19 +194,19 @@ onMounted(() => { getApartment() })
     <q-dialog v-model="changeOwnerModal" persistent>
       <q-card style="min-width: 320px; width: 95%; max-width: 480px;">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Cambiar propietario</div>
+          <div class="text-h6">Asignar/Cambiar propietario</div>
         </q-card-section>
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm" v-if="selectedApartment">
-            Departamento #{{ selectedApartment.number }}
+            Unidad #{{ selectedApartment.number }}
           </div>
-          <q-select v-model="selectedOwner" :options="ownersWithoutApartment" option-label="name" option-value="id"
-            emit-value map-options outlined dense label="Propietario disponible" :loading="modalLoading"
-            :disable="modalLoading" no-option-label="No hay propietarios sin apartamento" />
+            <q-select dense borderless v-model="selectedOwner" :options="ownersWithoutApartment" option-label="name" option-value="id" emit-value map-options
+          class="form__inputsTypeDepart" :loading="modalLoading"
+          :disable="modalLoading" no-option-label="No hay propietarios sin apartamento"/>
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup :disable="modalLoading" />
-          <q-btn color="primary" label="Guardar cambio" :loading="modalLoading" @click="assignNewOwner" />
+          <q-btn flat no-caps label="Cancelar" color="grey-7" v-close-popup :disable="modalLoading" />
+          <q-btn color="primary" no-caps label="Guardar cambio" :loading="modalLoading" @click="assignNewOwner" />
         </q-card-actions>
       </q-card>
     </q-dialog>

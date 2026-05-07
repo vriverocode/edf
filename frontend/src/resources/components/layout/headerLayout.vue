@@ -42,11 +42,13 @@ watch(route, (newRoute) => {
 
 const hasPendingToPay = computed(() => {
   let quotas = 0;
-  user.value.apartaments.forEach(apartament => {
-    quotas += apartament.pending_quotas_count;
+  user.value.units.forEach(unit => {
+    quotas += unit.pending_quotas_count;
   });
   return quotas;
 })
+
+
 onMounted(() => {
   emitter.on('pagTitle', changePagTitle)
   emitter.on('isReserve', setReserveData)
@@ -67,14 +69,16 @@ onMounted(() => {
             <div class="mant-title" style="font-weight:400; ">¡Hola!</div>
             <div class="text-nameHeader" style="">{{ user.name }}</div>
           </div>
-          <div class="text-white" v-if="ifOwner">
+          <div class="text-white" v-if="ifOwner && hasPendingToPay > 0">
 
-            <div class="mant-title">Mantenimiento Febrero</div>
-            <div class="text-amtHeader" style="">{{user.currency_symbol}} {{user.apartaments[0].pending_amount_quota}}</div>
+            <div class="mant-title">Mantenimiento</div>
+            <div class="text-amtHeader" style="">{{user.currency_symbol}} 
+              
+              {{user.total_peding_quotas}}
+            
+            </div>
           </div>
-          <div>
 
-          </div>
         </template>
         <template v-if="!isHomePage && !reserveAreaActive">
           <div class=" text-pagtitle text-white">
@@ -84,8 +88,10 @@ onMounted(() => {
 
       </div>
       <div class="flex items-start">
-        <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader"
-          :class="{ 'mt-8 h-20 md:h-32': isHomePage, 'mt-5 h-20': !isHomePage }">
+        <div class="flex items-end h-full">
+          <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader mb-2"
+          :class="{ 'h-20 md:h-32': isHomePage, 'h-20': !isHomePage }">
+        </div>
         <div class="relative pt-2" @click="router.push({ name: 'notificationsPage' })">
           <q-badge class="badgeNotificationCount " v-if="notificationsStore.unreadCount > 0" color="red"
             :label="notificationsStore.unreadCount" />

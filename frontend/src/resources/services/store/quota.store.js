@@ -85,6 +85,24 @@ export const useQuotaStore = defineStore('Quota', {
         
       })
     },
+    async getQuotaByMonth(month) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.get('/api/quotas/byMonth/'+month)
+        .then(({data}) => {
+          if(data.code !=200) throw data;
+  
+          resolve(data);
+        }).catch(( {response}) => {
+          console.log(response)
+          reject(response.data.error);
+        });
+        
+      })
+    },
     async getClientWaterDetailByQuotaId(id) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {

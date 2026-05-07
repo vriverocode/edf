@@ -80,9 +80,11 @@ onMounted(() => {
   <div class="md:px-32 px-2 pb-12 h-full" style="overflow: auto; ">
     <q-card flat bordered class="q-mb-md">
       <q-card-section>
-        <div class="text-h6 text-weight-bold">Propietario del departamento</div>
+        <div class="text-h6 text-weight-bold">Propietario del {{apartment?.type_label}}</div>
         <div class="text-subtitle2 q-mt-xs" v-if="apartment">
-          Departamento #{{ apartment.number }} - {{ apartment.address }}
+          Unidad #{{ apartment.number }}  <template v-if="apartment.type == 1">
+            - {{ apartment.address }}
+          </template>
         </div>
       </q-card-section>
       <q-separator />

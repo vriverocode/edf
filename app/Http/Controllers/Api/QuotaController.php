@@ -29,6 +29,59 @@ class QuotaController extends Controller
      */
     public function index(Request $request)
     {
+        $query = Quota::with(["pay", "departament.owner"])->orderBy('created_at', 'desc');
+
+        // Filtrar por usuario si no es admin
+        if ($request->user()->id != 1) {
+            $query->whereHas('departament', function ($q) use ($request) {
+                $q->where('user_id', $request->user()->id);
+            });
+        }
+
+        // Obtenemos todas las cuotas planas
+        $quotas = $query->get();
+
+        // Agrupamos usando Colecciones de Laravel
+        $groupedQuotas = $quotas->groupBy(function ($quota) {
+            // Creamos una llave única para agrupar: "ID_USUARIO - MES - AÑO"
+            $userId = $quota->departament->user_id ?? '0';
+            $year = date('Y', strtotime($quota->due_date));
+            return $userId . '_' . $quota->month . '_' . $year;
+            
+        })->map(function ($group) {
+            // $group contiene todas las cuotas de ese mes para ese usuario (Depa, Estacionamiento, etc.)
+            $firstQuota = $group->first();
+            $owner = $firstQuota->departament->owner;
+
+            return [
+                // Generamos un ID virtual uniendo los IDs (útil para el :key en Vue)
+                'id' => 'group-' . $group->pluck('id')->join('-'),
+                
+                // Datos generales de la cuota agrupada
+                'month' => $firstQuota->month,
+                'due_date' => $firstQuota->due_date,
+                'description' => 'Cuota Consolidada (' . $group->count() . ' unidades asignadas)',
+                'owner_name' => $owner ? $owner->name : 'Desconocido',
+                
+                // Sumamos los montos automáticamente
+                'maintenance_amount' => $group->sum('maintenance_amount'),
+                'water_amount' => $group->sum('water_amount'),
+                'amount' => $group->sum('amount'), // Total final a pagar
+                
+                // Lógica de Status: Si AL MENOS UNA cuota del grupo está pendiente (status 1), 
+                // marcamos todo el bloque como pendiente. Si no, asumimos que está pagado (status 2).
+                'status' => $group->contains('status', 1) ? 1 : 2,
+
+                // Guardamos las cuotas originales por si la vista necesita desglosar
+                'details' => $group->values()->all(),
+            ];
+        })->values(); // values() resetea las llaves del array para que el JSON quede limpio
+
+        // Retornamos la data agrupada
+        return $this->returnSuccess(200, $groupedQuotas);
+    }
+    public function byMonth(Request $request, $month)
+    {
         //
         $quotas = Quota::with(["pay", "departament.owner"])->orderBy('created_at', 'desc');
 
@@ -42,7 +95,7 @@ class QuotaController extends Controller
         // Aplicar filtros
         // $this->applyPaysFilter($quotas, $request);
 
-        return $this->returnSuccess(200, $quotas->get());
+        return $this->returnSuccess(200, $quotas->where('month',$month)->get());
     }
 
     /**
@@ -58,44 +111,93 @@ class QuotaController extends Controller
      */
     public function show(string $id)
     {
-        $quota = Quota::with([
-            "pay",
+        $baseQuota = Quota::with("departament")->findOrFail($id);
+        $userId = $baseQuota->departament->user_id;
+        $month = $baseQuota->month;
+        $year = Carbon::parse($baseQuota->due_date)->year;
+
+        $quotas = Quota::with([
             "departament.owner",
             "waterReading:id,month,year,previous_reading,current_reading,m3_price"
-        ])->findOrFail($id);
+        ])->whereHas('departament', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })
+        ->where('month', $month)
+        ->whereYear('due_date', $year)
+        ->get();
 
-        $month = $quota->waterReading?->month ?? $quota->month;
-        $year = $quota->waterReading?->year;
+        $monthlyBill = MonthlyBills::query()
+            ->select('id', 'total_maintenance_budget', 'water_price_per_m3')
+            ->where('month', $month)
+            ->where('year', $year)
+            ->latest('id')
+            ->first();
 
-        if (!$year && $quota->due_date) {
-            $year = Carbon::parse($quota->due_date)->year;
-        }
+        $totalMaintenance = 0;
+        $totalWater = 0;
+        $totalAmount = 0;
+        $totalParticipation = 0;
+        $waterConsumptionM3 = 0;
+        $waterPricePerM3 = $monthlyBill?->water_price_per_m3 ?? 0;
+        
+        $quotaIds = [];
+        $descriptionLines = [];
+        $breakdown = []; // <-- NUEVO: Array para guardar el detalle por unidad
 
-        $monthlyBill = null;
-        if ($month && $year) {
-            $monthlyBill = MonthlyBills::query()
-                ->select('id', 'total_maintenance_budget', 'water_price_per_m3')
-                ->where('month', $month)
-                ->where('year', $year)
-                ->latest('id')
-                ->first();
-        }
+        foreach ($quotas as $q) {
+            $totalMaintenance += $q->maintenance_amount;
+            $totalWater += $q->water_amount;
+            $totalAmount += $q->amount;
+            $totalParticipation += $q->departament?->participation_percentage ?? 0;
+            $quotaIds[] = $q->id;
 
-        $waterConsumptionM3 = null;
-        if ($quota->waterReading) {
-            $waterConsumptionM3 = max(
-                0,
-                (float) $quota->waterReading->current_reading - (float) $quota->waterReading->previous_reading
+            $waterM3 = 0;
+            if ($q->waterReading) {
+                $waterM3 = max(0, (float) $q->waterReading->current_reading - (float) $q->waterReading->previous_reading);
+                $waterConsumptionM3 += $waterM3;
+                $waterPricePerM3 = $q->waterReading->m3_price ?? $waterPricePerM3;
+            }
+
+            // <-- NUEVO: Llenamos el array de desglose
+            $breakdown[] = [
+                'id' => $q->id,
+                'unit_type' => $q->departament->type ?? 1,
+                'unit_number' => $q->departament->number,
+                'maintenance_amount' => $q->maintenance_amount,
+                'water_amount' => $q->water_amount,
+                'water_consumption_m3' => $waterM3,
+                'amount' => $q->amount,
+                'participation' => $q->departament->participation_percentage
+            ];
+
+            $unitType = match ((int) ($q->departament->type ?? 1)) {
+                2 => 'Estacionamiento',
+                3 => 'Deposito',
+                default => 'Departamento',
+            };
+
+            $descriptionLines[] = sprintf(
+                '%s %s: Mantenimiento %.2f | Agua %.2f | Total %.2f',
+                $unitType,
+                $q->departament->number,
+                (float) $q->maintenance_amount,
+                (float) $q->water_amount,
+                (float) $q->amount
             );
         }
 
-        $quotaData = $quota->toArray();
+        $quotaData = $baseQuota->toArray();
+        $quotaData['maintenance_amount'] = $totalMaintenance;
+        $quotaData['water_amount'] = $totalWater;
+        $quotaData['amount'] = $totalAmount;
         $quotaData['water_consumption_m3'] = $waterConsumptionM3;
-        $quotaData['water_price_per_m3'] = $monthlyBill?->water_price_per_m3 ?? $quota->waterReading?->m3_price;
-        $quotaData['water_reading_id'] = $quota->water_reading_id;
-        $quotaData['maintenance_participation_percentage'] = $quota->departament?->participation_percentage;
+        $quotaData['water_price_per_m3'] = $waterPricePerM3;
+        $quotaData['maintenance_participation_percentage'] = $totalParticipation;
         $quotaData['maintenance_budget_total'] = $monthlyBill?->total_maintenance_budget;
         $quotaData['monthly_bill_id'] = $monthlyBill?->id;
+        $quotaData['consolidated_ids'] = $quotaIds;
+        $quotaData['description'] = implode("\n", $descriptionLines);
+        $quotaData['breakdown'] = $breakdown; // <-- NUEVO: Lo pasamos al front
 
         return $this->returnSuccess(200, $quotaData);
     }

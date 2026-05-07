@@ -675,6 +675,18 @@ const routes = [
         },
       },
       {
+        path: '/client/quota/details/month/:month',
+        component: () => import('@/view/client/Quotas/allDetailQuotaByMonth.vue'),
+
+        name: 'quotaDeailByMonth',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalles de cuotas',
+          depth: 3,
+        },
+      },
+      {
         path: '/client/quota/water-detail/:id',
         component: () => import('@/view/client/Payments/waterDetailClient.vue'),
         name: 'quotaWaterDetailClient',

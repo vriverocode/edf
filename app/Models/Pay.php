@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pay extends Model
 {
@@ -24,7 +25,7 @@ class Pay extends Model
         "pay_method",
         "status"
     ];
-    public $appends  =   ["status_label", "status_color", "status_icon", "pay_method_label", "title_pay"];
+    public $appends  =   ["status_label", "status_color", "status_icon", "title_pay"];
 
     public function booking(): BelongsTo
     {
@@ -38,6 +39,14 @@ class Pay extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function payMethod(): BelongsTo
+    {
+        return $this->belongsTo(PayMethod::class, 'pay_method');
+    }
+    public function transactions(): HasOne
+    {
+        return $this->hasOne(Transaction::class);
+    }
     public function getStatusLabelAttribute()
     {
         $status = [
@@ -46,16 +55,6 @@ class Pay extends Model
             "Exitoso"
         ];
         return  $status[$this->status];
-    }
-    public function getPayMethodLabelAttribute()
-    {
-        $payMethod = [
-            '',
-            "Transferencia bancaria",
-            "Yape",
-            "Pago en efectivo"
-        ];
-        return  $payMethod[$this->pay_method];
     }
     public function getTitlePayAttribute()
     {

@@ -24,7 +24,11 @@ const myLocale = {
   pluralDay: 'dias'
 }
 
-
+const getUnitInfo = (type) => {
+  if(type === 2) return { name: 'Estacionamiento', icon: '🚗' };
+  if(type === 3) return { name: 'Depósito', icon: '📦' };
+  return { name: 'Departamento', icon: '🏢' };
+}
 const route = useRoute()
 const router = useRouter()
 const reserveStore = useReserveStore()
@@ -81,8 +85,23 @@ const waterDetailsLink = computed(() => (
   toPay.value?.id ? `/client/quota/water-detail/${toPay.value.id}` : null
 ))
 const maintenanceDetailsLink = computed(() => (
-  toPay.value?.id ? `/client/quota/maintenance-detail/${toPay.value.id}` : null
+  toPay.value?.id ? `/client/quota/details/month/${toPay.value.month}` : null
 ))
+const quotaBreakdown = computed(() => {
+  const rows = Array.isArray(toPay.value?.breakdown) ? toPay.value.breakdown : []
+  return rows.map((item) => {
+    const info = getUnitInfo(Number(item?.unit_type ?? 1))
+    return {
+      quotaId: item?.id ?? '-',
+      unitLabel: `${info.name} ${item?.unit_number ?? '-'}`,
+      participation: safeAmount(item?.participation),
+      waterM3: safeAmount(item?.water_consumption_m3),
+      waterAmount: safeAmount(item?.water_amount),
+      maintenanceAmount: safeAmount(item?.maintenance_amount),
+      totalAmount: safeAmount(item?.amount),
+    }
+  })
+})
 const amountPrefix = computed(() => currencySymbol.value || 'S/')
 
 // pay_method 1=Tarjeta, 2=Transferencia, 3=Otros
@@ -143,6 +162,7 @@ const getPayMethodsAvailables = () => {
 }
 
 const nextStep = () => {
+  if(!validateForm()) return
   if (step.value == 3 || (step.value == 2 && payFormData.value.pay_method == 3)) {
     createPay()
     return
@@ -197,7 +217,14 @@ const selectPayMethod = (value) => {
 const onFileChange = () => {
   if (payFormData.value.reference) disable.value = false
 }
-
+const validateForm = () => {
+  if(step.value == 3 ){
+    !payFormData.value.vaucher
+      ? showNotify('negative', 'Debes subir el comprobante') : ''
+    return payFormData.value.vaucher ? true : false
+  }
+  return true
+}
 
 const showNotify = (type, text) => {
   Notify.create({
@@ -215,6 +242,8 @@ const createPay = () => {
     ? quotaStore.createQuotaPay
     : reserveStore.createReservePay
 
+
+  
   const dataForm = dataToForm()
   loading.value = true
 
@@ -304,7 +333,7 @@ watch(step, (toStep, fromStep) => {
                 </div>
 
                 <div class="pay-form-breakdown mt-3" v-if="isQuotaPayment">
-                  <div class="pb-1" style="border-bottom: 1px solid lightgrey">
+                  <div class="pb-1" >
                     <div class="pay-form-breakdown__detail">
                       <span>Consumo:</span>
                       <span>{{ waterConsumptionM3.toFixed(2) }} m3</span>
@@ -319,7 +348,31 @@ watch(step, (toStep, fromStep) => {
                     </div>
                   </div>
                 
-                  <div class="pt-1" >
+                  <div class="pt-1" v-if="quotaBreakdown.length">
+                    <div
+                      v-for="item in quotaBreakdown"
+                      :key="`quota-breakdown-inline-${item.quotaId}`"
+                      class="py-2 mt-2"
+                      style="border-bottom: 1px solid #e5e7eb;"
+                    >
+                      <div class="flex justify-center w-full pb-1 ">
+                        <div class="text-bold text-subtitle1">{{ item.unitLabel }}</div>
+                      </div>
+                      <div class="pay-form-breakdown__detail">
+                        <span>% Participación:</span>
+                        <span>{{ item.participation.toFixed(2) }} %</span>
+                      </div>
+                      <div class="pay-form-breakdown__detail mt-1">
+                        <span>Monto</span>
+                        <span>{{ amountPrefix }} {{ item.maintenanceAmount.toFixed(2) }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pt-4">
+                    <div class="text-h6 text-bold pb-2">
+                      Total:
+                    </div>
                     <div class="pay-form-breakdown__detail">
                       <span>% Participación:</span>
                       <span>{{ maintenanceParticipation.toFixed(2)}} %</span> 
@@ -332,7 +385,6 @@ watch(step, (toStep, fromStep) => {
                       <span>Mantenimiento</span>
                       <span>{{ amountPrefix }} {{ maintenanceAmount.toFixed(2) }}</span>
                     </div>
-
                   </div>
                 </div>
 
@@ -355,7 +407,7 @@ watch(step, (toStep, fromStep) => {
                   PAGAR
                 </q-btn>
               </div>
-            </Transition>
+            </Transition> 
             <Transition :name="transitionName">
               <div v-if="step === 2" class="pay-form-step-wrapper">
                 <div class="pay-form-step-content">
@@ -458,7 +510,7 @@ watch(step, (toStep, fromStep) => {
                         <div class="row mt-1">
                           <div class="col-12 mt-0">
                             <div class="md:pr-4">
-                              <q-input v-model="payFormData.date" label="Fecha de pago"
+                              <q-input v-model="payFormData.date" 
                                 :rules="[val => !(!val) || 'Fecha es requerida']" dense borderless clearable
                                 class="form__inputsPay mt-1" color="primary" accept=".jpg, image/*">
                                 <template v-slot:append>
@@ -478,7 +530,7 @@ watch(step, (toStep, fromStep) => {
                           </div>
                           <div class="col-12 mt-2">
                             <div class="md:pr-4">
-                              <q-input dense borderless clearable v-model="payFormData.reference" label="Referencia de pago"
+                              <q-input dense borderless clearable v-model="payFormData.reference" 
                                 class="form__inputsPay mt-1" :maxlength="12" color="primary"
                                 :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']" />
                             </div>

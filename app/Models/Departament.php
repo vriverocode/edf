@@ -16,10 +16,11 @@ class Departament extends Model
     const TYPE_DEPARTAMENTO = 1;
     const TYPE_ESTACIONAMIENTO = 2;
     const TYPE_DEPOSITO = 3;
-    public $appends  =   ["inter_number", "pending_amount_quota"];
+    public $appends  =   ["inter_number", "pending_amount_quota", "type_label"];
 
     protected $fillable = [
         'number',
+        'type',
         'address',
         'block',
         'area',
@@ -54,6 +55,16 @@ class Departament extends Model
     }
     public function pendingQuotas() {
         return $this->hasMany(Quota::class, 'departament_id')->where('status','!=', 3);
+    }
+    public function getTypeLabelAttribute()
+    {
+        $type = [
+            "",
+            "Departamento",
+            "Estacionamiento",
+            "Deposito",
+        ];
+        return  $type[$this->type];
     }
     protected function pendingAmountQuota(): Attribute
     {

@@ -30,12 +30,13 @@ Route::middleware('auth:sanctum')->group(function () {
     //--- Login/Auth ---
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        $user = $request->user()->load(['rol',  'apartaments' => function ($query) {
-            $query->withCount('pendingQuotas');
+        $user = $request->user()->load(['rol',  'units' => function ($query) {
+            $query->withCount('pendingQuotas')->withSum('pendingQuotas', 'amount');
         }]);
 
         $currency = Currency::first();
 
+        $user->total_peding_quotas = $user->units->sum('pending_quotas_sum_amount');
         $userData = $user->toArray();
         $userData['currency'] = $currency?->id ?? 1;
         $userData['currency_symbol'] = $currency?->symbol ?? 'S/';
@@ -54,7 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/temporary-or-resident', [UserController::class, 'storeResidentUser']);
 
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment']);
-        Route::post('/assign-property', [DepartamentController::class, 'assignProperty']);
+        Route::post('/assign-property', [DepartamentController::class, 'assingApartment']);
         Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin']);
         Route::get('/with-publish', [UserController::class, 'getAllUserWithPublish']);
     });
@@ -128,7 +129,10 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::prefix('quotas')->name('quota.')->group(function () {
         Route::get('/', [QuotaController::class, 'index']);
+        Route::get('/byMonth/{id}', [QuotaController::class, 'byMonth']);
+
         Route::get('/byId/{id}', [QuotaController::class, 'show']);
+        
         Route::get('/client-water-detail/{id}', [QuotaController::class, 'clientWaterDetail']);
         Route::get('/client-maintenance-detail/{id}', [QuotaController::class, 'clientMaintenanceDetail']);
     });

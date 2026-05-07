@@ -67,6 +67,8 @@ const getNotificationIcon = (item) => {
     return 'eva-credit-card-outline'
   } else if (title.includes('service') || title.includes('servicio')) {
     return 'eva-settings-outline'
+  } else if (title.includes('quota') || title.includes('cuota')) {
+    return 'eva-calendar-outline'
   }
   return item?.data?.meta?.icon || 'eva-bell-outline'
 }
@@ -81,6 +83,8 @@ const getNotificationIconColor = (item) => {
     return 'red'
   } else if (title.includes('service') || title.includes('servicio')) {
     return 'primary'
+  } else if (title.includes('quota') || title.includes('cuota')) {
+    return 'amber-8'
   }
   return item.read_at ? 'grey' : 'primary'
 }

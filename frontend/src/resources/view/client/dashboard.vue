@@ -2,6 +2,8 @@
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/services/store/auth.services';
 import { useRouter } from 'vue-router';
+import { computed, watch } from 'vue'; // Agregamos watch aquí
+
 import anuncios from '@/assets/img/menu/anuncios.svg'
 import atencion from '@/assets/img/menu/atencion.svg'
 import mi_departamento from '@/assets/img/menu/mi_departamento.svg'
@@ -9,24 +11,32 @@ import mis_reservas from '@/assets/img/menu/mis_reservas.svg'
 import defaulticon from '@/assets/img/menu/default-dash.svg'
 import pagos from '@/assets/img/menu/pagos.svg'
 import eventos from '@/assets/img/menu/eventos.svg'
-import { computed } from 'vue';
 
 const { user } = storeToRefs(useAuthStore());
 const router = useRouter();
+
 const hasQuotasPending = computed(() => {
   let quotas = 0;
-  user.value.apartaments.forEach(apartament => {
-    quotas += apartament.pending_quotas_count;
-  });
+  if (user.value && user.value.units) {
+    user.value.units.forEach(unit => {
+      quotas += unit.pending_quotas_count;
+    });
+  }
   return quotas;
 })
-const menu = [
 
+// // Opcional: El watcher explícito si necesitas ejecutar lógica secundaria
+// watch(user, (newVal) => {
+//   console.log('Datos del usuario actualizados', newVal);
+// }, { deep: true });
+
+// // Convertimos el menú en un 'computed' para que badgePay reaccione a los cambios
+const menu = computed(() => [
   {
     title: 'Mi Departamento',
     icon: mi_departamento,
     link: '/client/department/options',
-    badgePay: hasQuotasPending,
+    badgePay: hasQuotasPending.value > 0, 
     roles: [2]
   },
   {
@@ -47,7 +57,6 @@ const menu = [
     link: '/client/events',
     roles: [2, 3, 4]
   },
-
   {
     title: 'Anuncios',
     icon: anuncios,
@@ -70,18 +79,18 @@ const menu = [
     link: '/client/familiar/list',
     roles: [2]
   },
-];
+]);
+
 const menuByRol = computed(() => {
-  const rol = user.value?.rol_id
-  return menu.filter(item => !item.roles || item.roles.includes(rol))
+  const rol = user.value?.rol_id;
+  return menu.value.filter(item => !item.roles || item.roles.includes(rol));
 })
-
-
 
 const goTo = (url) => {
   router.push(url)
 }
 </script>
+
 <template>
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-2  md:px-20" style="overflow-y: auto; max-height: 100%;">
