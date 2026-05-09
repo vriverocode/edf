@@ -30,9 +30,10 @@ class QuotaController extends Controller
     public function index(Request $request)
     {
         $query = Quota::with(["pay", "departament.owner"])->orderBy('created_at', 'desc');
+        $isAdmin = (int) $request->user()->id === 1;
 
         // Filtrar por usuario si no es admin
-        if ($request->user()->id != 1) {
+        if (!$isAdmin) {
             $query->whereHas('departament', function ($q) use ($request) {
                 $q->where('user_id', $request->user()->id);
             });
@@ -42,16 +43,24 @@ class QuotaController extends Controller
         $quotas = $query->get();
 
         // Agrupamos usando Colecciones de Laravel
-        $groupedQuotas = $quotas->groupBy(function ($quota) {
-            // Creamos una llave única para agrupar: "ID_USUARIO - MES - AÑO"
-            $userId = $quota->departament->user_id ?? '0';
+        $groupedQuotas = $quotas->groupBy(function ($quota) use ($isAdmin) {
             $year = date('Y', strtotime($quota->due_date));
+            if ($isAdmin) {
+                // Agrupación global por mes para admin.
+                return $year . '_' . $quota->month;
+            }
+
+            // Agrupación por usuario + mes + año para cliente.
+            $userId = $quota->departament->user_id ?? '0';
             return $userId . '_' . $quota->month . '_' . $year;
             
-        })->map(function ($group) {
+        })->map(function ($group) use ($isAdmin) {
             // $group contiene todas las cuotas de ese mes para ese usuario (Depa, Estacionamiento, etc.)
             $firstQuota = $group->first();
             $owner = $firstQuota->departament->owner;
+            $year = date('Y', strtotime($firstQuota->due_date));
+            $isPending = $group->contains('status', 1);
+            $totalAmount = $group->sum('amount');
 
             return [
                 // Generamos un ID virtual uniendo los IDs (útil para el :key en Vue)
@@ -59,18 +68,22 @@ class QuotaController extends Controller
                 
                 // Datos generales de la cuota agrupada
                 'month' => $firstQuota->month,
+                'year' => (int) $year,
                 'due_date' => $firstQuota->due_date,
-                'description' => 'Cuota Consolidada (' . $group->count() . ' unidades asignadas)',
+                'description' => $isAdmin
+                    ? 'Cuota Consolidada Global (' . $group->count() . ' cuotas emitidas)'
+                    : 'Cuota Consolidada (' . $group->count() . ' unidades asignadas)',
                 'owner_name' => $owner ? $owner->name : 'Desconocido',
                 
                 // Sumamos los montos automáticamente
                 'maintenance_amount' => $group->sum('maintenance_amount'),
                 'water_amount' => $group->sum('water_amount'),
-                'amount' => $group->sum('amount'), // Total final a pagar
+                'amount' => $totalAmount, // Total final a pagar
                 
                 // Lógica de Status: Si AL MENOS UNA cuota del grupo está pendiente (status 1), 
                 // marcamos todo el bloque como pendiente. Si no, asumimos que está pagado (status 2).
-                'status' => $group->contains('status', 1) ? 1 : 2,
+                'status' => $isPending ? 1 : 2,
+                'created_at' => optional($group->sortByDesc('created_at')->first())->created_at,
 
                 // Guardamos las cuotas originales por si la vista necesita desglosar
                 'details' => $group->values()->all(),
@@ -82,7 +95,6 @@ class QuotaController extends Controller
     }
     public function byMonth(Request $request, $month)
     {
-        //
         $quotas = Quota::with(["pay", "departament.owner"])->orderBy('created_at', 'desc');
 
         // Filtrar por usuario si no es admin
@@ -92,10 +104,13 @@ class QuotaController extends Controller
             });
         }
 
-        // Aplicar filtros
-        // $this->applyPaysFilter($quotas, $request);
+        $quotas->where('month', $month);
 
-        return $this->returnSuccess(200, $quotas->where('month',$month)->get());
+        if ($request->filled('year')) {
+            $quotas->whereYear('due_date', (int) $request->query('year'));
+        }
+
+        return $this->returnSuccess(200, $quotas->get());
     }
 
     /**

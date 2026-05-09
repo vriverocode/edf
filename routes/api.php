@@ -169,6 +169,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('monthly-bills')->name('monthlyBills.')->group(function () {
         Route::get('/', [MonthlyBillsController::class, 'index']);
+        Route::get('/exists-for-period', [MonthlyBillsController::class, 'existsForPeriod']);
         Route::get('/byId/{id}', [MonthlyBillsController::class, 'show']);
         Route::post('/', [MonthlyBillsController::class, 'store']);
         Route::post('/u/{id}', [MonthlyBillsController::class, 'update']);

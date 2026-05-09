@@ -25,8 +25,8 @@ const myLocale = {
 }
 
 const getUnitInfo = (type) => {
-  if(type === 2) return { name: 'Estacionamiento', icon: '🚗' };
-  if(type === 3) return { name: 'Depósito', icon: '📦' };
+  if (type === 2) return { name: 'Estacionamiento', icon: '🚗' };
+  if (type === 3) return { name: 'Depósito', icon: '📦' };
   return { name: 'Departamento', icon: '🏢' };
 }
 const route = useRoute()
@@ -162,7 +162,7 @@ const getPayMethodsAvailables = () => {
 }
 
 const nextStep = () => {
-  if(!validateForm()) return
+  if (!validateForm()) return
   if (step.value == 3 || (step.value == 2 && payFormData.value.pay_method == 3)) {
     createPay()
     return
@@ -218,7 +218,7 @@ const onFileChange = () => {
   if (payFormData.value.reference) disable.value = false
 }
 const validateForm = () => {
-  if(step.value == 3 ){
+  if (step.value == 3) {
     !payFormData.value.vaucher
       ? showNotify('negative', 'Debes subir el comprobante') : ''
     return payFormData.value.vaucher ? true : false
@@ -235,7 +235,7 @@ const showNotify = (type, text) => {
 }
 
 const goTo = (url) => {
- router.push(url) 
+  router.push(url)
 }
 const createPay = () => {
   const storeToUse = typePay() == 'quota'
@@ -243,7 +243,7 @@ const createPay = () => {
     : reserveStore.createReservePay
 
 
-  
+
   const dataForm = dataToForm()
   loading.value = true
 
@@ -265,7 +265,7 @@ const createPay = () => {
 const formatAllToCopy = () => {
   let dataFormatted = ''
   try {
-    ;(payData.value[payFormData.value.pay_method] || []).forEach(data => {
+    ; (payData.value[payFormData.value.pay_method] || []).forEach(data => {
       if (data.title != 'QR') {
         dataFormatted += (data.title != 'Titular de la cuenta' ? data.value.replaceAll(' ', '') : data.value) + ' '
       }
@@ -333,28 +333,25 @@ watch(step, (toStep, fromStep) => {
                 </div>
 
                 <div class="pay-form-breakdown mt-3" v-if="isQuotaPayment">
-                  <div class="pb-1" >
+                  <div class="pb-1">
                     <div class="pay-form-breakdown__detail">
                       <span>Consumo:</span>
                       <span>{{ waterConsumptionM3.toFixed(2) }} m3</span>
                     </div>
                     <div class="pay-form-breakdown__detail">
                       <span>Precio del m3:</span>
-                      <span> {{ amountPrefix }} {{waterPricePerM3.toFixed(2)}}</span>
+                      <span> {{ amountPrefix }} {{ waterPricePerM3.toFixed(2) }}</span>
                     </div>
-                    <div class="pay-form-breakdown__row mt-2" @click="goTo(waterDetailsLink)" style="text-decoration:underline" >
+                    <div class="pay-form-breakdown__row mt-2" @click="goTo(waterDetailsLink)"
+                      style="text-decoration:underline">
                       <span>Agua</span>
                       <span>{{ amountPrefix }} {{ waterAmount.toFixed(2) }}</span>
                     </div>
                   </div>
-                
+
                   <div class="pt-1" v-if="quotaBreakdown.length">
-                    <div
-                      v-for="item in quotaBreakdown"
-                      :key="`quota-breakdown-inline-${item.quotaId}`"
-                      class="py-2 mt-2"
-                      style="border-bottom: 1px solid #e5e7eb;"
-                    >
+                    <div v-for="item in quotaBreakdown" :key="`quota-breakdown-inline-${item.quotaId}`"
+                      class="py-2 mt-2" style="border-bottom: 1px solid #e5e7eb;">
                       <div class="flex justify-center w-full pb-1 ">
                         <div class="text-bold text-subtitle1">{{ item.unitLabel }}</div>
                       </div>
@@ -375,13 +372,14 @@ watch(step, (toStep, fromStep) => {
                     </div>
                     <div class="pay-form-breakdown__detail">
                       <span>% Participación:</span>
-                      <span>{{ maintenanceParticipation.toFixed(2)}} %</span> 
+                      <span>{{ maintenanceParticipation.toFixed(2) }} %</span>
                     </div>
                     <div class="pay-form-breakdown__detail">
-                      <span>Presupuesto mantenimiento {{ toPay.month_label }}:</span>
+                      <span>Total mantenimiento {{ toPay.month_label }}:</span>
                       <span>{{ amountPrefix }} {{ maintenanceBudget.toFixed(2) }}</span>
                     </div>
-                    <div class="pay-form-breakdown__row mt-2" @click="goTo(maintenanceDetailsLink)" style="text-decoration:underline" >
+                    <div class="pay-form-breakdown__row mt-2" @click="goTo(maintenanceDetailsLink)"
+                      style="text-decoration:underline">
                       <span>Mantenimiento</span>
                       <span>{{ amountPrefix }} {{ maintenanceAmount.toFixed(2) }}</span>
                     </div>
@@ -390,7 +388,8 @@ watch(step, (toStep, fromStep) => {
 
                 <div class="pay-form-amount-box mb-3 mt-4">
                   <span class="pay-form-amount-prefix">{{ amountPrefix }}</span>
-                  <span class="pay-form-amount-value flex flex-center">{{ toPay.amount != null ? Number(toPay.amount).toFixed(2) : '0.00'
+                  <span class="pay-form-amount-value flex flex-center">{{ toPay.amount != null ?
+                    Number(toPay.amount).toFixed(2) : '0.00'
                   }}</span>
                 </div>
 
@@ -403,11 +402,12 @@ watch(step, (toStep, fromStep) => {
                   </button>
                 </div>
 
-                <q-btn class="pay-form-btn-submit" type="submit" :loading="loading" :disable="disable" unelevated no-caps>
+                <q-btn class="pay-form-btn-submit" type="submit" :loading="loading" :disable="disable" unelevated
+                  no-caps>
                   PAGAR
                 </q-btn>
               </div>
-            </Transition> 
+            </Transition>
             <Transition :name="transitionName">
               <div v-if="step === 2" class="pay-form-step-wrapper">
                 <div class="pay-form-step-content">
@@ -425,9 +425,11 @@ watch(step, (toStep, fromStep) => {
                           <div class="text__amountItem">Mes</div>
                           <div class="text__amountItem">{{ toPay.month_label }}</div>
                         </div>
-                        <div class="flex justify-between items-center w-full mt-1" style="border-top: 2px solid #8b8e9446;">
+                        <div class="flex justify-between items-center w-full mt-1"
+                          style="border-top: 2px solid #8b8e9446;">
                           <div class="text__amountTotal">Total</div>
-                          <div class="text__amountTotal">{{ amountPrefix }} {{ Number(toPay.amount || 0).toFixed(2) }}</div>
+                          <div class="text__amountTotal">{{ amountPrefix }} {{ Number(toPay.amount || 0).toFixed(2) }}
+                          </div>
                         </div>
                       </div>
 
@@ -441,8 +443,10 @@ watch(step, (toStep, fromStep) => {
                               class="my-2 py-1 px-3 flex items-center justify-between ruleDetailContainer">
                               <div :class="{ 'w-full': data.title == 'QR' }">
                                 <div class="text-body2 mb-1 text-grey-7">{{ data.title }}</div>
-                                <img style="width: 8rem;" :src="data.value" alt="" v-if="data.title == 'QR'" class="mx-auto">
-                                <div v-else style="font-size: 1.05rem;" class="text-black text-bold">{{ data.value }}</div>
+                                <img style="width: 8rem;" :src="data.value" alt="" v-if="data.title == 'QR'"
+                                  class="mx-auto">
+                                <div v-else style="font-size: 1.05rem;" class="text-black text-bold">{{ data.value }}
+                                </div>
                               </div>
                               <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="data.title != 'QR'"
                                 @click="data.title.includes('Titular') ? copyData(data.value) : formatCopy(data.value)" />
@@ -477,7 +481,8 @@ watch(step, (toStep, fromStep) => {
                 <div class="buttonSection">
                   <div class="row py-4">
                     <div class="col-4 flex flex-center">
-                      <q-btn outline color="grey-8" unelevated no-caps style="width: 90%; border-radius: 3rem;" @click="stepBack()">
+                      <q-btn outline color="grey-8" unelevated no-caps style="width: 90%; border-radius: 3rem;"
+                        @click="stepBack()">
                         Volver
                       </q-btn>
                     </div>
@@ -501,7 +506,7 @@ watch(step, (toStep, fromStep) => {
                       </div>
                       <div class="text-caption font-medium pl-2 text-grey-7">
                         Método seleccionado:
-                        {{ payMethods.find((m) => m.value === payFormData.pay_method)?.title || '-' }}
+                        {{payMethods.find((m) => m.value === payFormData.pay_method)?.title || '-'}}
                       </div>
                       <div class="font-medium pl-2 mt-3" style="font-size:0.9rem">
                         Completa los datos del comprobante
@@ -510,9 +515,9 @@ watch(step, (toStep, fromStep) => {
                         <div class="row mt-1">
                           <div class="col-12 mt-0">
                             <div class="md:pr-4">
-                              <q-input v-model="payFormData.date" 
-                                :rules="[val => !(!val) || 'Fecha es requerida']" dense borderless clearable
-                                class="form__inputsPay mt-1" color="primary" accept=".jpg, image/*">
+                              <q-input v-model="payFormData.date" :rules="[val => !(!val) || 'Fecha es requerida']"
+                                dense borderless clearable class="form__inputsPay mt-1" color="primary"
+                                accept=".jpg, image/*">
                                 <template v-slot:append>
                                   <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -530,7 +535,7 @@ watch(step, (toStep, fromStep) => {
                           </div>
                           <div class="col-12 mt-2">
                             <div class="md:pr-4">
-                              <q-input dense borderless clearable v-model="payFormData.reference" 
+                              <q-input dense borderless clearable v-model="payFormData.reference"
                                 class="form__inputsPay mt-1" :maxlength="12" color="primary"
                                 :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']" />
                             </div>
@@ -571,7 +576,8 @@ watch(step, (toStep, fromStep) => {
                 <div class="buttonSection">
                   <div class="row py-4">
                     <div class="col-4 flex flex-center">
-                      <q-btn outline color="grey-8" unelevated no-caps style="width: 90%; border-radius: 3rem;" @click="stepBack()">
+                      <q-btn outline color="grey-8" unelevated no-caps style="width: 90%; border-radius: 3rem;"
+                        @click="stepBack()">
                         Volver
                       </q-btn>
                     </div>
@@ -741,7 +747,7 @@ watch(step, (toStep, fromStep) => {
   font-weight: 600;
 }
 
-.pay-form-breakdown__row + .pay-form-breakdown__row {
+.pay-form-breakdown__row+.pay-form-breakdown__row {
   margin-top: 0.6rem;
   padding-top: 0.6rem;
   border-top: 1px solid #e5e7eb;

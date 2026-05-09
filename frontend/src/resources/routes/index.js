@@ -527,15 +527,15 @@ const routes = [
         },
       },
       {
-        path: '/admin/quotas/pays',
-        component: () => import('@/view/admin/WaterReadings/waterReadingEditForm.vue'),
-        name: 'quotasPays',
+        path: '/admin/quota/details/month/:month',
+        component: () => import('@/view/client/Quotas/allDetailQuotaByMonth.vue'),
+        name: 'quotasDetailByMonthAdmin',
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Listado de quotas de mantenimiento mensual',
+          pagTitle: 'Detalle de cuotas por mes',
           roles: ['admin'],
-          depth: 5,
+          depth: 2,
         },
       },
 

@@ -25,6 +25,9 @@ export const useQuotaStore = defineStore('Quota', {
         
       })
     },
+    async getMonthlyGlobalQuotasForAdmin(filters) {
+      return await this.getQuotasByUser(filters);
+    },
     async createQuota(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
@@ -85,13 +88,17 @@ export const useQuotaStore = defineStore('Quota', {
         
       })
     },
-    async getQuotaByMonth(month) {
+    async getQuotaByMonth(month, year = null) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/quotas/byMonth/'+month)
+        let url = '/api/quotas/byMonth/' + month;
+        if (year) {
+          url += '?year=' + year;
+        }
+        ApiService.get(url)
         .then(({data}) => {
           if(data.code !=200) throw data;
   
