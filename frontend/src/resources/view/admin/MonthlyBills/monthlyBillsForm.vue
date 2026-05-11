@@ -45,7 +45,7 @@ const monthOptions = [
 ]
 
 const formData = ref({
-  month: monthOptions[now.getMonth()],
+  month: monthOptions[now.getMonth() - 1],
   year: now.getFullYear(),
   total_maintenance_budget: '',
   total_water_bill_amount: '',

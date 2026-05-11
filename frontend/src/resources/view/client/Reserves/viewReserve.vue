@@ -68,8 +68,8 @@ const reloadBooking = () => {
 </script>
 
 <template>
-  <div class="min-h-screen  relative overflow-hidden">
-    <div class="relative  pt-8 pb-0 md:px-6 px-3">
+  <div class="h-full  relative " style="overflow: auto;">
+    <div class="relative  pt-8 pb-8 md:px-6 px-3">
       <!-- Loading State -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">
         <q-spinner-dots color="primary" size="4rem" />
@@ -93,7 +93,7 @@ const reloadBooking = () => {
       </div>
 
       <!-- Success State -->
-      <div v-else-if="booking" class="flex flex-col items-center md:px-28 md:mx-28">
+      <div v-else-if="booking" class="flex flex-col items-center md:px-28 md:mx-28 pb-8 ">
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col items-center w-full ">
           <div class="row w-full mb-3 items-end">
             <div class="flex flex-col items-start col-md-6 col-6 md:pl-5 pl-3 ">
@@ -101,19 +101,21 @@ const reloadBooking = () => {
                 <div class="bg-primary rounded-xl p-4 boxContentV2">
                   <div class="boxItem_v2-2  md:px-6 ">
                     <div class="flex justify-center items-center h-full w-full ">
-                      <img :src="mediaUrl + '/images/icons/' + (booking.comun_area?.icon || 'default')+ '.svg'" alt="" style="height:100%">
+                      <img :src="mediaUrl + '/images/icons/' + (booking.comun_area?.icon || 'default') + '.svg'" alt=""
+                        style="height:100%">
                     </div>
                   </div>
                 </div>
               </div>
               <h1 class="text-2xl font-bold text-gray-900 md:mb-2">
-                {{booking.comun_area?.name || 'Área Común'}}
+                {{ booking.comun_area?.name || 'Área Común' }}
               </h1>
             </div>
             <div class="col-md-6 col-6 text-right">
               <div class="flex justify-end">
                 <div class="p-4  dateFact text-primary text-md font-bold">
-                  <span class="text-grey-7 font-medium text-md">Creada el:</span> {{ moment(booking.created_at).format('DD/MM/YYYY') }}
+                  <span class="text-grey-7 font-medium text-md">Creada el:</span> {{
+                    moment(booking.created_at).format('DD/MM/YYYY') }}
                 </div>
               </div>
               <div class="mt-4 md:pr-5 pr-3">
@@ -122,7 +124,7 @@ const reloadBooking = () => {
               </div>
               <div class="mt-4 md:pr-5 pr-3">
                 <div class="text-grey-7 font-medium text-md">Contacto:</div>
-                <div class="text-primary text-md font-bold">{{ booking.user.phone ?? ''}}</div>
+                <div class="text-primary text-md font-bold">{{ booking.user.phone ?? '' }}</div>
               </div>
             </div>
           </div>
@@ -135,32 +137,31 @@ const reloadBooking = () => {
                 <span class="text-gray-600 font-medium">Estado de la reserva</span>
                 <span class="font-semibold" :class="'text-' + booking.status_color">{{ booking.status_label }}</span>
               </div>
-  
+
               <!-- Monto pagado -->
-              <div class="flex justify-between items-center pb-2"
-                v-if="booking.amount > 0"
+              <div class="flex justify-between items-center pb-2" v-if="booking.amount > 0"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Monto pagado</span>
                 <span class="text-gray-900 font-semibold">S/. {{ booking.amount }}</span>
               </div>
-  
+
               <!-- Fecha de pago -->
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Fecha de reserva</span>
-                <span class="text-gray-900 font-semibold">{{ new Date(booking.date).toLocaleDateString('es-ES') }}</span>
+                <span class="text-gray-900 font-semibold">{{ new Date(booking.date).toLocaleDateString('es-ES')
+                }}</span>
               </div>
-  
+
               <!-- Método de pago -->
-              <div class="flex justify-between items-center pb-2"
-                v-if="booking.amount > 0 &&  booking.pay"
+              <div class="flex justify-between items-center pb-2" v-if="booking.amount > 0 && booking.pay"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Método de pago</span>
                 <span class="text-gray-900 font-semibold">
-                  {{ booking.pay?.pay_method_label || 'S/N'  }}
+                  {{ booking.pay?.pay_method_label || 'S/N' }}
                 </span>
               </div>
-  
+
               <!-- ID de transacción -->
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
@@ -178,7 +179,7 @@ const reloadBooking = () => {
                 <span class="text-gray-600 font-medium">Tipo de reserva</span>
                 <span class="text-gray-900 font-semibold">
                   <q-chip :color="booking.type_color" size="0.8rem">
-                    <div class="text-white" style="font-weight:600; font-size:0.8rem"> 
+                    <div class="text-white" style="font-weight:600; font-size:0.8rem">
                       {{ booking.type_label }}
                     </div>
                   </q-chip>
@@ -186,11 +187,12 @@ const reloadBooking = () => {
               </div>
 
 
-              
+
             </div>
             <div class="flex flex-center mt-4" @click="dialog = true" v-if="booking.pay">
-              <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher" style="text-decoration:dotted">
-                Vaucher de pago 
+              <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher"
+                style="text-decoration:dotted">
+                Vaucher de pago
               </div>
               <span class="ml-2" v-html="iconsApp.voucher"></span>
             </div>
@@ -210,7 +212,7 @@ const reloadBooking = () => {
           </div>
         </div>
         <template v-if="booking.pay">
-          <voucherModal :vaucher="booking.pay.vaucher"  :dialog="dialog"  @closeModal="dialog = false"/>
+          <voucherModal :vaucher="booking.pay.vaucher" :dialog="dialog" @closeModal="dialog = false" />
         </template>
 
       </div>
@@ -235,7 +237,7 @@ const reloadBooking = () => {
   </div>
 </template>
 <style lang="scss">
-.dateFact{
+.dateFact {
   border-bottom: 1px solid $primary;
   border-left: 1px solid $primary;
   width: fit-content;
@@ -249,6 +251,7 @@ const reloadBooking = () => {
   height: 8.1rem;
   width: 100%;
 }
+
 .boxItem_v2-2 {
   border-radius: 0.8rem;
   overflow: visible;

@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\MonthlyBillsController;
 use App\Http\Controllers\Api\WaterReadingController;
 use App\Http\Controllers\Api\FinancialAccountController;
+use App\Http\Controllers\Api\TransactionCategoryController;
 use App\Models\Currency;
 use App\Models\FinancialAccount;
 
@@ -118,6 +119,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/quotas', [PayController::class, 'storePay']);
         Route::get('/byId/{id}', [PayController::class, 'getPayById']);
         Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus']);
+        Route::post('/validate/{id}', [PayController::class, 'validatePayment']);
         Route::post('/culqi-payment', [PayController::class, 'processCulqiPayment']);
     });
     Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -180,6 +182,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [WaterReadingController::class, 'show']);
         Route::post('/', [WaterReadingController::class, 'store']);
         Route::post('/u/{id}', [WaterReadingController::class, 'update']);
+    });
+
+    Route::prefix('transaction-categories')->name('transactionCategories.')->group(function () {
+        Route::get('/', [TransactionCategoryController::class, 'index']);
     });
 
     Route::prefix('financial-accounts')->name('financialAccounts.')->group(function () {

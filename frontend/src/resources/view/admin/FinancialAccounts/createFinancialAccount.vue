@@ -58,7 +58,7 @@ const createAccount = () => {
     .then(() => {
       showNotify('positive', 'Cuenta financiera creada con éxito')
       setTimeout(() => {
-        router.push('/admin/financial-accounts')
+        router.go(-1)
       }, 700)
     })
     .catch((error) => {

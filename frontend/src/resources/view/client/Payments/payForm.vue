@@ -306,6 +306,13 @@ const dataToForm = () => {
   dataForm.append('pay_method', payFormData.value.pay_method)
   dataForm.append('to_pay_id', toPay.value.id)
   dataForm.append('type', payFormData.value.type)
+  if (
+    payFormData.value.type === 1 &&
+    Array.isArray(toPay.value.consolidated_ids) &&
+    toPay.value.consolidated_ids.length
+  ) {
+    dataForm.append('consolidated_ids', JSON.stringify(toPay.value.consolidated_ids))
+  }
   return { data: dataForm }
 }
 onMounted(() => {

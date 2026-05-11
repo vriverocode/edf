@@ -8,17 +8,38 @@ use App\Models\User;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\FinancialAccount;
 use App\Models\Quota;
+use App\Models\Transaction;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator; 
 use App\Notifications\RealtimeNotification;
+use App\Services\BookingPendingPayNotifier;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PayController extends Controller
 {
     public function getPayById($id)
     {
-        $pay = Pay::with(['booking.comunArea', 'user', 'quota'])->find($id);
+        $pay = Pay::with([
+            'booking.comunArea',
+            'user',
+            'quota.departament',
+            'payMethod',
+        ])->find($id);
+
+        if (! $pay) {
+            return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Pago no encontrado']);
+        }
+
+        $quotaIds = $pay->consolidatedQuotaIds();
+        $pay->setRelation(
+            'consolidated_quotas',
+            $quotaIds !== []
+                ? Quota::query()->whereIn('id', $quotaIds)->with('departament')->get()
+                : collect([])
+        );
 
         return $this->returnSuccess(200, $pay);
     }
@@ -85,20 +106,26 @@ class PayController extends Controller
 
         $prefixPayId = ['s', 't', 'y', 'd'];
 
+        $consolidatedIdsForStore = $this->normalizedConsolidatedIdsFromPayRequest($request);
+        if ((int) $request->type === 1 && $request->filled('to_pay_id') && empty($consolidatedIdsForStore)) {
+            $consolidatedIdsForStore = [(int) $request->to_pay_id];
+        }
+
         $pay = Pay::create([
-            "user_id"       => $request->user()->id,
-            "booking_id"    => $request->type == 2 ? $request->to_pay_id : null,
-            "quota_id"      => $request->type == 1 ? $request->to_pay_id : null,
-            "amount"        => $request->amount,
-            "reference"     => $request->reference ?? "000000",
-            "pay_id"        => $prefixPayId[$request->pay_method] . ($request->booking_id ?? $request->quota_id) . '-' . rand(1000, 9999),
-            "pay_date"      => $request->pay_date ? date("Y-m-d", strtotime($request->pay_date)) : date("Y-m-d"),
-            "type"          => $request->type,
-            "pay_method"    => $request->pay_method,
-            "status"        => 1
+            'user_id' => $request->user()->id,
+            'booking_id' => $request->type == 2 ? $request->to_pay_id : null,
+            'quota_id' => $request->type == 1 ? $request->to_pay_id : null,
+            'consolidated_ids' => (int) $request->type === 1 ? $consolidatedIdsForStore : null,
+            'amount' => $request->amount,
+            'reference' => $request->reference ?? '000000',
+            'pay_id' => $prefixPayId[$request->pay_method] . ($request->booking_id ?? $request->quota_id) . '-' . rand(1000, 9999),
+            'pay_date' => $request->pay_date ? date('Y-m-d', strtotime($request->pay_date)) : date('Y-m-d'),
+            'type' => $request->type,
+            'pay_method' => $request->pay_method,
+            'status' => 1,
         ]);
 
-        // $this->afterPayAction($pay);
+        $this->afterPayAction($pay);
         $this->uploadVaucher($pay, $request);
         $this->sendNotification($pay);
         return $this->returnSuccess(200, ["idPay" => $pay->id]);
@@ -120,8 +147,184 @@ class PayController extends Controller
             return $this->returnFail(500, ['messageType' => 'negative', 'message' => 'Error al cambiar estado de pago']);
         }
 
-        return $this->returnSuccess(200, '200 OK');
+        return $this->returnSuccess(200, [
+            'status' => $pay->status
+        ]);
     }
+
+    /**
+     * Validación administrativa con contabilidad (transacciones + cuotas en pago único cuando aplica).
+     * status 2 = aprobado | 3 = rechazado
+     */
+    public function validatePayment(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => ['required', 'integer', 'in:2,3'],
+            'financial_account_id' => ['required_if:status,2', 'nullable', 'exists:financial_accounts,id'],
+            'transaction_category_id' => ['required_if:status,2', 'nullable', 'exists:transaction_categories,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, ['messageType' => 'negative', 'message' => $validator->errors()->first()]);
+        }
+
+        $statusAction = (int) $request->status;
+
+        DB::beginTransaction();
+        try {
+            $pay = Pay::query()->with(['booking', 'quota'])->lockForUpdate()->find($id);
+
+            if (! $pay) {
+                DB::rollBack();
+
+                return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Pago no encontrado']);
+            }
+
+            if ((int) $pay->status !== 1) {
+                DB::rollBack();
+
+                return $this->returnFail(409, ['messageType' => 'negative', 'message' => 'Este pago ya fue validado.']);
+            }
+
+            if ($statusAction === 3) {
+                $pay->update(['status' => 3]);
+
+                if ((int) $pay->type === 2 && $pay->booking_id) {
+                    $this->cancelBooking($pay->booking_id);
+                }
+
+                DB::commit();
+
+                if ((int) $pay->type === 2) {
+                    $pay->refresh();
+                    $this->sendReserveNotification($pay);
+                }
+
+                return $this->returnSuccess(200, [
+                    'pay' => $pay,
+                    'transaction' => null,
+                ]);
+            }
+
+            /** Aprobación (status 2) — contabilización */
+            if (Transaction::query()->where('pay_id', $pay->id)->exists()) {
+                DB::rollBack();
+
+                return $this->returnFail(409, ['messageType' => 'negative', 'message' => 'Ya existe una transacción contable asociada a este pago.']);
+            }
+
+            $pay->update(['status' => 2]);
+
+            if ((int) $pay->type === 1) {
+                $quotaIds = $pay->consolidatedQuotaIds();
+                if ($quotaIds === []) {
+                    DB::rollBack();
+
+                    return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'No hay cuotas asociadas a este pago (consolidated_ids vacío).']);
+                }
+
+                $lockedQuotas = Quota::query()
+                    ->whereIn('id', $quotaIds)
+                    ->lockForUpdate()
+                    ->pluck('id')
+                    ->all();
+
+                sort($quotaIds);
+                sort($lockedQuotas);
+                if ($lockedQuotas !== $quotaIds) {
+                    DB::rollBack();
+
+                    return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'Una o más cuotas del pago consolidado no existen.']);
+                }
+
+                /** En este sistema el estado pagado efectivo es 3 ("Exitoso") */
+                Quota::query()->whereIn('id', $quotaIds)->update(['status' => 3]);
+            } elseif ((int) $pay->type === 2 && $pay->booking_id) {
+                $this->approveBooking($pay->booking_id);
+            }
+
+            $financialAccountId = (int) $request->financial_account_id;
+            $financialAccount = FinancialAccount::query()
+                ->whereKey($financialAccountId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $financialAccount || (int) $financialAccount->status !== 1) {
+                DB::rollBack();
+
+                return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'Cuenta financiera inválida o inactiva.']);
+            }
+
+            $amount = round((float) $pay->amount, 2);
+            $financialAccount->current_balance = round((float) $financialAccount->current_balance + $amount, 2);
+            $financialAccount->save();
+
+            $transaction = Transaction::create([
+                'financial_account_id' => 1,
+                'transaction_category_id' => (int) $this->catergoryByTypePay($pay->type),
+                'pay_id' => $pay->id,
+                'amount' => $amount,
+                'date' => now()->toDateString(),
+                'reference' => (string) $pay->reference,
+                'description' => sprintf('Ingreso validación de pago #%s', $pay->pay_id ?? $pay->id),
+                'status' => 1,
+                'type' => 1,
+            ]);
+
+            DB::commit();
+
+            $pay->refresh()->loadMissing(['financialTransaction', 'payMethod']);
+
+            if ((int) $pay->type === 2) {
+                $this->sendReserveNotification($pay);
+            }
+
+            return $this->returnSuccess(200, [
+                'pay' => $pay,
+                'transaction' => $transaction,
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error($e);
+
+            return $this->returnFail(500, ['messageType' => 'negative', 'message' => 'Error al validar el pago. Inténtelo nuevamente.']);
+        }
+    }
+
+    /**
+     * @return list<int>|null
+     */
+    private function catergoryByTypePay($type){
+        $ids = [
+            1,
+            2,
+        ];
+
+        return $ids[$type];
+    }
+    private function normalizedConsolidatedIdsFromPayRequest(Request $request): ?array
+    {
+        $raw = $request->input('consolidated_ids');
+
+        if ($raw === null || $raw === '' || $raw === []) {
+            return null;
+        }
+
+        if (is_array($raw)) {
+            return array_values(array_unique(array_filter(array_map('intval', $raw))));
+        }
+
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+
+            return is_array($decoded)
+                ? array_values(array_unique(array_filter(array_map('intval', $decoded))))
+                : null;
+        }
+
+        return null;
+    }
+
     public function processCulqiPayment(Request $request)
     {
         $rules = [
@@ -190,10 +393,9 @@ class PayController extends Controller
     private function afterPayAction($pay)
     {
         if ($pay->type == 2) {
-            $this->updateBooking($pay->booking_id);
-            return;
+            $this->updateBooking($pay->booking_id, $pay->user_id);
         }
-        $this->updateQuota($pay->quota_id);
+        /** Cuotas de mantenimiento: el estado efectivo ("Exitoso") se aplica solo al aprobar vía validatePayment */
     }
     private function payStatusActionByType(Pay $pay)
     {
@@ -204,16 +406,21 @@ class PayController extends Controller
     }
     private function bookingActionByStatus($pay)
     {
-        $returnMessage = $pay->status == 0
-        ? ['messageType' => 'negative', 'message' => 'Pago cancelado con exito']
-        : ['messageType' => 'positive', 'message' => 'Pago aprobado con exito'];
+        if (in_array((int) $pay->status, [0, 3], true)) {
+            $this->cancelBooking($pay->booking_id);
+            $this->sendReserveNotification($pay);
 
-        $pay->status == 0
-        ? $this->cancelBooking($pay->booking_id)
-        : $this->approveBooking($pay->booking_id);
+            return ['messageType' => 'negative', 'message' => 'Pago cancelado con exito'];
+        }
 
-        $this->sendReserveNotification($pay);
-        return $returnMessage;
+        if ((int) $pay->status === 2) {
+            $this->approveBooking($pay->booking_id);
+            $this->sendReserveNotification($pay);
+
+            return ['messageType' => 'positive', 'message' => 'Pago aprobado con exito'];
+        }
+
+        return ['messageType' => 'warning', 'message' => 'Estado no gestionado para reserva'];
     }
     private function cancelBooking($booking)
     {
@@ -281,11 +488,12 @@ class PayController extends Controller
         $pay->vaucher = $path;
         $pay->save();
     }
-    private function updateBooking($id)
+    private function updateBooking($id, $user)
     {
-        Booking::find($id)->update([
+        $booking = Booking::find($id)->update([
             "status" => 2
         ]);
+        $this->successReserveNotification($id, $booking);
     }
 
     private function updateQuota($id)
@@ -354,7 +562,7 @@ class PayController extends Controller
                     "title" => "Pago de reserva realizado",
                     "message" => "Se ha realizado el pago por la reserva #" . $pay->booking->booking_number
                         . " Por favor validar.",
-                    "url" => "/client/reserves/view/" . $pay->id,
+                    "url" => "/admin/pay/validate/" . $pay->id,
                     "meta" =>  ['booking_id' => $pay->id],
                 ]
             ];
@@ -370,7 +578,7 @@ class PayController extends Controller
     private function ReserveNotificationByStatus($users, $pay)
     {
 
-        $data = $pay->status == 0
+        $data = ($pay->status == 0 || $pay->status == 3)
         ? [
             "title" => 'Pago de reserva rechazado',
             "message" => 'Tu pago por la reserva #' . $pay->booking->booking_number . ' fue rechazado.',
@@ -401,6 +609,41 @@ class PayController extends Controller
         } catch (\Throwable $e) {
             // Silenciar errores de notificación para no romper el flujo
         }
+    }
+    private function successReserveNotification($user, $booking)
+    {
+        $users = [
+            "admin" => User::find(1),
+            "client" => User::find($user),
+        ];
+        try {
+            $users["client"]->notify(new RealtimeNotification(
+                title: 'Reserva creada',
+                message: 'Tu reserva #' . $booking->booking_number . ' fue creada.',
+                url: '/client/reserves/view/' . $booking->id,
+                meta: [
+                        'booking_id' => $booking->id,
+                        'icon' => $booking->icon_status
+                    ]
+            ));
+
+            if ($users["admin"]) {
+                $users["admin"]->notify(new RealtimeNotification(
+                    title: 'Nueva reserva',
+                    message: 'Se creó la reserva #' . $booking->booking_number . '.',
+                    url: '/admin/reserves',
+                    meta: [
+                        'booking_id' => $booking->id,
+                        'icon' => $booking->icon_status
+                    ]
+                ));
+            }
+        } catch (\Throwable $e) {
+        }
+    }
+    private function pedingToPayReserveNotification($users, $booking)
+    {
+        BookingPendingPayNotifier::notify($booking);
     }
 
 }

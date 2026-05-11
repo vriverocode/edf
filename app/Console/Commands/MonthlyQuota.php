@@ -8,6 +8,7 @@ use App\Models\Quota;
 use App\Models\User;
 use App\Models\WaterReading;
 use App\Notifications\RealtimeNotification;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +23,7 @@ class MonthlyQuota extends Command
     /**
      * La descripción del comando.
      */
-    protected $description = 'Genera las cuotas de mensualidad desglosadas (mantenimiento + agua)';
+    protected $description = 'Genera las cuotas del mes anterior (ej. ejecutado el 5 de mayo cobra abril)';
 
     /**
      * Ejecuta el comando.
@@ -30,8 +31,9 @@ class MonthlyQuota extends Command
     public function handle()
     {
         $departaments = $this->getAllDepartamentsId();
-        $month = $this->getCurrentMonth();
-        $year = date('Y');
+        $period = $this->getBillingPeriod();
+        $month = $period['month'];
+        $year = $period['year'];
 
         // Buscamos el presupuesto configurado para este mes
         $budgetConfig = MonthlyBills::where('month', $month)
@@ -57,9 +59,15 @@ class MonthlyQuota extends Command
         return Departament::select('id', 'number', 'participation_percentage')->has('owner')->get();
     }
 
-    private function getCurrentMonth()
+    /** Periodo a facturar: mes calendario inmediatamente anterior a la fecha de ejecución. */
+    private function getBillingPeriod(): array
     {
-        return date('n');
+        $billing = Carbon::now()->subMonth();
+
+        return [
+            'month' => (int) $billing->format('n'),
+            'year' => (int) $billing->format('Y'),
+        ];
     }
 
     private function labelMonth($monthIndex)
@@ -129,13 +137,13 @@ class MonthlyQuota extends Command
     }
     private function sendNotifications($quota)
     {
-        $year = date('Y');
+        $periodYear = (int) Carbon::parse($quota->due_date)->format('Y');
         $users = [
             "client" => User::find($quota->departament->user_id),
         ];
         $dataNotificaction = [
             "title" => "Cuota general mes: ".$this->labelMonth($quota->month),
-            "message" => "Hola, te hacemos llegar la cuota de mantenimiento por el mes: " . $this->labelMonth($quota->month) . ' ' . $year
+            "message" => "Hola, te hacemos llegar la cuota de mantenimiento por el mes: " . $this->labelMonth($quota->month) . ' ' . $periodYear
                 . ". Por favor mantenerse al día",
             "url" => "/client/quota/pay/" . $quota->id,
             "meta" =>  ['quota_id' => $quota->id, 'color'=>'amber-8'],

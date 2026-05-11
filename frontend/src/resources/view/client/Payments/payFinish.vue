@@ -158,7 +158,7 @@ const reloadBooking = () => {
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Método de pago</span>
               <span class="text-gray-900 font-semibold">
-                {{ pay.pay_method_label }}
+                {{ pay.pay_method.name }}
               </span>
             </div>
 

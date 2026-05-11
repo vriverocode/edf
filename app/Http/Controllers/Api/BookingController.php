@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Services\BookingPendingPayNotifier;
 use App\Models\ComunArea;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
@@ -292,10 +293,10 @@ class BookingController extends Controller
             $this->cancelReserveNotification($users, $booking);
             return;
         }
-        if ($booking->status == 1) {
-            $this->pedingToPayReserveNotification($users, $booking);
-            return;
-        }
+        // if ($booking->status == 1) {
+        //     $this->pedingToPayReserveNotification($users, $booking);
+        //     return;
+        // }
 
         $this->successReserveNotification($users, $booking);
     }
@@ -316,7 +317,7 @@ class BookingController extends Controller
                 $users["admin"]->notify(new RealtimeNotification(
                     title: 'Nueva reserva',
                     message: 'Se creó la reserva #' . $booking->booking_number . '.',
-                    url: '/admin/reserves',
+                    url: '/client/reserves/view/' . $booking->id,
                     meta: [
                         'booking_id' => $booking->id,
                         'icon' => $booking->icon_status
@@ -329,31 +330,7 @@ class BookingController extends Controller
     }
     private function pedingToPayReserveNotification($users, $booking)
     {
-        try {
-            $users["client"]->notify(new RealtimeNotification(
-                title: 'Reserva no completada',
-                message: 'Tu reserva #' . $booking->booking_number . ' fue creada, pero falta que realices el pago',
-                url: '/client/reserves/view/' . $booking->id,
-                meta: [
-                        'booking_id' => $booking->id,
-                        'icon' => $booking->icon_status
-                    ]
-            ));
-
-            if ($users["admin"]) {
-                $users["admin"]->notify(new RealtimeNotification(
-                    title: 'Nueva reserva no completada',
-                    message: 'Se creó la reserva #' . $booking->booking_number . ', pero falta que se realice el pago correspondiente',
-                    url: '/admin/reserves',
-                    meta: [
-                        'booking_id' => $booking->id,
-                        'icon' => $booking->icon_status
-                    ]
-                ));
-            }
-        } catch (\Throwable $e) {
-            Log::error('Fallo al enviar notificación de reserva: ' . $e->getMessage());
-        }
+        BookingPendingPayNotifier::notify($booking);
     }
     private function cancelReserveNotification($users, $booking)
     {

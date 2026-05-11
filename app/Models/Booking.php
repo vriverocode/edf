@@ -23,7 +23,12 @@ class Booking extends Model
         "type",
         "note",
         "status",
+        'pending_pay_notification_sent_at',
         "is_exclusive"
+    ];
+
+    protected $casts = [
+        'pending_pay_notification_sent_at' => 'datetime',
     ];
     public $appends  =   ["booking_hour", "status_label", "status_color", "status_color", 'type_label', "type_color"];
 

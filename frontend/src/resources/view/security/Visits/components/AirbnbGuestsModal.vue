@@ -74,7 +74,7 @@ const markGuestArrived = (guest) => {
         showNotify('negative', msg)
       })
       .finally(() => {
-        
+
         loadingGuestId.value = null
       })
   })
@@ -119,7 +119,7 @@ const markGuestArrived = (guest) => {
                     <template v-if="guest.hour">· {{ guest.hour }}</template>
                   </div>
                   <div class="text-caption text-grey-7" v-if="guest.arrived_date">
-                    Llegada: {{ moment(guest.arrived_date).format('DD/MM/YYYY hh:mm A')}}
+                    Llegada: {{ moment(guest.arrived_date).format('DD/MM/YYYY hh:mm A') }}
                   </div>
                 </div>
               </div>

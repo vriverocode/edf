@@ -45,7 +45,7 @@ const formData = ref({
   date: '',
   time_from: null,
   time_to: null,
-  typeOfReserve:0,
+  typeOfReserve: 0,
   note: '',
   is_exclusive: false,
   terms_accept: false,
@@ -68,7 +68,7 @@ const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
   typeModalShow.value = true;
   visibleBackButton(false)
-  
+
 }
 const toPayId = ref(null)
 const backButton = () => {
@@ -110,7 +110,7 @@ const nextStep = () => {
   if (!validateStepForm()) {
     return
   }
-  if(step.value == 1) {
+  if (step.value == 1) {
     typeModalShow.value = false
   }
 
@@ -120,11 +120,11 @@ const nextStep = () => {
   } else {
     rulesModal.value = false
   }
-  if(step.value == 4 && selectedPayData.value.id == 3) {
+  if (step.value == 4 && selectedPayData.value.id == 3) {
     prepareCulqiData()
   }
   if (step.value == 5) {
-    
+
     !toPayId.value
       ? createReserve()
       : createPay(toPayId.value)
@@ -183,12 +183,12 @@ const getComunsArea = () => {
 }
 const getPayMethod = () => {
   paymentMethodStore.getPayMethod()
-  .then((response) => {
-    payMethods.value= response.data
-  })
-  .catch((response) => {
-    console.log(response)
-  })
+    .then((response) => {
+      payMethods.value = response.data
+    })
+    .catch((response) => {
+      console.log(response)
+    })
 }
 const validateStepForm = () => {
   if (step.value == 1) {
@@ -249,16 +249,20 @@ const showNotify = (type, text) => {
 const createReserve = () => {
   formData.value.comun_area = selectedComunArea.value.id
   formData.value.amount = formData.value.typeOfReserve > 1
-  ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
-  : 0
-  
+    ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
+    : 0
+
   formData.value.exclusive = formData.value.is_exclusive ? 1 : 0;
 
   loading.value = true
   reserveStore.createReserve(formData.value)
     .then((response) => {
-      showNotify('positive', !response.data.toPay ? 'Reserva realizada con exito' : 'Pre-reservación realizada')
+      !response.data.toPay
+        ? showNotify('positive', 'Reserva realizada con exito')
+        : ''
+
       if (!response.data.toPay) {
+        console.log('por aqui no son los pagados')
         setTimeout(() => {
           loading.value = false
           router.push('/client/reserves/confirm-reserve/' + response.data.id)
@@ -266,6 +270,8 @@ const createReserve = () => {
         }, 1000);
         return
       }
+      console.log('por aqui si son los pagados')
+
       toPayId.value = response.data.id
       createPay(response.data.id)
     })
@@ -299,7 +305,7 @@ const setColor = (status) => {
       : ''
 }
 const setSelectHour = (index) => {
-  if(intervalHorarys.value[tapActive.value][index].status == 'Ocupado'){
+  if (intervalHorarys.value[tapActive.value][index].status == 'Ocupado') {
     showNotify('negative', 'Selecciona un intervalo de tiempo disponible')
     return
   }
@@ -333,18 +339,18 @@ const payMethods = ref([])
 
 const setPayData = (e) => {
   selectedPayData.value = payMethods.value.find(method => method.id == e)
-} 
+}
 const prepareCulqiData = () => {
 
   formData.value.comun_area = selectedComunArea.value.id
   formData.value.amount = formData.value.typeOfReserve > 1
-  ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
-  : 0
-  
+    ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
+    : 0
+
   formData.value.exclusive = formData.value.is_exclusive ? 1 : 0;
 }
 const setTypeData = (e) => {
-  if(e == 2) formData.value.is_exclusive = true
+  if (e == 2) formData.value.is_exclusive = true
   else {
     formData.value.is_exclusive = false
   }
@@ -375,8 +381,8 @@ const copyData = (texto) => {
   }
 }
 const optionsFn2 = (date) => {
-    return  date <= moment().format('YYYY/MM/DD');
-  }
+  return date <= moment().format('YYYY/MM/DD');
+}
 const pegarTexto = async () => {
   if (!navigator.clipboard) {
     console.warn('La API del portapapeles no está disponible. Asegúrate de usar HTTPS o localhost.')
@@ -416,7 +422,7 @@ const createPay = (id) => {
   const dataForm = dataToForm(id)
   reserveStore.createReservePay(dataForm)
     .then((response) => {
-      showNotify('positive', 'Pago creado con exito')
+      showNotify('positive', 'Reserva creada y pagada con exito')
       setTimeout(() => {
         loading.value = false
         router.push('/client/pay/details/' + response.data.idPay)
@@ -430,7 +436,7 @@ const createPay = (id) => {
 }
 const dataToForm = (id) => {
   const dataForm = new FormData()
-  dataForm.append('amount', formData.value.amount)  
+  dataForm.append('amount', formData.value.amount)
   dataForm.append('vaucher', payFormData.value.vaucher)
   dataForm.append('reference', payFormData.value.reference)
   dataForm.append('pay_date', payFormData.value.date)
@@ -441,7 +447,7 @@ const dataToForm = (id) => {
 }
 const sanciones = computed(() => {
   let saciones = [];
-  let reglasSancionables = selectedComunArea.value.rules_area.filter(area =>  area.suggest_amount)
+  let reglasSancionables = selectedComunArea.value.rules_area.filter(area => area.suggest_amount)
   reglasSancionables.forEach(element => {
     saciones.push(
       {
@@ -455,22 +461,22 @@ const sanciones = computed(() => {
 
 const typeOfReserve = [
   {
-    id:1,
+    id: 1,
     title: 'Reserva Compartida',
-    description:'Comparte el espacio con otros residentes según los cupos disponibles',
-    types:[1,2]
+    description: 'Comparte el espacio con otros residentes según los cupos disponibles',
+    types: [1, 2]
   },
   {
-    id:2,
+    id: 2,
     title: 'Reserva Exclusiva',
-    description:'Uso exclusivo del área completa durante el horario seleccionado',
-    types:[2]
+    description: 'Uso exclusivo del área completa durante el horario seleccionado',
+    types: [2]
   },
   {
-    id:3,
+    id: 3,
     title: 'Solo reserva con pago',
-    description:'Uso exclusivo obligatorio del área completa con pago requerido',
-    types:[3]
+    description: 'Uso exclusivo obligatorio del área completa con pago requerido',
+    types: [3]
   }
 ]
 const reservesByType = computed(() => {
@@ -522,8 +528,9 @@ watch(step,
                   style="background: #2d5eaa; height: 27%;">
                   {{ comunArea.name }}
                 </div>
-                <div v-if="comunArea.type > 1" class="pintype" :class="{ 'bg-warning': comunArea.type == 2, 'bg-positive': comunArea.type > 3 }" >
-                    S/.
+                <div v-if="comunArea.type > 1" class="pintype"
+                  :class="{ 'bg-warning': comunArea.type == 2, 'bg-positive': comunArea.type > 3 }">
+                  S/.
                 </div>
               </div>
             </div>
@@ -708,13 +715,13 @@ watch(step,
                         </div>
                         <div class="text-caption font-medium pl-2 text-grey-7">
                           Método seleccionado:
-                          {{selectedPayData.name}}
+                          {{ selectedPayData.name }}
                         </div>
                         <template v-if="selectedPayData.id !== 3">
                           <div class="font-medium pl-2 mt-3 " style="font-size:0.9rem">
                             Datos de cuenta a pagar
                           </div>
-                          <div class="selectedDateBlock mt-1 px-3 w-full py-2" >
+                          <div class="selectedDateBlock mt-1 px-3 w-full py-2">
                             <div v-for="(line, index) in selectedPayData.data" :key="index"
                               class=" my-1 flex items-center justify-between">
                               <div class="flex items-center " :class="{ 'w-full': line.title == 'QR' }">
@@ -726,7 +733,7 @@ watch(step,
                               <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="line.title != 'QR'"
                                 @click="line.title.includes('Titular') ? copyData(line.data) : formatCopy(line.data)" />
                             </div>
-                          </div> 
+                          </div>
                           <div class=" row mt-2 md:px-12">
                             <div class="col-12 mt-0">
                               <div class=" md:pr-4">
@@ -736,7 +743,7 @@ watch(step,
                                   <template v-slot:append>
                                     <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                        <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="optionsFn2" 
+                                        <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="optionsFn2"
                                           :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
                                           <div class="row items-center justify-end">
                                             <q-btn v-close-popup label="Aceptar" color="primary" flat />
@@ -746,7 +753,7 @@ watch(step,
                                     </q-icon>
                                   </template>
                                 </q-input>
-  
+
                               </div>
                             </div>
                             <div class="col-12 mt-0 ">
@@ -754,7 +761,7 @@ watch(step,
                                 <q-input color="tealedf" label="Referencia de pago" dense borderless clearable
                                   v-model="payFormData.reference" class="form__inputsReverse mt-0" :maxlength="12"
                                   :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']">
-  
+
                                   <template v-slot:append>
                                     <q-btn color="tealedf" size="0.1rem" outline style="padding:3px 6px" no-caps
                                       @click="pegarTexto()">
@@ -771,7 +778,7 @@ watch(step,
                             <label for="vaucherPay">
                               <template v-if="!payFormData.vaucher">
                                 <div class=" flex flex-center column">
-  
+
                                   <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
                                   <div class="text-center">
                                     <div class="text-grey-7 font-medium">
@@ -815,10 +822,7 @@ watch(step,
                         </template>
                         <template v-else>
                           <div class="text-md text-grey-10  w-full flex flex-center pt-10">
-                            <culqiCheckout 
-                                :externalData="formData"
-                                @success="culqiSuccess"
-                              />
+                            <culqiCheckout :externalData="formData" @success="culqiSuccess" />
                           </div>
                         </template>
                       </div>
@@ -943,8 +947,8 @@ watch(step,
                       Multa
                     </div>
                   </div>
-                  <div class="flex items-center justify-between ruleDetailContainer my-2 py-1 px-3" 
-                   v-for="(infraccion, index) in sanciones" :key="index">
+                  <div class="flex items-center justify-between ruleDetailContainer my-2 py-1 px-3"
+                    v-for="(infraccion, index) in sanciones" :key="index">
                     <div class="ml-1 font-bold text-negative" style="font-size:0.78rem">
                       {{ infraccion.title }}
                     </div>
@@ -1014,8 +1018,8 @@ watch(step,
                   Cupo por horarios: {{ selectedComunArea.max_cupo }} cupo(s)
                 </div>
                 <div class="pt-2 px-0 text-grey-9" style="font-weight:400; font-size:0.99rem">
-                  <q-chip :color="selectedComunArea.type_color" >
-                    <div class="text-white" style="font-weight:600"> 
+                  <q-chip :color="selectedComunArea.type_color">
+                    <div class="text-white" style="font-weight:600">
                       {{ selectedComunArea.type_label_large }}
                     </div>
                   </q-chip>
@@ -1025,10 +1029,9 @@ watch(step,
                   <div v-for="type in reservesByType" :key="type.id"
                     :class="{ 'activeMethodContainer': formData.typeOfReserve == type.id }"
                     class="flex items-center justify-between selectTypeItem mb-2 mt-3 py-2 px-3">
-                    <q-radio color="tealedf" :class="{ 'activeMethod': formData.typeOfReserve == type.id  }"
+                    <q-radio color="tealedf" :class="{ 'activeMethod': formData.typeOfReserve == type.id }"
                       class="item_method-radio" v-model="formData.typeOfReserve"
-                      checked-icon="eva-checkmark-circle-outline" :val="type.id"
-                      @update:model-value="setTypeData">
+                      checked-icon="eva-checkmark-circle-outline" :val="type.id" @update:model-value="setTypeData">
                       <div class="flex justify-between">
                         <div style="width:80%">
                           <div style="font-weight:500;">
@@ -1043,16 +1046,16 @@ watch(step,
                         </div>
                       </div>
                     </q-radio>
-                     
+
                   </div>
                 </div>
-                
-                
+
+
               </div>
               <div class="row py-0 " style="height: 9%;">
                 <div class="col-4 flex flex-center">
                   <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
-                    @click="typeModalShow = false; visibleBackButton(true); formData.typeOfReserve = 0" >
+                    @click="typeModalShow = false; visibleBackButton(true); formData.typeOfReserve = 0">
                     <div class="py-0 md:py-0">
                       Volver
                     </div>
@@ -1126,7 +1129,8 @@ watch(step,
   border-radius: 8rem;
   transition: all 0.2s ease-in;
 }
-.selectTypeItem{
+
+.selectTypeItem {
   border: 2px solid lightgrey;
   border-radius: 0.8rem;
   transition: all 0.2s ease-in;
@@ -1461,7 +1465,8 @@ watch(step,
   position: relative;
   height: 8.1rem;
 }
-.pintype{
+
+.pintype {
   height: 1.3rem;
   width: 1.3rem;
   display: flex;
@@ -1469,12 +1474,13 @@ watch(step,
   align-items: center;
   border-radius: 50%;
   position: absolute;
-  right:0.25rem;
+  right: 0.25rem;
   top: 0.3rem;
   color: white;
   font-size: 0.68rem;
 
 }
+
 .boxItem_v2 {
   border-radius: 0.8rem;
   overflow: visible;

@@ -71,8 +71,8 @@ onMounted(loadData);
               </div>
             </div>
           </div>
-          <div style="height: 80%; overflow: auto;" class="pt-2 pb-8">
-            <q-expansion-item v-for="apartment in user.units" :key="apartment.id" class="aparmentExpand">
+          <div style="height: 80%; overflow: auto;" class="pt-2 pb-8 ">
+            <q-expansion-item v-for="apartment in user.units" :key="apartment.id" class="aparmentExpand mb-4">
               <template v-slot:header>
                 <q-item-section
                   class="bg-white rounded-xl w-full shadow-md border border-gray-100 overflow-hidden md:mb-5 "
@@ -153,7 +153,7 @@ onMounted(loadData);
                       </div>
                       <div class="flex my-2">
                         <div class="text-black font-medium">Tipo:</div>
-                        <div class="ml-1 text-black font-medium">{{ apartment.type_label}}</div>
+                        <div class="ml-1 text-black font-medium">{{ apartment.type_label }}</div>
                       </div>
                       <div class="flex my-2">
                         <div class="text-black font-medium">Nro interno:</div>

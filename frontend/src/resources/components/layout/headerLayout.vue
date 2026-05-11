@@ -72,10 +72,10 @@ onMounted(() => {
           <div class="text-white" v-if="ifOwner && hasPendingToPay > 0">
 
             <div class="mant-title">Mantenimiento</div>
-            <div class="text-amtHeader" style="">{{user.currency_symbol}} 
-              
-              {{user.total_peding_quotas}}
-            
+            <div class="text-amtHeader" style="">{{ user.currency_symbol }}
+
+              {{ user.total_peding_quotas }}
+
             </div>
           </div>
 
@@ -90,7 +90,7 @@ onMounted(() => {
       <div class="flex items-start">
         <div class="flex items-end h-full">
           <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader mb-2"
-          :class="{ 'h-20 md:h-32': isHomePage, 'h-20': !isHomePage }">
+            :class="{ 'h-20 md:h-32': isHomePage, 'h-20': !isHomePage, 'toBottomFixed': reserveAreaActive }">
         </div>
         <div class="relative pt-2" @click="router.push({ name: 'notificationsPage' })">
           <q-badge class="badgeNotificationCount " v-if="notificationsStore.unreadCount > 0" color="red"
@@ -104,7 +104,7 @@ onMounted(() => {
         <div class="text-white text-reserveTitle pl-0" style="position:relative; z-index:2">
           Reservar
         </div>
-        <div class="flex items-center">
+        <div class="flex items-center pl-1">
           <img :src="mediaUrl + '/images/icons/' + reserveInfo.icon + '.svg'" alt=""
             style="height:4.5rem; transform:translateX(-15px) translateY(-5px)">
           <div class="text-reserveData" style="transform:translateX(-15px);">
@@ -118,6 +118,10 @@ onMounted(() => {
 </template>
 
 <style lang="scss">
+.toBottomFixed {
+  transform: translateY(80%);
+}
+
 .text-reserveData {
   font-size: 1.2rem;
   color: white;

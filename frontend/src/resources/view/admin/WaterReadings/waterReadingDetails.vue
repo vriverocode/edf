@@ -14,11 +14,11 @@ const error = ref(null)
 const imageBroken = ref(false)
 
 const readingId = computed(() => route.params.id || route.query.id)
-
+const urlMedia = import.meta.env.VITE_LARAVEL_API_URL
 const photoUrl = computed(() => {
   const r = reading.value
   if (!r) return ''
-  return r.photo || r.meter_photo || r.proof_photo || ''
+  return urlMedia + (r.photo || r.meter_photo || r.proof_photo || '')
 })
 
 const consumptionM3 = computed(() => {
