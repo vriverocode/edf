@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Visit extends Model
 {
@@ -11,6 +12,7 @@ class Visit extends Model
 
     protected $fillable = [
         'departament_id',
+        'created_by',
         'fullname',
         'dni',
         'type',
@@ -54,6 +56,10 @@ class Visit extends Model
     public function departament()
     {
         return $this->belongsTo(Departament::class);
+    }
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
     public function airbnb()
     {

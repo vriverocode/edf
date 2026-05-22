@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Visit;
 use App\Models\PeoplesXDepartaments;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\AirbnbRent;
 use App\Models\Departament;
+use App\Notifications\RealtimeNotification;
 use Exception;
 use Illuminate\Support\Facades\Validator;
 
@@ -87,6 +89,7 @@ class VisitController extends Controller
         try {
             $visit = Visit::create([
                 'departament_id' => $request->departament_id,
+                'created_by'     => $request->user()->id,
                 'fullname'       => $request->fullname,
                 'dni'            => $request->dni,
                 'type'           => (int)$request->type,
@@ -279,6 +282,7 @@ class VisitController extends Controller
             $visit->arrived_date = date("Y-m-d H:i:s");
             $visit->save();
             $this->syncAirbnbRentStatusIfCompleted($visit);
+            $this->sendVisitArrivedNotification($visit);
         } catch (Exception $e) {
             return $this->returnFail(500, $e->getMessage());
         }
@@ -333,6 +337,38 @@ class VisitController extends Controller
 
         if ($pendingGuests === 0) {
             $airbnbRent->update(['status' => 2]);
+        }
+    }
+    private function sendVisitArrivedNotification(Visit $visit): void
+    {
+        $visit->loadMissing('departament.owner');
+
+        $recipient = null;
+        if (!empty($visit->created_by)) {
+            $recipient = User::find($visit->created_by);
+        }
+
+        if (!$recipient) {
+            $recipient = $visit->departament?->owner;
+        }
+
+        if (!$recipient) {
+            return;
+        }
+
+        try {
+            $recipient->notify(new RealtimeNotification(
+                title: 'Visita confirmada',
+                message: 'La llegada de ' . $visit->fullname . ' fue confirmada en la unidad ' . ($visit->departament?->number ?? '-'),
+                url: '/client/visits',
+                meta: [
+                    'visit_id' => $visit->id,
+                    'departament_id' => $visit->departament_id,
+                    'status' => (int) $visit->status,
+                ]
+            ));
+        } catch (\Throwable $e) {
+            // Silenciar errores de notificación para no romper el flujo
         }
     }
 

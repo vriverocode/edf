@@ -139,6 +139,7 @@ class UserController extends Controller
 
                         Visit::create([
                             'departament_id' => $request->idApartament,
+                            'created_by'     => $request->user()->id,
                             'fullname'       => $guest['name'],
                             'dni'            => $guest['document'],
                             'type'           => 3, // Tipo 3 según requerimiento

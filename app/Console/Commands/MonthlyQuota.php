@@ -104,7 +104,7 @@ class MonthlyQuota extends Command
                     'number'             => 'A' . substr($departament->number, -3) . '-' . $month . rand(1000, 9999),
                     'month'              => $month,
                     'due_date'           => $year . '-' . $month . '-10',
-                    'type'               => 1,
+                    'type'               => $departament->type == 1 ? 1 : 2,
                     'description'        => 'Cuota mensual: ' . $this->labelMonth($month) . ' ' . $year,
                     'status'             => 1
                 ]);

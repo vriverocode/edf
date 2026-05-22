@@ -54,7 +54,7 @@ class EventController extends Controller
                 'booking_id' => $bookingToEvent->id
             ]);
         }
-        $this->sendNotification($event);
+        $this->sendNotification($event, (int) $request->user()->id);
         return $this->returnSuccess(200, 'ok');
     }
     public function update(Request $request, $id)
@@ -173,9 +173,13 @@ class EventController extends Controller
         }
         $booking->delete();
     }
-    private function sendNotification($event)
+    private function sendNotification($event, ?int $creatorId = null)
     {
         $users = User::where('rol_id', 2)->get();
+        $creator = $creatorId ? User::find($creatorId) : null;
+        if ($creator && !$users->contains('id', $creator->id)) {
+            $users->push($creator);
+        }
         $dataNotificaction = $this->getDataToNotification($event);
 
         try {
