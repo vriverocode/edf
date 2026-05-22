@@ -304,7 +304,13 @@ const dataToForm = () => {
   dataForm.append('reference', payFormData.value.reference)
   dataForm.append('pay_date', payFormData.value.date)
   dataForm.append('pay_method', payFormData.value.pay_method)
-  dataForm.append('to_pay_id', toPay.value.id)
+  if (payFormData.value.type == 1 && toPay.value.consolidated_ids) {
+    toPay.value.consolidated_ids.forEach((id) => {
+      dataForm.append('quota_ids[]', id)
+    })
+  } else {
+    dataForm.append('to_pay_id', toPay.value.id)
+  }
   dataForm.append('type', payFormData.value.type)
   return { data: dataForm }
 }
@@ -378,7 +384,7 @@ watch(step, (toStep, fromStep) => {
                       <span>{{ maintenanceParticipation.toFixed(2)}} %</span> 
                     </div>
                     <div class="pay-form-breakdown__detail">
-                      <span>Presupuesto mantenimiento {{ toPay.month_label }}:</span>
+                      <span>Ppto. Mantenimiento {{ toPay.month_label }}:</span>
                       <span>{{ amountPrefix }} {{ maintenanceBudget.toFixed(2) }}</span>
                     </div>
                     <div class="pay-form-breakdown__row mt-2" @click="goTo(maintenanceDetailsLink)" style="text-decoration:underline" >

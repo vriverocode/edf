@@ -41,10 +41,12 @@ const getQuotas = () => {
 }
 
 const goTo = (quota) => {
-  let view = quota.status == 1 ? 'pay' : 'view' 
-  // Si tu backend requiere el ID de la primera cuota para procesar el pago o ver detalle:
-  let targetId = quota.details ? quota.details[0].id : quota.id;
-  router.push(`/client/quota/${view}/${targetId}`);
+  let view = quota.status == 2 || quota.status ==  3  ? 'pay/quotas/view' : 'quota/pay';
+  let targetId = 
+   quota.status == 2 || quota.status ==  3 
+   ? quota.pay
+   : quota.details ? quota.details[0].id : quota.id;
+  router.push(`/client/${view}/${targetId}`);
 }
 
 const showDialog = () => {
@@ -74,7 +76,13 @@ const getStatusInfo = (status) => {
   if (status === 1) {
     return { color: 'warning', icon: 'eva-alert-circle-outline', label: 'Pendiente' };
   }
-  return { color: 'positive', icon: 'eva-checkmark-circle-2-outline', label: 'Pagado' };
+  if (status === 2) {
+    return { color: 'warning', icon: 'eva-alert-circle-outline', label: 'Pendiente de aprob.' };
+  }
+  if (status === 3) {
+    return { color: 'positive', icon: 'eva-checkmark-circle-2-outline', label: 'Pagado' };
+  }
+  return { color: 'negative', icon: 'eva-checkmark-circle-2-outline', label: 'Rechazado' };
 }
 
 const formatDate = (date) => {

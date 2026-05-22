@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -31,9 +32,9 @@ class Pay extends Model
     {
         return $this->belongsTo(Booking::class, 'booking_id', 'id');
     }
-    public function quota(): BelongsTo
+    public function quotas(): BelongsToMany
     {
-        return $this->belongsTo(Quota::class, 'quota_id', 'id');
+        return $this->belongsToMany(Quota::class, 'pay_quota');
     }
     public function user(): BelongsTo
     {
@@ -60,7 +61,7 @@ class Pay extends Model
     {
         $payMethod = [
             '',
-            "Pago de quota" ,
+            "Pago de quota",
             "Pago de Reserva",
         ];
         return  $payMethod[$this->type];

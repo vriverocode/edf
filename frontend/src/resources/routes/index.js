@@ -526,19 +526,6 @@ const routes = [
           depth: 1,
         },
       },
-      {
-        path: '/admin/quotas/pays',
-        component: () => import('@/view/admin/WaterReadings/waterReadingEditForm.vue'),
-        name: 'quotasPays',
-        beforeEnter: [auth, role],
-        meta: {
-          title: 'Bienvenido',
-          pagTitle: 'Listado de quotas de mantenimiento mensual',
-          roles: ['admin'],
-          depth: 5,
-        },
-      },
-
       // ---- client Routes -----
 
       {
@@ -717,6 +704,17 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Detalles de cuota',
           depth: 3,
+        },
+      },
+      {
+        path: '/client/pay/quotas/view/:id',
+        component: () => import('@/view/client/Payments/viewPayOfQuotas.vue'),
+        name: 'viewPayOfQuotas',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Pago de cuotas',
+          depth: 4,
         },
       },
       {

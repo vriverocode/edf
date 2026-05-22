@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
@@ -27,15 +28,15 @@ class Quota extends Model
     ];
 
 
-    public $appends  =   ["status_label", "status_color", "status_icon", "month_label"];
+    public $appends = ["status_label", "status_color", "status_icon", "month_label"];
 
     public function departament(): BelongsTo
     {
         return $this->belongsTo(Departament::class, 'departament_id', 'id');
     }
-    public function pay(): HasOne
+    public function pays(): BelongsToMany
     {
-        return $this->hasOne(Pay::class);
+        return $this->belongsToMany(Pay::class, 'pay_quota');
     }
     public function waterReading(): BelongsTo
     {

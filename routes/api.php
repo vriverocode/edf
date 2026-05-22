@@ -89,7 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [MultaController::class, 'multaById']);
         Route::post('/', [MultaController::class, 'store']);
         Route::post('/u/{id}', [MultaController::class, 'update']);
-        Route::post('/d/{id}', [MultaController::class, 'deleteMulta']);                                                                                        
+        Route::post('/d/{id}', [MultaController::class, 'deleteMulta']);
     });
     Route::prefix('bookings')->name('booking.')->group(function () {
         Route::get('/', [BookingController::class, 'getBookingsByUser']);
@@ -129,10 +129,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::prefix('quotas')->name('quota.')->group(function () {
         Route::get('/', [QuotaController::class, 'index']);
-        Route::get('/byMonth/{id}', [QuotaController::class, 'byMonth']);
+        Route::get('/byMonth/{id}', [QuotaController::class, 'getByMonth']);
+        Route::get('/byPay/{id}', [QuotaController::class, 'getByPay']);
+
 
         Route::get('/byId/{id}', [QuotaController::class, 'show']);
-        
+
         Route::get('/client-water-detail/{id}', [QuotaController::class, 'clientWaterDetail']);
         Route::get('/client-maintenance-detail/{id}', [QuotaController::class, 'clientMaintenanceDetail']);
     });

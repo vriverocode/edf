@@ -62,15 +62,15 @@ const closeModal = () => {
 }
 
 const getTitlePay = (pay) => {
-  let typeOperation = pay.type === 1
-    ? pay.quota.month_label
-    : '#' + pay.booking.booking_number
+  let typeOperation = pay.type === 1 && pay.quotas && pay.quotas.length > 0
+    ? pay.quotas[0].month_label
+    : (pay.booking ? '#' + pay.booking.booking_number : '')
   return `${pay.title_pay} ${typeOperation}`
 }
 
 const getDescriptionPay = (pay) => {
-  if (pay.type === 1 && pay.quota) {
-    return `Pago de cuota - ${pay.quota.description || 'Cuota mensual'}`;
+  if (pay.type === 1 && pay.quotas && pay.quotas.length > 0) {
+    return `Pago de cuota - ${pay.quotas[0].description || 'Cuota mensual'}`;
   } else if (pay.type === 2 && pay.booking) {
     return `Reserva de ${pay.booking.comun_area?.name || 'área común'}`;
   }

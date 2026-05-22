@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Quota;
+use App\Models\Pay;
 use App\Models\MonthlyBills;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -29,61 +30,50 @@ class QuotaController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Quota::with(["pay", "departament.owner"])->orderBy('created_at', 'desc');
+        $query = Quota::with([
+            'pays' => function ($query) {
+                $query->where('status', '!=', 0);
+            },
+            "departament.owner",
+        ])->orderBy('created_at', 'desc');
 
-        // Filtrar por usuario si no es admin
         if ($request->user()->id != 1) {
             $query->whereHas('departament', function ($q) use ($request) {
                 $q->where('user_id', $request->user()->id);
             });
         }
-
-        // Obtenemos todas las cuotas planas
         $quotas = $query->get();
 
-        // Agrupamos usando Colecciones de Laravel
         $groupedQuotas = $quotas->groupBy(function ($quota) {
-            // Creamos una llave única para agrupar: "ID_USUARIO - MES - AÑO"
             $userId = $quota->departament->user_id ?? '0';
             $year = date('Y', strtotime($quota->due_date));
             return $userId . '_' . $quota->month . '_' . $year;
-            
         })->map(function ($group) {
-            // $group contiene todas las cuotas de ese mes para ese usuario (Depa, Estacionamiento, etc.)
             $firstQuota = $group->first();
             $owner = $firstQuota->departament->owner;
 
+            $pay = $firstQuota->pays->first()?->id ?? null;
+
             return [
-                // Generamos un ID virtual uniendo los IDs (útil para el :key en Vue)
                 'id' => 'group-' . $group->pluck('id')->join('-'),
-                
-                // Datos generales de la cuota agrupada
                 'month' => $firstQuota->month,
                 'due_date' => $firstQuota->due_date,
                 'description' => 'Cuota Consolidada (' . $group->count() . ' unidades asignadas)',
                 'owner_name' => $owner ? $owner->name : 'Desconocido',
-                
-                // Sumamos los montos automáticamente
                 'maintenance_amount' => $group->sum('maintenance_amount'),
                 'water_amount' => $group->sum('water_amount'),
-                'amount' => $group->sum('amount'), // Total final a pagar
-                
-                // Lógica de Status: Si AL MENOS UNA cuota del grupo está pendiente (status 1), 
-                // marcamos todo el bloque como pendiente. Si no, asumimos que está pagado (status 2).
+                'amount' => $group->sum('amount'),
                 'status' => $group->contains('status', 1) ? 1 : 2,
-
-                // Guardamos las cuotas originales por si la vista necesita desglosar
+                'pay' => $firstQuota->pays->first()?->id,
                 'details' => $group->values()->all(),
             ];
-        })->values(); // values() resetea las llaves del array para que el JSON quede limpio
-
-        // Retornamos la data agrupada
+        })->values();
         return $this->returnSuccess(200, $groupedQuotas);
     }
-    public function byMonth(Request $request, $month)
+    public function getByMonth(Request $request, $month)
     {
         //
-        $quotas = Quota::with(["pay", "departament.owner"])->orderBy('created_at', 'desc');
+        $quotas = Quota::with(["pays", "departament.owner"])->orderBy('created_at', 'desc');
 
         // Filtrar por usuario si no es admin
         if ($request->user()->id != 1) {
@@ -95,7 +85,13 @@ class QuotaController extends Controller
         // Aplicar filtros
         // $this->applyPaysFilter($quotas, $request);
 
-        return $this->returnSuccess(200, $quotas->where('month',$month)->get());
+        return $this->returnSuccess(200, $quotas->where('month', $month)->get());
+    }
+    public function getByPay($payId)
+    {
+        //
+        $quotas = Pay::with(["quotas.departament.owner", "quotas.waterReading", "payMethod", "user"])->find($payId);
+        return $this->returnSuccess(200, $quotas);
     }
 
     /**
@@ -111,20 +107,19 @@ class QuotaController extends Controller
      */
     public function show(string $id)
     {
-        $baseQuota = Quota::with("departament")->findOrFail($id);
+        $baseQuota = Quota::with(["departament.owner", "pays.payMethod"])->findOrFail($id);
         $userId = $baseQuota->departament->user_id;
         $month = $baseQuota->month;
         $year = Carbon::parse($baseQuota->due_date)->year;
 
         $quotas = Quota::with([
-            "departament.owner",
             "waterReading:id,month,year,previous_reading,current_reading,m3_price"
         ])->whereHas('departament', function ($q) use ($userId) {
             $q->where('user_id', $userId);
         })
-        ->where('month', $month)
-        ->whereYear('due_date', $year)
-        ->get();
+            ->where('month', $month)
+            ->whereYear('due_date', $year)
+            ->get();
 
         $monthlyBill = MonthlyBills::query()
             ->select('id', 'total_maintenance_budget', 'water_price_per_m3')
@@ -139,7 +134,7 @@ class QuotaController extends Controller
         $totalParticipation = 0;
         $waterConsumptionM3 = 0;
         $waterPricePerM3 = $monthlyBill?->water_price_per_m3 ?? 0;
-        
+
         $quotaIds = [];
         $descriptionLines = [];
         $breakdown = []; // <-- NUEVO: Array para guardar el detalle por unidad

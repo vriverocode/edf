@@ -14,15 +14,15 @@ export const useQuotaStore = defineStore('Quota', {
         const url = '/api/quotas' + (query ? `?${query}` : '');
 
         ApiService.get(url)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
       })
     },
     async createQuota(data) {
@@ -32,57 +32,57 @@ export const useQuotaStore = defineStore('Quota', {
         }
         ApiService.setHeader();
         ApiService.post('/api/quotas', data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          if(response.data.code == 403){
-            reject(response.data);
-          }
-          reject(response.data.error);
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            if (response.data.code == 403) {
+              reject(response.data);
+            }
+            reject(response.data.error);
+          });
+
       })
 
     },
-    async createQuotaPay(postData){
+    async createQuotaPay(postData) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
         ApiService.post('/api/pays/quotas', postData.data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
       })
 
     },
-     
+
     async getQuotaById(id) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/quotas/byId/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
-        
+        ApiService.get('/api/quotas/byId/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
       })
     },
     async getQuotaByMonth(month) {
@@ -91,16 +91,34 @@ export const useQuotaStore = defineStore('Quota', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/quotas/byMonth/'+month)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
-        
+        ApiService.get('/api/quotas/byMonth/' + month)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
+      })
+    },
+    async getQuotaByPayId(payId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.get('/api/quotas/byPay/' + payId)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
       })
     },
     async getClientWaterDetailByQuotaId(id) {
@@ -110,14 +128,14 @@ export const useQuotaStore = defineStore('Quota', {
         }
         ApiService.setHeader();
         ApiService.get('/api/quotas/client-water-detail/' + id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response?.data?.error || 'Error al obtener detalle de medicion de agua');
-        });
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al obtener detalle de medicion de agua');
+          });
       })
     },
     async getClientMaintenanceDetailByQuotaId(id) {
@@ -127,32 +145,32 @@ export const useQuotaStore = defineStore('Quota', {
         }
         ApiService.setHeader();
         ApiService.get('/api/quotas/client-maintenance-detail/' + id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response?.data?.error || 'Error al obtener detalle de mantenimiento');
-        });
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al obtener detalle de mantenimiento');
+          });
       })
     },
-    async getQuotaByArea(area){
+    async getQuotaByArea(area) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/quotas/byArea/'+area)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
-        
+        ApiService.get('/api/quotas/byArea/' + area)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
       })
     },
 
@@ -162,37 +180,37 @@ export const useQuotaStore = defineStore('Quota', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.put('/api/quotas/'+data.id, data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          if(response.data.code == 403){
-            reject(response.data);
-          }
-          reject(response.data.error);
-        });
-        
+        ApiService.put('/api/quotas/' + data.id, data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            if (response.data.code == 403) {
+              reject(response.data);
+            }
+            reject(response.data.error);
+          });
+
       })
 
     },
-    async getAvailableQuotaInDayByArea(data){
+    async getAvailableQuotaInDayByArea(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/quotas/availableBooking/'+data.idArea+'?date='+data.date+'&')
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
+        ApiService.get('/api/quotas/availableBooking/' + data.idArea + '?date=' + data.date + '&')
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
       })
 
     },
@@ -202,15 +220,15 @@ export const useQuotaStore = defineStore('Quota', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.delete('/api/quotas/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
+        ApiService.delete('/api/quotas/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
       })
     },
     async cancelQuota(id) {
@@ -219,35 +237,35 @@ export const useQuotaStore = defineStore('Quota', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/quotas/cancel/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
+        ApiService.post('/api/quotas/cancel/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
       })
     },
-    async getPendingQuota(){
+    async getPendingQuota() {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
         ApiService.get('/api/quotas/pendings')
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
       })
     },
-    filterQuery(filter){
+    filterQuery(filter) {
       try {
         const params = new URLSearchParams();
         if (!filter || typeof filter !== 'object') return '';
@@ -263,6 +281,6 @@ export const useQuotaStore = defineStore('Quota', {
         return '';
       }
     }
-    
+
   },
 })

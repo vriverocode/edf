@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Quota;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Validator; 
+use Illuminate\Support\Facades\Validator;
 use App\Notifications\RealtimeNotification;
 use Illuminate\Support\Facades\DB;
 
@@ -18,21 +18,21 @@ class PayController extends Controller
 {
     public function getPayById($id)
     {
-        $pay = Pay::with(['booking.comunArea', 'user', 'quota'])->find($id);
+        $pay = Pay::with(['booking.comunArea', 'user', 'quotas.departament', 'payMethod'])->find($id);
 
         return $this->returnSuccess(200, $pay);
     }
 
     public function getPayQuotas($id)
     {
-        $pay = Pay::with(['booking.comunArea', 'user'])->find($id);
+        $pay = Pay::with(['booking.comunArea', 'user', 'payMethod'])->find($id);
 
         return $this->returnSuccess(200, $pay);
     }
 
     public function getPaysByUser(Request $request)
     {
-        $pays = Pay::with(['booking.comunArea', 'quota', 'user']);
+        $pays = Pay::with(['booking.comunArea', 'quotas.departament', 'user', 'payMethod']);
 
         // Filtrar por usuario si no es admin
         if ($request->user()->id != 1) {
@@ -88,24 +88,27 @@ class PayController extends Controller
         $pay = Pay::create([
             "user_id"       => $request->user()->id,
             "booking_id"    => $request->type == 2 ? $request->to_pay_id : null,
-            "quota_id"      => $request->type == 1 ? $request->to_pay_id : null,
             "amount"        => $request->amount,
             "reference"     => $request->reference ?? "000000",
-            "pay_id"        => $prefixPayId[$request->pay_method] . ($request->booking_id ?? $request->quota_id) . '-' . rand(1000, 9999),
+            "pay_id"        => $prefixPayId[$request->pay_method] . ($request->booking_id ?? 'Q') . '-' . rand(1000, 9999),
             "pay_date"      => $request->pay_date ? date("Y-m-d", strtotime($request->pay_date)) : date("Y-m-d"),
             "type"          => $request->type,
             "pay_method"    => $request->pay_method,
             "status"        => 1
         ]);
 
-        // $this->afterPayAction($pay);
+        if ($request->type == 1) {
+            $pay->quotas()->sync($this->setQuotaIds($request));
+        }
+
+        $this->afterPayAction($pay);
         $this->uploadVaucher($pay, $request);
         $this->sendNotification($pay);
         return $this->returnSuccess(200, ["idPay" => $pay->id]);
     }
     public function updateStatus(Request $request, $payId)
     {
-        $pay = Pay::with(["booking", "payMethod", "quota"])->find($payId);
+        $pay = Pay::with(["booking", "payMethod", "quotas"])->find($payId);
 
         if (!$payId) {
             return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Pago no encontrado']);
@@ -157,7 +160,7 @@ class PayController extends Controller
             if ($response->successful()) {
                 // 3. El pago es válido, ahora creamos los registros en la BD
                 return DB::transaction(function () use ($request, $culqiData) {
-                    
+
 
                     // Creamos el registro del Pago (Pay)
                     $pay = \App\Models\Pay::create([
@@ -182,7 +185,6 @@ class PayController extends Controller
             }
 
             return $this->returnFail(400, $culqiData['user_message'] ?? 'Pago rechazado');
-
         } catch (\Exception $e) {
             return $this->returnFail(500, 'Error procesando la operación');
         }
@@ -193,24 +195,33 @@ class PayController extends Controller
             $this->updateBooking($pay->booking_id);
             return;
         }
-        $this->updateQuota($pay->quota_id);
+
+        $this->updateQuota($pay->quotas);
     }
     private function payStatusActionByType(Pay $pay)
     {
-        $pay->type == 2
-        ? $this->bookingActionByStatus($pay)
-        : '';
-    
+        if ($pay->type == 2) {
+            $this->bookingActionByStatus($pay);
+        } elseif ($pay->type == 1) {
+            $this->quotaActionByStatus($pay);
+        }
+    }
+    private function quotaActionByStatus($pay)
+    {
+        $newStatus = $pay->status == 0 ? 1 : 3;
+        foreach ($pay->quotas as $quota) {
+            $quota->update(["status" => $newStatus]);
+        }
     }
     private function bookingActionByStatus($pay)
     {
         $returnMessage = $pay->status == 0
-        ? ['messageType' => 'negative', 'message' => 'Pago cancelado con exito']
-        : ['messageType' => 'positive', 'message' => 'Pago aprobado con exito'];
+            ? ['messageType' => 'negative', 'message' => 'Pago cancelado con exito']
+            : ['messageType' => 'positive', 'message' => 'Pago aprobado con exito'];
 
         $pay->status == 0
-        ? $this->cancelBooking($pay->booking_id)
-        : $this->approveBooking($pay->booking_id);
+            ? $this->cancelBooking($pay->booking_id)
+            : $this->approveBooking($pay->booking_id);
 
         $this->sendReserveNotification($pay);
         return $returnMessage;
@@ -235,18 +246,18 @@ class PayController extends Controller
     {
 
         $rules =  $inputs['pay_method'] != 3
-        ? [
-            'amount'     => ['required', 'numeric'],
-            'pay_date'   => ['required', 'date'],
-            'reference'  => ['required', 'regex:/^[0-9 &]+$/i'],
-            'pay_method' => ['required', 'numeric'],
-            'vaucher'    => ['required', 'file'],
+            ? [
+                'amount'     => ['required', 'numeric'],
+                'pay_date'   => ['required', 'date'],
+                'reference'  => ['required', 'regex:/^[0-9 &]+$/i'],
+                'pay_method' => ['required', 'numeric'],
+                'vaucher'    => ['required', 'file'],
 
-        ]
-        : [
-            'amount'     => ['required', 'numeric'],
-            'pay_method' => ['required', 'numeric'],
-        ];
+            ]
+            : [
+                'amount'     => ['required', 'numeric'],
+                'pay_method' => ['required', 'numeric'],
+            ];
 
         $messages = [
             'amount.required'     => 'El monto es requerido',
@@ -264,7 +275,7 @@ class PayController extends Controller
 
         $validator = Validator::make($inputs, $rules, $messages)->errors();
 
-        return $validator->all() ;
+        return $validator->all();
     }
     private function uploadVaucher($pay, $vaucher)
     {
@@ -288,13 +299,20 @@ class PayController extends Controller
         ]);
     }
 
-    private function updateQuota($id)
+    private function updateQuota($quotas)
     {
-        Quota::find($id)->update([
-            "status" => 2
-        ]);
+        $VALIDATION_PENDING_STATUS = 2;
+        foreach ($quotas as $quota) {
+            Quota::find($quota->id)->update([
+                "status" => $VALIDATION_PENDING_STATUS
+            ]);
+        }
     }
 
+    private function setQuotaIds(Request $request)
+    {
+        return $request->has('quota_ids') ? $request->quota_ids : [$request->to_pay_id];
+    }
     private function sendNotification($pay)
     {
         $users = [
@@ -305,7 +323,7 @@ class PayController extends Controller
 
         try {
 
-            
+
             $users["client"]->notify(new RealtimeNotification(
                 title: $dataNotificaction[0]["title"],
                 message: $dataNotificaction[0]["message"],
@@ -326,23 +344,23 @@ class PayController extends Controller
     private function getDataToNotification($pay)
     {
         return $pay->type == 1
-        ?   [
+            ?   [
                 [
                     "title" => "Pago realizado",
-                    "message" => "Tu pago por la cuota #" . $pay->quota->number
+                    "message" => "Tu pago por las cuotas del mes de " . $pay->quotas[0]->month_label
                         . " fue realizado, el personal de administración lo validará en breve.",
-                    "url" => "/client/reserves/view/" . $pay->id,
+                    "url" => "/client/quota/details/month/" . $pay->quotas[0]->month,
                     "meta" =>  ['quota_id' => $pay->id],
                 ],
                 [
                     "title" => "Pago realizado",
-                    "message" => "Se ha realizado el pago por la cuota #" . $pay->quota->number
-                        . " departamento ". $pay->quota->departament->number. ', Por favor validar',
-                    "url" => "/client/reserves/view/" . $pay->id,
+                    "message" => "Se ha realizado el pago por las cuotas del mes de " . $pay->quotas[0]->month_label
+                        . ", Por favor validar",
+                    "url" => "/admin/pays/view/" . $pay->id,
                     "meta" =>  ['quota_id' => $pay->id],
                 ]
             ]
-        :   [
+            :   [
                 [
                     "title" => "Pago de reserva realizado",
                     "message" => "Tu pago por la reserva #" . $pay->booking->booking_number
@@ -371,21 +389,21 @@ class PayController extends Controller
     {
 
         $data = $pay->status == 0
-        ? [
-            "title" => 'Pago de reserva rechazado',
-            "message" => 'Tu pago por la reserva #' . $pay->booking->booking_number . ' fue rechazado.',
-            "url" =>'/client/reserves/view/' . $pay->id,
-            "meta" => [
-                'booking_id' => $pay->id,
-                'icon' => $pay->status_icon
+            ? [
+                "title" => 'Pago de reserva rechazado',
+                "message" => 'Tu pago por la reserva #' . $pay->booking->booking_number . ' fue rechazado.',
+                "url" => '/client/reserves/view/' . $pay->id,
+                "meta" => [
+                    'booking_id' => $pay->id,
+                    'icon' => $pay->status_icon
+                ]
             ]
-        ]
-          
-        :[
-            "title" => 'Pago de reserva aceptado',
-            "message" =>  'Tu pago por la reserva #' . $pay->booking->booking_number . ' fue aprobada.',
-            "url" => '/client/reserves/view/' . $pay->id,
-            "meta" => [
+
+            : [
+                "title" => 'Pago de reserva aceptado',
+                "message" =>  'Tu pago por la reserva #' . $pay->booking->booking_number . ' fue aprobada.',
+                "url" => '/client/reserves/view/' . $pay->id,
+                "meta" => [
                     'booking_id' => $pay->id,
                     'icon' => $pay->status_icon
                 ]
@@ -402,5 +420,4 @@ class PayController extends Controller
             // Silenciar errores de notificación para no romper el flujo
         }
     }
-
 }

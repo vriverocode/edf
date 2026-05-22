@@ -144,16 +144,16 @@ const reloadQuota = () => {
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Fecha de pago</span>
-                <span class="text-gray-900 font-semibold">{{ moment(quota.pay.pay_date).format('DD/MM/YYYY')}}</span>
+                <span class="text-gray-900 font-semibold">{{ moment(quota.pays[0].pay_date).format('DD/MM/YYYY')}}</span>
               </div>
   
               <!-- Método de pago -->
               <div class="flex justify-between items-center pb-2"
-                v-if="quota.amount > 0 &&  quota.pay"
+                v-if="quota.amount > 0 &&  quota.pays.length > 0"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Método de pago</span>
                 <span class="text-gray-900 font-semibold">
-                  {{ quota.pay?.pay_method_label || 'S/N'  }}
+                  {{ quota.pays[0]?.pay_method.name || 'S/N'  }}
                 </span>
               </div>
   
@@ -167,23 +167,23 @@ const reloadQuota = () => {
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Nro. de operación</span>
-                <span class="text-gray-900 font-semibold">#{{ quota.pay.reference }}</span>
+                <span class="text-gray-900 font-semibold">#{{ quota.pays[0].reference }}</span>
               </div>
 
             </div>
-            <div class="flex flex-center mt-4" @click="dialog = true" v-if="quota.pay">
+            <div class="flex flex-center mt-4" @click="dialog = true" v-if="quota.pays.length > 0">
               <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher" style="text-decoration:dotted">
                 Vaucher de pago 
               </div>
               <span class="ml-2" v-html="iconsApp.voucher"></span>
             </div>
           </div>
-          <!-- Botones de acción -->
+          <!-- Botones de acción -->    
           <div class="w-full  space-y-4">
           </div>
         </div>
-        <template v-if="quota.pay">
-          <voucherModal :vaucher="quota.pay.vaucher"  :dialog="dialog"  @closeModal="dialog = false"/>
+        <template v-if="quota.pays.length > 0">
+          <voucherModal :vaucher="quota.pays[0].vaucher"  :dialog="dialog"  @closeModal="dialog = false"/>
         </template>
 
       </div>

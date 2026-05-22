@@ -137,7 +137,7 @@ const reloadBooking = () => {
             <div class="flex justify-between items-center pb-2" v-if="pay.pay_method != 3"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Refencia de pago</span>
-              <span class="text-gray-900 font-semibold">{{ pay.reference }}</span>
+              <span class="text-gray-900 font-semibold">#{{ pay.reference }}</span>
             </div>
             <!-- Monto pagado -->
             <div class="flex justify-between items-center pb-2"
@@ -158,7 +158,7 @@ const reloadBooking = () => {
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Método de pago</span>
               <span class="text-gray-900 font-semibold">
-                {{ pay.pay_method_label }}
+                {{ pay.pay_method.name }}
               </span>
             </div>
 

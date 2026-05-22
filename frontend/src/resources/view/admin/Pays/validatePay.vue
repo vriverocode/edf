@@ -115,11 +115,20 @@ const showModal = (modal) => {
         <!-- Tarjeta de detalles -->
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-sm md:max-w-4xl p-6 pb-4 mb-8">
           <div class="space-y-4">
-            <!-- Estado del pago -->
+            <!-- Detalles del pago -->
             <div class="flex justify-between items-center pb-2"
-              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);" v-if="pay.type == 2 && pay.booking">
               <span class="text-gray-600 font-medium">Area</span>
               <span class="text-gray-900 font-semibold"  >{{ pay.booking.comun_area.name}}</span>
+            </div>
+            <div class="flex justify-between items-center pb-2"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);" v-if="pay.type == 1 && pay.quotas?.length">
+              <span class="text-gray-600 font-medium">Cuota(s) pagada(s)</span>
+              <span class="text-gray-900 font-semibold flex flex-wrap justify-end gap-1 items-center">
+                <span class="bg-primary text-white text-xs px-2 py-1 rounded-md" v-for="quota  in pay.quotas" :key="quota.id">
+                  {{ quota.month_label }} (Unidad {{ quota.departament?.number }})
+                </span>
+              </span>
             </div>
             <!-- ID de transacción -->
             <div class="flex justify-between items-center pb-2"
@@ -159,11 +168,11 @@ const showModal = (modal) => {
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Método de pago</span>
               <span class="text-gray-900 font-semibold">
-                {{ pay.pay_method_label }}
+                {{ pay.pay_method.name }}
               </span>
             </div>
             <!-- User -->
-            <div class="flex justify-between items-center pb-2" v-if="pay.booking"
+            <div class="flex justify-between items-center pb-2" v-if="pay.user"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">A nombre de</span>
               <span class="text-gray-900 font-semibold">

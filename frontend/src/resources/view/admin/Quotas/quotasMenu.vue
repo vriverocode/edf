@@ -11,7 +11,7 @@ const menu = [
   {
     title: 'Cuotas de mantenimiento',
     icon: iconsApp.payHouse,
-    link: '/balances',
+    link: '/admin/quotas/maintenance/list',
   },
   {
     title: 'Cuotas especiales',
