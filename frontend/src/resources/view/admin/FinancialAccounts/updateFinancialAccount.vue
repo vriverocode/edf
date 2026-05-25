@@ -64,7 +64,7 @@ const updateAccount = () => {
     .then(() => {
       showNotify('positive', 'Cuenta financiera actualizada con éxito')
       setTimeout(() => {
-        router.push('/admin/financial-accounts')
+        router.go(-1)
       }, 700)
     })
     .catch((error) => {
@@ -80,7 +80,7 @@ onMounted(async () => {
     await Promise.all([loadCurrencies(), loadAccount()])
   } catch (error) {
     showNotify('negative', typeof error === 'string' ? error : 'No se pudo cargar la cuenta')
-    router.push('/admin/financial-accounts')
+    router.go(-1)
   } finally {
     fetchingData.value = false
   }
@@ -101,83 +101,39 @@ onMounted(async () => {
       <div class="row">
         <div class="col-md-6 col-12 px-2 mb-3">
           <div class="text-subtitle2 text-black">Nombre</div>
-          <q-input
-            v-model="formData.name"
-            dense
-            borderless
-            class="form__inputsR mt-1"
-            :rules="[val => !!val || 'El nombre es obligatorio']"
-          />
+          <q-input v-model="formData.name" dense borderless class="form__inputsR mt-1"
+            :rules="[val => !!val || 'El nombre es obligatorio']" />
         </div>
 
         <div class="col-md-6 col-12 px-2 mb-3">
           <div class="text-subtitle2 text-black">Moneda</div>
-          <q-select
-            v-model="formData.currency_id"
-            :options="currencies"
-            option-label="name"
-            option-value="id"
-            emit-value
-            map-options
-            dense
-            borderless
-            class="form__inputsR mt-1"
-            :rules="[val => !!val || 'La moneda es obligatoria']"
-          />
+          <q-select v-model="formData.currency_id" :options="currencies" option-label="name" option-value="id"
+            emit-value map-options dense borderless class="form__inputsR mt-1"
+            :rules="[val => !!val || 'La moneda es obligatoria']" />
         </div>
 
         <div class="col-md-6 col-12 px-2 mb-3">
           <div class="text-subtitle2 text-black">Saldo inicial</div>
-          <q-input
-            v-model.number="formData.initial_balance"
-            type="number"
-            dense
-            borderless
-            class="form__inputsR mt-1"
-            :rules="[val => val !== null && val !== '' || 'Saldo inicial requerido']"
-          />
+          <q-input v-model.number="formData.initial_balance" type="number" dense borderless class="form__inputsR mt-1"
+            :rules="[val => val !== null && val !== '' || 'Saldo inicial requerido']" />
         </div>
 
         <div class="col-md-6 col-12 px-2 mb-3">
           <div class="text-subtitle2 text-black">Saldo actual</div>
-          <q-input
-            v-model.number="formData.current_balance"
-            type="number"
-            dense
-            borderless
-            class="form__inputsR mt-1"
-            :rules="[val => val !== null && val !== '' || 'Saldo actual requerido']"
-          />
+          <q-input v-model.number="formData.current_balance" type="number" dense borderless class="form__inputsR mt-1"
+            :rules="[val => val !== null && val !== '' || 'Saldo actual requerido']" />
         </div>
 
         <div class="col-md-6 col-12 px-2 mb-3">
           <div class="text-subtitle2 text-black">Tipo</div>
-          <q-select
-            v-model="formData.type"
-            :options="typeOptions"
-            option-label="label"
-            option-value="value"
-            emit-value
-            map-options
-            dense
-            borderless
-            class="form__inputsR mt-1"
-          />
+          <q-select v-model="formData.type" :options="typeOptions" option-label="label" option-value="value" emit-value
+            map-options dense borderless class="form__inputsR mt-1" />
         </div>
 
         <div class="col-md-6 col-12 px-2 mb-3">
           <div class="text-subtitle2 text-black">Estado</div>
-          <q-select
-            v-model="formData.status"
-            :options="statusOptions"
-            option-label="label"
-            option-value="value"
-            emit-value
-            map-options
-            dense
-            borderless
-            class="form__inputsR mt-1"
-          />
+          <q-select v-model="formData.status" :options="statusOptions" option-label="label" option-value="value"
+            emit-value map-options dense borderless class="form__inputsR mt-1" />
         </div>
       </div>
 
@@ -213,4 +169,3 @@ onMounted(async () => {
   }
 }
 </style>
-

@@ -43,7 +43,7 @@ class FinancialAccountController extends Controller
             'initial_balance' => 'required|numeric|min:0',
             'current_balance' => 'nullable|numeric|min:0',
             'status' => 'nullable|integer|in:0,1',
-            'type' => 'nullable|integer|in:1,2',
+            'type' => 'nullable|integer|in:1,2,3',
         ]);
 
         if ($validator->fails()) {
@@ -79,7 +79,7 @@ class FinancialAccountController extends Controller
             'initial_balance' => 'required|numeric|min:0',
             'current_balance' => 'required|numeric|min:0',
             'status' => 'nullable|integer|in:0,1',
-            'type' => 'nullable|integer|in:1,2',
+            'type' => 'nullable|integer|in:1,2,3',
         ]);
 
         if ($validator->fails()) {

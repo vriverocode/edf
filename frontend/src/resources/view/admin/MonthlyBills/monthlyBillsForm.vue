@@ -45,7 +45,7 @@ const monthOptions = [
 ]
 
 const formData = ref({
-  month: monthOptions[now.getMonth()],
+  month: monthOptions[now.getMonth() - 1],
   year: now.getFullYear(),
   total_maintenance_budget: '',
   total_water_bill_amount: '',
@@ -148,8 +148,8 @@ const submit = async () => {
 
         <div class="col-md-6 col-12 mt-4 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Consumo total de agua (m³)</div>
-          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number" step="0.001"
-            v-model.number="formData.total_water_consumption_m3" />
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" mask="###.###.###,####"
+            reverse-fill-mask inputmode="decimal" v-model.number="formData.total_water_consumption_m3" />
         </div>
 
         <div class="col-12 mt-2 px-2 md:px-12">

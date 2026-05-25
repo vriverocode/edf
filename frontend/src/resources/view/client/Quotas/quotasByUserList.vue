@@ -41,12 +41,19 @@ const getQuotas = () => {
 }
 
 const goTo = (quota) => {
+<<<<<<< HEAD
   let view = quota.status == 2 || quota.status ==  3  ? 'pay/quotas/view' : 'quota/pay';
   let targetId = 
    quota.status == 2 || quota.status ==  3 
    ? quota.pay
    : quota.details ? quota.details[0].id : quota.id;
   router.push(`/client/${view}/${targetId}`);
+=======
+  let view = quota.status == 1 ? 'pay' : 'view'
+  // Si tu backend requiere el ID de la primera cuota para procesar el pago o ver detalle:
+  let targetId = quota.details ? quota.details[0].id : quota.id;
+  router.push(`/client/quota/${view}/${targetId}`);
+>>>>>>> da1af07538febcd83cb4d40587f82ebda6516e87
 }
 
 const showDialog = () => {
@@ -104,20 +111,16 @@ onMounted(() => {
 
       <div v-else class="px-4 py-6 md:px-28">
         <div v-if="quotas.length > 0" class="space-y-5 md:px-5">
-          <div 
-            v-for="quota in quotas" 
-            :key="quota.id"
+          <div v-for="quota in quotas" :key="quota.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
-            style="position: relative; border: 1px solid lightgrey"
-          >
-            
-            <div class="px-4 pb-2 pt-2 md:pt-4" >
+            style="position: relative; border: 1px solid lightgrey">
+
+            <div class="px-4 pb-2 pt-2 md:pt-4">
               <div class="flex justify-between items-start mb-0 pb-1" style="border-bottom: 1px dashed #111827;">
                 <div class="flex-1">
                   <h3 class="text-lg font-bold text-gray-900 mb-1">
-                    {{ getTitleQuota(quota) }}  
-                    <span 
-                      v-if="quota.created_at && moment(quota.created_at).isAfter(moment().subtract(7, 'days'))"
+                    {{ getTitleQuota(quota) }}
+                    <span v-if="quota.created_at && moment(quota.created_at).isAfter(moment().subtract(7, 'days'))"
                       class="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-md">
                       Nuevo
                     </span>
@@ -128,7 +131,7 @@ onMounted(() => {
 
               <div class="space-y-2 pt-3">
                 <div class="row items-center ">
-                  <div class="flex items-center text-sm text-gray-700 col-6 col-md-4 ">
+                  <div class="flex items-center text-sm text-gray-700 col-5 col-md-4 ">
                     <svg class="w-5 h-5 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
@@ -136,7 +139,8 @@ onMounted(() => {
                     </svg>
                     <span class="font-medium text-base">S/. {{ Number(quota.amount).toFixed(2) }}</span>
                   </div>
-                  <div class="flex items-center text-sm text-gray-700 col-6 col-md-8 justify-end md:justify-start">
+                  <div class="flex items-cente
+                  r text-sm text-gray-700 col-7 col-md-8 justify-end md:justify-start">
                     <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
@@ -148,14 +152,11 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="px-4 py-2 md:py-3 border-t cursor-pointer" :class="`bg-${getStatusInfo(quota.status).color}`" @click="goTo(quota)">
+            <div class="px-4 py-2 md:py-3 border-t cursor-pointer" :class="`bg-${getStatusInfo(quota.status).color}`"
+              @click="goTo(quota)">
               <div class="flex justify-center items-center">
                 <div class="flex items-center">
-                  <q-icon 
-                    :name="getStatusInfo(quota.status).icon" 
-                    color="white"
-                    size="1.5rem"
-                  />
+                  <q-icon :name="getStatusInfo(quota.status).icon" color="white" size="1.5rem" />
                   <span class="ml-1 text-sm font-medium text-white">{{ getStatusInfo(quota.status).label }}</span>
                 </div>
               </div>

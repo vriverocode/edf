@@ -127,7 +127,7 @@ onMounted(() => {
 
         <div v-else class="pt-5 md:px-5 pb-8" style="height: 83%; overflow: auto;">
           <template v-if="readings.length > 0">
-            <div class="space-y-0">
+            <div class="mb-1">
               <div v-for="r in readings" :key="r.id" class="bg-white bills__container mb-5" style="position: relative;">
                 <div class="pb-3 pt-2">
                   <div class="flex justify-between items-center pb-1 px-4" style="border-bottom: 1px solid lightgrey">

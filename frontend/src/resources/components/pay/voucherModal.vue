@@ -15,7 +15,7 @@ const router = useRouter()
 const loading = ref(false)
 const dialog = ref(props.dialog)
 const vaucher = ref(props.vaucher)
-
+const urlMedia = import.meta.env.VITE_LARAVEL_API_URL
 const hideModal = () => {
   emit('closeModal')
 }
@@ -39,7 +39,7 @@ watch(() => props.vaucher, (newValue) => {
         <section class="content__modalSectionRifa md:mt-5 py-5 ">
           <q-card-section class="q-pt-none q-px-sm ">
             <div class="px-2">
-              <ZoomImg :src="vaucher" alt="" />
+              <ZoomImg :src="urlMedia + vaucher" alt="" />
             </div>
           </q-card-section>
         </section>
@@ -54,7 +54,7 @@ watch(() => props.vaucher, (newValue) => {
   </q-dialog>
 </template>
 <style lang="scss">
-.voucherDialog{
+.voucherDialog {
   max-height: 95dvh;
 }
 </style>

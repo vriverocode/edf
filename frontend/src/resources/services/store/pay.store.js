@@ -148,6 +148,35 @@ export const usePayStore = defineStore('Pay', {
       })
 
     },
+    async validatePayment({ id, data }) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader()
+        ApiService.post('/api/pays/validate/' + id, data)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            const body = response?.data
+            if (body?.code === 403) {
+              reject(body)
+              return
+            }
+            const err = body?.error
+            let msg =
+              typeof err === 'object' && err !== null && 'message' in err
+                ? err.message
+                : err
+            if (typeof msg !== 'string' || msg === '') {
+              msg = 'Error al validar el pago'
+            }
+            reject(typeof msg === 'string' ? { message: msg, raw: err } : { message: msg, raw: body })
+          })
+      })
+    },
     async createCulqiPay(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw 'No session';

@@ -36,7 +36,7 @@ const menu = computed(() => [
     title: 'Mi Departamento',
     icon: mi_departamento,
     link: '/client/department/options',
-    badgePay: hasQuotasPending.value > 0, 
+    badgePay: hasQuotasPending.value > 0,
     roles: [2]
   },
   {
@@ -92,8 +92,8 @@ const goTo = (url) => {
 </script>
 
 <template>
-  <div class="h-full w-full px-2">
-    <div class="row md:pt-10 pt-2  md:px-20" style="overflow-y: auto; max-height: 100%;">
+  <div class="h-full w-full px-2 ">
+    <div class="row md:pt-10 pt-2  md:px-20 pb-12" style="overflow-y: auto; max-height: 100%;">
       <div class="col-md-3 col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
         <div class="px-3">
           <div class="boxItem " @click="goTo(items.link)">

@@ -10,14 +10,20 @@ const router = useRouter()
 const menu = [
   {
     title: 'Cuotas de mantenimiento',
+<<<<<<< HEAD
     icon: iconsApp.payHouse,
     link: '/admin/quotas/maintenance/list',
+=======
+    icon: iconsApp.cuotaMonthly,
+    link: '/admin/quotas/maintenance/list',
+    roles: [1],
+>>>>>>> da1af07538febcd83cb4d40587f82ebda6516e87
   },
   {
     title: 'Cuotas especiales',
-    icon: iconsApp.bank,
+    icon: iconsApp.cuotaSpecial,
     link: '/admin/accounts',
-    roles: [1]
+    roles: [1],
   },
 
 ];
@@ -32,7 +38,7 @@ const goTo = (url) => {
 </script>
 <template>
   <div class="h-full w-full px-2">
-    <div class="row md:pt-10 pt-2  md:px-20">
+    <div class="row md:pt-10 pt-2  md:px-28">
       <div class="col-md-3   col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
         <div class="boxItem" @click="goTo(items.link)">
           <div class="flex justify-center items-center h-full w-full p-1">

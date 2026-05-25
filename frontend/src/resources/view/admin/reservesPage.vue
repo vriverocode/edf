@@ -75,6 +75,12 @@ const getPaymentAmount = (booking) => {
   return 'Gratis';
 }
 
+const formatTimeNoSeconds = (t) => {
+  if (t == null || t === '') return '';
+  const m = moment(String(t).trim(), ['HH:mm:ss', 'H:mm:ss', 'HH:mm', 'H:mm'], true);
+  return m.isValid() ? m.format('HH:mm') : String(t).trim();
+};
+
 onMounted(() => {
   getReserves();
 });
@@ -147,7 +153,7 @@ onMounted(() => {
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <span class="font-medium">
-                      {{ reserve.time_from}} - {{ reserve.time_to }}
+                      {{ formatTimeNoSeconds(reserve.time_from) }} - {{ formatTimeNoSeconds(reserve.time_to) }}
                     </span>
                   </div>
                   <div class="flex items-center text-sm text-gray-700" style="margin-top: 3px;">

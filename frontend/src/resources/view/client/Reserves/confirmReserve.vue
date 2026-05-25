@@ -23,7 +23,7 @@ const getBookingById = async (id) => {
   }
 
 }
-const initVisualLoader = () =>  {
+const initVisualLoader = () => {
   loading.value = true
   error.value = null
 }
@@ -43,7 +43,7 @@ onMounted(() => {
   } else {
     error.value = 'ID de reserva no proporcionado'
   }
-  
+
 })
 
 
@@ -122,8 +122,7 @@ const reloadGetBooking = () => {
             </div>
 
             <!-- Monto pagado -->
-            <div class="flex justify-between items-center pb-2"
-              v-if="booking.amount > 0"
+            <div class="flex justify-between items-center pb-2" v-if="booking.amount > 0"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Monto pagado</span>
               <span class="text-gray-900 font-semibold">S/. {{ booking.amount }}</span>
@@ -137,8 +136,7 @@ const reloadGetBooking = () => {
             </div>
 
             <!-- Método de pago -->
-            <div class="flex justify-between items-center pb-2"
-              v-if="booking.amount > 0"
+            <div class="flex justify-between items-center pb-2" v-if="booking.amount > 0"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Método de pago</span>
               <span class="text-gray-900 font-semibold">
@@ -184,7 +182,8 @@ const reloadGetBooking = () => {
 
           <!-- Enlace de volver al inicio -->
           <div class="text-center">
-            <button @click="goToReserveList" class="text-gray-600 font-medium underline hover:text-gray-800 transition-colors">
+            <button @click="goToReserveList"
+              class="text-gray-600 font-medium underline hover:text-gray-800 transition-colors">
               Volver al inicio
             </button>
           </div>

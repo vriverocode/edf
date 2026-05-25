@@ -6,7 +6,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/services/store/auth.services';
 import loaderPage from '@/components/layout/loaderPage.vue';
-import { onMounted, ref, watch, inject } from 'vue';
+import { onMounted, ref, watch, inject, computed } from 'vue';
+import budgetReminderBanner from '@/components/layout/budgetReminderBanner.vue';
 import logoutModal from '@/components/layout/logoutModal.vue';
 import storage from '@/services/storage'
 import { useNotificationsStore } from '@/services/store/notifications.store'
@@ -26,12 +27,27 @@ const $q = useQuasar()
 const prevUnread = ref(0)
 const lastShownId = ref(null)
 const transitionName = ref('slide-up');
+const budgetBannerOffset = ref(0);
+const onBudgetBannerOffset = (px) => {
+  budgetBannerOffset.value = px;
+};
+const panelRootClass = computed(() => ({
+  'pt-8': isNative.value && !budgetBannerOffset.value,
+  'pt-2': !isNative.value && !budgetBannerOffset.value,
+}));
+const panelRootStyle = computed(() => {
+  if (!budgetBannerOffset.value) {
+    return {};
+  }
+  const base = isNative.value ? 32 : 8;
+  return { paddingTop: `${budgetBannerOffset.value + base}px` };
+});
 const goBack = () => {
   router.go(-1)
 }
 onMounted(() => {
   if (emitter) emitter.on('logoutModal', () => { showModal.value = 'logout' })
-    useAuthStore().currentUser()
+  useAuthStore().currentUser()
     .then((response) => {
 
       if (user.value.rol_id) {
@@ -130,12 +146,12 @@ watch(
 
 <template>
   <div class=" h-full bg-white w-full min-h-screen" style="overflow: hidden;">
-    <div class="panel-layout-root h-full bg-white w-full min-h-screen "
-      :class="{ 'pt-8': isNative, 'pt-2': !isNative }">
+    <div class="panel-layout-root h-full bg-white w-full min-h-screen " :class="panelRootClass" :style="panelRootStyle">
       <template v-if="ready">
-         <transition :name="'fade'">
-           <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
-         </transition>
+        <budgetReminderBanner @offset="onBudgetBannerOffset" />
+        <transition :name="'fade'">
+          <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
+        </transition>
         <section class="principal" :class="{
           'withoutNav': isShowablePage(),
           'page__container': showNavbar(),
@@ -238,7 +254,7 @@ watch(
 }
 
 .page__container {
-  height: 68%;
+  height: 74%;
   overflow: hidden;
   // overflow-x: hidden;
   // overflow-y: auto;

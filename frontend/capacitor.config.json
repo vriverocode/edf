@@ -6,7 +6,8 @@
         "allowNavigation": [
             "10.10.10.69:8030",
             "192.168.31.20:8030",
-            "website-231aa050.sfr.hrf.mybluehost.me"
+            "website-231aa050.sfr.hrf.mybluehost.me",
+            "website-a40e47dc.gtq.fvz.mybluehost.me"
         ],
         "androidScheme": "http",
         "cleartext": true,

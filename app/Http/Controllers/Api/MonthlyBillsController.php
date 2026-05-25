@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\SyncWaterReadingsFromMonthlyBillJob;
 use App\Models\MonthlyBills;
+use App\Models\Rol;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -55,6 +56,33 @@ class MonthlyBillsController extends Controller
         }
 
         return $this->returnSuccess(200, $monthlyBill);
+    }
+
+    /**
+     * Indica si ya existe un presupuesto cargado para un mes/año (solo administradores).
+     */
+    public function existsForPeriod(Request $request)
+    {
+        if ((int) $request->user()->rol_id !== Rol::ADMIN) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+
+        $month = (int) ($request->query('month', now()->month));
+        $year = (int) ($request->query('year', now()->year));
+
+        if ($month < 1 || $month > 12) {
+            return $this->returnFail(422, 'Mes inválido');
+        }
+
+        $monthlyBill = MonthlyBills::query()
+            ->where('month', $month)
+            ->where('year', $year)
+            ->first();
+
+        return $this->returnSuccess(200, [
+            'exists' => $monthlyBill !== null,
+            'monthly_bill_id' => $monthlyBill?->id,
+        ]);
     }
 
     public function store(Request $request)
