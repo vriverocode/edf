@@ -94,7 +94,6 @@ export const useQuotaStore = defineStore('Quota', {
           throw '';
         }
         ApiService.setHeader();
-<<<<<<< HEAD
         ApiService.get('/api/quotas/byMonth/' + month)
           .then(({ data }) => {
             if (data.code != 200) throw data;
@@ -123,22 +122,6 @@ export const useQuotaStore = defineStore('Quota', {
             reject(response.data.error);
           });
 
-=======
-        let url = '/api/quotas/byMonth/' + month;
-        if (year) {
-          url += '?year=' + year;
-        }
-        ApiService.get(url)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
-        
->>>>>>> da1af07538febcd83cb4d40587f82ebda6516e87
       })
     },
     async getClientWaterDetailByQuotaId(id) {

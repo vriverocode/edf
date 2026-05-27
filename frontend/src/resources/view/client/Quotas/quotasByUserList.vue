@@ -41,19 +41,12 @@ const getQuotas = () => {
 }
 
 const goTo = (quota) => {
-<<<<<<< HEAD
   let view = quota.status == 2 || quota.status ==  3  ? 'pay/quotas/view' : 'quota/pay';
   let targetId = 
    quota.status == 2 || quota.status ==  3 
    ? quota.pay
    : quota.details ? quota.details[0].id : quota.id;
   router.push(`/client/${view}/${targetId}`);
-=======
-  let view = quota.status == 1 ? 'pay' : 'view'
-  // Si tu backend requiere el ID de la primera cuota para procesar el pago o ver detalle:
-  let targetId = quota.details ? quota.details[0].id : quota.id;
-  router.push(`/client/quota/${view}/${targetId}`);
->>>>>>> da1af07538febcd83cb4d40587f82ebda6516e87
 }
 
 const showDialog = () => {

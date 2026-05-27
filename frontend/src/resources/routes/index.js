@@ -526,8 +526,6 @@ const routes = [
           depth: 1,
         },
       },
-<<<<<<< HEAD
-=======
       {
         path: '/admin/quota/details/month/:month',
         component: () => import('@/view/client/Quotas/allDetailQuotaByMonth.vue'),
@@ -541,7 +539,6 @@ const routes = [
         },
       },
 
->>>>>>> da1af07538febcd83cb4d40587f82ebda6516e87
       // ---- client Routes -----
 
       {
