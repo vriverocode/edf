@@ -80,6 +80,7 @@ const unitsInQuota = (quota) => {
 
   return apartmentNumbers 
 }
+
 onMounted(() => {
   getQuotas();
 });
@@ -108,10 +109,36 @@ onMounted(() => {
                       Nuevo
                     </span>
                   </h3>
-                  <div class="flex items-center text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-2 ">
-                    <span class="font-medium">{{ unitsInQuota(quota) }}</span>
+                  <div class="row">
+                    <div class="flex items-center text-sm text-gray-700 col-6 pb-1 md:pt-0 col-md-2 ">
+                      <svg style="transform: translateX(-3px);" width="15px" height="15px"  viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M5 21C5 17.134 8.13401 14 12 14C15.866 14 19 17.134 19 21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                      <span class="font-medium">{{ quota.owner_name}}</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-700 col-6 pb-1 md:pt-0 col-md-2 ">
+                      <svg style="transform: translateX(-3px);" width="23px" height="23px" viewBox="0 0 64 64"
+                        xmlns="http://www.w3.org/2000/svg" stroke-width="2" stroke="#374151" fill="none">
+                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                        <g id="SVGRepo_iconCarrier">
+                          <path d="M34.82,52.73H14.69V22.18a1,1,0,0,1,.52-.87L33.34,11.4a1,1,0,0,1,1.48.88Z"
+                            stroke-linecap="round"></path>
+                          <path d="M48.87,52.73H34.92V21.59L48.4,29.3a1,1,0,0,1,.47.85Z" stroke-linecap="round"></path>
+                          <line x1="28.1" y1="24.86" x2="21.06" y2="24.86" stroke-linecap="round"></line>
+                          <line x1="43.66" y1="32.41" x2="40.14" y2="32.41" stroke-linecap="round"></line>
+                          <line x1="43.66" y1="36.9" x2="40.14" y2="36.9" stroke-linecap="round"></line>
+                          <line x1="43.66" y1="41.71" x2="40.14" y2="41.71" stroke-linecap="round"></line>
+                          <line x1="43.66" y1="46.19" x2="40.14" y2="46.19" stroke-linecap="round"></line>
+                          <line x1="28.1" y1="30.44" x2="21.06" y2="30.44" stroke-linecap="round"></line>
+                          <line x1="28.1" y1="35.94" x2="21.06" y2="35.94" stroke-linecap="round"></line>
+                          <line x1="28.1" y1="41.44" x2="21.06" y2="41.44" stroke-linecap="round"></line>
+                          <line x1="28.1" y1="46.94" x2="21.06" y2="46.94" stroke-linecap="round"></line>
+                          <line x1="9.46" y1="52.73" x2="54.54" y2="52.73" stroke-linecap="round"></line>
+                        </g>
+                      </svg>
+                      <span class="font-medium"> {{ unitsInQuota(quota) }}</span>
+                    </div>
                   </div>
-                  <div class="text-xs text-gray-500 mb-2">{{ quota.description }}</div>
+                  <!-- <div class="text-xs text-gray-500 mb-2">{{ quota.description }}</div> -->
                 </div>
               </div>
 
