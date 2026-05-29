@@ -15,7 +15,7 @@ const page = ref(1)
 const lastPage = ref(1)
 
 const now = new Date()
-const selectedMonth = ref(now.getMonth() + 1)
+const selectedMonth = ref(now.getMonth())
 const selectedYear = ref(now.getFullYear())
 const availableYears = ref([])
 

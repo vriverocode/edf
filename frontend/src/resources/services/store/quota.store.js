@@ -88,13 +88,17 @@ export const useQuotaStore = defineStore('Quota', {
 
       })
     },
-    async getQuotaByMonth(month, year = null) {
+    async getQuotaByMonth(month, data = null) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
+        let query = '';
+        if(data != null) {
+          query = `?year=${data.year}&owner=${data.owner}`
+        }
         ApiService.setHeader();
-        ApiService.get('/api/quotas/byMonth/' + month)
+        ApiService.get('/api/quotas/byMonth/' + month + query)
           .then(({ data }) => {
             if (data.code != 200) throw data;
 

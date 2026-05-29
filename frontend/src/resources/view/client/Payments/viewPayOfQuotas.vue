@@ -99,7 +99,10 @@ onMounted(() => {
               <div class="invoice-header__label">Resumen de pago</div>
               <div class="invoice-header__title">Cuotas {{ monthLabel }} {{ yearLabel }}</div>
             </div>
-            <q-chip
+          </div>
+          <div class="invoice-header__id ">{{ pay.user.name }}</div>
+          <!-- <div class="invoice-header__id pt-2">#{{ pay.pay_id }}</div> -->
+          <q-chip
               :color="pay.status_color"
               text-color="white"
               :icon="pay.status_icon"
@@ -107,8 +110,6 @@ onMounted(() => {
               dense
               class="invoice-header__badge"
             />
-          </div>
-          <div class="invoice-header__id">#{{ pay.pay_id }}</div>
         </div>
 
         <!-- ═══ Info general ═══ -->
@@ -249,6 +250,7 @@ onMounted(() => {
   padding: 1.25rem 1.25rem 1rem;
   color: #fff;
   margin-bottom: 0.75rem;
+  position: relative;
 }
 .invoice-header__top {
   display: flex;
@@ -268,10 +270,13 @@ onMounted(() => {
   font-weight: 700;
 }
 .invoice-header__badge {
-  flex-shrink: 0;
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  padding: 0.8rem;
 }
 .invoice-header__id {
-  margin-top: 0.75rem;
+  margin-top: 0.1rem;
   font-size: 0.8rem;
   opacity: 0.6;
   font-family: monospace;

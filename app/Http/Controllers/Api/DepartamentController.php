@@ -36,6 +36,9 @@ class DepartamentController extends Controller
         if ($request->find == 'allWithUser') {
             $departaments->where('user_id', '!=', null);
         }
+        if ($request->find == 'allDepartmentWithoutReadingThisMonth') {
+            $departaments->where('type', 1)->with(['waterReadings'])->whereDoesntHave('waterReadings');
+        }
         return $this->returnSuccess(200, $departaments->get());
     }
 
@@ -73,7 +76,7 @@ class DepartamentController extends Controller
 
     public function assingApartment(Request $request)
     {
-        //
+        //-
         if ($request->user()->id == 1) {
             Departament::find($request->idApartament)->update([
                 'user_id' => $request->user

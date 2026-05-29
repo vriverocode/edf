@@ -64,9 +64,9 @@ class WaterReadingController extends Controller
 
     public function store(Request $request)
     {
-        // $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
-        // ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
-        // :0;
+        $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
+        ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
+        :0;
         $priceWater = 0;
         
         try {

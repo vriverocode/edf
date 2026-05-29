@@ -23,7 +23,7 @@ const isAdminRoute = computed(() => {
 });
 const getQuotas = () => {
   loading.value = true;
-  quotaStore.getQuotaByMonth(route.params.month, route.query.year)
+  quotaStore.getQuotaByMonth(route.params.month, {year:route.query.year, owner:route.query.owner})
     .then((response) => {
       if (response.code !== 200) throw response;
 

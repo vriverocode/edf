@@ -227,7 +227,6 @@ const showModal = () => {
           </div>
 
           <div class="space-y-4">
-<<<<<<< HEAD
             <!-- Detalles del pago -->
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);" v-if="pay.type == 2 && pay.booking">
@@ -244,14 +243,6 @@ const showModal = () => {
               </span>
             </div>
             <!-- ID de transacción -->
-=======
-            <div v-if="isReservePay" class="flex justify-between items-center pb-2"
-              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
-              <span class="text-gray-600 font-medium">Área</span>
-              <span class="text-gray-900 font-semibold">{{ pay.booking?.comun_area?.name ?? '—' }}</span>
-            </div>
-
->>>>>>> da1af07538febcd83cb4d40587f82ebda6516e87
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">ID de pago</span>
@@ -290,21 +281,13 @@ const showModal = () => {
 
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
-<<<<<<< HEAD
               <span class="text-gray-600 font-medium">Método de pago</span>
               <span class="text-gray-900 font-semibold">
-                {{ pay.pay_method.name }}
+                {{ pay.pay_method?.name }}
               </span>
             </div>
             <!-- User -->
             <div class="flex justify-between items-center pb-2" v-if="pay.user"
-=======
-              <span class="text-gray-600 font-medium">Método</span>
-              <span class="text-gray-900 font-semibold">{{ pay.pay_method?.name }}</span>
-            </div>
-
-            <div class="flex justify-between items-center pb-2"
->>>>>>> da1af07538febcd83cb4d40587f82ebda6516e87
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Referencia bancaria</span>
               <span class="text-gray-900 font-semibold">#{{ pay.reference }}</span>

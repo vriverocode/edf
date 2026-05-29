@@ -43,7 +43,7 @@ const departamentOptions = ref([])
 
 const formData = ref({
   departament: null,
-  month: monthOptions[now.getMonth()],
+  month: monthOptions[now.getMonth()-1],
   year: now.getFullYear(),
   previous_reading: '',
   current_reading: '',
@@ -61,7 +61,7 @@ const showNotify = (type, text) => {
 const searchDepartaments = async () => {
   deptLoading.value = true
   try {
-    const response = await apartmentStore.getApartmentsByFind('allWithUser')
+    const response = await apartmentStore.getApartmentsByFind('allDepartmentWithoutReadingThisMonth')
     const items = response?.data || []
     departamentOptions.value = items.map((d) => ({
       label: `${d.number}`,

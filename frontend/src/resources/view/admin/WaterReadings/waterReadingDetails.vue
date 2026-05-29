@@ -92,7 +92,7 @@ onMounted(() => {
       </div>
 
       <div v-else-if="reading" class="flex flex-col items-center md:px-28 md:mx-28 ">
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col w-full">
+        <div class="bg-white rounded-xl  border border-gray-100 flex flex-col w-full" style="border: 1px solid lightgrey">
           <div class="row w-full mb-3 items-start">
             <div class="flex flex-col items-start col-md-8 col-7 md:pl-5 pl-3">
               <div class="mb-3 pt-5">

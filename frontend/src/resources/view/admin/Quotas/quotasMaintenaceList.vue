@@ -36,17 +36,12 @@ const getQuotas = () => {
 };
 
 const goTo = (quota) => {
-  router.push(`/admin/quota/details/month/${quota.month}?year=${quota.year}`);
-};
-
-const getMonthName = (monthNumber) => {
-  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  return months[monthNumber - 1] || '';
+  router.push(`/admin/quota/details/month/${quota.month}?year=${getYearOfQuota(quota)}&owner=${quota.details[0].departament.owner.id}`);
 };
 
 const getTitleQuota = (quota) => {
   const year = quota.year ? ` ${quota.year}` : '';
-  return `Mensualidad: ${getMonthName(quota.month)}${year}`;
+  return `Mensualidad: ${quota.details[0].month_label}${year}`;
 };
 
 const getStatusInfo = (status) => {
@@ -60,7 +55,9 @@ const formatDate = (date) => {
   if (!date) return '';
   return moment(date).format('DD MMM YYYY');
 };
-
+const getYearOfQuota = (quota) => {
+  return  moment(quota.due_date).format('YYYY')
+} 
 const getPaymentProgress = (quota) => {
   const details = Array.isArray(quota.details) ? quota.details : [];
   const total = details.length;
@@ -71,6 +68,18 @@ const getPaymentProgress = (quota) => {
   return `${paid}/${total} (${percent}%)`;
 };
 
+const unitsInQuota = (quota) => {
+  let apartmentNumbers = '';
+  quota.details.forEach((element,index) => {
+    apartmentNumbers += element.departament.number
+
+    if(index+1 < quota.details.length){
+      apartmentNumbers += ' - ' 
+    }
+  });
+
+  return apartmentNumbers 
+}
 onMounted(() => {
   getQuotas();
 });
@@ -83,7 +92,7 @@ onMounted(() => {
         <q-spinner-dots color="primary" size="7rem" />
       </div>
 
-      <div v-else class="px-4 py-6 md:px-28">
+      <div v-else class="px-4 pt-6 md:px-28 pb-20">
         <div v-if="quotas.length > 0" class="space-y-5 md:px-5">
           <div v-for="quota in quotas" :key="quota.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
@@ -93,12 +102,15 @@ onMounted(() => {
               <div class="flex justify-between items-start mb-0 pb-1" style="border-bottom: 1px dashed #111827;">
                 <div class="flex-1">
                   <h3 class="text-lg font-bold text-gray-900 mb-1">
-                    {{ getTitleQuota(quota) }}
+                    {{ getTitleQuota(quota) }} - {{ getYearOfQuota(quota)}}
                     <span v-if="quota.created_at && moment(quota.created_at).isAfter(moment().subtract(7, 'days'))"
                       class="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-md">
                       Nuevo
                     </span>
                   </h3>
+                  <div class="flex items-center text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-2 ">
+                    <span class="font-medium">{{ unitsInQuota(quota) }}</span>
+                  </div>
                   <div class="text-xs text-gray-500 mb-2">{{ quota.description }}</div>
                 </div>
               </div>
@@ -335,7 +347,7 @@ onMounted(() => {
                     <span class="font-medium">{{ getPaymentProgress(quota) }}</span>
                   </div>
                   <!-- Fecha de pago -->
-                  <div class="flex items-center text-sm text-gray-700 col-8 pt-2 md:pt-0 col-md-2 ">
+                  <div class="flex items-center text-sm text-gray-700 col-7 pt-2 md:pt-0 col-md-2 ">
                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
@@ -343,7 +355,6 @@ onMounted(() => {
                     </svg>
                     <span class="font-medium">Fecha limite: {{ formatDate(quota.due_date) }}</span>
                   </div>
-
                 </div>
               </div>
             </div>

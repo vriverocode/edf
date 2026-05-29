@@ -5,7 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use App\Models\Quota; 
+use App\Models\Quota;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 // use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -54,7 +55,7 @@ class Departament extends Model
         return $this->hasMany(Quota::class, 'departament_id');
     }
     public function pendingQuotas() {
-        return $this->hasMany(Quota::class, 'departament_id')->where('status','!=', 3);
+        return $this->hasMany(Quota::class, 'departament_id')->where('status','=', 1);
     }
     public function getTypeLabelAttribute()
     {
@@ -73,5 +74,9 @@ class Departament extends Model
                             ->where('status', '!=', 3)
                             ->value('amount')
         );
+    }
+    public function waterReadings()
+    {
+        return $this->hasMany(WaterReading::class, 'departament_id');
     }
 }

@@ -388,11 +388,7 @@ watch(step, (toStep, fromStep) => {
                       <span>{{ maintenanceParticipation.toFixed(2) }} %</span>
                     </div>
                     <div class="pay-form-breakdown__detail">
-<<<<<<< HEAD
-                      <span>Ppto. Mantenimiento {{ toPay.month_label }}:</span>
-=======
                       <span>Total mantenimiento {{ toPay.month_label }}:</span>
->>>>>>> da1af07538febcd83cb4d40587f82ebda6516e87
                       <span>{{ amountPrefix }} {{ maintenanceBudget.toFixed(2) }}</span>
                     </div>
                     <div class="pay-form-breakdown__row mt-2" @click="goTo(maintenanceDetailsLink)"

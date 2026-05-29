@@ -10,14 +10,9 @@ const router = useRouter()
 const menu = [
   {
     title: 'Cuotas de mantenimiento',
-<<<<<<< HEAD
-    icon: iconsApp.payHouse,
     link: '/admin/quotas/maintenance/list',
-=======
     icon: iconsApp.cuotaMonthly,
-    link: '/admin/quotas/maintenance/list',
     roles: [1],
->>>>>>> da1af07538febcd83cb4d40587f82ebda6516e87
   },
   {
     title: 'Cuotas especiales',
