@@ -34,9 +34,7 @@ const getPayById = async (id) => {
 
 // Función para descargar recibo
 const downloadReceipt = () => {
-  // Aquí puedes implementar la lógica para descargar el recibo
   console.log('Descargando recibo para la reserva:', pay.value?.id)
-  // Por ejemplo, generar un PDF o abrir una nueva ventana con el recibo
 }
 
 // Función para ir al inicio
@@ -107,12 +105,6 @@ const reloadBooking = () => {
 
       <!-- Success State -->
       <div v-else-if="pay" class="flex flex-col items-center pb-4">
-        <!-- Icono de éxito -->
-        <!-- <div class="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
-          <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-          </svg>
-        </div> -->
         <div class="mb-4">
           <img :src="checkIcon" alt="" style="width: 5.5rem;">
         </div>
@@ -143,7 +135,7 @@ const reloadBooking = () => {
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Monto pagado</span>
-              <span class="text-gray-900 font-semibold">S/. {{ pay.amount }}</span>
+              <span class="text-gray-900 font-semibold">S/. {{ pay.amount.toFixed(2) }}</span>
             </div>
 
             <!-- Fecha de pago -->

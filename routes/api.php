@@ -131,6 +131,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::prefix('quotas')->name('quota.')->group(function () {
         Route::get('/', [QuotaController::class, 'index']);
+        Route::get('/admin/monthly-summary', [QuotaController::class, 'adminMonthlySummary']);
+        Route::get('/admin/by-month/{month}', [QuotaController::class, 'adminGroupedByOwnerForMonth']);
         Route::get('/byMonth/{id}', [QuotaController::class, 'getByMonth']);
         Route::get('/byPay/{id}', [QuotaController::class, 'getByPay']);
 
@@ -188,6 +190,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('transaction-categories')->name('transactionCategories.')->group(function () {
         Route::get('/', [TransactionCategoryController::class, 'index']);
+        Route::post('/', [TransactionCategoryController::class, 'store']);
     });
 
     Route::prefix('financial-accounts')->name('financialAccounts.')->group(function () {

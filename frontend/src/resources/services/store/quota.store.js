@@ -26,7 +26,45 @@ export const useQuotaStore = defineStore('Quota', {
       })
     },
     async getMonthlyGlobalQuotasForAdmin(filters) {
-      return await this.getQuotasByUser(filters);
+      return await this.getAdminGroupedByOwnerForMonth(filters?.month, { year: filters?.year });
+    },
+    async getAdminMonthlySummary(filters = {}) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        const query = this.filterQuery(filters);
+        const url = '/api/quotas/admin/monthly-summary' + (query ? `?${query}` : '');
+        ApiService.get(url)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error ?? response?.data);
+          });
+      });
+    },
+    async getAdminGroupedByOwnerForMonth(month, { year } = {}) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        const params = new URLSearchParams();
+        if (year) params.set('year', String(year));
+        const qs = params.toString();
+        const url = `/api/quotas/admin/by-month/${month}` + (qs ? `?${qs}` : '');
+        ApiService.get(url)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error ?? response?.data);
+          });
+      });
     },
     async createQuota(data) {
       return await new Promise((resolve, reject) => {

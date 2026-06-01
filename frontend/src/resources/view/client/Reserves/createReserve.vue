@@ -380,7 +380,7 @@ const copyData = (texto) => {
     element.removeChild(textArea);
   }
 }
-const optionsFn2 = (date) => {
+const availableBeforeDaysToTodayOptions = (date) => {
   return date <= moment().format('YYYY/MM/DD');
 }
 const pegarTexto = async () => {
@@ -580,7 +580,6 @@ watch(step,
                         </div>
                       </div>
                     </div>
-
                   </template>
                   <template v-if="step == 3">
                     <div class="col-12 col-md-6 row md:px-5 px-4">
@@ -739,11 +738,11 @@ watch(step,
                               <div class=" md:pr-4">
                                 <q-input color="tealedf" label="Fecha de pago" v-model="payFormData.date"
                                   :rules="[val => !(!val) || 'Fecha es requerida']" dense borderless clearable
-                                  class="form__inputsReverse mt-1" accept=".jpg, image/*">
+                                  class="form__inputsReverse mt-1">
                                   <template v-slot:append>
                                     <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                        <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="optionsFn2"
+                                        <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="availableBeforeDaysToTodayOptions"
                                           :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
                                           <div class="row items-center justify-end">
                                             <q-btn v-close-popup label="Aceptar" color="primary" flat />

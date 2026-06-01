@@ -15,12 +15,30 @@ const quotas = ref([]);
 const loading = ref(true);
 const quotaStore = useQuotaStore();
 
-const route = useRoute()
-
+const route = useRoute();
+const router = useRouter();
 
 const isAdminRoute = computed(() => {
-  return route.name === 'quotasDetailByMonthAdmin'
+  return route.name === 'quotasDetailByMonthAdmin';
 });
+
+const pendingPayForValidation = (quota) => {
+  const pays = Array.isArray(quota.pays) ? quota.pays : [];
+  return pays.find((p) => Number(p.status) === 1) ?? null;
+};
+
+const canValidateQuota = (quota) => {
+  if (!isAdminRoute.value) return false;
+  if (Number(quota.status) !== 2) return false;
+  return pendingPayForValidation(quota) !== null;
+};
+
+const goToValidate = (quota) => {
+  const pay = pendingPayForValidation(quota);
+  if (pay?.id) {
+    router.push(`/admin/pay/validate/${pay.id}`);
+  }
+};
 const getQuotas = () => {
   loading.value = true;
   quotaStore.getQuotaByMonth(route.params.month, {year:route.query.year, owner:route.query.owner})
@@ -189,7 +207,7 @@ onMounted(() => {
                         </g>
                       </g>
                     </svg>
-                    <span class="font-medium" v-if="quota.type == 1">S/. {{ quota.water_amount }}</span>
+                    <span class="font-medium" v-if="quota.type !== 1">S/. {{ quota.water_amount }}</span>
                     <span class="font-medium" v-else>---</span>
 
                   </div>
@@ -207,19 +225,20 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Sección inferior - Acciones -->
-            <!-- <div class="px-4 py-2 md:py-3 bg-gray-50 border-t cursor-pointer bg-primary"  @click="goTo(quota)">
-              <div class="flex justify-center items-center">
-                <div class="flex items-center">
-                  <q-icon 
-                    name="eva-eye-outline" 
-                    color="white"
-                    size="1.5rem"
-                  />
-                  <span class="ml-1 text-sm font-medium text-white">Ver detalles</span>
-                </div>
-              </div>
-            </div> -->
+            <div
+              v-if="canValidateQuota(quota)"
+              class="px-4 py-3 bg-warning border-t flex justify-center"
+            >
+              <q-btn
+                unelevated
+                rounded
+                color="white"
+                text-color="warning"
+                label="Validar pago"
+                icon="eva-checkmark-circle-2-outline"
+                @click="goToValidate(quota)"
+              />
+            </div>
           </div>
         </div>
 

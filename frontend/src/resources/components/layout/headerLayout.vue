@@ -74,7 +74,7 @@ onMounted(() => {
             <div class="mant-title">Mantenimiento</div>
             <div class="text-amtHeader" style="">{{ user.currency_symbol }}
 
-              {{ user.total_peding_quotas }}
+              {{ user.total_peding_quotas.toFixed(2) }}
 
             </div>
           </div>

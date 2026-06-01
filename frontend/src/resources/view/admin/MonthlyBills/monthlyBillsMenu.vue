@@ -9,8 +9,8 @@ const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
   {
-    title: 'Gastos mensuales',
-    icon: iconsApp.bills,
+    title: 'Presupuestos gastos mensuales',
+    icon: iconsApp.budget,
     link: '/admin/monthly_bills/list',
     roles: [1]
   },
@@ -21,12 +21,12 @@ const menu = [
     roles: [1]
   },
 
-  // {
-  //   title: 'Cuotas especiales',
-  //   icon: iconsApp.specialBill,
-  //   link: '/admin/monthly_bills/list',
-  //   roles: [1]
-  // },
+  {
+    title: 'Gastos',
+    icon: iconsApp.billsMenu,
+    link: '/admin/monthly_bills/list',
+    roles: [1]
+  },
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id

@@ -25,7 +25,7 @@ class PayController extends Controller
         $pay = Pay::with([
             'booking.comunArea',
             'user',
-            'quota.departament',
+            'quotas.departament',
             'payMethod',
         ])->find($id);
 
@@ -33,14 +33,18 @@ class PayController extends Controller
             return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Pago no encontrado']);
         }
 
-        $quotaIds = $pay->consolidatedQuotaIds();
-        $pay->setRelation(
-            'consolidated_quotas',
-            $quotaIds !== []
-                ? Quota::query()->whereIn('id', $quotaIds)->with('departament')->get()
-                : collect([])
-        );
-        $pay = Pay::with(['booking.comunArea', 'user', 'quotas.departament', 'payMethod'])->find($id);
+        if ((int) $pay->type === 1) {
+            $consolidated = $pay->quotas;
+            if ($consolidated->isEmpty()) {
+                $quotaIds = $pay->consolidatedQuotaIds();
+                $consolidated = $quotaIds !== []
+                    ? Quota::query()->whereIn('id', $quotaIds)->with('departament')->get()
+                    : collect([]);
+            }
+            $pay->setRelation('consolidated_quotas', $consolidated);
+        } else {
+            $pay->setRelation('consolidated_quotas', collect([]));
+        }
 
         return $this->returnSuccess(200, $pay);
     }
@@ -67,37 +71,6 @@ class PayController extends Controller
         return $this->returnSuccess(200, $pays->get());
     }
 
-    private function applyPaysFilter($query, Request $request)
-    {
-        $VIEW_ALL_STATUS = 4;
-
-        // Filtro por estado
-        if ($request->filled('status') && intval($request->status) !== $VIEW_ALL_STATUS) {
-            $query->where('status', intval($request->status));
-        }
-
-        if ($request->filled('pay_method')) {
-            $query->where('pay_method', intval($request->pay_method));
-        }
-
-        if ($request->filled('type')) {
-            $query->where('type', intval($request->type));
-        }
-
-        if ($request->filled('date_from')) {
-            $query->whereDate('pay_date', '>=', $request->get('date_from'));
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('pay_date', '<=', $request->get('date_to'));
-        }
-
-        // Ordenamiento
-        $validSortFields = ['created_at', 'pay_date', 'amount', 'status'];
-        $sortBy = in_array($request->get('sort_by'), $validSortFields)
-            ? $request->get('sort_by') : 'created_at';
-        $sortDir = $request->get('sort_dir') === 'asc' ? 'asc' : 'desc';
-        $query->orderBy($sortBy, $sortDir);
-    }
     public function storePay(Request $request)
     {
         $validated = $this->validateFieldsFromInput($request->all());
@@ -107,25 +80,32 @@ class PayController extends Controller
 
         $prefixPayId = ['s', 't', 'y', 'd'];
 
-        $consolidatedIdsForStore = $this->normalizedConsolidatedIdsFromPayRequest($request);
-        if ((int) $request->type === 1 && $request->filled('to_pay_id') && empty($consolidatedIdsForStore)) {
-            $consolidatedIdsForStore = [(int) $request->to_pay_id];
+        $quotaIdsForPay = null;
+        if ((int) $request->type === 1) {
+            $syncIds = $this->setQuotaIds($request);
+            $consolidatedIdsForStore = $this->normalizedConsolidatedIdsFromPayRequest($request);
+            if ($consolidatedIdsForStore === null || $consolidatedIdsForStore === []) {
+                $consolidatedIdsForStore = $syncIds;
+            }
+            $quotaIdsForPay = $consolidatedIdsForStore;
         }
 
         $pay = Pay::create([
-            "user_id"       => $request->user()->id,
-            "booking_id"    => $request->type == 2 ? $request->to_pay_id : null,
-            "amount"        => $request->amount,
-            "reference"     => $request->reference ?? "000000",
-            "pay_id"        => $prefixPayId[$request->pay_method] . ($request->booking_id ?? 'Q') . '-' . rand(1000, 9999),
-            "pay_date"      => $request->pay_date ? date("Y-m-d", strtotime($request->pay_date)) : date("Y-m-d"),
-            "type"          => $request->type,
-            "pay_method"    => $request->pay_method,
-            "status"        => 1
+            "user_id"          => $request->user()->id,
+            "booking_id"       => $request->type == 2 ? $request->to_pay_id : null,
+            "quota_id"         => $quotaIdsForPay ? $quotaIdsForPay[0] : null,
+            "consolidated_ids" => $quotaIdsForPay,
+            "amount"           => $request->amount,
+            "reference"        => $request->reference ?? "000000",
+            "pay_id"           => $prefixPayId[$request->pay_method] . ($request->booking_id ?? 'Q') . '-' . rand(1000, 9999),
+            "pay_date"         => $request->pay_date ? date("Y-m-d", strtotime($request->pay_date)) : date("Y-m-d"),
+            "type"             => $request->type,
+            "pay_method"       => $request->pay_method,
+            "status"           => 1,
         ]);
 
         if ($request->type == 1) {
-            $pay->quotas()->sync($this->setQuotaIds($request));
+            $pay->quotas()->sync($quotaIdsForPay);
         }
 
         $this->afterPayAction($pay);
@@ -175,7 +155,7 @@ class PayController extends Controller
 
         DB::beginTransaction();
         try {
-            $pay = Pay::query()->with(['booking', 'quota'])->lockForUpdate()->find($id);
+            $pay = Pay::query()->with(['booking', 'quotas'])->lockForUpdate()->find($id);
 
             if (! $pay) {
                 DB::rollBack();
@@ -223,7 +203,10 @@ class PayController extends Controller
                 if ($quotaIds === []) {
                     DB::rollBack();
 
-                    return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'No hay cuotas asociadas a este pago (consolidated_ids vacío).']);
+                    return $this->returnFail(422, [
+                        'messageType' => 'negative',
+                        'message' => 'No hay cuotas asociadas a este pago.',
+                    ]);
                 }
 
                 $lockedQuotas = Quota::query()
@@ -290,7 +273,7 @@ class PayController extends Controller
             DB::rollBack();
             Log::error($e);
 
-            return $this->returnFail(500, ['messageType' => 'negative', 'message' => 'Error al validar el pago. Inténtelo nuevamente.']);
+            return $this->returnFail(500, ['messageType' => 'negative', 'message' => $e->getMessage()]);
         }
     }
 
@@ -513,9 +496,11 @@ class PayController extends Controller
         }
     }
 
-    private function setQuotaIds(Request $request)
+    private function setQuotaIds(Request $request): array
     {
-        return $request->has('quota_ids') ? $request->quota_ids : [$request->to_pay_id];
+        $raw = $request->has('quota_ids') ? $request->quota_ids : [$request->to_pay_id];
+
+        return array_values(array_unique(array_filter(array_map('intval', (array) $raw))));
     }
     private function sendNotification($pay)
     {
@@ -560,7 +545,7 @@ class PayController extends Controller
                     "title" => "Pago realizado",
                     "message" => "Se ha realizado el pago por las cuotas del mes de " . $pay->quotas[0]->month_label
                         . ", Por favor validar",
-                    "url" => "/admin/pays/view/" . $pay->id,
+                    "url" => "/admin/pay/validate/" . $pay->id,
                     "meta" =>  ['quota_id' => $pay->id],
                 ]
             ]
@@ -658,6 +643,37 @@ class PayController extends Controller
     private function pedingToPayReserveNotification($users, $booking)
     {
         BookingPendingPayNotifier::notify($booking);
+    }
+    private function applyPaysFilter($query, Request $request)
+    {
+        $VIEW_ALL_STATUS = 4;
+
+        // Filtro por estado
+        if ($request->filled('status') && intval($request->status) !== $VIEW_ALL_STATUS) {
+            $query->where('status', intval($request->status));
+        }
+
+        if ($request->filled('pay_method')) {
+            $query->where('pay_method', intval($request->pay_method));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', intval($request->type));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('pay_date', '>=', $request->get('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('pay_date', '<=', $request->get('date_to'));
+        }
+
+        // Ordenamiento
+        $validSortFields = ['created_at', 'pay_date', 'amount', 'status'];
+        $sortBy = in_array($request->get('sort_by'), $validSortFields)
+            ? $request->get('sort_by') : 'created_at';
+        $sortDir = $request->get('sort_dir') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($sortBy, $sortDir);
     }
 
 }

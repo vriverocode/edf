@@ -54,15 +54,36 @@ class Pay extends Model
         return $this->hasOne(Transaction::class);
     }
 
-    /** IDs de cuotas incluidas en un pago global (o ítem único cuando no hay JSON). */
+    /**
+     * IDs de cuotas de este pago.
+     * Orden: snapshot JSON → pivote pay_quota → quota_id legacy.
+     */
     public function consolidatedQuotaIds(): array
     {
         $ids = $this->consolidated_ids;
-        if (! is_array($ids) || empty($ids)) {
-            return $this->quota_id ? [(int) $this->quota_id] : [];
+        if (is_array($ids) && $ids !== []) {
+            return array_values(array_unique(array_map('intval', $ids)));
         }
 
-        return array_values(array_unique(array_map('intval', $ids)));
+        if ($this->relationLoaded('quotas') && $this->quotas->isNotEmpty()) {
+            return $this->quotas
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        $pivotIds = $this->quotas()->pluck('quotas.id');
+        if ($pivotIds->isNotEmpty()) {
+            return $pivotIds
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        return $this->quota_id ? [(int) $this->quota_id] : [];
     }
     public function getStatusLabelAttribute()
     {

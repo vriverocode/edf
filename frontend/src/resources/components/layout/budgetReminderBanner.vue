@@ -108,32 +108,37 @@ watch(
         role="alert"
       >
         <div class="budget-reminder-banner__inner row items-center justify-between q-px-md q-py-sm">
-          <div class="col">
-            <div class="text-white text-weight-medium text-caption md:text-body2">
-              Es el primer día del mes: recuerda cargar el <strong>presupuesto mensual</strong>
-              (gastos y mantenimiento) para {{ monthName }} {{ year }}.
-            </div>
-          </div>
-          <div class="col-auto row items-center q-gutter-sm no-wrap">
-            <q-btn
-              unelevated
-              color="white"
-              text-color="grey-10"
-              dense
-              no-caps
-              class="text-caption"
-              label="Cargar presupuesto"
-              @click="goToForm"
-            />
+          <div class="col-1">
             <q-btn
               flat
               dense
               round
               color="white"
-              icon="close"
+              icon="eva-close"
               aria-label="Cerrar aviso"
               @click="dismiss"
             />
+          </div>
+          <div class="col-md-6 col-11 text-center">
+            <div class="text-white text-weight-medium text-caption md:text-body2">
+              Es el primer día del mes: recuerda cargar el <strong>presupuesto mensual</strong>
+              (gastos y mantenimiento) para {{ monthName }} {{ year }}.
+            </div>
+          </div>
+          <div class="col-md-5 col-12 justify-center pt-3 md:pt-0 row items-center q-gutter-sm no-wrap">
+            <q-btn
+              unelevated
+              color="primary"
+              text-color="white"
+              dense
+              rounded
+              no-caps
+              class=" px-4 py-1"
+              icon-right="eva-arrow-forward-outline"
+              label="Cargar presupuesto"
+              @click="goToForm"
+            />
+            
           </div>
         </div>
       </div>

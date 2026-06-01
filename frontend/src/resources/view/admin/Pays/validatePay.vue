@@ -3,13 +3,16 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import iconsApp from '@/assets/icons/index'
 import { usePayStore } from '@/services/store/pay.store'
+import { useTransactionCategoryStore } from '@/services/store/transactionCategory.store'
 import voucherModal from '@/components/pay/voucherModal.vue'
+import createTransactionCategoryModal from '@/components/finance/createTransactionCategoryModal.vue'
 import { Notify, Dialog } from 'quasar'
 import ApiService from '@/services/axios'
 
 const route = useRoute()
 const router = useRouter()
 const payStore = usePayStore()
+const transactionCategoryStore = useTransactionCategoryStore()
 const dialog = ref('')
 
 const pay = ref(null)
@@ -21,6 +24,7 @@ const approveDialog = ref(false)
 const financialAccounts = ref([])
 const transactionCategories = ref([])
 const approveLoading = ref(false)
+const createCategoryDialog = ref(false)
 const approveForm = ref({
   financial_account_id: null,
   transaction_category_id: null,
@@ -86,22 +90,37 @@ const showNotify = (type, text) => {
   })
 }
 
+const loadTransactionCategories = async () => {
+  const catRes = await transactionCategoryStore.getTransactionCategories(1)
+  transactionCategories.value = catRes.data || []
+}
+
 const loadApproveOptions = async () => {
   try {
     ApiService.setHeader()
-    const [accRes, catRes] = await Promise.all([
+    const [accRes] = await Promise.all([
       ApiService.get('/api/financial-accounts'),
-      ApiService.get('/api/transaction-categories?type=1'),
+      loadTransactionCategories(),
     ])
     const accData = accRes.data
-    const catData = catRes.data
     financialAccounts.value = accData?.code === 200 ? accData.data : []
-    transactionCategories.value = catData?.code === 200 ? catData.data : []
   } catch (e) {
     financialAccounts.value = []
     transactionCategories.value = []
     showNotify('negative', 'No se pudieron cargar cuentas o categorías contables.')
   }
+}
+
+const onCategoryCreated = (created) => {
+  if (!created?.id) return
+  const exists = transactionCategories.value.some((c) => c.id === created.id)
+  if (!exists) {
+    transactionCategories.value = [
+      ...transactionCategories.value,
+      created,
+    ].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  }
+  approveForm.value.transaction_category_id = created.id
 }
 
 const openApproveDialog = async () => {
@@ -196,8 +215,8 @@ const showModal = () => {
 </script>
 
 <template>
-  <div class="h-full relative overflow-auto">
-    <div class="relative z-10 pt-5 pb-2 px-6 h-full">
+  <div class="h-full relative " style="overflow:hidden">
+    <div class="relative z-10 pt-0 px-6 h-full" style="overflow:auto">
       <div v-if="ready" class="flex flex-col items-center justify-center py-20">
         <q-spinner-dots color="primary" size="4rem" />
         <p class="text-gray-600 font-medium">Cargando pago...</p>
@@ -217,8 +236,8 @@ const showModal = () => {
         </button>
       </div>
 
-      <div v-else-if="pay" class="flex flex-col items-center h-full">
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-sm md:max-w-4xl p-6 pb-4 mb-4">
+      <div v-else-if="pay" class="h-full">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-sm md:max-w-4xl p-6 pb-4  ">
           <div class="flex justify-between items-start mb-3">
             <h2 class="text-lg font-bold text-gray-900 m-0">{{ pay.title_pay }}</h2>
             <q-badge :color="pay.status_color" class="text-white px-3 py-1">
@@ -270,7 +289,7 @@ const showModal = () => {
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Monto reportado</span>
-              <span class="text-gray-900 font-semibold">S/. {{ pay.amount }}</span>
+              <span class="text-gray-900 font-semibold">S/. {{ pay.amount.toFixed(2) }}</span>
             </div>
 
             <div class="flex justify-between items-center pb-2"
@@ -325,7 +344,7 @@ const showModal = () => {
           </div>
         </div>
 
-        <div v-if="isPendingValidation" class="flex flex-wrap justify-center gap-3 mt-4">
+        <div v-if="isPendingValidation" class="flex flex-wrap justify-center gap-3 mt-4 pb-12 ">
           <q-btn label="Rechazar pago" unelevated outline color="negative" style="border-radius: 0.8rem;"
             padding="sm lg" @click="confirmReject" :loading="loading" />
           <q-btn label="Aprobar" unelevated color="primary" style="border-radius: 0.8rem;" padding="sm lg"
@@ -350,19 +369,35 @@ const showModal = () => {
       <q-card style="min-width: min(440px, 92vw);" class="q-pa-md">
         <div class="text-h6 q-mb-sm">Registrar ingreso</div>
         <div class="text-caption text-grey-7 q-mb-md">
-          Asocia este cobro con la cuenta financiera donde ingresa el efectivo / banco y la categoría del ERP.
+          Para generar un asociación contable ingresa los siguientes datos
         </div>
-        <q-select outlined dense emit-value map-options behavior="dialog" v-model="approveForm.financial_account_id"
-          :options="financialAccountOptions" label="Cuenta financiera" />
-        <q-select class="q-mt-md" outlined dense emit-value map-options behavior="dialog"
-          v-model="approveForm.transaction_category_id" :options="categoryOptions"
-          label="Categoría de la transacción" />
+        <div class="q-mt-sm">
+          <div class="text-subtitle2 text-black">Cuenta financiera</div>
+          <q-select dense borderless emit-value map-options class="form__inputsR mt-1" color="primary"
+            v-model="approveForm.financial_account_id" :options="financialAccountOptions" />
+        </div>
+        <div class="row q-col-gutter-sm q-mt-md items-end">
+          <div class="col">
+            <div class="text-subtitle2 text-black">Categoría de la transacción</div>
+            <q-select dense borderless emit-value map-options class="form__inputsR mt-1" color="primary"
+              v-model="approveForm.transaction_category_id" :options="categoryOptions" />
+          </div>
+          <div class="col-auto">
+            <q-btn flat dense round color="primary" @click="createCategoryDialog = true">
+              <q-icon name="eva-plus-outline" />
+              <q-tooltip>Nueva categoría</q-tooltip>
+            </q-btn>
+          </div>
+        </div>
         <div class="row justify-end q-gutter-sm q-mt-lg">
-          <q-btn flat label="Cancelar" v-close-popup color="grey" />
-          <q-btn color="primary" label="Confirmar aprobación" :loading="approveLoading" @click="submitApprove" />
+          <q-btn flat label="Cancelar" v-close-popup color="grey" no-caps />
+          <q-btn color="primary" label="Confirmar aprobación" no-caps :loading="approveLoading" @click="submitApprove" />
         </div>
       </q-card>
     </q-dialog>
+
+    <createTransactionCategoryModal :dialog="createCategoryDialog" :default-type="1"
+      @close-modal="createCategoryDialog = false" @created="onCategoryCreated" />
   </div>
 </template>
 
@@ -372,6 +407,23 @@ const showModal = () => {
 
   &:hover {
     text-decoration: underline;
+  }
+}
+
+.form__inputsR {
+  & .q-field__inner {
+    box-shadow: 0px 3px 4px 0px #bfbfbf48;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(223, 223, 223);
+    padding: 0px 1rem;
+  }
+}
+
+@media (max-width: 780px) {
+  .form__inputsR {
+    & .q-field__inner {
+      padding: 0.1rem 1rem;
+    }
   }
 }
 </style>

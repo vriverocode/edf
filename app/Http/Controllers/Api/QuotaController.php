@@ -25,52 +25,92 @@ class QuotaController extends Controller
         return $query->findOrFail($id);
     }
 
+    private function ensureAdmin(Request $request): ?\Illuminate\Http\JsonResponse
+    {
+        if ((int) $request->user()->id !== 1) {
+            return $this->returnFail(403, ['message' => 'No autorizado']);
+        }
+
+        return null;
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        $query = Quota::with([
-            'pays' => function ($query) {
-                $query->where('status', '!=', 0);
-            },
-            "departament.owner",
-        ])->orderBy('created_at', 'desc');
+        $query = Quota::baseAdminQuery();
 
         if ($request->user()->id != 1) {
             $query->whereHas('departament', function ($q) use ($request) {
                 $q->where('user_id', $request->user()->id);
             });
         }
-        $quotas = $query->get();
-        $groupedQuotas = $quotas->groupBy(function ($quota) {
-            // Creamos una llave única para agrupar: "ID_USUARIO - MES - AÑO"
-            $userId = $quota->departament->user_id ?? '0';
-            $year = date('Y', strtotime($quota->due_date));
-            return $userId . '_' . $quota->month . '_' . $year;
-            
-        })->map(function ($group) {
-            // $group contiene todas las cuotas de ese mes para ese usuario (Depa, Estacionamiento, etc.)
-            $firstQuota = $group->first();
-            $owner = $firstQuota->departament->owner;
-            $pay = $firstQuota->pays->first()?->id ?? null;
-            return [
-                'id' => 'group-' . $group->pluck('id')->join('-'),
-                'month' => $firstQuota->month,
-                'due_date' => $firstQuota->due_date,
-                'description' => 'Cuota Consolidada (' . $group->count() . ' unidades asignadas)',
-                'owner_name' => $owner ? $owner->name : 'Desconocido',
-                'maintenance_amount' => $group->sum('maintenance_amount'),
-                'water_amount' => $group->sum('water_amount'),
-                'amount' => $group->sum('amount'), // Total final a pagar
-                'status' => $group->contains('status', 1) ? 1 : 2,
-                'pay' => $firstQuota->pays->first()?->id,
-                'details' => $group->values()->all(),
-            ];
-        })->values(); // values() resetea las llaves del array para que el JSON quede limpio
 
-        // Retornamos la data agrupada
+        $groupedQuotas = Quota::groupConsolidatedByOwner($query->get());
+
         return $this->returnSuccess(200, $groupedQuotas);
+    }
+
+    public function adminMonthlySummary(Request $request)
+    {
+        if ($denied = $this->ensureAdmin($request)) {
+            return $denied;
+        }
+
+        $quotas = Quota::baseAdminQuery()->get();
+
+        $summaries = $quotas
+            ->groupBy(function ($quota) {
+                $year = $quota->due_date
+                    ? Carbon::parse($quota->due_date)->year
+                    : now()->year;
+
+                return (int) $quota->month . '_' . $year;
+            })
+            ->map(function ($group) {
+                $first = $group->first();
+                $month = (int) $first->month;
+                $year = $first->due_date
+                    ? (int) Carbon::parse($first->due_date)->year
+                    : (int) now()->year;
+                $aggregates = Quota::aggregateMonthlySummary($group);
+                $pendingCount = Quota::countPendingQuotaPaymentsForMonth($month, $year);
+
+                return array_merge([
+                    'month' => $month,
+                    'year' => $year,
+                    'month_label' => $first->month_label,
+                    'due_date' => $first->due_date,
+                    'pending_validation_count' => $pendingCount,
+                    'has_pending_validation' => $pendingCount > 0,
+                ], $aggregates);
+            })
+            ->values()
+            ->sortByDesc(fn ($row) => $row['year'] * 100 + $row['month'])
+            ->values();
+
+        return $this->returnSuccess(200, $summaries);
+    }
+
+    public function adminGroupedByOwnerForMonth(Request $request, int $month)
+    {
+        if ($denied = $this->ensureAdmin($request)) {
+            return $denied;
+        }
+
+        $year = (int) $request->query('year');
+        if ($year < 2000) {
+            return $this->returnFail(422, ['message' => 'El parámetro year es obligatorio.']);
+        }
+
+        $quotas = Quota::baseAdminQuery()
+            ->forMonthYear($month, $year)
+            ->get();
+
+        $grouped = Quota::groupConsolidatedByOwner($quotas);
+
+        return $this->returnSuccess(200, $grouped);
     }
     public function getByMonth(Request $request, $month)
     {

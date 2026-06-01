@@ -130,7 +130,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Cuentas bancarias y financieras',
           roles: ['admin'],
-          depth: 1,
+          depth: 2,
         },
       },
       {
@@ -511,7 +511,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Menu de quotas',
           roles: ['admin'],
-          depth: 1,
+          depth: 2,
         },
       },
       {
@@ -524,6 +524,18 @@ const routes = [
           pagTitle: 'Cuotas de mantenimiento',
           roles: ['admin'],
           depth: 1,
+        },
+      },
+      {
+        path: '/admin/quotas/maintenance/list/:year/:month',
+        component: () => import('@/view/admin/Quotas/quotasMaintenanceMonthDetail.vue'),
+        name: 'quotasMaintenanceMonthDetail',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Cuotas del mes',
+          roles: ['admin'],
+          depth: 2,
         },
       },
       {

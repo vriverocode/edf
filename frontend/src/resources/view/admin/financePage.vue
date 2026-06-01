@@ -10,7 +10,7 @@ const router = useRouter()
 const menu = [
   {
     title: 'Balance de cuentas',
-    icon: iconsApp.payHouse,
+    icon: iconsApp.balance,
     link: '/balances',
   },
   {
@@ -20,7 +20,7 @@ const menu = [
     roles: [1]
   },
   {
-    title: 'Gastos Mensuales',
+    title: 'Presupuesto',
     icon: iconsApp.bills,
     link: '/admin/monthly_bills/menu',
     roles: [1]

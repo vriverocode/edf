@@ -321,10 +321,26 @@ const dataToForm = () => {
   }
   return { data: dataForm }
 }
+const availableBeforeDaysToTodayOptions = (date) => {
+  return date <= moment().format('YYYY/MM/DD');
+}
 onMounted(() => {
   getToPay()
   getPayMethodsAvailables()
 })
+
+const pegarTexto = async () => {
+  if (!navigator.clipboard) {
+    console.warn('La API del portapapeles no está disponible. Asegúrate de usar HTTPS o localhost.')
+    return
+  }
+  try {
+    const textoDelPortapapeles = await navigator.clipboard.readText()
+    payFormData.value.reference = textoDelPortapapeles
+  } catch (err) {
+    console.error('Error al intentar pegar: ', err)
+  }
+}
 
 watch(step, (toStep, fromStep) => {
   transitionName.value = toStep > fromStep ? 'slide-next' : 'slide-prev'
@@ -528,13 +544,14 @@ watch(step, (toStep, fromStep) => {
                         <div class="row mt-1">
                           <div class="col-12 mt-0">
                             <div class="md:pr-4">
-                              <q-input v-model="payFormData.date" :rules="[val => !(!val) || 'Fecha es requerida']"
-                                dense borderless clearable class="form__inputsPay mt-1" color="primary"
-                                accept=".jpg, image/*">
+
+                              <q-input color="tealedf" label="Fecha de pago" v-model="payFormData.date"
+                                :rules="[val => !(!val) || 'Fecha es requerida']"  dense borderless clearable
+                                class="form__inputsPay mt-1" >
                                 <template v-slot:append>
                                   <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                      <q-date mask="DD-MM-YYYY" v-model="payFormData.date"
+                                      <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="availableBeforeDaysToTodayOptions"
                                         :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
                                         <div class="row items-center justify-end">
                                           <q-btn v-close-popup label="Aceptar" color="primary" flat />
@@ -544,14 +561,24 @@ watch(step, (toStep, fromStep) => {
                                   </q-icon>
                                 </template>
                               </q-input>
+                              
                             </div>
                           </div>
                           <div class="col-12 mt-2">
-                            <div class="md:pr-4">
-                              <q-input dense borderless clearable v-model="payFormData.reference"
-                                class="form__inputsPay mt-1" :maxlength="12" color="primary"
-                                :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']" />
-                            </div>
+
+                            <q-input color="tealedf" label="Referencia de pago" dense borderless clearable
+                                  v-model="payFormData.reference" class="form__inputsPay mt-1" :maxlength="12"
+                                  :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']">
+
+                                  <template v-slot:append>
+                                    <q-btn color="tealedf" size="0.1rem" outline style="padding:3px 6px" no-caps
+                                      @click="pegarTexto()">
+                                      <div class="text-xs">
+                                        Pegar
+                                      </div>
+                                    </q-btn>
+                                  </template>
+                                </q-input>
                           </div>
                         </div>
                       </div>
