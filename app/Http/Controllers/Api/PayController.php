@@ -135,10 +135,6 @@ class PayController extends Controller
         ]);
     }
 
-    /**
-     * Validación administrativa con contabilidad (transacciones + cuotas en pago único cuando aplica).
-     * status 2 = aprobado | 3 = rechazado
-     */
     public function validatePayment(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
@@ -277,9 +273,6 @@ class PayController extends Controller
         }
     }
 
-    /**
-     * @return list<int>|null
-     */
     private function catergoryByTypePay($type){
         $ids = [
             1,

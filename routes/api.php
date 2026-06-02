@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ComunAreaController;
 use App\Http\Controllers\Api\DepartamentController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\NoticeController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RuleController;
@@ -200,5 +202,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [FinancialAccountController::class, 'store']);
         Route::post('/u/{id}', [FinancialAccountController::class, 'update']);
         Route::post('/status/{id}', [FinancialAccountController::class, 'updateStatus']);
+    });
+
+    Route::prefix('providers')->name('providers.')->group(function () {
+        Route::post('/', [ProviderController::class, 'store']);
+    });
+
+    Route::prefix('expenses')->name('expense.')->group(function () {
+        Route::get('/', [ExpenseController::class, 'index']);
+        Route::get('/form-options', [ExpenseController::class, 'formOptions']);
+        Route::get('/byId/{id}', [ExpenseController::class, 'show']);
+        Route::post('/', [ExpenseController::class, 'store']);
+        Route::post('/u/{id}', [ExpenseController::class, 'update']);
     });
 });

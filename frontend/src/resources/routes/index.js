@@ -467,6 +467,42 @@ const routes = [
         redirect: '/admin/water_readings/list',
       },
       {
+        path: '/admin/expenses/list',
+        component: () => import('@/view/admin/Expenses/expensesList.vue'),
+        name: 'ExpensesList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Gastos',
+          roles: ['admin'],
+          depth: 2,
+        },
+      },
+      {
+        path: '/admin/expenses/form/add',
+        component: () => import('@/view/admin/Expenses/expenseForm.vue'),
+        name: 'ExpenseAdd',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Registrar gasto',
+          roles: ['admin'],
+          depth: 4,
+        },
+      },
+      {
+        path: '/admin/expenses/edit/:id',
+        component: () => import('@/view/admin/Expenses/expenseForm.vue'),
+        name: 'ExpenseEdit',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Editar gasto',
+          roles: ['admin'],
+          depth: 4,
+        },
+      },
+      {
         path: '/admin/water_readings/form/add',
         component: () => import('@/view/admin/WaterReadings/waterReadingForm.vue'),
         name: 'waterReadingsAdd',

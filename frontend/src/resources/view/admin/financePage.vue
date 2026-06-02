@@ -31,6 +31,12 @@ const menu = [
     link: '/admin/quotas/pays',
     roles: [1]
   },
+  {
+    title: 'Gastos',
+    icon: iconsApp.billsMenu,
+    link: '/admin/expenses/list',
+    roles: [1]
+  },
 
 ];
 const menuByRol = computed(() => {

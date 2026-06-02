@@ -21,12 +21,6 @@ const menu = [
     roles: [1]
   },
 
-  {
-    title: 'Gastos',
-    icon: iconsApp.billsMenu,
-    link: '/admin/monthly_bills/list',
-    roles: [1]
-  },
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
