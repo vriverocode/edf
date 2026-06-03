@@ -742,7 +742,8 @@ watch(step,
                                   <template v-slot:append>
                                     <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                        <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="availableBeforeDaysToTodayOptions"
+                                        <q-date mask="DD-MM-YYYY" v-model="payFormData.date"
+                                          :options="availableBeforeDaysToTodayOptions"
                                           :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
                                           <div class="row items-center justify-end">
                                             <q-btn v-close-popup label="Aceptar" color="primary" flat />
@@ -796,7 +797,7 @@ watch(step,
                                     <div class="ml-1">
                                       <div class="text-xsImage text-tealedf">Vaucher adjuntado correctamente</div>
                                       <div class="text-xsImage text-black"> {{ payFormData.vaucher.name.slice(0, 10)
-                                        }}***{{
+                                      }}***{{
                                           payFormData.vaucher.name.slice(-5) }} - {{ fileSizeInMB }} MB</div>
                                     </div>
                                   </div>
@@ -807,6 +808,7 @@ watch(step,
                               @change="handleUpload">
                             <div></div>
                           </div>
+
                           <div class="selectedDateBlock mt-4 px-1 w-full py-2">
                             <q-chip color="tealedf" text-color="white" size="0.8rem">
                               <div style="font-size: 0.7rem;" class="">

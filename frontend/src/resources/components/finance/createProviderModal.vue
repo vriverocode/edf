@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { Notify } from 'quasar'
 import { useProviderStore } from '@/services/store/provider.store'
+import createServiceCategoryModal from '@/components/finance/createServiceCategoryModal.vue'
 
 const providerStore = useProviderStore()
 
@@ -16,7 +17,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['closeModal', 'created'])
+const emit = defineEmits(['closeModal', 'created', 'categoryCreated'])
 
 const dialogVisible = ref(props.dialog)
 const loading = ref(false)
@@ -30,6 +31,27 @@ const formData = ref({
 })
 
 const categoryOptions = ref([])
+const createCategoryDialog = ref(false)
+
+const syncCategoryOptions = (list) => {
+  categoryOptions.value = (list || []).map((c) => ({
+    label: c.name,
+    value: c.id
+  }))
+}
+
+const onServiceCategoryCreated = (created) => {
+  if (!created?.id) return
+  const exists = categoryOptions.value.some((o) => o.value === created.id)
+  if (!exists) {
+    categoryOptions.value = [
+      ...categoryOptions.value,
+      { label: created.name, value: created.id }
+    ].sort((a, b) => a.label.localeCompare(b.label, 'es'))
+  }
+  formData.value.service_category_id = created.id
+  emit('categoryCreated', created)
+}
 
 const resetForm = () => {
   formData.value = {
@@ -101,10 +123,7 @@ watch(
     dialogVisible.value = open
     if (open) {
       resetForm()
-      categoryOptions.value = (props.serviceCategories || []).map((c) => ({
-        label: c.name,
-        value: c.id
-      }))
+      syncCategoryOptions(props.serviceCategories)
     }
   }
 )
@@ -112,10 +131,7 @@ watch(
 watch(
   () => props.serviceCategories,
   (list) => {
-    categoryOptions.value = (list || []).map((c) => ({
-      label: c.name,
-      value: c.id
-    }))
+    syncCategoryOptions(list)
   },
   { deep: true }
 )
@@ -156,19 +172,29 @@ watch(dialogVisible, (open) => {
         color="primary"
       />
 
-      <div class="text-subtitle2 text-black q-mt-md">Categoría de servicio</div>
-      <q-select
-        v-model="formData.service_category_id"
-        :options="categoryOptions"
-        option-label="label"
-        option-value="value"
-        emit-value
-        map-options
-        dense
-        borderless
-        class="form__inputsR mt-1"
-        color="primary"
-      />
+      <div class="row items-end q-mt-md q-col-gutter-sm">
+        <div class="col">
+          <div class="text-subtitle2 text-black">Categoría de servicio</div>
+          <q-select
+            v-model="formData.service_category_id"
+            :options="categoryOptions"
+            option-label="label"
+            option-value="value"
+            emit-value
+            map-options
+            dense
+            borderless
+            class="form__inputsR mt-1"
+            color="primary"
+          />
+        </div>
+        <div class="col-auto">
+          <q-btn flat dense round color="primary" @click="createCategoryDialog = true">
+            <q-icon name="eva-plus-outline" />
+            <q-tooltip>Nueva categoría</q-tooltip>
+          </q-btn>
+        </div>
+      </div>
 
       <div class="text-subtitle2 text-black q-mt-md">Contacto (opcional)</div>
       <q-input
@@ -196,6 +222,12 @@ watch(dialogVisible, (open) => {
         <q-btn color="primary" label="Crear" no-caps :loading="loading" @click="submit" />
       </div>
     </q-card>
+
+    <createServiceCategoryModal
+      :dialog="createCategoryDialog"
+      @close-modal="createCategoryDialog = false"
+      @created="onServiceCategoryCreated"
+    />
   </q-dialog>
 </template>
 

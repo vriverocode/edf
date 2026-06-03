@@ -45,6 +45,9 @@ const formatMaskedMoney = (value) => {
   return `${withThousands},${decPart}`
 }
 
+const ALLOWED_INVOICE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf']
+const ALLOWED_INVOICE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf']
+
 const formData = ref({
   provider: null,
   invoice_number: '',
@@ -55,8 +58,63 @@ const formData = ref({
   location_scope: '',
   unit: '',
   description: '',
+  attachment: null,
   attachment_url: ''
 })
+
+const hasInvoiceAttachment = computed(() => {
+  return !!formData.value.attachment || !!formData.value.attachment_url
+})
+
+const attachmentFileName = computed(() => {
+  if (formData.value.attachment?.name) {
+    return formData.value.attachment.name
+  }
+  if (formData.value.attachment_url) {
+    return formData.value.attachment_url.split('/').pop() || 'factura-adjunta'
+  }
+  return ''
+})
+
+const isPdfAttachment = computed(() => {
+  if (formData.value.attachment) {
+    return formData.value.attachment.type === 'application/pdf'
+      || formData.value.attachment.name?.toLowerCase().endsWith('.pdf')
+  }
+  return formData.value.attachment_url?.toLowerCase().includes('.pdf')
+})
+
+const fileSizeInMB = computed(() => {
+  if (!formData.value.attachment) return 0
+  const size = formData.value.attachment.size / (1024 * 1024)
+  return size.toFixed(2)
+})
+
+const isAllowedInvoiceFile = (file) => {
+  if (ALLOWED_INVOICE_TYPES.includes(file.type)) return true
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  return ALLOWED_INVOICE_EXTENSIONS.includes(ext)
+}
+
+const handleInvoiceUpload = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  if (!isAllowedInvoiceFile(file)) {
+    showNotify('negative', 'Selecciona solo imagen (JPG, PNG, WEBP) o PDF.')
+    event.target.value = ''
+    return
+  }
+
+  formData.value.attachment = file
+  event.target.value = ''
+}
+
+const validateInvoiceAttachment = () => {
+  if (hasInvoiceAttachment.value) return true
+  showNotify('warning', 'Debes subir la factura (imagen o PDF).')
+  return false
+}
 
 const showNotify = (type, text) => {
   Notify.create({ color: type, message: text, timeout: 2000 })
@@ -76,6 +134,16 @@ const onProviderCreated = (created) => {
     providers.value = [...providers.value, created]
   }
   formData.value.provider = providers.value.find((p) => p.id === created.id) || created
+}
+
+const onServiceCategoryCreated = (created) => {
+  if (!created?.id) return
+  const exists = serviceCategories.value.some((c) => c.id === created.id)
+  if (!exists) {
+    serviceCategories.value = [...serviceCategories.value, created].sort((a, b) =>
+      a.name.localeCompare(b.name, 'es')
+    )
+  }
 }
 
 const loadExpense = async () => {
@@ -98,18 +166,28 @@ const loadExpense = async () => {
   }
 }
 
-const buildPayload = () => ({
-  provider_id: formData.value.provider?.id,
-  invoice_number: formData.value.invoice_number || null,
-  amount: parseMaskedMoney(formData.value.amount),
-  issue_date: formData.value.issue_date,
-  due_date: formData.value.due_date,
-  expense_type: formData.value.expense_type?.value,
-  location_scope: formData.value.location_scope || null,
-  unit: formData.value.unit || null,
-  description: formData.value.description,
-  attachment_url: formData.value.attachment_url || null
-})
+const buildPayload = () => {
+  const payload = new FormData()
+  payload.append('provider_id', String(formData.value.provider?.id ?? ''))
+  if (formData.value.invoice_number) {
+    payload.append('invoice_number', formData.value.invoice_number)
+  }
+  payload.append('amount', String(parseMaskedMoney(formData.value.amount) ?? ''))
+  payload.append('issue_date', formData.value.issue_date)
+  payload.append('due_date', formData.value.due_date)
+  payload.append('expense_type', String(formData.value.expense_type?.value ?? ''))
+  if (formData.value.location_scope) {
+    payload.append('location_scope', formData.value.location_scope)
+  }
+  if (formData.value.unit) {
+    payload.append('unit', formData.value.unit)
+  }
+  payload.append('description', formData.value.description || '')
+  if (formData.value.attachment) {
+    payload.append('attachment', formData.value.attachment)
+  }
+  return payload
+}
 
 const saveExpense = async () => {
   loading.value = true
@@ -137,9 +215,12 @@ const submit = async () => {
   if (!valid) return
 
   if (step.value === 1) {
+    if (!validateInvoiceAttachment()) return
     step.value = 2
     return
   }
+
+  if (!validateInvoiceAttachment()) return
 
   await saveExpense()
 }
@@ -260,6 +341,53 @@ onMounted(async () => {
             lazy-rules
           />
         </div>
+
+        <div class="col-12 mt-3 px-2 md:px-12">
+          <div class="text-subtitle2 text-black">Factura adjunta*</div>
+          <div class="invoiceContainer mt-1 px-3 w-full py-2">
+            <label for="expenseInvoice" class="cursor-pointer">
+              <template v-if="!hasInvoiceAttachment">
+                <div class="flex flex-center column">
+                  <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
+                  <div class="text-center">
+                    <div class="text-grey-7 font-medium">
+                      Sube la factura del gasto
+                    </div>
+                    <div class="text-grey-6 font-medium">
+                      Pulsa o haz click aquí para cargar imagen o PDF
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <q-icon
+                      :color="isPdfAttachment ? 'primary' : 'tealedf'"
+                      :name="isPdfAttachment ? 'eva-file-text-outline' : 'eva-checkmark-circle-2'"
+                    />
+                    <div class="ml-1">
+                      <div class="text-xsImage" :class="isPdfAttachment ? 'text-primary' : 'text-tealedf'">
+                        Factura adjuntada correctamente
+                      </div>
+                      <div class="text-xsImage text-black">
+                        {{ attachmentFileName.slice(0, 10) }}***{{ attachmentFileName.slice(-5) }}
+                        <template v-if="formData.attachment"> - {{ fileSizeInMB }} MB</template>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </label>
+            <input
+              id="expenseInvoice"
+              type="file"
+              style="display: none;"
+              accept="image/jpeg,image/png,image/webp,application/pdf,.pdf"
+              @change="handleInvoiceUpload"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- Parte 2: servicio (reglas solo activas en paso 2) -->
@@ -302,10 +430,6 @@ onMounted(async () => {
           />
         </div>
 
-        <div class="col-12 mt-3 px-2 md:px-12">
-          <div class="text-subtitle2 text-black">URL del adjunto (opcional)</div>
-          <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.attachment_url" />
-        </div>
       </div>
 
       <div class="col-12 mb-2 px-2 md:px-12 flex justify-end mt-4 gap-2">
@@ -340,6 +464,7 @@ onMounted(async () => {
       :service-categories="serviceCategories"
       @close-modal="createProviderDialog = false"
       @created="onProviderCreated"
+      @category-created="onServiceCategoryCreated"
     />
   </div>
 </template>
@@ -402,5 +527,16 @@ onMounted(async () => {
   &--active {
     background: var(--q-primary);
   }
+}
+
+.invoiceContainer {
+  border: 2px solid lightgrey;
+  border-radius: 0.8rem;
+  cursor: pointer;
+}
+
+.text-xsImage {
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 </style>

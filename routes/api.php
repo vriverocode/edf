@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\MonthlyBillsController;
 use App\Http\Controllers\Api\WaterReadingController;
 use App\Http\Controllers\Api\FinancialAccountController;
 use App\Http\Controllers\Api\TransactionCategoryController;
+use App\Http\Controllers\Api\ServiceCategoryController;
 use App\Models\Currency;
 use App\Models\FinancialAccount;
 
@@ -193,6 +194,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('transaction-categories')->name('transactionCategories.')->group(function () {
         Route::get('/', [TransactionCategoryController::class, 'index']);
         Route::post('/', [TransactionCategoryController::class, 'store']);
+    });
+
+    Route::prefix('service-categories')->name('serviceCategories.')->group(function () {
+        Route::get('/', [ServiceCategoryController::class, 'index']);
+        Route::post('/', [ServiceCategoryController::class, 'store']);
     });
 
     Route::prefix('financial-accounts')->name('financialAccounts.')->group(function () {

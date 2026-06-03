@@ -98,7 +98,7 @@ class ExpenseController extends Controller
         }
 
         try {
-            $validated = $this->validateExpense($request);
+            $validated = $this->validateExpense($request, true, $expense);
         } catch (ValidationException $e) {
             return $this->returnFail(422, $e->validator->errors()->first());
         }
@@ -108,9 +108,17 @@ class ExpenseController extends Controller
         return $this->returnSuccess(200, $expense->load(['provider:id,name', 'monthlyBill:id,month,year']));
     }
 
-    private function validateExpense(Request $request): array
+    private function validateExpense(Request $request, bool $isUpdate = false, ?Expense $expense = null): array
     {
-        return $request->validate([
+        $attachmentRules = ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'];
+
+        if (! $isUpdate) {
+            $attachmentRules = ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'];
+        } elseif (! $expense?->attachment_url) {
+            $attachmentRules = ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'];
+        }
+
+        $validated = $request->validate([
             'provider_id' => ['required', 'integer', 'exists:providers,id'],
             'monthly_bill_id' => ['nullable', 'integer', 'exists:monthly_bills,id'],
             'invoice_number' => ['nullable', 'string', 'max:255'],
@@ -121,7 +129,7 @@ class ExpenseController extends Controller
             'location_scope' => ['nullable', 'string', 'max:255'],
             'unit' => ['nullable', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'attachment_url' => ['nullable', 'string', 'max:500'],
+            'attachment' => $attachmentRules,
             'status' => ['nullable', 'integer', 'in:1,2,3'],
         ], [
             'provider_id.required' => 'El proveedor es requerido.',
@@ -134,6 +142,34 @@ class ExpenseController extends Controller
             'due_date.after_or_equal' => 'La fecha de vencimiento debe ser igual o posterior a la de emisión.',
             'expense_type.required' => 'El tipo de gasto es requerido.',
             'description.required' => 'La descripción es requerida.',
+            'attachment.required' => 'La factura adjunta es requerida.',
+            'attachment.file' => 'El archivo de factura no es válido.',
+            'attachment.mimes' => 'La factura debe ser imagen (JPG, PNG, WEBP) o PDF.',
+            'attachment.max' => 'La factura no debe superar 10 MB.',
         ]);
+
+        if ($request->hasFile('attachment')) {
+            $validated['attachment_url'] = $this->storeAttachment($request);
+        }
+
+        unset($validated['attachment']);
+
+        return $validated;
+    }
+
+    private function storeAttachment(Request $request): string
+    {
+        $file = $request->file('attachment');
+        $rand = rand(1000000, 9999999);
+        $name = $rand . '_' . time() . '.' . $file->extension();
+        $destination = public_path('storage/images/expenses');
+
+        if (! is_dir($destination)) {
+            @mkdir($destination, 0775, true);
+        }
+
+        $file->move($destination, $name);
+
+        return config('app.url') . "/storage/images/expenses/{$name}";
     }
 }
