@@ -25,19 +25,13 @@ const hasQuotasPending = computed(() => {
   return quotas;
 })
 
-// // Opcional: El watcher explícito si necesitas ejecutar lógica secundaria
-// watch(user, (newVal) => {
-//   console.log('Datos del usuario actualizados', newVal);
-// }, { deep: true });
-
-// // Convertimos el menú en un 'computed' para que badgePay reaccione a los cambios
 const menu = computed(() => [
   {
-    title: 'Mi Departamento',
+    title: 'Mi Unidad',
     icon: mi_departamento,
     link: '/client/department/options',
     badgePay: hasQuotasPending.value > 0,
-    roles: [2]
+    roles: [2,7]
   },
   {
     title: 'Reservas',
@@ -49,7 +43,7 @@ const menu = computed(() => [
     title: 'Pagos',
     icon: pagos,
     link: '/client/pays/list',
-    roles: [2]
+    roles: [2,7]
   },
   {
     title: 'Eventos',

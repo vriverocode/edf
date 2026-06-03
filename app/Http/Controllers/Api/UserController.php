@@ -239,12 +239,11 @@ class UserController extends Controller
     }
     public function getOwners(Request $request)
     {
-        $dist =  $request->rol == 1 ? '!=' : '==';
 
-        $owners = User::with(['apartaments', 'rol'])
-        ->where('rol_id', $dist, $request->rol)
+        $owners = User::with(['units', 'rol'])
+        ->where('rol_id', $request->rol)
         ->orderBy('name', 'asc')
-        ->where('id', '!=', $request->user()->id)
+        // ->where('id', '!=', $request->user()->id)
         ->get();
 
         return $this->returnSuccess(200, $owners);

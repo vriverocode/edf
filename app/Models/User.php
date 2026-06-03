@@ -36,7 +36,7 @@ class User extends Authenticatable
         'parentesco',
     ];
 
-    public $appends  =   ['status_label'];
+    public $appends  =   ['status_label', 'formatted_units'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -115,5 +115,10 @@ class User extends Authenticatable
     public function routeNotificationForFcm()
     {
         return $this->device_token;
+    }
+    public function getFormattedUnitsAttribute()
+    {
+        // Cargamos la relación si no está cargada para evitar consultas duplicadas (N+1)
+        return $this->units->pluck('number')->implode(', ');
     }
 }

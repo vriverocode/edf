@@ -5,7 +5,7 @@ import { useUserStore } from '@/services/store/users.store';
 import iconsApp from '@/assets/icons/index'
 
 const userStore = useUserStore()
-const tabActive = ref('users')
+const filterRol = ref(2)
 const page = ref(1)
 const search = ref('')
 const ready = ref(false)
@@ -13,10 +13,6 @@ const materialIcons = inject('materialIcons')
 
 
 
-const changeTab = (tab) => {
-  tabActive.value = tab
-  getUsers()
-}
 const router = useRouter()
 
 const goTo = (url) => {
@@ -32,7 +28,7 @@ const getUsers = () => {
   const data = {
     page: page.value,
     search: search.value,
-    rol: tabActive.value == 'users' ? 1 : 2
+    rol: filterRol.value
   }
   userStore.getUsers(data)
     .then((response) => {
@@ -45,7 +41,36 @@ const getUsers = () => {
     .catch(() => {
     })
 }
-
+const optionsFilterRol = [
+  {
+    name: 'Admin',
+    value: 1
+  },
+  {
+    name: 'Propietarios',
+    value: 2
+  },
+  {
+    name: 'Inquilinos',
+    value: 3
+  },
+  {
+    name: 'Familiar',
+    value: 4
+  },
+  {
+    name: 'Airbnb',
+    value: 5
+  },
+  {
+    name: 'Trabajadores',
+    value: 6
+  },
+  {
+    name: 'Propietarios parciales',
+    value: 7
+  },
+]
 onMounted(() => {
   getUsers()
 })
@@ -53,15 +78,17 @@ onMounted(() => {
 
 <template>
   <div class="h-full" style="overflow: auto;">
-    <div class="flex mt-5 justify-between  md:mx-auto items-center md:w-2/6 bg-primary mx-4 "
-      style=" height: 2.8rem; overflow: hidden;border-radius: 0.7rem; ">
-      <div class="text-subtitle1 text-bold text-white text-center bg-primary tabItem leftItem"
-        @click="changeTab('users')" :class="{ 'active': tabActive == 'users' }" style="width: calc(50% - 1px);">Usuarios
-      </div>
-      <div style="height: 100%; width: 2px; background: lightcyan; width: 2px;" />
-      <div class="text-subtitle1 text-bold text-white text-center bg-primary tabItem rightItem"
-        @click="changeTab('admin')" :class="{ 'active': tabActive == 'admin' }" style="width: calc(50% - 1px);">
-        Administradores</div>
+    <div class="w-full px-4">
+      <q-select
+        v-model="filterRol"
+        :options="optionsFilterRol"
+        option-label="name"
+        option-value="value"
+        emit-value
+        map-options dense borderless color="primary" 
+        class="form_userOptionSelect"
+        @update:model-value="getUsers"
+      />
     </div>
     <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6">
       <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton " style="border-radius: 0.5rem;"
@@ -88,8 +115,8 @@ onMounted(() => {
               <div class="text-subtitle1  text-bold text-black" style="line-height:1.7;">
                 {{ user.name }}
               </div>
-              <div class="flex items-center">
-                <div class="text-body2 text-grey-6 ">#{{ user.apartaments.length > 0 ? user.apartaments[0].number :
+              <div class="flex items-center" v-if="user.rol_id == 2 || user.rol_id == 7">
+                <div class="text-body2 text-grey-6 ">#{{ user.units.length > 0 ? user.formatted_units :
                   'Apt. no asignado' }}</div>
                 <div class="text-caption text-grey-6 ml-1">
                   ({{ user.rol.name }})
@@ -98,7 +125,7 @@ onMounted(() => {
             </div>
           </div>
           <div class="flex justify-end  items-center pb-3 pt-1 pr-2 md:pr-5 ">
-            <div>
+            <div v-if="user.rol_id == 2 || user.rol_id == 7">
               <q-btn :icon="materialIcons.outlinedAddHomeWork" class="mx-1" flat color="yellow-9" round size="0.9rem"
                 @click="goTo('/admin/users/assign-property/' + user.id)">
 
@@ -125,14 +152,14 @@ onMounted(() => {
               </q-btn>
             </div>
             <div>
-              <q-btn :icon="materialIcons.outlinedEvent" class="mx-1" color="light-green-9" flat size="0.9rem">
+              <q-btn :icon="materialIcons.outlinedEvent" class="mx-1" color="light-green-9" flat size="0.9rem" v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Ver reservas
                 </q-tooltip>
               </q-btn>
             </div>
             <div>
-              <q-btn :icon="materialIcons.outlinedPaid" class="mx-1" color="amber-6" flat size="0.9rem">
+              <q-btn :icon="materialIcons.outlinedPaid" class="mx-1" color="amber-6" flat size="0.9rem" v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Ver pagos
                 </q-tooltip>
@@ -144,9 +171,7 @@ onMounted(() => {
                   Borrar usuario
                 </q-tooltip>
               </q-btn>
-
             </div>
-
           </div>
         </div>
       </div>
@@ -193,10 +218,28 @@ onMounted(() => {
 
   }
 }
-
+.form_userOptionSelect{
+  & .q-field__inner {
+    box-shadow: 0px 3px 4px 0px #bfbfbf48;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(223, 223, 223);
+    padding: 0px 1rem;
+  }
+}
 @media (max-width: 780px) {
   .createButton {
     width: 100%;
   }
 }
+
+
+
+@media (max-width: 780px) {
+  .form_userOptionSelect{
+    & .q-field__inner {
+      padding: 0.1rem 1rem;
+    }
+  }
+}
+
 </style>

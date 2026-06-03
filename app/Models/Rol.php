@@ -12,6 +12,8 @@ class Rol extends Model
     public const FAMILIAR = 4;
     public const AIRBNB = 5;
     public const TRABAJADOR = 6;
+    public const PARCIAL = 1;
+
 
 
     /** Nombres de rol para uso en middleware (deben coincidir con roles.name en BD) */
@@ -21,6 +23,8 @@ class Rol extends Model
     public const FAMILIAR_NAME = 'Familiar';
     public const AIRBNB_NAME = 'Airbnb';
     public const TRABAJADOR_NAME = 'Trabajador';
+    public const PARCIAL_NAME = 'Propietario parcial';
+
 
 
     protected $table = 'roles';

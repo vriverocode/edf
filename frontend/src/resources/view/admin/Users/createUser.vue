@@ -23,6 +23,14 @@ import { useRouter } from 'vue-router';
       id:3,
       title:'Inquilino'
     },
+    {
+      id:6,
+      title:'Trabajador'
+    },
+    {
+      id:7,
+      title:'Propietario Parcial'
+    },
   ])
 
   const getAvailableApartaments = () => {
@@ -132,6 +140,7 @@ import { useRouter } from 'vue-router';
           </div>
           <q-input
               borderless
+              dense
               clearable
               v-model="formData.name"
               class="form__inputsCR mt-2"
@@ -145,6 +154,7 @@ import { useRouter } from 'vue-router';
           </div>
           <q-input
               borderless
+              dense
               clearable
               v-model="formData.username"
               class="form__inputsCR mt-2"
@@ -158,6 +168,7 @@ import { useRouter } from 'vue-router';
           </div>
           <q-input
               borderless
+              dense
               clearable
               v-model="formData.email"
               class="form__inputsCR mt-2"
@@ -171,6 +182,7 @@ import { useRouter } from 'vue-router';
           </div>
           <q-input
             borderless
+            dense
             clearable
             v-model="formData.password"
             class="form__inputsCR mt-2"
@@ -201,7 +213,7 @@ import { useRouter } from 'vue-router';
           />
         </div>
         
-        <div class="col-12 my-2 px-2 md:px-12 flex justify-end">
+        <div class="col-12 my-2 px-2 md:px-12 pb-8 flex justify-end">
           <q-btn color="primary " style="border-radius: 0.5rem;" type="submit" :loading="loading">
             <div class="px-10 py-1" >
               Siguiente
@@ -225,6 +237,7 @@ import { useRouter } from 'vue-router';
             option-label="title"
             :options="rolOptions"
             behavior="menu"
+            dense
           >
           </q-select>
         </div>
@@ -240,6 +253,7 @@ import { useRouter } from 'vue-router';
             option-label="number"
             :options="apartmentsOptions"
             behavior="menu"
+            dense
           >
 
             <template v-slot:option="scope">
