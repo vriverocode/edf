@@ -167,7 +167,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="md:px-20 md:mx-16 px-2  h-full" style="overflow: auto;">
+  <div class="md:px-20 px-2   h-full" style="overflow: auto;">
     <div class="text-center text-black text-h5 text-bold my-2">
       Editar medición de agua
     </div>

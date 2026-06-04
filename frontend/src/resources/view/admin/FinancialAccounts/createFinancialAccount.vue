@@ -75,7 +75,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="md:px-20 md:mx-16 px-2 pb-8">
+  <div class="md:px-20 px-2  pb-8">
     <div class="text-center text-black text-h5 text-bold md:mt-4 mt-5 mb-3">
       Nueva cuenta financiera
     </div>

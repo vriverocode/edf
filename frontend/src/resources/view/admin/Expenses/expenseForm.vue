@@ -244,7 +244,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="md:px-20 md:mx-16 px-2 pb-10 h-full" style="overflow: auto;">
+  <div class="md:px-20 px-2  pb-10 h-full" style="overflow: auto;">
     <div class="text-center text-black text-h5 text-bold my-2">
       {{ isEdit ? 'Editar gasto' : 'Registrar gasto' }}
     </div>

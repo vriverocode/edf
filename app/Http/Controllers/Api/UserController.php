@@ -47,6 +47,7 @@ class UserController extends Controller
             'rol_id'    =>  $request->idRol,
             'parentesco' =>  $request->parentesco ?? null,
             'active_time' =>  $request->active_time ?? null,
+            'is_first_time' => 1,   
         ]);
         $this->afteSaveUser($user, $request);
         return $this->returnSuccess(200, 'ok');

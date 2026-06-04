@@ -145,7 +145,7 @@ onMounted(() => {
 
 </script>
 <template>
-  <div class="md:px-20 md:mx-16  h-full " style="overflow: hidden; position: relative;">
+  <div class="md:px-20 h-full " style="overflow: hidden; position: relative;">
     <div class="h-full" v-if="ready">
       <q-form @submit="nextStep()" class="h-full ">
         <div style="height: 90%; overflow: auto;" >
