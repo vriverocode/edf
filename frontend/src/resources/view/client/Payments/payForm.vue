@@ -440,7 +440,7 @@ watch(step, (toStep, fromStep) => {
             <Transition :name="transitionName">
               <div v-if="step === 2" class="pay-form-step-wrapper">
                 <div class="pay-form-step-content">
-                  <div class="col-12 col-md-6 row md:px-5 px-4 mt-1">
+                  <div class="col-12 col-md-6 row md:px-5 px-0 mt-1">
                     <div class="w-full">
                       <div class="text-xl font-bold pl-2">
                         Resumen de pago
@@ -454,7 +454,7 @@ watch(step, (toStep, fromStep) => {
                           <div class="text__amountItem">Mes</div>
                           <div class="text__amountItem">{{ toPay.month_label }}</div>
                         </div>
-                        <div class="flex justify-between items-center w-full mt-1"
+                        <div class="flex justify-between items-center w-full mt-1 pt-2"
                           style="border-top: 2px solid #8b8e9446;">
                           <div class="text__amountTotal">Total</div>
                           <div class="text__amountTotal">{{ amountPrefix }} {{ Number(toPay.amount || 0).toFixed(2) }}
@@ -546,12 +546,13 @@ watch(step, (toStep, fromStep) => {
                             <div class="md:pr-4">
 
                               <q-input color="tealedf" label="Fecha de pago" v-model="payFormData.date"
-                                :rules="[val => !(!val) || 'Fecha es requerida']"  dense borderless clearable
-                                class="form__inputsPay mt-1" >
+                                :rules="[val => !(!val) || 'Fecha es requerida']" dense borderless clearable
+                                class="form__inputsPay mt-1">
                                 <template v-slot:append>
                                   <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                      <q-date mask="DD-MM-YYYY" v-model="payFormData.date" :options="availableBeforeDaysToTodayOptions"
+                                      <q-date mask="DD-MM-YYYY" v-model="payFormData.date"
+                                        :options="availableBeforeDaysToTodayOptions"
                                         :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
                                         <div class="row items-center justify-end">
                                           <q-btn v-close-popup label="Aceptar" color="primary" flat />
@@ -561,24 +562,24 @@ watch(step, (toStep, fromStep) => {
                                   </q-icon>
                                 </template>
                               </q-input>
-                              
+
                             </div>
                           </div>
                           <div class="col-12 mt-2">
 
                             <q-input color="tealedf" label="Referencia de pago" dense borderless clearable
-                                  v-model="payFormData.reference" class="form__inputsPay mt-1" :maxlength="12"
-                                  :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']">
+                              v-model="payFormData.reference" class="form__inputsPay mt-1" :maxlength="12"
+                              :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']">
 
-                                  <template v-slot:append>
-                                    <q-btn color="tealedf" size="0.1rem" outline style="padding:3px 6px" no-caps
-                                      @click="pegarTexto()">
-                                      <div class="text-xs">
-                                        Pegar
-                                      </div>
-                                    </q-btn>
-                                  </template>
-                                </q-input>
+                              <template v-slot:append>
+                                <q-btn color="tealedf" size="0.1rem" outline style="padding:3px 6px" no-caps
+                                  @click="pegarTexto()">
+                                  <div class="text-xs">
+                                    Pegar
+                                  </div>
+                                </q-btn>
+                              </template>
+                            </q-input>
                           </div>
                         </div>
                       </div>

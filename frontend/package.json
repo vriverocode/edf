@@ -4,7 +4,7 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite --host 192.168.1.234 --port 8031",
-        "dev-home": "vite --host 192.168.31.20 --port 8031"
+        "dev-home": "vite --host 192.168.31.117 --port 8031"
     },
     "devDependencies": {
         "@capacitor/assets": "^3.0.5",

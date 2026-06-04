@@ -242,8 +242,9 @@ class PayController extends Controller
             $financialAccount->save();
 
             $transaction = Transaction::create([
-                'financial_account_id' => 1,
-                'transaction_category_id' => (int) $this->catergoryByTypePay($pay->type),
+                'financial_account_id' => $financialAccount->id, 
+                'transaction_category_id' => (int) $request->transaction_category_id, 
+                
                 'pay_id' => $pay->id,
                 'amount' => $amount,
                 'date' => now()->toDateString(),

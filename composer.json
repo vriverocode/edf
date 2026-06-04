@@ -64,7 +64,7 @@
             "@php artisan serve --host 192.168.1.234 --port 8030"
         ],
         "dev-home": [
-            "@php artisan serve --host 192.168.31.20 --port 8030"
+            "@php artisan serve --host 192.168.31.117 --port 8030"
         ]
     },
     "extra": {

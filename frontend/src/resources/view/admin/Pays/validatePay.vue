@@ -237,7 +237,8 @@ const showModal = () => {
       </div>
 
       <div v-else-if="pay" class="h-full">
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-sm md:max-w-4xl p-6 pb-4  ">
+        <div
+          class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-sm md:max-w-4xl p-6 pb-4 mx-auto ">
           <div class="flex justify-between items-start mb-3">
             <h2 class="text-lg font-bold text-gray-900 m-0">{{ pay.title_pay }}</h2>
             <q-badge :color="pay.status_color" class="text-white px-3 py-1">
@@ -250,13 +251,14 @@ const showModal = () => {
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);" v-if="pay.type == 2 && pay.booking">
               <span class="text-gray-600 font-medium">Area</span>
-              <span class="text-gray-900 font-semibold"  >{{ pay.booking.comun_area.name}}</span>
+              <span class="text-gray-900 font-semibold">{{ pay.booking.comun_area.name }}</span>
             </div>
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);" v-if="pay.type == 1 && pay.quotas?.length">
               <span class="text-gray-600 font-medium">Cuota(s) pagada(s)</span>
               <span class="text-gray-900 font-semibold flex flex-wrap justify-end gap-1 items-center">
-                <span class="bg-primary text-white text-xs px-2 py-1 rounded-md" v-for="quota  in pay.quotas" :key="quota.id">
+                <span class="bg-primary text-white text-xs px-2 py-1 rounded-md" v-for="quota in pay.quotas"
+                  :key="quota.id">
                   {{ quota.month_label }} (Unidad {{ quota.departament?.number }})
                 </span>
               </span>
@@ -391,7 +393,8 @@ const showModal = () => {
         </div>
         <div class="row justify-end q-gutter-sm q-mt-lg">
           <q-btn flat label="Cancelar" v-close-popup color="grey" no-caps />
-          <q-btn color="primary" label="Confirmar aprobación" no-caps :loading="approveLoading" @click="submitApprove" />
+          <q-btn color="primary" label="Confirmar aprobación" no-caps :loading="approveLoading"
+            @click="submitApprove" />
         </div>
       </q-card>
     </q-dialog>

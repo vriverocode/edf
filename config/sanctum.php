@@ -17,8 +17,8 @@ return [
 
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
         '%s%s',
-        '192.168.1.229:8030,192.168.31.20:8030,192.168.1.234:8030,192.168.1.234:8031,192.168.31.20:8031,192.168.1.229:8031,website-231aa050.sfr.hrf.mybluehost.me,localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        '192.168.1.229:8030,192.168.31.20:8030,192.168.1.183:8030,192.168.1.183:8031,192.168.31.20:8031,192.168.1.229:8031,website-231aa050.sfr.hrf.mybluehost.me,website-7e5dc827.gtq.fvz.mybluehost.me,localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
+        '192.168.1.229:8030,192.168.31.117:8030,192.168.1.234:8030,192.168.1.234:8031,192.168.31.117:8031,192.168.1.229:8031,website-231aa050.sfr.hrf.mybluehost.me,localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
+        '192.168.1.229:8030,192.168.31.117:8030,192.168.1.183:8030,192.168.1.183:8031,192.168.31.117:8031,192.168.1.229:8031,website-231aa050.sfr.hrf.mybluehost.me,website-7e5dc827.gtq.fvz.mybluehost.me,localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
         Sanctum::currentApplicationUrlWithPort()
     ))),
 

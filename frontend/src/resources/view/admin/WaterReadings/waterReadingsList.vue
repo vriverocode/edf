@@ -108,7 +108,7 @@ onMounted(() => {
   <div class="h-full" style="overflow: hidden;">
     <div style="height: 100%; overflow: hidden;">
       <div class="px-2 pb-6 pt-0 md:px-28 h-full">
-        <div class="flex justify-between md:pr-5 pr-1 items-center md:px-8" style="height: 7%;">
+        <div class="flex justify-between md:pr-5 pr-1 items-center md:px-8" style="height: 8%;">
           <div class="row items-center w-full">
             <div class="col-7 col-md-4 pr-2">
               <q-select dense borderless class="form__inputsR" v-model="selectedMonth" :options="monthOptions"
@@ -125,7 +125,7 @@ onMounted(() => {
           <q-spinner-dots color="primary" size="7rem" />
         </div>
 
-        <div v-else class="pt-5 md:px-5 pb-8" style="height: 83%; overflow: auto;">
+        <div v-else class="pt-4 md:px-5 pb-8" style="height: 82%; overflow: auto;">
           <template v-if="readings.length > 0">
             <div class="mb-1">
               <div v-for="r in readings" :key="r.id" class="bg-white bills__container mb-5" style="position: relative;">

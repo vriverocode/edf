@@ -121,7 +121,7 @@ class BookingController extends Controller
         return $this->returnSuccess(200, 'ok');
     }
 
-    public function cancelBooking($id)
+    public function cancelBooking(Request $request, $id)
     {
 
         $booking = Booking::find($id);
@@ -129,7 +129,9 @@ class BookingController extends Controller
             return $this->returnFail(400, "Reserva no encontrada");
         }
         $booking->update([
-            "status" => 0
+            "status" => 0,
+            "motive" => $request->motive
+
         ]);
         $this->sendNotification($booking);
 

@@ -22,9 +22,10 @@ class Booking extends Model
         "amount",
         "type",
         "note",
+        "motive",
         "status",
         'pending_pay_notification_sent_at',
-        "is_exclusive"
+        "is_exclusive",
     ];
 
     protected $casts = [

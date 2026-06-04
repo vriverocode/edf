@@ -25,9 +25,9 @@ const route = useRoute();
 const amountPrefix = computed(() => currencySymbol.value || 'S/');
 
 const getUnitInfo = (type) => {
-  if (type === 2) return { label: 'Estacionamiento'};
-  if (type === 3) return { label: 'Depósito'};
-  return { label: 'Departamento'};
+  if (type === 2) return { label: 'Estacionamiento' };
+  if (type === 3) return { label: 'Depósito' };
+  return { label: 'Departamento' };
 }
 
 const getData = () => {
@@ -102,14 +102,8 @@ onMounted(() => {
           </div>
           <div class="invoice-header__id ">{{ pay.user.name }}</div>
           <!-- <div class="invoice-header__id pt-2">#{{ pay.pay_id }}</div> -->
-          <q-chip
-              :color="pay.status_color"
-              text-color="white"
-              :icon="pay.status_icon"
-              :label="pay.status_label"
-              dense
-              class="invoice-header__badge"
-            />
+          <q-chip :color="pay.status_color" text-color="white" :icon="pay.status_icon" :label="pay.status_label" dense
+            class="invoice-header__badge" />
         </div>
 
         <!-- ═══ Info general ═══ -->
@@ -121,7 +115,8 @@ onMounted(() => {
             </div>
             <div class="invoice-info-item" v-if="pay.pay_method_obj || pay.pay_method">
               <span class="invoice-info-item__label">Método</span>
-              <span class="invoice-info-item__value">{{ pay.pay_method_obj?.name || pay.pay_method?.name || '---' }}</span>
+              <span class="invoice-info-item__value">{{ pay.pay_method_obj?.name || pay.pay_method?.name || '---'
+                }}</span>
             </div>
             <div class="invoice-info-item" v-if="pay.reference && pay.reference !== '000000'">
               <span class="invoice-info-item__label">Referencia</span>
@@ -148,11 +143,7 @@ onMounted(() => {
             </div>
 
             <!-- Rows -->
-            <div
-              v-for="quota in quotas"
-              :key="quota.id"
-              class="invoice-table__row"
-            >
+            <div v-for="quota in quotas" :key="quota.id" class="invoice-table__row">
               <div class="invoice-table__col invoice-table__col--unit">
                 <div>
                   <div class="invoice-table__unit-label">{{ getUnitInfo(quota.departament?.type).label }}</div>
@@ -193,15 +184,8 @@ onMounted(() => {
 
         <!-- ═══ Voucher ═══ -->
         <div class="invoice-section invoice-actions" v-if="pay.vaucher">
-          <q-btn
-            outline
-            color="primary"
-            icon="eva-file-text-outline"
-            label="Ver comprobante"
-            no-caps
-            class="invoice-actions__btn"
-            @click="dialog = true"
-          />
+          <q-btn outline color="primary" icon="eva-file-text-outline" label="Ver comprobante" no-caps
+            class="invoice-actions__btn" @click="dialog = true" />
         </div>
       </div>
 
@@ -226,6 +210,7 @@ onMounted(() => {
   overflow: hidden;
   background: #ffffffff;
 }
+
 .invoice-scroll {
   height: 100%;
   overflow: auto;
@@ -237,6 +222,7 @@ onMounted(() => {
   margin: 0 auto;
   padding: 1.25rem 1rem 2rem;
 }
+
 @media (min-width: 768px) {
   .invoice-container {
     padding: 2rem 1.5rem 3rem;
@@ -252,12 +238,14 @@ onMounted(() => {
   margin-bottom: 0.75rem;
   position: relative;
 }
+
 .invoice-header__top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 0.75rem;
 }
+
 .invoice-header__label {
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -265,16 +253,19 @@ onMounted(() => {
   opacity: 0.7;
   margin-bottom: 0.15rem;
 }
+
 .invoice-header__title {
   font-size: 1.35rem;
   font-weight: 700;
 }
+
 .invoice-header__badge {
   position: absolute;
   top: 0.4rem;
   right: 0.5rem;
   padding: 0.8rem;
 }
+
 .invoice-header__id {
   margin-top: 0.1rem;
   font-size: 0.8rem;
@@ -286,9 +277,10 @@ onMounted(() => {
 .invoice-section {
   background: #fff;
   /* border-radius: 0.875rem; */
-  padding: 1rem 0.8rem;
+  padding: 0.8rem 0.8rem;
   margin-bottom: 0.625rem;
 }
+
 .invoice-section__title {
   font-size: 0.8rem;
   font-weight: 600;
@@ -304,11 +296,13 @@ onMounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem 1rem;
 }
+
 .invoice-info-item {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
 }
+
 .invoice-info-item__label {
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -316,6 +310,7 @@ onMounted(() => {
   color: #9ca3af;
   font-weight: 500;
 }
+
 .invoice-info-item__value {
   font-size: 0.9rem;
   font-weight: 600;
@@ -328,6 +323,7 @@ onMounted(() => {
   border-radius: 0.625rem;
   overflow: hidden;
 }
+
 .invoice-table__header {
   display: flex;
   align-items: center;
@@ -335,6 +331,7 @@ onMounted(() => {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #e5e7eb;
 }
+
 .invoice-table__header .invoice-table__col {
   font-size: 0.7rem;
   font-weight: 600;
@@ -342,6 +339,7 @@ onMounted(() => {
   letter-spacing: 0.05em;
   color: #6b7280;
 }
+
 .invoice-table__row {
   display: flex;
   align-items: center;
@@ -349,16 +347,20 @@ onMounted(() => {
   border-bottom: 1px solid #f3f4f6;
   transition: background 0.15s;
 }
+
 .invoice-table__row:last-child {
   border-bottom: none;
 }
+
 .invoice-table__row:hover {
   background: #fafbfd;
 }
+
 .invoice-table__col {
   font-size: 0.82rem;
   color: #374151;
 }
+
 .invoice-table__col--unit {
   flex: 1.6;
   display: flex;
@@ -366,11 +368,13 @@ onMounted(() => {
   gap: 0.5rem;
   min-width: 0;
 }
+
 .invoice-table__col--amount {
   flex: 1;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
 .invoice-table__col--total {
   flex: 1.1;
   text-align: right;
@@ -378,15 +382,18 @@ onMounted(() => {
   color: #111827;
   font-variant-numeric: tabular-nums;
 }
+
 .invoice-table__unit-icon {
   font-size: 1.15rem;
   flex-shrink: 0;
 }
+
 .invoice-table__unit-label {
   font-size: 0.72rem;
   color: #6b7280;
   line-height: 1.1;
 }
+
 .invoice-table__unit-number {
   font-size: 0.85rem;
   font-weight: 600;
@@ -397,6 +404,7 @@ onMounted(() => {
 .invoice-totals {
   padding: 0.875rem 1.125rem;
 }
+
 .invoice-totals__row {
   display: flex;
   justify-content: space-between;
@@ -405,6 +413,7 @@ onMounted(() => {
   color: #4b5563;
   padding: 0.3rem 0;
 }
+
 .invoice-totals__row--grand {
   margin-top: 0.5rem;
   padding-top: 0.65rem;
@@ -422,6 +431,7 @@ onMounted(() => {
   border: none;
   padding: 0;
 }
+
 .invoice-actions__btn {
   width: 100%;
   border-radius: 0.75rem;

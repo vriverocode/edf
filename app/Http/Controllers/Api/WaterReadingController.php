@@ -67,7 +67,7 @@ class WaterReadingController extends Controller
         $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
         ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
         :0;
-        $priceWater = 0;
+        // $priceWater = 0;
         
         try {
             $validated = $request->validate([
@@ -108,7 +108,8 @@ class WaterReadingController extends Controller
             'year' => $validated['year'],
             'previous_reading' => $validated['previous_reading'],
             'current_reading' => $validated['current_reading'],
-            'm3_price' => $validated['m3_price'] ?? $priceWater,
+            'm3_price' => $priceWater->water_price_per_m3 ?? $validated['m3_price'] ?? 0,
+            'amount' => ($validated['current_reading'] - $validated['previous_reading']) * ($priceWater->water_price_per_m3 ?? $validated['m3_price'] ?? 0),
         ];
 
         $photoColumn = $this->resolvePhotoColumn();
@@ -123,6 +124,11 @@ class WaterReadingController extends Controller
 
     public function update(Request $request, int $id)
     {
+        $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
+        ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
+        :0;
+        // $priceWater = 0;
+        
         $reading = WaterReading::find($id);
         if (! $reading) {
             return $this->returnFail(404, 'Medición de agua no encontrada');
@@ -165,7 +171,9 @@ class WaterReadingController extends Controller
             'previous_reading' => $validated['previous_reading'],
             'current_reading' => $validated['current_reading'],
             'm3_price' => $validated['m3_price'] ?? $reading->m3_price ?? 0,
+            'amount' => ($validated['current_reading'] - $validated['previous_reading']) * ($priceWater->water_price_per_m3 ?? $validated['m3_price'] ?? 0),
         ];
+        // dd($payload);
 
         $photoUrl = $this->storePhoto($request);
         $photoColumn = $this->resolvePhotoColumn();

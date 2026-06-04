@@ -115,20 +115,27 @@ class QuotaController extends Controller
     public function getByMonth(Request $request, $month)
     {
         //
-        $quotas = Quota::with(["pays", "departament.owner"])->orderBy('created_at', 'desc');
+        $quotas = Quota::with([
+            'pays' => function ($query) {
+                $query->where('status', '!=', 0)->orderByDesc('pay_date');
+            },
+            'pays.payMethod',
+            'departament.owner',
+        ])->orderBy('created_at', 'desc');
 
-        // Filtrar por usuario si no es admin
+        $userQuota = $request->owner ?? $request->user()->id;
 
-        $userQuota = $request->owner ??$request->user()->id;
-  
         $quotas->whereHas('departament', function (Builder $query) use ($userQuota) {
             $query->where('user_id', $userQuota);
         });
-        
-        // Apicar filtros
-        // $this->applyPaysFilter($quotas, $request);
 
-        return $this->returnSuccess(200, $quotas->where('month',$month)->get());
+        $quotas->where('month', $month);
+
+        if ($request->filled('year')) {
+            $quotas->whereYear('due_date', (int) $request->query('year'));
+        }
+
+        return $this->returnSuccess(200, $quotas->get());
     }
     
 

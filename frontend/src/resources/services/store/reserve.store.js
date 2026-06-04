@@ -160,13 +160,13 @@ export const useReserveStore = defineStore('Reserve', {
         });
       })
     },
-    async cancelReserve(id) {
+    async cancelReserve(id, motive) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/bookings/cancel/'+id)
+        ApiService.post('/api/bookings/cancel/'+id, {motive: motive})
         .then(({data}) => {
           if(data.code !=200) throw data;
           

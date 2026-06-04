@@ -113,6 +113,17 @@ class Quota extends Model
                 $payId = $pay?->id;
                 $payStatus = $pay !== null ? (int) $pay->status : null;
 
+                // Lógica de jerarquía para el estatus consolidado
+                if ($group->contains(fn ($q) => (int) $q->status === 1)) {
+                    $status = 1; // 1: Pago pendiente
+                } elseif ($group->contains(fn ($q) => (int) $q->status === 2)) {
+                    $status = 2; // 2: Pendiente de aprob.
+                } elseif ($group->contains(fn ($q) => (int) $q->status === 3)) {
+                    $status = 3; // 3: Exitoso
+                } else {
+                    $status = 0; // 0: Cancelada
+                }
+
                 return [
                     'id' => 'group-' . $group->pluck('id')->join('-'),
                     'month' => $firstQuota->month,
@@ -123,7 +134,7 @@ class Quota extends Model
                     'maintenance_amount' => $group->sum('maintenance_amount'),
                     'water_amount' => $group->sum('water_amount'),
                     'amount' => $group->sum('amount'),
-                    'status' => $group->contains(fn ($q) => (int) $q->status === 1) ? 1 : 2,
+                    'status' => $status, // <--- Estatus calculado implementado aquí
                     'pay' => $payId,
                     'pay_id' => $payId,
                     'pay_status' => $payStatus,
