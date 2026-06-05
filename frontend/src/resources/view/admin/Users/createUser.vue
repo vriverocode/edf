@@ -40,7 +40,7 @@ import { useRouter } from 'vue-router';
       apartmentsOptions.value = [
         {
           id:0,
-          number:'Selecciona un apartamento'
+          number:'Selecciona un departamento'
         },
         ...response.data
       ]
@@ -67,7 +67,7 @@ import { useRouter } from 'vue-router';
     },
     apartment: {
       id:0,
-      number:'Selecciona un apartamento'
+      number:'Selecciona un departamento'
     },
     idApartament:0,
     idRol:1
@@ -243,7 +243,7 @@ import { useRouter } from 'vue-router';
         </div>
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">
-            Selecciona el apartamento
+            Selecciona el departamento
           </div>
           <q-select
             borderless

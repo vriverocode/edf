@@ -449,7 +449,7 @@ onMounted(async () => {
           color="grey-7"
           style="border-radius: 0.5rem;"
           type="button"
-          @click="router.push('/admin/expenses/list')"
+          @click="router.go(-1)"
         >
           <div class="px-6 py-1">Cancelar</div>
         </q-btn>

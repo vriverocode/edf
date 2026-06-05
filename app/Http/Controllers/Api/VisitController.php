@@ -83,7 +83,7 @@ class VisitController extends Controller
         $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
 
         if (!$apartmentIds->contains((int)$request->departament_id)) {
-            return $this->returnFail(403, 'No puedes registrar visitas para este apartamento');
+            return $this->returnFail(403, 'No puedes registrar visitas para este departamento');
         }
 
         try {
@@ -385,8 +385,8 @@ class VisitController extends Controller
         ];
 
         $messages = [
-            'departament_id.required' => 'El apartamento es requerido',
-            'departament_id.numeric'  => 'El apartamento no es válido',
+            'departament_id.required' => 'El departamento es requerido',
+            'departament_id.numeric'  => 'El departamento no es válido',
             'fullname.required'       => 'El nombre del visitante es requerido',
             'fullname.regex'          => 'El nombre del visitante no es válido',
             'dni.required'            => 'El documento de identidad es requerido',

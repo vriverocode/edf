@@ -34,6 +34,7 @@ class User extends Authenticatable
         'active_time',
         'end_time',
         'parentesco',
+        'is_first_time',
     ];
 
     public $appends  =   ['status_label', 'formatted_units'];

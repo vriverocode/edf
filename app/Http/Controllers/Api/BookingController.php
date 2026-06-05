@@ -44,7 +44,7 @@ class BookingController extends Controller
         }
         $this->sendNotification($booking);
 
-        return $this->returnSuccess(200, ['toPay' => !($booking->type == 1), 'id' => $booking->id]);
+        return $this->returnSuccess(200, ['toPay' => (!($booking->type == 1) && $request->pay_later == false), 'id' => $booking->id]);
     }
 
     public function getBookingsByUser(Request $request)

@@ -57,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [UserController::class, 'store']);
         Route::post('/byPropietario', [UserController::class, 'store']);
         Route::post('/temporary-or-resident', [UserController::class, 'storeResidentUser']);
+        Route::post('/complete-first-time', [UserController::class, 'completeFirstTime']);
 
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment']);
         Route::post('/assign-property', [DepartamentController::class, 'assingApartment']);

@@ -11,7 +11,7 @@ const visitStore = useVisitStore();
 const loading = ref(false)
 const hasNoApartments = ref(false)
 const apartmentsOptions = ref([
-  { id: 0, number: 'Selecciona un apartamento', area: null },
+  { id: 0, number: 'Selecciona un departamento', area: null },
 ])
 
 const typeOptions = ref([
@@ -26,7 +26,7 @@ const typeOptions = ref([
 const formData = ref({
   apartment: {
     id: 0,
-    number: 'Selecciona un apartamento',
+    number: 'Selecciona un departamento',
   },
   fullname: '',
   dni: '',
@@ -57,7 +57,7 @@ const getApartmentsByUser = () => {
       }
 
       apartmentsOptions.value = [
-        { id: 0, number: 'Selecciona un apartamento', area: null },
+        { id: 0, number: 'Selecciona un departamento', area: null },
         ...apartments,
       ]
 
@@ -110,7 +110,7 @@ const handleSubmit = () => {
 
 const validateData = (apartmentId) => {
   if (!apartmentId || apartmentId === 0) {
-    showNotify('negative', 'Selecciona un apartamento')
+    showNotify('negative', 'Selecciona un departamento')
     return false
   }
   if (!formData.value.fullname) {
@@ -147,7 +147,7 @@ onMounted(() => {
       <div class="row w-full">
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black pt-2">
-            Apartamento
+            Departamento
           </div>
           <q-select v-if="!hasNoApartments" borderless dense class="form__inputsCR mt-2" v-model="formData.apartment"
             option-value="id" option-label="number" :options="apartmentsOptions" behavior="menu">
@@ -159,7 +159,7 @@ onMounted(() => {
                       {{ scope.opt.id != 0 ? '#' : '' }} {{ scope.opt.number }}
                     </div>
                     <div v-if="scope.opt.id != 0" class="text-positive text-subtitle2 pl-2">
-                      Tu apartamento
+                      Tu departamento
                     </div>
                   </div>
                   <div class="text-caption text-grey-6" v-if="scope.opt.id != 0 && scope.opt.area">
@@ -173,7 +173,7 @@ onMounted(() => {
             <template v-slot:avatar>
               <q-icon name="eva-home-outline" color="warning" />
             </template>
-            No tienes apartamentos asignados. Contacta al administrador.
+            No tienes departamentos asignados. Contacta al administrador.
           </q-banner>
         </div>
 

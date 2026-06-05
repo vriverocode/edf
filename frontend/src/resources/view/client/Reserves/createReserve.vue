@@ -8,6 +8,7 @@ import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
 import { usePayMethodStore } from '@/services/store/payMethod.store';
 import culqiCheckout from '@/components/layout/culqiCheckout.vue';
+import conditionPayLaterModal from '@/components/reserves/conditionPayLaterModal.vue';
 
 
 moment.locale('es', {
@@ -41,6 +42,7 @@ const loading = ref(false)
 const step = ref(1)
 const selectedInterval = ref({})
 const transitionName = ref('slide-next');
+const isPayLaterModalOpen = ref(false)
 const formData = ref({
   date: '',
   time_from: null,
@@ -49,7 +51,8 @@ const formData = ref({
   note: '',
   is_exclusive: false,
   terms_accept: false,
-  multa_accept: false
+  multa_accept: false,
+  pay_later: true,
 })
 
 const tapActive = ref(
@@ -322,6 +325,19 @@ const openRuleModal = (status) => {
   rulesModal.value = status
 }
 
+const showPayLaterModal = (status) => {
+  isPayLaterModalOpen.value = status
+}
+const handlePayLaterConfirm = async () => {
+  // 1. Cerramos el modal
+  isPayLaterModalOpen.value = false;
+  formData.value.pay_later = true
+  // 2. Aquí ejecutas tu función existente para crear reservas sin pago
+  // (La que usas para las gratuitas). Supongamos que se llama createFreeReserve:
+  
+  createReserve(); // <-- REEMPLAZA ESTO POR EL NOMBRE REAL DE TU FUNCIÓN
+};
+
 //payment 
 
 const payFormData = ref({
@@ -483,6 +499,13 @@ const reservesByType = computed(() => {
   const type = selectedComunArea.value.type
   return typeOfReserve.filter(item => !item.types || item.types.includes(type))
 })
+const calculateDiffHour = computed(() => {
+  const ahora = moment();
+  const fechaReserva = moment(formData.value.date);
+  const diferenciaHoras = fechaReserva.diff(ahora, 'hours');
+
+  return diferenciaHoras >= 24;
+})
 onMounted(() => {
   getComunsArea()
   getPayMethod()
@@ -505,6 +528,7 @@ const culqiSuccess = (data) => {
 
   alert('Bien ahi prepago')
 };
+
 watch(step,
   (toDepth, fromDepth) => {
     transitionName.value = toDepth > fromDepth ? 'slide-next' : 'slide-prev';
@@ -842,11 +866,19 @@ watch(step,
                         </div>
                       </q-btn>
                     </div>
-                    <div class="col-8 flex flex-center">
+                    <div class="col-4 flex flex-center" v-if="calculateDiffHour" >
+                      <q-btn outline color="warning" unelevated no-caps class=""
+                        style="width: 95%; border-radius: 3rem;"  @click="showPayLaterModal(true)" >
+                        <div class="py-0 md:py-0" style="font-weight: 500;">
+                          Pagar luego
+                        </div>
+                      </q-btn>
+                    </div>
+                    <div class="flex flex-center" :class="{'col-4': calculateDiffHour, 'col-8': !calculateDiffHour}">
                       <q-btn outline color="primary" unelevated no-caps class=""
                         style="width: 95%; border-radius: 3rem;" type="submit" :loading="loading">
                         <div class="py-0 md:py-0" style="font-weight: 500;">
-                          {{ step == 4 ? 'Aceptar y continuar' : 'Realizar reserva' }}
+                          {{ step == 4 ? 'Pagar ahora' : 'Realizar reserva' }}
                         </div>
                       </q-btn>
                     </div>
@@ -1072,11 +1104,16 @@ watch(step,
                 </div>
               </div>
             </div>
-
           </Transition>
+          
         </div>
       </q-form>
       <div id="textToPasteData" />
+      <conditionPayLaterModal 
+        :dialog="isPayLaterModalOpen" 
+        @closeModal="showPayLaterModal(false)"
+        @confirmPayLater="handlePayLaterConfirm"
+      />
     </div>
     <div v-else class="flex flex-center py-24 w-full">
       <q-spinner-dots color="primary" size="7rem" />

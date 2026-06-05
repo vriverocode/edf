@@ -112,14 +112,14 @@ export const useUserStore = defineStore('User', {
         ApiService.setHeader()
         ApiService.get(
           '/api/users?page=' +
-            data.page +
-            '&' +
-            'search=' +
-            data.search +
-            '&' +
-            'rol=' +
-            data.rol +
-            '&'
+          data.page +
+          '&' +
+          'search=' +
+          data.search +
+          '&' +
+          'rol=' +
+          data.rol +
+          '&'
         )
           .then(({ data }) => {
             if (data.code != 200) throw data
@@ -164,6 +164,27 @@ export const useUserStore = defineStore('User', {
           })
           .catch(({ response }) => {
             console.log(response)
+            reject(response.data.error)
+          })
+      })
+    },
+    async completeFirstTime(formData) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.post('/api/users/complete-first-time', formData)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.log(response)
+            if (response.data.code == 403) {
+              reject(response.data)
+            }
             reject(response.data.error)
           })
       })

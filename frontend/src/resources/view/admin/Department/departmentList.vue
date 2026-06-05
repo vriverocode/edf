@@ -202,7 +202,7 @@ onMounted(() => { getApartment() })
           </div>
             <q-select dense borderless v-model="selectedOwner" :options="ownersWithoutApartment" option-label="name" option-value="id" emit-value map-options
           class="form__inputsTypeDepart" :loading="modalLoading"
-          :disable="modalLoading" no-option-label="No hay propietarios sin apartamento"/>
+          :disable="modalLoading" no-option-label="No hay propietarios sin departamento"/>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cancelar" color="grey-7" v-close-popup :disable="modalLoading" />

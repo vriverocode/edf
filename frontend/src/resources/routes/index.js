@@ -218,7 +218,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Apartamentos',
+          pagTitle: 'Departamentos',
           depth: 2,
         },
       },
@@ -263,7 +263,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Agregar apartamento',
+          pagTitle: 'Agregar departamento',
           depth: 3,
         },
       },
@@ -619,7 +619,7 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Reservas realizada',
-          depth: 3,
+          depth: 6,
         },
       },
       {
@@ -684,7 +684,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Gestion de apartamento',
+          pagTitle: 'Gestion de departamento',
           depth: 2,
         },
       },
@@ -695,7 +695,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Gestion de apartamento',
+          pagTitle: 'Gestion de departamento',
           depth: 3,
         },
       },

@@ -23,7 +23,7 @@ class Rol extends Model
     public const FAMILIAR_NAME = 'Familiar';
     public const AIRBNB_NAME = 'Airbnb';
     public const TRABAJADOR_NAME = 'Trabajador';
-    public const PARCIAL_NAME = 'Propietario parcial';
+    public const PARCIAL_NAME = 'Propietario Parcial';
 
 
 

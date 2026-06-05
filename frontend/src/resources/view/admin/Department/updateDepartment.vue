@@ -78,7 +78,7 @@ onMounted(() => {
   <q-form @submit="updateApartment">
     <div class="row pb-8">
       <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
-        <div class="text-subtitle2 text-black">Número de apartamento</div>
+        <div class="text-subtitle2 text-black">Número de departamento</div>
         <q-input dense borderless v-model="formData.number" class="form__inputsR mt-1" color="primary" 
           :rules="[val => val && val.length > 0 || 'El número es necesario']" />
       </div>

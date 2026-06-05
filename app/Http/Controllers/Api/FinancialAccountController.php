@@ -65,7 +65,7 @@ class FinancialAccountController extends Controller
                 'type' => $request->has('type') ? (int) $request->type : 1,
             ]);
 
-            return $this->returnSuccess(200, $account);
+            return $this->returnSuccess(200, $account->load('currency:id,name,symbol'));
         } catch (\Exception $e) {
             return $this->returnFail(500, 'Error al crear la cuenta financiera: ' . $e->getMessage());
         }
@@ -136,4 +136,3 @@ class FinancialAccountController extends Controller
         return $this->returnSuccess(200, $currencies);
     }
 }
-

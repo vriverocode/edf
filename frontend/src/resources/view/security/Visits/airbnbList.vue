@@ -216,7 +216,7 @@ onMounted(() => {
 
         <filterModal :dialog="modal === 'filter'" :current-filters="filters" :status-options="statusOptions"
             :apartment-options="apartmentOptions" title="Filtrar reservas Airbnb"
-            search-label="Buscar por titular, huesped, DNI o apartamento" @closeModal="modal = ''"
+            search-label="Buscar por titular, huesped, DNI o departamento" @closeModal="modal = ''"
             @updateList="getRentsWithFilter" />
 
         <AirbnbGuestsModal v-model="isGuestsModalOpen" :rent="selectedRent" @updated="getAirbnbRents" />

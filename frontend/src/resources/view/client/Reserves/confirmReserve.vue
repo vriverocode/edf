@@ -55,7 +55,7 @@ const reloadGetBooking = () => {
 </script>
 
 <template>
-  <div class="min-h-screen relative overflow-hidden">
+  <div class=" h-full " style="overflow: hidden; position: relative;">
     <!-- Fondo decorativo urbano -->
     <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-100 to-transparent opacity-30">
       <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-200 to-transparent">

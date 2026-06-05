@@ -80,7 +80,7 @@ class UserController extends Controller
             if ($request->user()->rol_id === Rol::PROPIETARIO) {
                 $departament = Departament::find($request->idApartament);
                 if (!$departament || $departament->user_id !== $request->user()->id) {
-                    throw new Exception('No tiene permiso para registrar usuarios en este apartamento.');
+                    throw new Exception('No tiene permiso para registrar usuarios en este departamento.');
                 }
             }
 
@@ -104,7 +104,7 @@ class UserController extends Controller
                 'active_time' => $isAirbnb ? date('Y-m-d', $dateEnd) : null,
             ]);
 
-            // 2. Vincular usuario al apartamento
+            // 2. Vincular usuario al departamento
             $people = PeoplesXDepartaments::create([
                 'user_id'        => $user->id,
                 'departament_id' => $request->idApartament,
@@ -345,5 +345,41 @@ class UserController extends Controller
     public function setAvailableComunAreaToReserve(?PeoplesXDepartaments $people = null)
     {
         // TODO: Implementar lógica para habilitar áreas comunes a reservar para el usuario
+    }
+
+    /**
+     * Completa la configuración de primer inicio de sesión.
+     * Actualiza contraseña, teléfono y desactiva la bandera is_first_time.
+     */
+    public function completeFirstTime(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'password'  => ['required', 'string', 'min:8', 'confirmed'],
+            'phone'     => ['required', 'string', 'min:7'],
+        ], [
+            'password.required'  => 'La contraseña es requerida.',
+            'password.min'       => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+            'phone.required'     => 'El número de teléfono es requerido.',
+            'phone.min'          => 'El número de teléfono debe tener al menos 7 dígitos.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(400, $validator->errors()->first());
+        }
+
+        try {
+            $user = $request->user();
+            $user->update([
+                'password'      => bcrypt($request->password),
+                'phone'         => $request->phone,
+                'is_first_time' => 0,
+            ]);
+
+            return $this->returnSuccess(200, 'Configuración completada exitosamente.');
+        } catch (Exception $e) {
+            Log::error("Error en completeFirstTime: " . $e->getMessage());
+            return $this->returnFail(500, 'Error al actualizar los datos.');
+        }
     }
 }

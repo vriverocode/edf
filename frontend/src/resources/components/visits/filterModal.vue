@@ -94,12 +94,12 @@ watch(
           </div>
           <div class="row py-4 px-5" style="border-top: 1px solid lightgray;">
             <div class="mb-3 text-lg font-medium text-primary col-12">
-              Apartamento
+              Departamento
             </div>
             <div class="col-12 pb-2">
               <q-select class="form__inputsFilterBookings" v-model="filters.departament_id" :options="apartmentOptions"
                 option-label="label" option-value="value" emit-value map-options clearable dense borderless
-                label="Selecciona un apartamento" />
+                label="Selecciona un departamento" />
             </div>
           </div>
           <div class="row py-4 px-5" style="border-top: 1px solid lightgray;">

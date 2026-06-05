@@ -223,7 +223,7 @@ onMounted(() => {
       :status-options="statusOptions"
       :apartment-options="apartmentOptions"
       title="Filtrar mis visitas"
-      search-label="Buscar por nombre, DNI o apartamento"
+      search-label="Buscar por nombre, DNI o departamento"
       @closeModal="modal = ''"
       @updateList="getVisitsWithFilter"
     />

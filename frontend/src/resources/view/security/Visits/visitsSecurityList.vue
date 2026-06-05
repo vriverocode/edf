@@ -200,7 +200,7 @@ onMounted(() => {
 
     <filterModal :dialog="modal === 'filter'" :current-filters="filters" :status-options="statusOptions"
       :apartment-options="apartmentOptions" title="Filtrar visitas de seguridad"
-      search-label="Buscar por nombre, DNI o apartamento" @closeModal="modal = ''" @updateList="getVisitsWithFilter" />
+      search-label="Buscar por nombre, DNI o departamento" @closeModal="modal = ''" @updateList="getVisitsWithFilter" />
   </div>
 </template>
 

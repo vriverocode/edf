@@ -9,6 +9,7 @@ import loaderPage from '@/components/layout/loaderPage.vue';
 import { onMounted, ref, watch, inject, computed } from 'vue';
 import budgetReminderBanner from '@/components/layout/budgetReminderBanner.vue';
 import logoutModal from '@/components/layout/logoutModal.vue';
+import firstTimeSetupModal from '@/components/layout/firstTimeSetupModal.vue';
 import storage from '@/services/storage'
 import { useNotificationsStore } from '@/services/store/notifications.store'
 import { useQuasar } from 'quasar'
@@ -27,6 +28,8 @@ const $q = useQuasar()
 const prevUnread = ref(0)
 const lastShownId = ref(null)
 const transitionName = ref('slide-up');
+const showFirstTimeModal = computed(() => user.value?.is_first_time === 1);
+const transitionName2 = ref('fade');
 const budgetBannerOffset = ref(0);
 const onBudgetBannerOffset = (px) => {
   budgetBannerOffset.value = px;
@@ -141,7 +144,12 @@ watch(
   }
 );
 
-
+watch(
+  () => route.meta.depth,
+  (toDepth, fromDepth) => {
+    transitionName2.value = toDepth > fromDepth ? 'fade' : '';
+  }
+);
 </script>
 
 <template>
@@ -157,28 +165,30 @@ watch(
           'page__container': showNavbar(),
           'page_continerFull': !showNavbar()
         }">
-          <div class="row w-full backButton items-center md:px-20 md:mx-16 px-2" v-if="showBack()">
-            <div class="flex items-center" @click="goBack()">
-              <q-btn color="teal" round outline class="text-backButton flex flex-center" size="0.7rem">
-                <q-icon name="eva-arrow-back-outline" />
-              </q-btn>
-              <div class="ml-2 pt-1 backButton-text">REGRESAR</div>
+          <transition :name="transitionName2">
+            <div class="row w-full backButton items-center md:px-20 md:mx-16 px-2" v-if="showBack()">
+              <div class="flex items-center" @click="goBack()">
+                <q-btn color="teal" round outline class="text-backButton flex flex-center" size="0.7rem">
+                  <q-icon name="eva-arrow-back-outline" />
+                </q-btn>
+                <div class="ml-2 pt-1 backButton-text">REGRESAR</div>
+              </div>
             </div>
-          </div>
-
+          </transition>
           <div class="relative w-full overflow-hidden pt-3"
             :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }">
-            <router-view v-slot="{ Component }">
+            <router-view v-slot="{ Component, route }">
               <transition :name="transitionName">
-                <component :is="Component" class="inner-page-component" />
+                <component :is="Component" :key="route.fullPath" class="inner-page-component" />
               </transition>
             </router-view>
-          </div>
+            </div>
         </section>
         <navbarAdmin v-if="['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)"
           @logoutModal="showModal = 'logout'" />
         <infoNewSideBar />
         <logoutModal :dialog="(showModal == 'logout')" @closeModal="showModal = ''" />
+        <firstTimeSetupModal :dialog="showFirstTimeModal" @completed="" />
       </template>
       <loaderPage v-else />
     </div>

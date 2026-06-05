@@ -18,7 +18,7 @@ import { useRoute, useRouter } from 'vue-router';
       apartmentsOptions.value = [
         {
           id:0,
-          number:'Selecciona un apartamento'
+          number:'Selecciona un departamento'
         },
         ...response.data
       ]
@@ -30,7 +30,7 @@ import { useRoute, useRouter } from 'vue-router';
     user: route.params.id,
     apartment: {
       id:0,
-      number:'Selecciona un apartamento'
+      number:'Selecciona un departamento'
     },
     idApartament:0
   })
@@ -43,7 +43,7 @@ import { useRoute, useRouter } from 'vue-router';
 
     userStore.assingApartment(formData.value)
     .then((response) =>{
-      showNotify('positive', 'Apartamento asignado con exito')
+      showNotify('positive', 'Departamento asignado con exito')
       setTimeout(() => {
         loading.value = false
         router.go(-1)
@@ -85,7 +85,7 @@ import { useRoute, useRouter } from 'vue-router';
     <div class="flex w-full h-5/6 column justify-between">
       <div class="my-1 px-2 md:px-12 w-full">
         <div class="text-subtitle2 text-bold text-black">
-          Selecciona el apartamento
+          Selecciona el departamento
         </div>
         <q-select
           borderless

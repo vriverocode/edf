@@ -15,9 +15,9 @@ const menu = [
     link: '/admin/users/list',
   },
   {
-    title: 'Apartamentos',
+    title: 'Departamentos',
     icon: iconsApp.departmet,
-    subtitle: 'Gestión de apartamentos',
+    subtitle: 'Gestión de departamentos',
     link: '/admin/department/list',
   },
   {

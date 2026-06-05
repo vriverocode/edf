@@ -6,6 +6,7 @@ import { usePayStore } from '@/services/store/pay.store'
 import { useTransactionCategoryStore } from '@/services/store/transactionCategory.store'
 import voucherModal from '@/components/pay/voucherModal.vue'
 import createTransactionCategoryModal from '@/components/finance/createTransactionCategoryModal.vue'
+import createFinancialAccountModal from '@/components/finance/createFinancialAccountModal.vue'
 import { Notify, Dialog } from 'quasar'
 import ApiService from '@/services/axios'
 
@@ -25,6 +26,7 @@ const financialAccounts = ref([])
 const transactionCategories = ref([])
 const approveLoading = ref(false)
 const createCategoryDialog = ref(false)
+const createAccountDialog = ref(false)
 const approveForm = ref({
   financial_account_id: null,
   transaction_category_id: null,
@@ -109,6 +111,18 @@ const loadApproveOptions = async () => {
     transactionCategories.value = []
     showNotify('negative', 'No se pudieron cargar cuentas o categorías contables.')
   }
+}
+
+const onAccountCreated = (created) => {
+  if (!created?.id) return
+  const exists = financialAccounts.value.some((a) => a.id === created.id)
+  if (!exists) {
+    financialAccounts.value = [
+      ...financialAccounts.value,
+      created,
+    ].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  }
+  approveForm.value.financial_account_id = created.id
 }
 
 const onCategoryCreated = (created) => {
@@ -374,9 +388,19 @@ const showModal = () => {
           Para generar un asociación contable ingresa los siguientes datos
         </div>
         <div class="q-mt-sm">
-          <div class="text-subtitle2 text-black">Cuenta financiera</div>
-          <q-select dense borderless emit-value map-options class="form__inputsR mt-1" color="primary"
-            v-model="approveForm.financial_account_id" :options="financialAccountOptions" />
+          <div class="row q-col-gutter-sm items-end">
+            <div class="col">
+              <div class="text-subtitle2 text-black">Cuenta financiera</div>
+              <q-select dense borderless emit-value map-options class="form__inputsR mt-1" color="primary"
+                v-model="approveForm.financial_account_id" :options="financialAccountOptions" />
+            </div>
+            <div class="col-auto">
+              <q-btn flat dense round color="primary" @click="createAccountDialog = true">
+                <q-icon name="eva-plus-outline" />
+                <q-tooltip>Nueva cuenta</q-tooltip>
+              </q-btn>
+            </div>
+          </div>
         </div>
         <div class="row q-col-gutter-sm q-mt-md items-end">
           <div class="col">
@@ -401,6 +425,8 @@ const showModal = () => {
 
     <createTransactionCategoryModal :dialog="createCategoryDialog" :default-type="1"
       @close-modal="createCategoryDialog = false" @created="onCategoryCreated" />
+    <createFinancialAccountModal :dialog="createAccountDialog"
+      @close-modal="createAccountDialog = false" @created="onAccountCreated" />
   </div>
 </template>
 

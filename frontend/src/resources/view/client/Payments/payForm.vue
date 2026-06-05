@@ -528,7 +528,7 @@ watch(step, (toStep, fromStep) => {
             <Transition :name="transitionName">
               <div v-if="step === 3" class="pay-form-step-wrapper">
                 <div class="pay-form-step-content">
-                  <div class="col-12 row md:px-5 px-4 mt-1">
+                  <div class="col-12 row md:px-0 px-0 mt-1">
                     <div class="w-full">
                       <div class="text-lg font-bold pl-2">
                         Pago
@@ -588,7 +588,7 @@ watch(step, (toStep, fromStep) => {
                           Vaucher de pago
                         </div>
                         <q-file v-model="payFormData.vaucher" dense borderless clearable class="form__inputsPay mt-1"
-                          color="primary" @update:model-value="onFileChange">
+                          color="primary" @update:model-value="onFileChange" accept="image/*, application/pdf, .pdf">
                           <template v-slot:append>
                             <q-icon name="eva-folder-add-outline" class="cursor-pointer" />
                           </template>

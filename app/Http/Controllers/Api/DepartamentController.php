@@ -68,7 +68,7 @@ class DepartamentController extends Controller
         $apartments = Departament::with(["owner"])->find($id);
 
         if (!$apartments) {
-            return $this->returnFail(400, "Apartamento no encontrado");
+            return $this->returnFail(400, "Departamento no encontrado");
         }
 
         return $this->returnSuccess(200, $apartments);
@@ -91,7 +91,7 @@ class DepartamentController extends Controller
         $apartments = Departament::with(["owner"])->where("user_id", $request->user()->id)->get();
 
         if (!$apartments) {
-            return $this->returnFail(400, "Apartamentos no encontrados");
+            return $this->returnFail(400, "Departamentos no encontrados");
         }
 
         return $this->returnSuccess(200, $apartments);

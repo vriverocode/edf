@@ -24,7 +24,7 @@ const createApartment = () => {
   apartmentStore.createApartment(formData.value)
     .then((response) => {
       if (response.code !== 200) throw response
-      showNotify('positive', 'Apartamento creado con exito')
+      showNotify('positive', 'Departamento creado con exito')
       setTimeout(() => {
         loading.value = false
         router.go(-1)
@@ -60,10 +60,10 @@ onMounted(() => {
       <div class="row w-full">
         <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">
-            N° de apartamento
+            N° de departamento
           </div>
           <q-input dense borderless clearable v-model="formData.number" class="form__inputsR mt-1" color="primary"
-            :rules="[val => val && val.length > 0 || 'Número de apartamento']" />
+            :rules="[val => val && val.length > 0 || 'Número de departamento']" />
         </div>
         <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">
