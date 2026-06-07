@@ -14,6 +14,7 @@ class Booking extends Model
 
     protected $fillable = [
         "user_id",
+        "departament_id",
         "comun_area_id",
         "booking_number",
         "date",
@@ -41,6 +42,11 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function departament(): BelongsTo
+    {
+        return $this->belongsTo(Departament::class);
+    }
+
     public function pay(): HasOne
     {
         return $this->hasOne(Pay::class);

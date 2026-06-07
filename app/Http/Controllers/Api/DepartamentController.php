@@ -122,6 +122,54 @@ class DepartamentController extends Controller
         //
     }
 
+    public function getInhabitedDepartments(Request $request)
+    {
+        $departments = Departament::with('owner')
+            ->withCount('peoples')
+            ->where('type', Departament::TYPE_DEPARTAMENTO)
+            ->whereNotNull('user_id')
+            ->paginate(15);
+        return $this->returnSuccess(200, $departments);
+    }
+
+    public function getDepartmentResidents(Request $request, $id)
+    {
+        $department = Departament::with(['owner', 'peoples.user'])->find($id);
+        if (!$department) {
+            return $this->returnFail(404, 'Departamento no encontrado');
+        }
+
+        $residents = [];
+        // Add owner
+        if ($department->owner) {
+            $ownerData = $department->owner->toArray();
+            $ownerData['type_label'] = 'Propietario';
+            $ownerData['type_id'] = \App\Models\Rol::PROPIETARIO;
+            $residents[] = $ownerData;
+        }
+
+        // Add other residents
+        foreach ($department->peoples as $people) {
+            if ($people->user) {
+                // Evitar duplicar al propietario si estuviera en la tabla por alguna razon
+                if ($department->user_id == $people->user_id && $people->type == \App\Models\Rol::PROPIETARIO) continue;
+                
+                $userData = $people->user->toArray();
+                $typeLabel = 'Residente';
+                if ($people->type == \App\Models\Rol::AIRBNB) {
+                    $typeLabel = 'Airbnb';
+                } elseif ($people->type == \App\Models\Rol::PROPIETARIO) {
+                    $typeLabel = 'Propietario';
+                }
+                $userData['type_label'] = $typeLabel;
+                $userData['type_id'] = $people->type;
+                $residents[] = $userData;
+            }
+        }
+
+        return $this->returnSuccess(200, $residents);
+    }
+
     private function validateFieldsFromInput($inputs)
     {
         $isDepartment = isset($inputs['type']) && $inputs['type'] == 1;

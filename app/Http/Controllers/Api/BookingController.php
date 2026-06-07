@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Booking;
-use App\Services\BookingPendingPayNotifier;
-use App\Models\ComunArea;
-use App\Models\User;
-use App\Notifications\RealtimeNotification;
-use Carbon\Carbon;
 use Exception;
+use Carbon\Carbon;
+use App\Models\User;
+use App\Models\Booking;
+use App\Models\ComunArea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification as NotificationFacade;
+use App\Http\Controllers\Controller;
+use App\Models\PeoplesXDepartaments;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Notifications\RealtimeNotification;
+use App\Services\BookingPendingPayNotifier;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 
 class BookingController extends Controller
 {
@@ -25,9 +26,27 @@ class BookingController extends Controller
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);
         }
+
         try {
+            $user = $request->user();
+            if ($user->rol_id !== 1) {
+                return $this->returnFail(400, 'Usuario inactivo');
+            }
+            $departament_id = $request->departament_id;
+
+            if (!$departament_id && ($user->rol_id == 5 || $user->rol_id == 4)) {
+                $residentRecord = PeoplesXDepartaments::where('user_id', $user->id)
+                    ->where('type', 5)
+                    ->orWhere('type', 4)
+                    ->first();
+                if ($residentRecord) {
+                    $departament_id = $residentRecord->departament_id;
+                }
+            }
+
             $booking = Booking::create([
-                'user_id' => $request->user()->id,
+                'user_id' => $user->id,
+                'departament_id' => $departament_id,
                 'comun_area_id' => $request->comun_area,
                 'booking_number' => $request->user()->id . '00' . rand(1000, 9999),
                 'date' => date('Y-m-d', strtotime($request->date)),
@@ -137,6 +156,29 @@ class BookingController extends Controller
 
         return $this->returnSuccess(200, 'ok');
     }
+
+    public function getBookingsForSecurity(Request $request)
+    {
+        $bookings = Booking::with('comunArea', 'user', 'pay', 'departament');
+        $this->applyFilter($bookings, $request);
+        return $this->returnSuccess(200, $bookings->get());
+    }
+
+    public function cancelBookingForMaintenance(Request $request, $id)
+    {
+        $booking = Booking::find($id);
+        if (!$booking) {
+            return $this->returnFail(400, "Reserva no encontrada");
+        }
+        $booking->update([
+            "status" => 0,
+            "motive" => "Cancelada por mantenimiento"
+        ]);
+        $this->sendNotification($booking);
+
+        return $this->returnSuccess(200, 'ok');
+    }
+
     public function getAvaibleBookingByDay(Request $request, $idArea)
     {
         date_default_timezone_set('America/Caracas');
@@ -169,13 +211,10 @@ class BookingController extends Controller
         for ($hora = $startHour; $hora < $endHour; $hora += $intervalSize) {
             // Omitir intervalos pasados si es el día actual
             if ($isToday && $hora <= $currentHour) {
-                continue; 
+                continue;
             }
 
-            // 1. Calcular la disponibilidad y el estado usando una función dedicada
-            $availability = $this->calculateIntervalAvailability($hora, $intervalSize, $area->max_cupo??100, $bookingsInDay);
-
-
+            $availability = $this->calculateIntervalAvailability($hora, $intervalSize, $area->max_cupo ?? 100, $bookingsInDay);
             array_push($mm, $availability);
             $intervalData = [
                 'time_from' => sprintf('%02d:00', $hora),
@@ -187,8 +226,6 @@ class BookingController extends Controller
 
             // 2. Determinar a qué bloque pertenece usando otra función dedicada
             $blockCategory = $this->getTimeBlockCategory($hora);
-            
-            // Asignar al array correspondiente
             $blocks[$blockCategory][] = $intervalData;
         }
 
@@ -242,11 +279,9 @@ class BookingController extends Controller
         if ($hora < 12) {
             return 'ma';
         }
-        
         if ($hora >= 12 && $hora < 18) {
             return 'ta';
         }
-        
         return 'no';
     }
     public function getPendings()
@@ -334,7 +369,7 @@ class BookingController extends Controller
     {
         BookingPendingPayNotifier::notify($booking);
     }
-    private function cancelReserveNotification($users, $booking)
+    static public function cancelReserveNotification($users, $booking)
     {
         try {
             $users["client"]->notify(new RealtimeNotification(

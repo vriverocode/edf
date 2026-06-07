@@ -9,6 +9,7 @@ import moment from 'moment';
 import { usePayMethodStore } from '@/services/store/payMethod.store';
 import culqiCheckout from '@/components/layout/culqiCheckout.vue';
 import conditionPayLaterModal from '@/components/reserves/conditionPayLaterModal.vue';
+import { useAuthStore } from '@/services/store/auth.services';
 
 
 moment.locale('es', {
@@ -18,12 +19,10 @@ moment.locale('es', {
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split('_'),
 })
 const myLocale = {
-  /* starting with Sunday */
   days: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'),
   daysShort: 'DO_LU_MA_MI_JU_VI_SA'.split('_'),
   months: 'Enero_Febrero_Marzo_Abril_Mayo_Junio_Julio_Agosto_Septiembre_Octubre_Noviembre_Diciembre'.split('_'),
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
-  // 0-6, 0 - Sunday, 1 Monday, ...
   format24h: true,
   pluralDay: 'dias'
 }
@@ -32,8 +31,16 @@ const rulesModal = ref(false)
 const comunAreaStore = useComunAreaStore()
 const reserveStore = useReserveStore()
 const paymentMethodStore = usePayMethodStore()
+const authStore = useAuthStore()
 const emitter = inject('emitter')
 const comunAreas = ref([])
+const userApartments = computed(() => {
+  if (authStore.user.role_id == 5) {
+  
+  }
+  if (!authStore.user?.units) return []
+  return authStore.user.units.filter(u => u.type == 1)
+})
 const selectedComunArea = ref({})
 const router = useRouter()
 const disabledTime = ref(true)
@@ -53,8 +60,9 @@ const formData = ref({
   terms_accept: false,
   multa_accept: false,
   pay_later: true,
+  departament_id: null,
 })
-
+const toPayId = ref(null)
 const tapActive = ref(
   moment().format('D') !== moment(formData.value.date).format('D')
     ? 'ma'
@@ -73,7 +81,7 @@ const selectArea = (id) => {
   visibleBackButton(false)
 
 }
-const toPayId = ref(null)
+
 const backButton = () => {
   if (step.value == 2) {
     visibleBackButton(true)
@@ -195,8 +203,12 @@ const getPayMethod = () => {
 }
 const validateStepForm = () => {
   if (step.value == 1) {
+    if (userApartments.value.length > 1 && !formData.value.departament_id) {
+      showNotify('negative', 'Debes seleccionar el departamento')
+      return false
+    }
     !formData.value.typeOfReserve || formData.value.typeOfReserve == 0 ? showNotify('negative', 'Debes seleccionar el tipo de reserva') : ''
-    return formData.value.typeOfReserve && formData.value.typeOfReserve != 0 ? true : false ? true : false
+    return formData.value.typeOfReserve && formData.value.typeOfReserve != 0 ? true : false
   }
   if (step.value == 2) {
     !formData.value.date ? showNotify('negative', 'Debes seleccionar la fecha de la reserva') : ''
@@ -329,13 +341,9 @@ const showPayLaterModal = (status) => {
   isPayLaterModalOpen.value = status
 }
 const handlePayLaterConfirm = async () => {
-  // 1. Cerramos el modal
   isPayLaterModalOpen.value = false;
   formData.value.pay_later = true
-  // 2. Aquí ejecutas tu función existente para crear reservas sin pago
-  // (La que usas para las gratuitas). Supongamos que se llama createFreeReserve:
-  
-  createReserve(); // <-- REEMPLAZA ESTO POR EL NOMBRE REAL DE TU FUNCIÓN
+  createReserve();
 };
 
 //payment 
@@ -425,11 +433,8 @@ const handleUpload = (event) => {
 };
 const fileSizeInMB = computed(() => {
   if (!payFormData.value.vaucher) return 0;
-
-  // Convertir bytes a Megabytes (bytes / 1024 = KB -> KB / 1024 = MB)
   const size = payFormData.value.vaucher.size / (1024 * 1024);
 
-  // .toFixed(2) recorta los decimales para que se vea limpio (ej: 1.45)
   return size.toFixed(2);
 });
 
@@ -509,6 +514,10 @@ const calculateDiffHour = computed(() => {
 onMounted(() => {
   getComunsArea()
   getPayMethod()
+  
+  if (userApartments.value.length === 1) {
+    formData.value.departament_id = userApartments.value[0].id
+  }
 })
 
 onBeforeUnmount(() => {
@@ -523,9 +532,6 @@ onBeforeUnmount(() => {
     })
 });
 const culqiSuccess = (data) => {
-  // Como la reserva ya se creó en el backend tras el pago:
-  // router.push({ name: 'confirm-reserve', params: { id: data.idBooking } });
-
   alert('Bien ahi prepago')
 };
 
@@ -1058,6 +1064,21 @@ watch(step,
                   </q-chip>
                 </div>
                 <div class="text-center pt-4 font-bold text-2xl text-primary">Opción de reserva</div>
+                <div v-if="userApartments.length > 1" class="mt-4 px-2">
+                  <div style="font-weight: 500; font-size: 0.95rem; margin-bottom: 8px;">Selecciona tu departamento:</div>
+                  <q-select
+                    v-model="formData.departament_id"
+                    :options="userApartments"
+                    option-value="id"
+                    option-label="number"
+                    emit-value
+                    map-options
+                    outlined
+                    dense
+                    color="tealedf"
+                    label="Departamento"
+                  />
+                </div>
                 <div>
                   <div v-for="type in reservesByType" :key="type.id"
                     :class="{ 'activeMethodContainer': formData.typeOfReserve == type.id }"

@@ -148,5 +148,33 @@ export const useApartmentStore = defineStore('Apartment', {
           .catch(({ response }) => reject(response.data.error))
       })
     },
+    async getInhabitedDepartments(page = 1) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.get(`/api/security/departments/inhabited?page=${page}`)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response.data.error)
+          })
+      })
+    },
+    async getDepartmentResidents(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.get(`/api/security/departments/${id}/residents`)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response.data.error)
+          })
+      })
+    },
   },
 })

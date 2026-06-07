@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/services/store/auth.services';
 import { useRouter } from 'vue-router';
 import { computed, watch } from 'vue'; // Agregamos watch aquí
+import iconsApp from '@/assets/icons/index';
 
 import anuncios from '@/assets/img/menu/anuncios.svg'
 import atencion from '@/assets/img/menu/atencion.svg'
@@ -37,7 +38,7 @@ const menu = computed(() => [
     title: 'Reservas',
     icon: mis_reservas,
     link: '/client/reserves/list',
-    roles: [2, 3, 4]
+    roles: [2, 3, 4, 5]
   },
   {
     title: 'Pagos',
@@ -49,17 +50,25 @@ const menu = computed(() => [
     title: 'Eventos',
     icon: eventos,
     link: '/client/events',
-    roles: [2, 3, 4]
+    roles: [2, 3, 4, 5]
   },
   {
     title: 'Anuncios',
     icon: anuncios,
     link: '/client/notices/list',
+    roles: [2]
   },
   {
     title: 'Atención',
     icon: atencion,
-    link: '/client/services/list',
+    link: '/client/incidents',
+    roles: [2]
+  },
+  {
+    title: 'Residentes',
+    icon: defaulticon,
+    link: '/client/familiar/list',
+    roles: [2]
   },
   {
     title: 'Visitas',
@@ -68,10 +77,28 @@ const menu = computed(() => [
     roles: [2]
   },
   {
-    title: 'Residentes',
-    icon: defaulticon,
-    link: '/client/familiar/list',
-    roles: [2]
+    title: 'Reservas',
+    icon: mis_reservas,
+    link: '/security/reserves/list',
+    roles: [6]
+  },
+  {
+    title: 'Departamentos',
+    icon: mi_departamento,
+    link: '/security/departments/list',
+    roles: [6]
+  },
+  {
+    title: 'Airbnb',
+    icon: iconsApp.visitorCard,
+    link: '/security/airbnb/list',
+    roles: [6]
+  },
+  {
+    title: 'Visitas',
+    icon: iconsApp.visitor,
+    link: '/security/visit/list',
+    roles: [6]
   },
 ]);
 
@@ -88,20 +115,21 @@ const goTo = (url) => {
 <template>
   <div class="h-full w-full px-2 ">
     <div class="row md:pt-10 pt-2  md:px-20 pb-12" style="overflow-y: auto; max-height: 100%;">
-      <div class="col-md-3 col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
+      <div class="col-md-3 col-6 px-7 my-3" v-for="(item, key) in menuByRol" :key="key">
         <div class="px-3">
-          <div class="boxItem " @click="goTo(items.link)">
-            <div v-if="items.badgePay">
+          <div class="boxItem " @click="goTo(item.link)">
+            <div v-if="item.badgePay">
               <div class="bagdePay" />
             </div>
             <div class="flex justify-center items-center h-full w-full p-1">
-              <img :src="items.icon" class="w-full md:w-auto "
-                :class="{ 'h-3/5': items.icon.includes('default-dash'), 'h-full': !items.icon.includes('default-dash') }" />
+              <div v-html="item.icon" class="flex justify-center mt-0" v-if="user.rol_id == 6 && (item.title == 'Airbnb' || item.title == 'Visitas')" />
+              <img :src="item.icon" class="w-full md:w-auto " v-else
+                :class="{ 'h-3/5': item.icon.includes('default-dash'), 'h-full': !item.icon.includes('default-dash') }" />
             </div>
           </div>
         </div>
         <div class="text-center mt-2  text-title-squad">
-          {{ items.title }}
+          {{ item.title }}
         </div>
       </div>
     </div>

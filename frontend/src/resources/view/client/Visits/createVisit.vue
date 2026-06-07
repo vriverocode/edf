@@ -138,7 +138,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="md:px-20px-2">
+  <div class="md:px-20 px-2">
     <div class="text-center text-black text-h5 text-bold md:mt-4 mt-5 mb-3">
       Registrar visita
     </div>

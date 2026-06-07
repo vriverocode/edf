@@ -110,13 +110,13 @@ onMounted(() => {
 <template>
   <div class="h-full">
     <template v-if="ready">
-      <div class="h-full" style="overflow: auto;">
+      <div class="h-full" style="overflow: hidden;">
         <div class="flex justify-end md:mx-24 md:px-12 px-4 pt-4">
           <q-btn outline color="primary" :class="activeFilterSearch" icon="eva-funnel-outline"
             @click="modal = 'filter'" />
         </div>
         <template v-if="visits.length > 0">
-          <div class="mt-4 md:mt-8" style="height: 92%; overflow: scroll">
+          <div class="mt-4 md:mt-8" style="height: 92%; overflow: auto">
             <div class="px-4 md:mx-24 md:px-12">
               <div v-for="visit in visits" :key="visit.id" class="my-3 md:my-5 listVisit-container"
                 style="border-radius: 12px!important; position: relative;">
@@ -132,14 +132,14 @@ onMounted(() => {
                         {{ visit.fullname }}
                       </div>
                       <div class="">
-                        <div class="text-body2 text-grey-6">
+                        <div class="text-body2 text-grey-8 pt-1">
                           DNI: {{ visit.dni }}
                         </div>
-                        <div class="text-body2 text-grey-6" v-if="visit.airbnb_rent_id"
+                        <div class="text-body2 text-grey-6 pt-1" v-if="visit.airbnb_rent_id"
                           style="text-decoration:underline">
                           Reserva: #000{{ visit.airbnb.id }}
                         </div>
-                        <div class="text-caption text-grey-6">
+                        <div class="text-caption text-grey-6 pt-1">
                           #{{ visit.departament?.number || 'Apt. N/A' }} - {{ formatDate(visit.date) }}
                           <template v-if="visit.hour">· {{ visit.hour }}</template>
                         </div>

@@ -139,7 +139,8 @@ onMounted(() => { getApartment() })
               <div v-html="iconsApp.apartment" class="flex flex-center px-0 h-full" />
             </div>
             <div class="px-2 infoItem">
-              <div class=" text-bold  text-black" style="font-weight: bold; font-size: 1.3rem;">
+              <div class=" text-bold  text-black"
+                style="font-weight: bold; font-size: 1.3rem; text-transform: uppercase;">
                 #{{ apartment.number }}
               </div>
               <div class="mt-1 ellipsis w-full" style="font-weight: 500; font-size: 0.89rem;">
@@ -197,12 +198,12 @@ onMounted(() => { getApartment() })
           <div class="text-h6">Asignar/Cambiar propietario</div>
         </q-card-section>
         <q-card-section>
-          <div class="text-subtitle2 q-mb-sm" v-if="selectedApartment">
+          <div class="text-subtitle2 q-mb-sm" v-if="selectedApartment" style="text-transform: uppercase;">
             Unidad #{{ selectedApartment.number }}
           </div>
-            <q-select dense borderless v-model="selectedOwner" :options="ownersWithoutApartment" option-label="name" option-value="id" emit-value map-options
-          class="form__inputsTypeDepart" :loading="modalLoading"
-          :disable="modalLoading" no-option-label="No hay propietarios sin departamento"/>
+          <q-select dense borderless v-model="selectedOwner" :options="ownersWithoutApartment" option-label="name"
+            option-value="id" emit-value map-options class="form__inputsTypeDepart" :loading="modalLoading"
+            :disable="modalLoading" no-option-label="No hay propietarios sin departamento" />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cancelar" color="grey-7" v-close-popup :disable="modalLoading" />

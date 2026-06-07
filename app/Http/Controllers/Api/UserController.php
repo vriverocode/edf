@@ -90,7 +90,8 @@ class UserController extends Controller
             // Preparación de credenciales
             $username = $request->username ?? Str::lower(Str::random(8)) . '_' . time();
             $password = $request->password ?? Str::password(12);
-            $dateEnd = $isAirbnb ? strtotime($request->active_time) : null;
+            $activeTime = $isAirbnb ? strtotime($request->active_time) : null;
+            $dateEnd = $isAirbnb ? strtotime($request->end_time) : null;
 
             // 1. Crear el Usuario principal (el que accede a la app)
             $user = User::create([
@@ -101,7 +102,10 @@ class UserController extends Controller
                 'password'    => bcrypt($password),
                 'rol_id'      => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
                 'parentesco'  => $isAirbnb ? null : $request->parentesco,
-                'active_time' => $isAirbnb ? date('Y-m-d', $dateEnd) : null,
+                'status'      => $isAirbnb ? 3 : 1,
+                'active_time' => $isAirbnb ? date('Y-m-d', $activeTime) : null,
+                'end_time'    => $isAirbnb ? date('Y-m-d', $dateEnd) : null,
+
             ]);
 
             // 2. Vincular usuario al departamento

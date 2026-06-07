@@ -12,15 +12,35 @@ export const useReserveStore = defineStore('Reserve', {
         const query = this.filterQuery(filters);
         const url = '/api/bookings' + (query ? `?${query}` : '');
         ApiService.get(url)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
+      })
+    },
+    async getBookingsForSecurity(filters) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        const query = this.filterQuery(filters);
+        const url = '/api/security/bookings' + (query ? `?${query}` : '');
+        ApiService.get(url)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
       })
     },
     async createReserve(data) {
@@ -30,22 +50,22 @@ export const useReserveStore = defineStore('Reserve', {
         }
         ApiService.setHeader();
         ApiService.post('/api/bookings', data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          if(response.data.code == 403){
-            reject(response.data);
-          }
-          reject(response.data.error);
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            if (response.data.code == 403) {
+              reject(response.data);
+            }
+            reject(response.data.error);
+          });
+
       })
 
     },
-    async createReservePay(postData){
+    async createReservePay(postData) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
@@ -61,45 +81,45 @@ export const useReserveStore = defineStore('Reserve', {
             console.log(response)
             reject(response.data.error)
           })
-        
+
       })
 
     },
-     
+
     async getReserveById(id) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/bookings/byId/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
-        
+        ApiService.get('/api/bookings/byId/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
       })
     },
-    async getReservesByArea(area){
+    async getReservesByArea(area) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/bookings/byArea/'+area)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
-        
+        ApiService.get('/api/bookings/byArea/' + area)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+
       })
     },
 
@@ -109,37 +129,37 @@ export const useReserveStore = defineStore('Reserve', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.put('/api/bookings/'+data.id, data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          if(response.data.code == 403){
-            reject(response.data);
-          }
-          reject(response.data.error);
-        });
-        
+        ApiService.put('/api/bookings/' + data.id, data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            if (response.data.code == 403) {
+              reject(response.data);
+            }
+            reject(response.data.error);
+          });
+
       })
 
     },
-    async getAvailableReserveInDayByArea(data){
+    async getAvailableReserveInDayByArea(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/bookings/availableBooking/'+data.idArea+'?date='+data.date+'&')
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
+        ApiService.get('/api/bookings/availableBooking/' + data.idArea + '?date=' + data.date + '&')
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
       })
 
     },
@@ -149,15 +169,15 @@ export const useReserveStore = defineStore('Reserve', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.delete('/api/bookings/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
+        ApiService.delete('/api/bookings/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
       })
     },
     async cancelReserve(id, motive) {
@@ -166,35 +186,52 @@ export const useReserveStore = defineStore('Reserve', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/bookings/cancel/'+id, {motive: motive})
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
+        ApiService.post('/api/bookings/cancel/' + id, { motive: motive })
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
       })
     },
-    async getPendingReserve(){
+    async cancelBookingForMaintenance(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.post('/api/security/bookings/cancel-maintenance/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
+      })
+    },
+    async getPendingReserve() {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
         ApiService.get('/api/bookings/pendings')
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.log(response)
-          reject(response.data.error);
-        });
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response.data.error);
+          });
       })
     },
-    filterQuery(filter){
+    filterQuery(filter) {
       try {
         const params = new URLSearchParams();
         if (!filter || typeof filter !== 'object') return '';
@@ -210,6 +247,6 @@ export const useReserveStore = defineStore('Reserve', {
         return '';
       }
     }
-    
+
   },
 })

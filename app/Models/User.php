@@ -68,6 +68,7 @@ class User extends Authenticatable
             '---',
             'Solvente',
             'Moroso',
+            'Inactivo',
         ];
 
         return $status[$this->status];
@@ -121,5 +122,9 @@ class User extends Authenticatable
     {
         // Cargamos la relación si no está cargada para evitar consultas duplicadas (N+1)
         return $this->units->pluck('number')->implode(', ');
+    }
+    public function airbnbDepartment()
+    {
+        return $this->hasOne(PeoplesXDepartaments::class, 'user_id', 'id')->where('type', 5); // 5 corresponds to Rol::AIRBNB
     }
 }

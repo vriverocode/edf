@@ -19,6 +19,9 @@ class AuthController extends Controller
 
         $user = User::where('username', request()->username)->first();
 
+        if ($user->status != 1) {
+            return $this->returnFail(505, 'Usuario Inactivo');
+        }
         if (! $user || !Hash::check(request()->password, $user->password)) {
             return $this->returnFail(505, 'Credenciales no validas');
         }

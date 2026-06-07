@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\WaterReadingController;
 use App\Http\Controllers\Api\FinancialAccountController;
 use App\Http\Controllers\Api\TransactionCategoryController;
 use App\Http\Controllers\Api\ServiceCategoryController;
+use App\Http\Controllers\Api\IncidentController;
 use App\Models\Currency;
 use App\Models\FinancialAccount;
 
@@ -34,7 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     //--- Login/Auth ---
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        $user = $request->user()->load(['rol',  'units' => function ($query) {
+        $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'units' => function ($query) {
             $query->withCount('pendingQuotas')->withSum('pendingQuotas', 'amount');
         }]);
 
@@ -159,6 +160,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/visits/arrived/{id}', [VisitController::class, 'markVisitArrived']);
         Route::get('/airbnb', [VisitController::class, 'getAirbnbForSecurity']);
         Route::get('/airbnb/filter-options', [VisitController::class, 'getAirbnbFilterOptionsForSecurity']);
+
+        // Bookings
+        Route::get('/bookings', [BookingController::class, 'getBookingsForSecurity']);
+        Route::post('/bookings/cancel-maintenance/{id}', [BookingController::class, 'cancelBookingForMaintenance']);
+
+        // Departments
+        Route::get('/departments/inhabited', [DepartamentController::class, 'getInhabitedDepartments']);
+        Route::get('/departments/{id}/residents', [DepartamentController::class, 'getDepartmentResidents']);
     });
     Route::prefix('notices')->name('notice.')->group(function () {
         Route::get('/', [NoticeController::class, 'index']);
@@ -213,6 +222,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('providers')->name('providers.')->group(function () {
         Route::post('/', [ProviderController::class, 'store']);
+    });
+
+    Route::prefix('incidents')->name('incidents.')->group(function () {
+        Route::get('/', [IncidentController::class, 'index']);
+        Route::get('/byId/{id}', [IncidentController::class, 'show']);
+        Route::post('/', [IncidentController::class, 'store']);
+        Route::post('/u/{id}', [IncidentController::class, 'update']);
     });
 
     Route::prefix('expenses')->name('expense.')->group(function () {

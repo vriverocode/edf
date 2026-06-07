@@ -77,7 +77,7 @@ onMounted(() => {
 
                     <!-- Detalles de la reserva -->
                     <div class="flex-1 space-y-1">
-                      <h3 class="text-lg font-bold text-gray-900 mb-1">
+                      <h3 class="text-lg font-bold text-gray-900 mb-1" style="text-transform: uppercase;">
                         #{{ apartment.number }}
                       </h3>
                       <!-- piso -->

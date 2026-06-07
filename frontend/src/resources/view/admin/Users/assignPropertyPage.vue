@@ -81,7 +81,8 @@ onMounted(loadData);
                   <div class="px-4 pb-4 pt-2 border-b border-dashed border-gray-300">
                     <div class="flex justify-between items-start pl-1">
                       <span :class="'bg-' + (apartment?.status_color || 'positive')"
-                        class="inline-block px-3 py-2 text-xs font-bold text-white badgeApartment">
+                        class="inline-block px-3 py-2 text-xs font-bold text-white badgeApartment"
+                        style="text-transform: uppercase;">
                         {{ apartment?.status_label || 'Habitable' }}
                       </span>
                     </div>

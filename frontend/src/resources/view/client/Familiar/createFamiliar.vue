@@ -51,10 +51,7 @@ const getApartmentsByUser = () => {
             apartmentsOptions.value = []
         })
 }
-const props = defineProps({
-    dialog: Boolean,
-    rifa: Object,
-})
+
 
 const isPwd = ref('true')
 
@@ -147,21 +144,16 @@ const createUser = () => {
     if (formData.value.password) payloadForm.append('password', formData.value.password);
 
     if (isAirbnb()) {
-        // La fecha de corte para el usuario de la app
-        payloadForm.append('active_time', formatDateForApi(airbnbFormData.value.end_time));
+        payloadForm.append('active_time', formatDateForApi(airbnbFormData.value.init_time));
         payloadForm.append('end_time', formatDateForApi(airbnbFormData.value.end_time));
-        // Datos generales del alquiler Airbnb
         payloadForm.append('airbnb[nameTo]', airbnbFormData.value.nameTo);
         payloadForm.append('airbnb[quantity]', airbnbFormData.value.quantity);
         payloadForm.append('airbnb[init_time]', formatDateForApi(airbnbFormData.value.init_time));
         payloadForm.append('airbnb[end_time]', formatDateForApi(airbnbFormData.value.end_time));
-
-        // Datos del Paso 3 (Las personas y sus fotos)
         airbnbGuests.value.forEach((guest, index) => {
             payloadForm.append(`airbnb[guests][${index}][name]`, guest.name);
             payloadForm.append(`airbnb[guests][${index}][document]`, guest.document);
             if (guest.photo) {
-                // Adjuntamos el archivo de imagen directamente
                 payloadForm.append(`airbnb[guests][${index}][photo]`, guest.photo);
             }
         });
@@ -170,8 +162,7 @@ const createUser = () => {
     if (isFamiliar()) {
         payloadForm.append('parentesco', formData.value.parentesco);
     }
-
-    // Enviamos el FormData a tu Store
+    
     userStore.createResident(payloadForm)
         .then((response) => {
             showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
@@ -199,10 +190,6 @@ const validatorStep = () => {
             showNotify('negative', 'Selecciona el tipo de residente')
             return false
         }
-        // if (isAirbnb() && !formData.value.active_time) {
-        //     showNotify('negative', 'Indica la fecha de fin del alquiler')
-        //     return false
-        // }
 
         if (isFamiliar() && !formData.value.parentesco) {
             showNotify('negative', 'Indica el parentesco')
@@ -262,7 +249,7 @@ const validatorStep = () => {
 const autogenerateNameAirbnb = (e) => {
 
     if (e.id == 'airbnb') {
-        formData.value.username = 'Airbnb' + formData.value.apartment.number + '-' + Math.floor(Math.random() * 10000) + 1;
+        formData.value.username = 'Airbnb' + formData.value.apartment.number.slice(-3)  + Math.floor(Math.random() * 10000) + 1;
     }
 }
 const showNotify = (type, text) => {
@@ -280,7 +267,7 @@ onMounted(() => {
 
 </script>
 <template>
-    <div class="md:px-20px-2">
+    <div class="md:px-20 px-2">
         <div class="text-center text-black text-h5 text-bold md:mt-4 mt-5 mb-3">
             {{ titleOfSection[step] }}
         </div>
@@ -333,7 +320,7 @@ onMounted(() => {
 
 
                     <!-- Parentesco (solo Familiar) -->
-                    <div v-if="formData.type?.id === 'familiar'" class="col-12 md:my-0 my-1 px-2 md:px-12">
+                    <div v-if="formData.type?.id === 'familiar'" class="col-12 md:my-0 my-1 px-2 md:px-12 mt-5">
                         <div class="text-subtitle2 text-bold text-black">
                             Parentesco
                         </div>
@@ -370,7 +357,7 @@ onMounted(() => {
                         <q-input borderless clearable v-model="formData.username" dense class="form__inputsCR mt-2"
                             color="primary" />
                     </div>
-                    <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
+                    <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12 mt-4">
                         <div class="text-subtitle2 text-bold text-black">
                             Correo electrónico
                         </div>
@@ -541,7 +528,7 @@ onMounted(() => {
                         </div>
                         <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
                             <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
-                                <div class="px-8 py-1">Registrar Airbnb</div>
+                                <div class="px-8 py-1">Registrar</div>
                             </q-btn>
                         </div>
                     </div>
