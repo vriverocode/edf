@@ -68,27 +68,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <q-input
-    v-model="phoneNumber"
-    :placeholder="placeholder"
-    borderless
-    clearable
-    class="form__inputsSelect mt-2"
-    :rules="rules"
-  >
+  <q-input v-model="phoneNumber" :placeholder="placeholder" borderless clearable class="form__inputsSelect mt-2"
+    :rules="rules">
     <template v-slot:prepend>
-      <q-select
-        v-model="selectedPrefix"
-        :options="filteredPrefixes"
-        @filter="filterFn"
-        input-debounce="0"
-        borderless
-        emit-value
-        map-options
-        options-dense
-        class="prefixInput"
-        style="min-width:0.5rem"
-      >
+      <q-select v-model="selectedPrefix" :options="filteredPrefixes" @filter="filterFn" input-debounce="0" borderless
+        emit-value map-options dense class="prefixInput" style="min-width:0.5rem">
         <template v-slot:option="scope">
           <q-item v-bind="scope.itemProps">
             <q-item-section avatar>
@@ -105,19 +89,20 @@ onMounted(() => {
 </template>
 
 <style lang="scss">
-.prefixInput{
+.prefixInput {
   & .q-field__inner {
 
-    padding: 0px 0.7rem!important;
-    box-shadow: 0px 3px 5px 0px #bfbfbf00!important;
-    border-radius: 0rem!important;
-    padding-right: 0rem!important;
+    padding: 0px 0.7rem !important;
+    box-shadow: 0px 3px 5px 0px #bfbfbf00 !important;
+    border-radius: 0rem !important;
+    padding-right: 0rem !important;
 
-    width: 30%!important;
+    width: 30% !important;
 
     & .q-field__native {
       padding-top: 10px;
     }
+
     & .q-field__input {
       display: none;
     }
@@ -125,7 +110,7 @@ onMounted(() => {
   }
 }
 
-.form__inputsSelect{
+.form__inputsSelect {
   & .q-field__inner {
     box-shadow: 0px 3px 5px 0px #bfbfbfa3;
     border-radius: 0.8rem;
@@ -134,8 +119,9 @@ onMounted(() => {
     overflow: hidden;
   }
 }
+
 @media (max-width: 780px) {
-  .form__inputsSelect{
+  .form__inputsSelect {
     & .q-field__inner {
       padding: 0px 0rem;
 

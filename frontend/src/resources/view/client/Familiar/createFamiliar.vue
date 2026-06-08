@@ -162,7 +162,7 @@ const createUser = () => {
     if (isFamiliar()) {
         payloadForm.append('parentesco', formData.value.parentesco);
     }
-    
+
     userStore.createResident(payloadForm)
         .then((response) => {
             showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
@@ -249,7 +249,7 @@ const validatorStep = () => {
 const autogenerateNameAirbnb = (e) => {
 
     if (e.id == 'airbnb') {
-        formData.value.username = 'Airbnb' + formData.value.apartment.number.slice(-3)  + Math.floor(Math.random() * 10000) + 1;
+        formData.value.username = 'Airbnb' + formData.value.apartment.number.slice(-3) + Math.floor(Math.random() * 10000) + 1;
     }
 }
 const showNotify = (type, text) => {
@@ -259,7 +259,21 @@ const showNotify = (type, text) => {
         timeout: 2000
     })
 }
-
+const myLocale = {
+    /* starting with Sunday */
+    days: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'),
+    daysShort: 'Dom_Lun_Mar_Mié_Jue_Vie_Sáb'.split('_'),
+    months:
+        'Enero_Febrero_Marzo_Abril_Mayo_Junio_Julio_Agosto_Septiembre_Octubre_Noviembre_Diciembre'.split(
+            '_'
+        ),
+    monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split(
+        '_'
+    ),
+    firstDayOfWeek: 1, // 0-6, 0 - Sunday, 1 Monday, ...
+    format24h: true,
+    pluralDay: 'dias'
+}
 
 onMounted(() => {
     getApartmentsByUser()
@@ -412,7 +426,7 @@ onMounted(() => {
                             Números de personas
                         </div>
                         <q-input borderless clearable type="number" v-model="airbnbFormData.quantity" dense
-                            class="form__inputsCR mt-1" color="primary"
+                            class="form__inputsCR mt-1" color="primary" autocomplete="off"
                             :rules="[val => val && val > 0 || 'Cantidad de personas es requerido']" />
                     </div>
                     <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
@@ -434,7 +448,7 @@ onMounted(() => {
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                                         <q-date v-model="airbnbFormData.init_time" minimal mask="DD/MM/YYYY"
                                             :options="(date) => date.replace(/\//g, '-') >= new Date().toISOString().split('T')[0]">
-                                            <div class="row items-center justify-end">
+                                            <div class="row items-center justify-end" :locale="myLocale">
                                                 <q-btn v-close-popup label="OK" color="primary" flat />
                                             </div>
                                         </q-date>

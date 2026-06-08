@@ -133,12 +133,11 @@ class UserController extends Controller
 
                 // 4. Registrar a los acompañantes como Visitas (Type 3)
                 if (isset($airbnbData['guests']) && is_array($airbnbData['guests'])) {
+                    $guestFiles = $request->file('airbnb.guests');
                     foreach ($airbnbData['guests'] as $index => $guest) {
-                        
                         $photoPath = null;
-                        // Manejo de la foto si existe
-                        if ($request->hasFile("airbnb.guests.{$index}.photo")) {
-                            $file = $request->file("airbnb.guests.{$index}.photo");
+                        if (isset($guestFiles[$index]['photo']) && $guestFiles[$index]['photo']->isValid()) {
+                            $file = $guestFiles[$index]['photo'];
                             $photoPath = $file->store('airbnb_photos', 'public');
                         }
 
@@ -147,8 +146,8 @@ class UserController extends Controller
                             'created_by'     => $request->user()->id,
                             'fullname'       => $guest['name'],
                             'dni'            => $guest['document'],
-                            'type'           => 3, // Tipo 3 según requerimiento
-                            'photo'          => $photoPath ?  $photoPath : null,
+                            'type'           => 3,
+                            'photo'          => $photoPath,
                             'date'           => date('Y-m-d', strtotime($airbnbData['init_time'])),
                             'hour'           => date('H:i'),
                             'status'         => 1,
@@ -156,26 +155,18 @@ class UserController extends Controller
                         ]);
                     }
                 }
-
-                // Lógica adicional (ej: habilitar áreas comunes)
                 if (method_exists($this, 'setAvailableComunAreaToReserve')) {
                     $this->setAvailableComunAreaToReserve($people);
                 }
             }
-
-            // Confirmamos todos los cambios
             DB::commit();
-
             return $this->returnSuccess(200, [
                 'message' => $isAirbnb ? 'Airbnb y acompañantes registrados' : 'Residente registrado con éxito',
                 'user_id' => $user->id,
             ]);
-
         } catch (Exception $e) {
-            // Si algo falla, se deshace todo (Usuario, Renta y Visitas)
             DB::rollBack();
             Log::error("Error en storeResidentUser: " . $e->getMessage());
-            
             return $this->returnFail(500, "No se pudo completar el registro: " . $e->getMessage());
         }
     }
