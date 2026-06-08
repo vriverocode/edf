@@ -43,11 +43,11 @@ class UserController extends Controller
             'email'     =>  $request->email,
             'username'  =>  $request->username,
             'phone'     =>  $request->phone,
-            'password'  =>  bcrypt($request->password) ,
+            'password'  =>  bcrypt($request->password),
             'rol_id'    =>  $request->idRol,
             'parentesco' =>  $request->parentesco ?? null,
             'active_time' =>  $request->active_time ?? null,
-            'is_first_time' => 1,   
+            'is_first_time' => 1,
         ]);
         $this->afteSaveUser($user, $request);
         return $this->returnSuccess(200, 'ok');
@@ -133,26 +133,29 @@ class UserController extends Controller
 
                 // 4. Registrar a los acompañantes como Visitas (Type 3)
                 if (isset($airbnbData['guests']) && is_array($airbnbData['guests'])) {
-                    $guestFiles = $request->file('airbnb.guests');
                     foreach ($airbnbData['guests'] as $index => $guest) {
-                        $photoPath = null;
-                        if (isset($guestFiles[$index]['photo']) && $guestFiles[$index]['photo']->isValid()) {
-                            $file = $guestFiles[$index]['photo'];
-                            $photoPath = $file->store('airbnb_photos', 'public');
-                        }
 
-                        Visit::create([
+                        // 1. Creamos el registro primero, dejando la foto en null por ahora
+                        $visit = Visit::create([
                             'departament_id' => $request->idApartament,
                             'created_by'     => $request->user()->id,
                             'fullname'       => $guest['name'],
                             'dni'            => $guest['document'],
                             'type'           => 3,
-                            'photo'          => $photoPath,
+                            'photo'          => null, // Se actualizará después
                             'date'           => date('Y-m-d', strtotime($airbnbData['init_time'])),
                             'hour'           => date('H:i'),
                             'status'         => 1,
                             'airbnb_rent_id' => $rent->id,
                         ]);
+
+                        // 2. Extraemos el archivo usando notación de puntos de Laravel
+                        $photoFile = $request->file("airbnb.guests.{$index}.photo");
+
+                        // 3. Si el archivo existe y es válido, llamamos a la nueva función
+                        if ($photoFile && $photoFile->isValid()) {
+                            $this->uploadGuestPhoto($visit, $photoFile);
+                        }
                     }
                 }
                 if (method_exists($this, 'setAvailableComunAreaToReserve')) {
@@ -163,6 +166,8 @@ class UserController extends Controller
             return $this->returnSuccess(200, [
                 'message' => $isAirbnb ? 'Airbnb y acompañantes registrados' : 'Residente registrado con éxito',
                 'user_id' => $user->id,
+                'ss' =>  isset($airbnbData['guests']) && is_array($airbnbData['guests']) ? 'si' : 'no',
+                'fff' => isset($guestFiles[0]['photo']) && $guestFiles[0]['photo']->isValid() ? 'si' : 'no',
             ]);
         } catch (Exception $e) {
             DB::rollBack();
@@ -171,6 +176,28 @@ class UserController extends Controller
         }
     }
 
+    private function uploadGuestPhoto($visit, $photoFile)
+    {
+        $relativePath = "";
+        $rand = rand(1000000, 9999999);
+        $fileName = trim(str_replace(" ", "_", $visit->id));
+        $extension = $photoFile->extension();
+
+        $imageName = "{$rand}_{$fileName}.{$extension}";
+
+        // Ruta relativa que se guardará en la base de datos
+        $relativePath = "/public/images/airbnb/guest/{$imageName}";
+
+        // Ruta física absoluta en el servidor donde se moverá
+        $destinationPath = public_path() . '/images/airbnb/guest/';
+
+        // Movemos el archivo a la carpeta pública
+        $photoFile->move($destinationPath, $relativePath);
+
+        // Actualizamos el registro de la visita con la ruta y guardamos
+        $visit->photo = $relativePath;
+        $visit->save();
+    }
     /**
      * Obtiene los residentes y usuarios Airbnb registrados por el usuario autenticado (propietario).
      *
@@ -212,7 +239,7 @@ class UserController extends Controller
             $rules['airbnb.quantity'] = ['required', 'integer', 'min:1'];
             $rules['airbnb.init_time'] = ['required', 'date'];
             $rules['airbnb.end_time'] = ['required', 'date', 'after_or_equal:airbnb.init_time'];
-            
+
             // Validaciones para cada acompañante
             $rules['airbnb.guests'] = ['required', 'array'];
             $rules['airbnb.guests.*.name'] = ['required', 'string'];
@@ -226,7 +253,8 @@ class UserController extends Controller
         return $validator->fails() ? $validator->errors()->all() : [];
     }
 
-    private function afteSaveUser($user, $request){
+    private function afteSaveUser($user, $request)
+    {
         if ($request->idApartament != 0 && $request->user()->rol_id == Rol::ADMIN) {
             Departament::find($request->idApartament)->update([
                 'user_id' => $user->id
@@ -237,10 +265,10 @@ class UserController extends Controller
     {
 
         $owners = User::with(['units', 'rol'])
-        ->where('rol_id', $request->rol)
-        ->orderBy('name', 'asc')
-        // ->where('id', '!=', $request->user()->id)
-        ->get();
+            ->where('rol_id', $request->rol)
+            ->orderBy('name', 'asc')
+            // ->where('id', '!=', $request->user()->id)
+            ->get();
 
         return $this->returnSuccess(200, $owners);
     }
@@ -263,7 +291,7 @@ class UserController extends Controller
         ];
         $reservesPendings = Booking::where('status', $waitStatus['reserve'])->get();
         $announcesPendings = Notice::where('status', $waitStatus['announces'])
-        ->where('type', $noticeTypeForAnnunce)->get();
+            ->where('type', $noticeTypeForAnnunce)->get();
 
         return $this->returnSuccess(200, [
             'reserves' =>  $reservesPendings,
@@ -272,8 +300,8 @@ class UserController extends Controller
     }
     public function getAllUserWithPublish()
     {
-         $users = User::whereHas('announces')->get();
-         return $this->returnSuccess(200, $users);
+        $users = User::whereHas('announces')->get();
+        return $this->returnSuccess(200, $users);
     }
     private function validateFieldsFromInput($inputs)
     {
@@ -298,25 +326,25 @@ class UserController extends Controller
         ];
 
         $validator = Validator::make($inputs, $rules, $messages)->errors();
-        return $validator->all() ;
+        return $validator->all();
     }
     public function saveTokenMovile(Request $request)
     {
         try {
-             $request->validate(['token' => 'required|string']);
-        
-        // Asumiendo que usas Auth
+            $request->validate(['token' => 'required|string']);
+
+            // Asumiendo que usas Auth
             $user = $request->user();
             $user->update(['device_token' => $request->token]);
         } catch (Exception $th) {
             return $this->returnFail(400, $th->getMessage());
             //throw $th;
         }
-       
+
 
         return $this->returnSuccess(200, 'ok');
     }
-    public function pruebaRealtimeNotification() 
+    public function pruebaRealtimeNotification()
     {
         $user = User::find(8);
         try {
@@ -335,7 +363,6 @@ class UserController extends Controller
             return $this->returnSuccess(400, $e->getMessage());
             // Silenciar errores de notificación para no romper el flujo
         }
-
     }
     public function setAvailableComunAreaToReserve(?PeoplesXDepartaments $people = null)
     {

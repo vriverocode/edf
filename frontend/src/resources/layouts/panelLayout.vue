@@ -188,7 +188,7 @@ watch(
           @logoutModal="showModal = 'logout'" />
         <infoNewSideBar />
         <logoutModal :dialog="(showModal == 'logout')" @closeModal="showModal = ''" />
-        <firstTimeSetupModal :dialog="showFirstTimeModal" @completed="" />
+        <firstTimeSetupModal :dialog="showFirstTimeModal" />
       </template>
       <loaderPage v-else />
     </div>

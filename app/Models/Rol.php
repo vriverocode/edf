@@ -12,7 +12,7 @@ class Rol extends Model
     public const FAMILIAR = 4;
     public const AIRBNB = 5;
     public const TRABAJADOR = 6;
-    public const PARCIAL = 1;
+    public const PARCIAL = 7;
 
 
 

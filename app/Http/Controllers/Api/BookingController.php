@@ -29,8 +29,11 @@ class BookingController extends Controller
 
         try {
             $user = $request->user();
-            if ($user->rol_id !== 1) {
-                return $this->returnFail(400, 'Usuario inactivo');
+            if ($user->rol_id == 1 || $user->rol_id == 6 || $user->rol_id == 7) {
+                return $this->returnFail(400, ['Usuario no valido', $user] );
+            }
+            if ($user->status !== 1) {
+                return $this->returnFail(400, ['Usuario inactivo', $user] );
             }
             $departament_id = $request->departament_id;
 

@@ -13,10 +13,23 @@ const emit = defineEmits(['update:modelValue', 'updated'])
 
 const visitStore = useVisitStore()
 const loadingGuestId = ref(null)
-const failedPhotos = ref({})
 const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
 
 const guests = computed(() => props.rent?.guest || [])
+
+const photoModal = ref(false)
+const selectedGuestPhoto = ref(null)
+const selectedGuestName = ref('')
+
+const openPhotoModal = (guest) => {
+  if (hasGuestPhoto(guest)) {
+    selectedGuestPhoto.value = getGuestPhotoUrl(guest)
+    selectedGuestName.value = guest.fullname || 'Huésped'
+    photoModal.value = true
+  } else {
+    showNotify('warning', 'Este huésped no tiene foto disponible')
+  }
+}
 
 const closeModal = () => {
   emit('update:modelValue', false)
@@ -39,19 +52,13 @@ const getGuestPhotoUrl = (guest) => {
   const photo = guest?.photo
   if (!photo) return ''
   if (String(photo).startsWith('http')) return photo
-  return `${mediaUrl}/storage/${photo}`
+  return `${mediaUrl}${photo}`
 }
 
 const hasGuestPhoto = (guest) => {
-  return !!guest?.photo && !failedPhotos.value[guest.id]
+  return !!guest?.photo
 }
 
-const onPhotoError = (guestId) => {
-  failedPhotos.value = {
-    ...failedPhotos.value,
-    [guestId]: true,
-  }
-}
 
 const markGuestArrived = (guest) => {
   Dialog.create({
@@ -103,24 +110,27 @@ const markGuestArrived = (guest) => {
         <div v-if="guests.length" class="column q-gutter-sm">
           <div v-for="guest in guests" :key="guest.id" class="guest-row">
             <div class="row justify-between no-wrap">
-              <div class="row items-center no-wrap">
-                <div class="avatar-box">
-                  <img v-if="hasGuestPhoto(guest)" :src="getGuestPhotoUrl(guest)" alt="Foto del huesped"
-                    class="avatar-image" @error="onPhotoError(guest.id)" />
-                  <span v-else>
-                    {{ guest.fullname?.charAt(0)?.toUpperCase() || '?' }}
-                  </span>
+              <div class="">
+                <div class="flex no-wrap items-center">
+                  <div class="avatar-box">
+                    <span>
+                      {{ guest.fullname?.charAt(0)?.toUpperCase() || '?' }}
+                    </span>
+                  </div>
+                  <div class="q-ml-sm">
+                    <div class="text-subtitle2 text-weight-bold">{{ guest.fullname }}</div>
+                    <div class="text-caption text-grey-7">DNI: {{ guest.dni || 'N/A' }}</div>
+                    <div class="text-caption text-grey-7">
+                      {{ formatDate(guest.date) }}
+                      <template v-if="guest.hour">· {{ guest.hour }}</template>
+                    </div>
+                    <div class="text-caption text-grey-7" v-if="guest.arrived_date">
+                      Llegada: {{ moment(guest.arrived_date).format('DD/MM/YYYY hh:mm A') }}
+                    </div>
+                  </div>
                 </div>
-                <div class="q-ml-sm">
-                  <div class="text-subtitle2 text-weight-bold">{{ guest.fullname }}</div>
-                  <div class="text-caption text-grey-7">DNI: {{ guest.dni || 'N/A' }}</div>
-                  <div class="text-caption text-grey-7">
-                    {{ formatDate(guest.date) }}
-                    <template v-if="guest.hour">· {{ guest.hour }}</template>
-                  </div>
-                  <div class="text-caption text-grey-7" v-if="guest.arrived_date">
-                    Llegada: {{ moment(guest.arrived_date).format('DD/MM/YYYY hh:mm A') }}
-                  </div>
+                <div class="mt-1 text-primary font-bold cursor-pointer" style="text-decoration: underline; transform: translateX(0.2rem);" @click="openPhotoModal(guest)">
+                  Ver Foto
                 </div>
               </div>
 
@@ -134,12 +144,29 @@ const markGuestArrived = (guest) => {
                 {{ guest.status_label }}
               </q-badge>
             </div>
+            
           </div>
         </div>
 
         <div v-else class="text-center text-grey-7 q-py-xl">
           Esta reserva no tiene huespedes registrados.
         </div>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+
+  <!-- Modal para ver la foto del huesped -->
+  <q-dialog v-model="photoModal">
+    <q-card style="width: 500px; max-width: 95vw; border-radius: 12px;">
+      <q-card-section class="row items-center justify-between q-pb-sm">
+        <div class="text-h6 text-weight-bold">Foto de {{ selectedGuestName }}</div>
+        <q-btn icon="eva-close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-separator />
+
+      <q-card-section class="flex flex-center q-pa-md">
+        <img :src="selectedGuestPhoto" alt="Foto del huésped" style="max-width: 100%; height: auto; border-radius: 8px; object-fit: contain;" />
       </q-card-section>
     </q-card>
   </q-dialog>

@@ -114,8 +114,8 @@ import { RadioGroup, Radio } from 'vant';
               v-model="filters.type"
               :options="[
                 {label:'Todos',value:''},
-                {label:'Pago de quota',value:1},
-                {label:'Pago de Reserva',value:2}
+                {label:'Pago de cuota',value:1},
+                {label:'Pago de reserva',value:2}
               ]"
               option-label="label"
               option-value="value"

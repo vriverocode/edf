@@ -91,7 +91,7 @@ onMounted(() => {
                         @click="modal = 'filter'" />
                 </div>
                 <template v-if="rents.length > 0">
-                    <div class="mt-4 md:mt-8" style="height: 92%; overflow: auto">
+                    <div class="mt-4 md:mt-8 pb-20" style="height: 92%; overflow: auto">
                         <div class="px-4 md:mx-24 md:px-12">
                             <div v-for="rent in rents" :key="rent.id" class="my-3 listVisit-container"
                                 style="border-radius: 12px !important; position: relative;">
