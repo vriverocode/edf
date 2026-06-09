@@ -82,4 +82,9 @@ class ComunArea extends Model
     {
         return $this->hasMany(Rule::class, "comun_area_id");
     }
+    
+    public function schedules()
+    {
+        return $this->hasMany(ComunAreaSchedule::class, 'comun_area_id');
+    }
 }

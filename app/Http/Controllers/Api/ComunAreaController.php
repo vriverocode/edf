@@ -2,45 +2,41 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\ComunArea;
-// Importamos la fachada DB para las transacciones
-use Illuminate\Support\Facades\DB; 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\ComunArea;
+use App\Models\ComunAreaSchedule;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; 
 use Illuminate\Support\Facades\Validator;
 
 class ComunAreaController extends Controller
 {
     public function paginationAreas(Request $request)
     {
-        $comunAreas = ComunArea::withCount(["bookings", "bookingsToValidate"])->orderBy('name', 'asc')->paginate(40);
+        $comunAreas = ComunArea::withCount(["bookings", "bookingsToValidate", "schedules"])->orderBy('name', 'asc')->paginate(40);
         return $this->returnSuccess(200, $comunAreas);
     }
 
     public function getAll()
     {
-        $comunAreas = ComunArea::with(['rulesArea'])->orderBy('name', 'asc')->get();
+        $comunAreas = ComunArea::with(['rulesArea', 'schedules'])->orderBy('name', 'asc')->get();
         return $this->returnSuccess(200, $comunAreas);
     }
 
     public function comunAreaById($id)
     {
-        $area = ComunArea::with(['rulesArea'])->find($id);
+        $area = ComunArea::with(['rulesArea', 'schedules'])->find($id);
         return $this->returnSuccess(200, $area);
     }
 
     public function storeArea(Request $request)
     {
         $validated = $this->validateFieldsFromInput($request->all());
-        if (count($validated) > 0) {
-            return $this->returnFail(400, $validated[0]);
-        }
+        if (count($validated) > 0) return $this->returnFail(400, $validated[0]);
 
-        // Iniciamos la transacción
         DB::beginTransaction();
-
         try {
-            // 1. Crear el Área Común
             $area = ComunArea::create([
                 'name' => $request->name,
                 'capacity' => $request->capacity,
@@ -48,32 +44,25 @@ class ComunAreaController extends Controller
                 'warranty_price' => $request->warrantyPrice,
                 'description'  => $request->description,
                 'max_time_reserve' => $request->maxTime,
-                'timeFrom' => $request->timeFrom,
-                'timeTo' => $request->timeTo,
                 'icon' => $request->imageIcon,
                 'max_cupo' => $request->max_cupo,
-                'max_cupo' => $request->max_cupo,
-                // Si viene notAvailable lo pasamos a JSON, sino dejamos el que estaba
-                'not_available_days' => $request->has('notAvailable') ? json_encode($request->notAvailable) : null,
                 'type' => $request->type ? (is_array($request->type) ? $request->type['value'] : $request->type) : 1,
-           
-                // Se removió 'rules' de aquí ya que ahora tendrán su propia tabla
             ]);
 
-            // 2. Verificar si viene el array de reglas y pasarlo a la nueva función
             if ($request->has('rulesList') && is_array($request->rulesList)) {
                 $this->createRulesForArea($area, $request->rulesList);
             }
 
-            // Si todo salió bien, guardamos los cambios en la BD
+            // NUEVO: Sincronizar horarios
+            if ($request->has('schedules') && is_array($request->schedules)) {
+                $this->syncSchedules($area, $request->schedules);
+            }
+
             DB::commit();
-
             return $this->returnSuccess(200, 'ok');
-
-        } catch (\Exception $e) {
-            // Si hay algún error, revertimos todo
+        } catch (Exception $e) {
             DB::rollBack();
-            return $this->returnFail(500, 'Error al crear el área y sus reglas: ' . $e->getMessage());
+            return $this->returnFail(500, 'Error al crear el área: ' . $e->getMessage());
         }
     }
 
@@ -106,20 +95,13 @@ class ComunAreaController extends Controller
     public function updateArea(Request $request, $id)
     {
         $validated = $this->validateFieldsFromInput($request->all());
-        if (count($validated) > 0) {
-            return $this->returnFail(400, $validated[0]);
-        }
+        if (count($validated) > 0) return $this->returnFail(400, $validated[0]);
 
         DB::beginTransaction();
-
         try {
             $area = ComunArea::find($id);
+            if (!$area) return $this->returnFail(400, 'Area común no encontrada');
 
-            if (!$area) {
-                return $this->returnFail(400, 'Area común no encontrada');
-            }
-
-            // Actualizamos los datos principales del área
             $area->update([
                 'name' => $request->name ?? $area->name,
                 'capacity' => $request->capacity ?? $area->capacity,
@@ -127,26 +109,21 @@ class ComunAreaController extends Controller
                 'warranty_price' => $request->warrantyPrice ?? $area->warranty_price,
                 'description'  => $request->description ?? $area->description,
                 'max_time_reserve' => $request->maxTime ?? $area->max_time_reserve,
-                'timeFrom' => $request->timeFrom ?? $area->timeFrom,
-                'timeTo' => $request->timeTo ?? $area->timeTo,
                 'max_cupo' => $request->max_cupo ?? $area->max_cupo,
-                // Si viene notAvailable lo pasamos a JSON, sino dejamos el que estaba
-                'not_available_days' => $request->has('notAvailable') ? json_encode($request->notAvailable) : $area->not_available_days,
-                // Extraemos el valor del objeto select para icon y type
                 'icon' => $request->icon ? (is_array($request->icon) ? $request->icon['value'] : $request->icon) : $area->icon,
                 'type' => $request->type ? (is_array($request->type) ? $request->type['value'] : $request->type) : $area->type,
-           
             ]);
 
-            // Sincronizamos las reglas
             if ($request->has('rulesList') && is_array($request->rulesList)) {
                 $this->syncRulesForArea($area, $request->rulesList);
+            }
+            if ($request->has('schedules') && is_array($request->schedules)) {
+                $this->syncSchedules($area, $request->schedules);
             }
 
             DB::commit();
             return $this->returnSuccess(200, 'ok');
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return $this->returnFail(500, 'Error al actualizar: ' . $e->getMessage());
         }
@@ -195,7 +172,32 @@ class ComunAreaController extends Controller
             }
         }
     }
+    private function syncSchedules(ComunArea $area, array $schedules)
+    {
+        $area->schedules()->delete();
+        $insertData = [];
 
+        foreach ($schedules as $schedule) {
+            if (isset($schedule['isOpen']) && $schedule['isOpen']) {
+                foreach ($schedule['intervals'] as $interval) {
+                    if (!empty($interval['from']) && !empty($interval['to'])) {
+                        $insertData[] = [
+                            'comun_area_id' => $area->id,
+                            'day' => $schedule['day'],
+                            'time_from' => $interval['from'],
+                            'time_to' => $interval['to'],
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+            }
+        }
+        
+        if (count($insertData) > 0) {
+            ComunAreaSchedule::insert($insertData);
+        }
+    }
     public function deleteArea($id)
     {
         $area = ComunArea::find($id);
