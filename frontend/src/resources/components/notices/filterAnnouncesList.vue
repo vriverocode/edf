@@ -114,7 +114,9 @@ watch(() => props.typeSearch, (newValue) => {
         </div>
       </div>
       <div class="content-sectionModal">
-        <section class="content__modalSectionRifa md:mt-0 mt-0  py-2" v-if="(isOnlyMyPost && isOnlyMyPost == 'active') || user.rol_id == 1">
+        <!-- <section class="content__modalSectionRifa md:mt-0 mt-0  py-2" v-if="(isOnlyMyPost && isOnlyMyPost == 'active') || user.rol_id == 1"> -->
+        <section class="content__modalSectionRifa md:mt-0 mt-0  py-2" >
+
           <div class="row pt-3 pb-2 md:px-5 px-3">
             <div class="mb-1 text-lg font-medium text-primary">
               Estado de anuncios/noticias

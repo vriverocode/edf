@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ComunAreaController;
+use App\Http\Controllers\Api\ConfigController;
 use App\Http\Controllers\Api\DepartamentController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\ExpenseController;
@@ -29,7 +30,7 @@ use App\Models\FinancialAccount;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
-
+Route::get('/app-version', [ConfigController::class, 'getAppVersion']);
 Route::middleware('auth:sanctum')->post('/token-movile', [UserController::class, 'saveTokenMovile']);
 Route::middleware('auth:sanctum')->group(function () {
     //--- Login/Auth ---
@@ -151,6 +152,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [VisitController::class, 'getVisitsByUser']);
         Route::get('/search', [VisitController::class, 'getVisitsByUser']);
         Route::get('/filter-options', [VisitController::class, 'getVisitFilterOptionsByUser']);
+        Route::get('/byId/{id}', [VisitController::class, 'show']);
         Route::post('/', [VisitController::class, 'storeVisit']);
     });
     Route::prefix('security')->name('security.visit.')->middleware('role:trabajador')->group(function () {

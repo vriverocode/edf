@@ -36,6 +36,27 @@ export const useVisitStore = defineStore('Visit', {
       })
     },
 
+    async getVisitById(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.get(`/api/visits/byId/${id}`)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.log(response)
+            if (response?.data?.code == 403) {
+              reject(response.data)
+            }
+            reject(response?.data?.error || 'Error al obtener visita')
+          })
+      })
+    },
+
     async storeVisit(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {

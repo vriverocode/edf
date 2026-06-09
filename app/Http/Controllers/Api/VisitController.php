@@ -105,7 +105,6 @@ class VisitController extends Controller
             'message' => 'Visita registrada con éxito',
             'id'      => $visit->id,
         ]);
-
     }
 
     /**
@@ -295,9 +294,6 @@ class VisitController extends Controller
             'status_color' => $visit->status_color,
         ]);
     }
-
-    
-
     private function validateAirbnbVisitForArrival(Visit $visit): array
     {
         if (!$visit->airbnb_rent_id) {
@@ -360,7 +356,7 @@ class VisitController extends Controller
             $recipient->notify(new RealtimeNotification(
                 title: 'Visita confirmada',
                 message: 'La llegada de ' . $visit->fullname . ' fue confirmada en la unidad ' . ($visit->departament?->number ?? '-'),
-                url: '/client/visits',
+                url: '/client/visits/view/' . $visit->id,
                 meta: [
                     'visit_id' => $visit->id,
                     'departament_id' => $visit->departament_id,
@@ -371,7 +367,38 @@ class VisitController extends Controller
             // Silenciar errores de notificación para no romper el flujo
         }
     }
-
+    public function show(Request $request, int $id)
+    {
+        $user = $request->user();
+        $ownedIds = $user->apartaments()->pluck('id');
+        $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
+        $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
+        $visit = Visit::with(['departament.owner', 'airbnb.guest'])->find($id);
+        if (!$visit) {
+            return $this->returnFail(404, 'Visita no encontrada');
+        }
+        if (!$apartmentIds->contains($visit->departament_id)) {
+            return $this->returnFail(403, 'No tienes permisos para ver esta visita');
+        }
+        $visitData = [
+            'id'            => $visit->id,
+            'fullname'      => $visit->fullname,
+            'dni'           => $visit->dni,
+            'type'          => $visit->type,
+            'type_label'    => $visit->type_label,
+            'description'   => $visit->description,
+            'date'          => $visit->date,
+            'hour'          => $visit->hour,
+            'departament'   => $visit->departament,
+            'created_at'    => $visit->created_at,
+            'status'        => $visit->status,
+            'status_label'  => $visit->status_label,
+            'status_color'  => $visit->status_color,
+            'arrived_date'  => $visit->arrived_date,
+            'airbnb'        => $visit->airbnb,
+        ];
+        return $this->returnSuccess(200, $visitData);
+    }
     private function validateFieldsFromInput($inputs)
     {
         $rules = [

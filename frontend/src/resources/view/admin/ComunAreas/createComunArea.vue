@@ -22,14 +22,14 @@ const iconsOption = [
 ]
 const typeArea = [
   { value: 1, name: 'Uso gratuito' },
-  { value: 2, name: 'Uso mixto (Gratis y exclusivo)' },
+  { value: 2, name: 'Uso mixto (Compartido y exclusivo)' },
   { value: 3, name: 'De pago' },
   { value: 4, name: 'De pago lista de invitados' },
 ]
 const severityOptions = [
-  { value: 1, name: 'Baja' },
-  { value: 2, name: 'Media' },
-  { value: 3, name: 'Alta' }
+  { value: 1, name: 'Leve' },
+  { value: 2, name: 'Grave' },
+  { value: 3, name: 'Muy grave' }
 ]
 
 const ruleTypeOptions = [

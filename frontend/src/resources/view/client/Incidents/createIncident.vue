@@ -18,6 +18,8 @@ const form = ref({
   type: null
 });
 
+const imageFile = ref(null);
+
 const typeOptions = incidentStore.typeLabels.map((label, index) => {
   return { label, value: index }
 }).filter(opt => opt.label !== '');
@@ -26,7 +28,21 @@ const loading = ref(false);
 
 const onSubmit = () => {
   loading.value = true;
-  incidentStore.createIncident(form.value)
+  
+  const payload = new FormData();
+  payload.append('title', form.value.title);
+  payload.append('description', form.value.description);
+  payload.append('date', form.value.date);
+  payload.append('hour', form.value.hour);
+  if (form.value.location) {
+    payload.append('location', form.value.location);
+  }
+  payload.append('type', form.value.type);
+  if (imageFile.value) {
+    payload.append('image', imageFile.value);
+  }
+
+  incidentStore.createIncident(payload)
     .then(() => {
       $q.notify({
         type: 'positive',
@@ -137,7 +153,27 @@ const onSubmit = () => {
         </div>
 
         <div class="col-12 my-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-bold text-black">
+          <div class="text-subtitle2 mt-3 text-bold text-black">
+            Imagen (Opcional)
+          </div>
+          <q-file
+            v-model="imageFile"
+            borderless
+            dense
+            clearable
+            accept="image/*"
+            class="form__inputsCR mt-2"
+            color="primary"
+            label="Selecciona una imagen"
+          >
+            <template v-slot:prepend>
+              <q-icon name="eva-cloud-upload-outline" />
+            </template>
+          </q-file>
+        </div>
+
+        <div class="col-12 my-1 px-2 md:px-12">
+          <div class="text-subtitle2 mt-3 text-bold text-black">
             Descripción detallada
           </div>
           <q-input

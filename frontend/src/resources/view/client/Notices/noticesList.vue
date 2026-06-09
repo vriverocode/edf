@@ -75,12 +75,12 @@ onMounted(() => {
     <div class="h-full" style="overflow: auto; position: relative;">
       <div class="flex justify-center mt-3 bg-stone-200 py-2 buttonsContainer" >
         <div>
-          <div class="buttonSwichtNotices  px-6 mx-3" :class="{'active':panelToShow == 'notices'}" @click="panelToShow ='notices'">
+          <div class="buttonSwichtNotices  px-6 mx-3" :class="{'active':panelToShow === 'notices'}" @click="panelToShow ='notices'">
             Noticias
           </div>
         </div>
         <div>
-          <div class="buttonSwichtNotices  px-6 mx-3" :class="{'active':panelToShow == 'announces'}" @click="panelToShow ='announces'">
+          <div class="buttonSwichtNotices  px-6 mx-3" :class="{'active':panelToShow === 'announces'}" @click="panelToShow ='announces'">
             {{ filters.only_my_posts == 'active' ?  'Mis anuncios' : 'Anuncios'}}
           </div>
         </div>
@@ -91,7 +91,7 @@ onMounted(() => {
           color="primary"
           icon="eva-funnel-outline"
           @click="modal = 'filter'"
-          v-if="panelToShow ='announces'"
+          v-if="panelToShow == 'announces'"
         />
       </div>
       <!-- Loading State -->

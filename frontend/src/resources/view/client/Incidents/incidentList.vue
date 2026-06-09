@@ -14,7 +14,7 @@ const getIncidents = () => {
   incidentStore.getIncidents()
     .then((response) => {
       // Laravel paginate returns items in response.data or response
-      incidents.value = response.data || response; 
+      incidents.value = response.data.data || response; 
     })
     .catch((error) => {
       console.log(error);
@@ -46,11 +46,11 @@ onMounted(() => {
         <!-- Lista de incidencias -->
         <div v-if="incidents.length > 0" class="space-y-3 md:px-5">
           <div v-for="incident in incidents" :key="incident.id"
-            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
-            style="position: relative;">
+            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 cursor-pointer"
+            style="position: relative;" @click="router.push(`/client/incidents/view/${incident.id}`)">
 
             <!-- Sección superior - Detalles de la incidencia -->
-            <div class="px-4 pb-4 pt-2 border-b border-dashed border-gray-300">
+            <div class="px-4 pb-4 pt-2 ">
               <!-- Header con nombre y estado -->
               <div class="flex justify-between items-start mb-2">
                 <div class="flex-1">
@@ -105,15 +105,6 @@ onMounted(() => {
                       {{ incidentStore.typeLabels[incident.type] }}
                     </span>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Sección inferior - Descripción o estado adicional -->
-            <div class="p-4 bg-gray-50">
-              <div class="flex justify-between items-center">
-                <div class="flex items-center text-sm text-gray-600 truncate pr-4">
-                  {{ incident.description }}
                 </div>
               </div>
             </div>

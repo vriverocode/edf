@@ -7,12 +7,16 @@ import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { useConfigStore } from './services/store/config.store';
 const showSplash = async () => {
   await SplashScreen.show({
     autoHide: true,
     showDuration: 2000,
   })
 }
+
+const updateStore = useConfigStore();
+const { updateAvailable, isDownloading, downloadProgress, versionInfo } = storeToRefs(updateStore);
 const $q = useQuasar()
 const router = useRouter()
 const route = useRoute();
@@ -38,6 +42,7 @@ onMounted(async () => {
   
   showSplash();
   setupStatusBar2
+  await updateStore.checkForUpdates();
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {
       router.go(-1);
@@ -68,6 +73,32 @@ watch(
         <component :is="Component" class="pageComponent" />
       </transition>
     </router-view>
+    <q-dialog v-model="updateAvailable" persistent maximized transition-show="slide-up" transition-hide="slide-down">
+      <q-card class="bg-primary text-white column flex-center">
+        <q-card-section class="text-center">
+          <q-icon name="system_update" size="5rem" />
+          <h4 class="q-mt-md">¡Nueva Versión Disponible!</h4>
+          <p class="text-subtitle1">Versión {{ versionInfo?.version }}</p>
+          <p class="q-px-lg">{{ versionInfo?.release_notes }}</p>
+        </q-card-section>
+
+        <q-card-actions align="center" class="q-mt-xl column">
+          <div v-if="isDownloading" class="full-width q-px-xl text-center">
+            <p>Descargando... {{ Math.round(downloadProgress) }}%</p>
+            <q-linear-progress :value="downloadProgress / 100" color="warning" class="q-mt-sm" />
+          </div>
+
+          <q-btn 
+            v-else
+            color="warning" 
+            text-color="dark" 
+            label="Descargar e Instalar" 
+            size="lg"
+            @click="updateStore.downloadAndInstall()"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 
 </template>

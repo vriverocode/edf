@@ -97,11 +97,11 @@ onMounted(() => {
   <div class="h-full">
     <template v-if="ready">
       <div class="h-full" style="overflow: hidden;">
-        <div class="flex justify-end column  items-end md:pr-36 px-4 pt-0" style="height:8%;overflow:hidden">
+        <div class="flex column  items-end md:pr-36 px-4 pt-0" style="height:8%;overflow:hidden">
           <q-btn outline color="primary" :class="activeFilterSearch" icon="eva-funnel-outline" @click="modal = 'filter'" />
         </div>
         <template v-if="visits.length > 0">
-          <div class="pt-4 md:pt-4 pb-8"  style="height:82%; overflow:auto">
+          <div class="pt-0 md:pt-4 pb-8"  style="height:82%; overflow:auto">
             <div class="px-4 md:px-32">
               <q-slide-item v-for="visit in visits" :key="visit.id" @right="() => deleteItem(visit.id)"
                 right-color="red-8" class="my-3 listVisit-container" style="border-radius: 12px!important;">
@@ -150,7 +150,7 @@ onMounted(() => {
                       </div>
                       <div class="">
                         <q-btn icon="eva-eye-outline" class="mx-1" color="primary" flat size="0.9rem"
-                          @click="noDisponible()">
+                          @click="goTo('/client/visits/view/'+visit.id)">
                           <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                             class="bg-black text-body2 px-2">
                             Ver detalles

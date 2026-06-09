@@ -559,7 +559,7 @@ watch(step,
                   {{ comunArea.name }}
                 </div>
                 <div v-if="comunArea.type > 1" class="pintype"
-                  :class="{ 'bg-warning': comunArea.type == 2, 'bg-positive': comunArea.type > 3 }">
+                  :class="{ 'bg-warning': comunArea.type == 2, 'bg-positive': comunArea.type >= 3 }">
                   S/.
                 </div>
               </div>
@@ -1050,10 +1050,10 @@ watch(step,
             <div class="h-full rulesModal px-3" style="overflow: hidden;" v-if="typeModalShow">
               <div class="pb-4" style="overflow:auto; height:91%">
                 <div class="text-center py-2 font-bold text-2xl text-primary">Información del área</div>
-                <div class="pt-2 px-2 text-grey-9" style="font-weight:400; font-size:0.99rem">
+                <div class="pt-2 px-2 text-grey-9" style="font-weight:400; font-size:0.99rem; white-space: pre-line">
                   {{ selectedComunArea.description }}
                 </div>
-                <div class=" pt-4 px-2 font-bold text-lg text-grey-9">
+                <div class=" px-2 font-bold text-lg text-grey-9 pt-2 mt-2 border-t" >
                   Cupo por horarios: {{ selectedComunArea.max_cupo }} cupo(s)
                 </div>
                 <div class="pt-2 px-0 text-grey-9" style="font-weight:400; font-size:0.99rem">

@@ -823,6 +823,17 @@ const routes = [
         },
       },
       {
+        path: '/client/incidents/view/:id',
+        component: () => import('@/view/client/Incidents/viewIncident.vue'),
+        name: 'viewIncident',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalle de Incidencia',
+          depth: 3,
+        },
+      },
+      {
         path: '/client/events',
         component: () => import('@/view/client/Events/eventsPage.vue'),
         name: 'eventsClientPages',
@@ -896,6 +907,17 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Registrar visita',
+          depth: 4,
+        },
+      },
+      {
+        path: '/client/visits/view/:id',
+        component: () => import('@/view/client/Visits/viewVisit.vue'),
+        name: 'viewVisit',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalles de visita',
           depth: 4,
         },
       },

@@ -38,6 +38,22 @@ export const useIncidentStore = defineStore('Incidents', {
         });
       })
     },
+    async getIncidentById(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        
+        ApiService.get(`/api/incidents/byId/${id}`)
+        .then(({data}) => {
+          resolve(data);
+        }).catch(({response}) => {
+          console.log(response)
+          reject(response?.data?.error || 'Error al obtener la incidencia');
+        });
+      })
+    },
     async createIncident(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
