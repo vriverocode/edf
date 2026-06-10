@@ -200,7 +200,12 @@ onMounted(() => {
               <div class="text-subtitle2 text-black">
                 Descripción
               </div>
-              <q-input borderless clearable v-model="formData.description" class="form__inputsR mt-1" color="primary" />
+              <q-input 
+              
+              borderless clearable v-model="formData.description" 
+              type="textarea"
+              autogrow
+              class="form__inputsR mt-1" color="primary" />
             </div>
           </div>
         </Transition>

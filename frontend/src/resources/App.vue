@@ -9,6 +9,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { useConfigStore } from './services/store/config.store';
 import { storeToRefs } from 'pinia';
+import iconsApp from '@/assets/icons/index'
 
 const showSplash = async () => {
   await SplashScreen.show({
@@ -76,10 +77,10 @@ watch(
       </transition>
     </router-view>
     <q-dialog v-model="updateAvailable" persistent maximized transition-show="slide-up" transition-hide="slide-down">
-      <q-card class="bg-primary text-white column flex-center">
+      <q-card class="bg-white  column flex-center">
         <q-card-section class="text-center">
-          <q-icon name="system_update" size="5rem" />
-          <h4 class="q-mt-md">¡Nueva Versión Disponible!</h4>
+          <div v-html="iconsApp.updateSys"/>
+          <h4 class="q-mt-md text-subtitle1">¡Nueva Versión Disponible!</h4>
           <p class="text-subtitle1">Versión {{ versionInfo?.version }}</p>
           <p class="q-px-lg">{{ versionInfo?.release_notes }}</p>
         </q-card-section>
@@ -90,8 +91,12 @@ watch(
             <q-linear-progress :value="downloadProgress / 100" color="warning" class="q-mt-sm" />
           </div>
 
-          <q-btn v-else color="warning" text-color="dark" label="Descargar e Instalar" size="lg"
-            @click="updateStore.downloadAndInstall()" />
+          <q-btn v-else color="primary" text-color="white" no-caps  size="lg" rounded
+            @click="updateStore.downloadAndInstall()" >
+            <div class="px-5">
+              Descargar e Instalar
+            </div>
+          </q-btn>
         </q-card-actions>
       </q-card>
     </q-dialog>

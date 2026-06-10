@@ -1,4 +1,4 @@
-Agregar turnos por dia a las areas comunes.
+Agregar turnos por dia a las areas comunes. ***
 
 
 cancelar las reservas de un dia automaticamente si hay un mantenimiento
@@ -6,9 +6,9 @@ cancelar las reservas de un dia automaticamente si hay un mantenimiento
 que la descripcion de la areas comunes permita viñeta - numeracion
 
 
-revisar los eventos .  ya que no esta registrando
+revisar los eventos .  ya que no esta registrando ***
 
 
-en reservas mostar la descripcion de las reglas
+en reservas mostar la descripcion de las reglas 
 
-bloquear los dias no disponible o sin horario
+bloquear los dias no disponible o sin horario**

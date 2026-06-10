@@ -9,6 +9,7 @@ import moment from 'moment';
 import { usePayMethodStore } from '@/services/store/payMethod.store';
 import culqiCheckout from '@/components/layout/culqiCheckout.vue';
 import conditionPayLaterModal from '@/components/reserves/conditionPayLaterModal.vue';
+import ruleDetailsModal from '@/components/reserves/ruleDetailsModal.vue'; // <-- AGREGAR ESTA LÍNEA
 import { useAuthStore } from '@/services/store/auth.services';
 
 
@@ -28,6 +29,8 @@ const myLocale = {
 }
 const typeModalShow = ref(false)
 const rulesModal = ref(false)
+const ruleDetailsModalVisible = ref(false);
+const selectedRule = ref(null);
 const comunAreaStore = useComunAreaStore()
 const reserveStore = useReserveStore()
 const paymentMethodStore = usePayMethodStore()
@@ -81,7 +84,10 @@ const selectArea = (id) => {
   visibleBackButton(false)
 
 }
-
+const openRuleDetails = (rule) => {
+  selectedRule.value = rule;
+  ruleDetailsModalVisible.value = true;
+};
 const backButton = () => {
   if (step.value == 2) {
     visibleBackButton(true)
@@ -244,14 +250,28 @@ const getAvaibleBookingByDay = () => {
 
     })
 }
-const optionsFn = (date) => {
-  const isFutureOrToday = date >= moment().format('YYYY/MM/DD');
 
+const daysAvailableForBook = (date) => {
+ // 1. Validar que la fecha sea hoy o en el futuro
+ const isFutureOrToday = date >= moment().format('YYYY/MM/DD');
+  
+  // Si es una fecha pasada, bloqueamos inmediatamente
+  if (!isFutureOrToday) return false;
+
+  // 2. Si el área aún no carga o es un área vieja sin horarios configurados, 
+  // dejamos el comportamiento por defecto (permitir futuro)
+  if (!selectedComunArea.value || !selectedComunArea.value.schedules || selectedComunArea.value.schedules.length === 0) {
+    return true; 
+  }
+
+  // 3. Obtener qué día de la semana es la fecha que el calendario está pintando (0 = Domingo, 6 = Sábado)
   const dayOfWeek = moment(date, 'YYYY/MM/DD').day();
-  const isWeekday = dayOfWeek !== 0 && dayOfWeek !== 6;
 
-  // return isFutureOrToday && isWeekday;
-  return isFutureOrToday
+  // 4. Verificar si existe al menos un bloque de horario para ese día
+  // El método .some() devolverá true si encuentra coincidencia, habilitando el día.
+  const hasSchedule = selectedComunArea.value.schedules.some(schedule => schedule.day === dayOfWeek);
+
+  return hasSchedule;
 }
 const showNotify = (type, text) => {
   Notify.create({
@@ -597,9 +617,16 @@ watch(step,
                 <div class="row w-full pt-2">
                   <template v-if="step == 2">
                     <div class="flex flex-center w-full q-px-md">
-                      <q-date color="tealedf" v-model="formData.date" minimal class="w-full calendarReserve"
-                        :options="optionsFn" @update:model-value="getAvaibleBookingByDay" text-color="primary"
-                        :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
+                      <q-date 
+                        color="tealedf" 
+                        v-model="formData.date" 
+                        minimal 
+                        class="w-full calendarReserve"
+                        :options="daysAvailableForBook"
+                        @update:model-value="getAvaibleBookingByDay" 
+                        text-color="primary"
+                        :navigation-min-year-month="moment().format('YYYY/MM')" 
+                        :locale="myLocale">
                       </q-date>
                       <div class="w-full px-5">
                         <div class="bg-primary mt-4 py-2 w-full textInfoContainer">
@@ -944,7 +971,7 @@ watch(step,
           <Transition :name="transitionName">
             <div class="h-full rulesModal px-3" style="overflow: hidden;" v-if="rulesModal">
               <div class="pb-4" style="overflow:auto; height:91%">
-                <div class="text-center my-2 font-bold text-2xl text-primary">INSTRUCIONES</div>
+                <div class="text-center my-2 font-bold text-2xl text-primary">INSTRUCCIONES</div>
                 <div class="importantInfo__reserve py-2 pl-3 pr-1">
                   <div class="text-importantInfo text-grey-7">Importante</div>
                   <div class="text-importantInfo">
@@ -960,15 +987,19 @@ watch(step,
                   <div class="rulesContainer__Subtitle text-grey-7 px-2">
                     Seguridad - higiene y convivencia
                   </div>
-                  <div class="flex items-center ruleDetailContainer my-2 py-2 px-3"
-                    v-for="(rule, index) in selectedComunArea.rules_area" :key="rule.id">
-                    <div class="ruleDetailContainer__index flex flex-center"
-                      :class="{ 'bg-warning': rule.severity == 2, 'bg-negative': rule.severity == 3, 'bg-tealedf': rule.severity == 1 }">
-                      {{ index + 1 }}
+                  <div class="flex items-center justify-between ruleDetailContainer my-2 py-2 px-3 cursor-pointer"
+                    v-for="(rule, index) in selectedComunArea.rules_area" :key="rule.id"
+                    @click="openRuleDetails(rule)">
+                    <div class="flex items-center" style="width: 90%;">
+                      <div class="ruleDetailContainer__index flex flex-center"
+                        :class="{ 'bg-warning': rule.severity == 2, 'bg-negative': rule.severity == 3, 'bg-tealedf': rule.severity == 1 }">
+                        {{ index + 1 }}
+                      </div>
+                      <div class="ml-2 " style="font-size:0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ rule.title }}
+                      </div>
                     </div>
-                    <div class="ml-2 " style="font-size:0.82rem">
-                      {{ rule.title }}
-                    </div>
+                    <q-icon name="eva-info-outline" color="grey-6" size="1.2rem" />
                   </div>
                 </div>
                 <div class="rulesContainer mt-2 px-2 pt-2 pb-1">
@@ -1044,7 +1075,6 @@ watch(step,
                 </div>
               </div>
             </div>
-
           </Transition>
           <Transition :name="transitionName">
             <div class="h-full rulesModal px-3" style="overflow: hidden;" v-if="typeModalShow">
@@ -1134,6 +1164,11 @@ watch(step,
         :dialog="isPayLaterModalOpen" 
         @closeModal="showPayLaterModal(false)"
         @confirmPayLater="handlePayLaterConfirm"
+      />
+
+      <ruleDetailsModal
+        v-model="ruleDetailsModalVisible"
+        :rule="selectedRule"
       />
     </div>
     <div v-else class="flex flex-center py-24 w-full">

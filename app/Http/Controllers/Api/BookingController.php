@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers\Api;
 
-use Exception;
-use Carbon\Carbon;
-use App\Models\User;
+use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ComunArea;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
+use App\Models\ComunAreaSchedule;
 use App\Models\PeoplesXDepartaments;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
+use App\Models\User;
 use App\Notifications\RealtimeNotification;
 use App\Services\BookingPendingPayNotifier;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class BookingController extends Controller
 {
@@ -184,26 +185,32 @@ class BookingController extends Controller
 
     public function getAvaibleBookingByDay(Request $request, $idArea)
     {
-        date_default_timezone_set('America/Caracas');
+        date_default_timezone_set('America/Lima');
 
         $area = ComunArea::find($idArea);
         if (!$area) {
             return $this->returnFail(404, 'Área no encontrada');
         }
 
-        $date = date('Y-m-d', strtotime($request->date));
-        $isToday = $date === date('Y-m-d');
-        $currentHour = (int) date('H');
+        $dateStr = date('Y-m-d', strtotime($request->date));
+        $isToday = $dateStr === date('Y-m-d');
+        
+        // Obtenemos el día de la semana (0 = Domingo, 6 = Sábado)
+        $carbonDate = Carbon::parse($dateStr);
+        $dayOfWeek = $carbonDate->dayOfWeek;
 
-        // Solo traemos reservas activas del día
+        // 1. Traemos los turnos configurados para ESE día específico
+        $schedules = ComunAreaSchedule::where('comun_area_id', $idArea)
+            ->where('day', $dayOfWeek)
+            ->get();
+
+        // 2. Solo traemos reservas activas del día
         $bookingsInDay = Booking::where('comun_area_id', $idArea)
-            ->where('date', $date)
+            ->where('date', $dateStr)
             ->where('status', '>', 0)
             ->get();
 
-        $startHour = (int) substr($area->timeFrom, 0, 2);
-        $endHour = (int) substr($area->timeTo, 0, 2);
-        $intervalSize = $area->max_time_reserve;
+        $intervalSize = $area->max_time_reserve ?? 1; // Tamaño del bloque en horas
 
         $blocks = [
             'ma' => [],
@@ -211,25 +218,61 @@ class BookingController extends Controller
             'no' => []
         ];
         $mm = [];
-        for ($hora = $startHour; $hora < $endHour; $hora += $intervalSize) {
-            // Omitir intervalos pasados si es el día actual
-            if ($isToday && $hora <= $currentHour) {
-                continue;
+        $currentCarbonNow = Carbon::now('America/lima');
+
+        // Si el área no tiene horarios ese día, devolvemos todo cerrado
+        if ($schedules->isEmpty()) {
+            return $this->returnSuccess(200, [
+                'blocks' => $blocks,
+                'ss' => $mm,
+            ]);
+        }
+
+        // 3. Iteramos por cada turno del día (Ej: Turno 1: 08:00 - 12:00, Turno 2: 14:00 - 18:00)
+        foreach ($schedules as $schedule) {
+            $scheduleTimeStart = Carbon::parse($schedule->time_from);
+            $scheduleTimeEnd = Carbon::parse($schedule->time_to);
+
+            $time = $scheduleTimeStart->copy();
+
+            // Usamos un ciclo while que avanza mientras no lleguemos al cierre del turno
+            while ($time->lessThan($scheduleTimeEnd)) {
+                
+                $timeInitInterval = $time->copy();
+                // Calculamos el fin "ideal" del bloque sumando el max_time_reserve
+                $slotEnd = $time->copy()->addHours($intervalSize);
+
+                // TRUCO: Si el fin ideal supera el cierre del área, lo limitamos a la hora de cierre.
+                // Así, un bloque de 21:00 + 4 horas (01:00) se recorta automáticamente a las 23:00.
+                if ($slotEnd->greaterThan($scheduleTimeEnd)) {
+                    $slotEnd = $scheduleTimeEnd->copy();
+                }
+
+                // Omitir intervalos pasados si el usuario está viendo el día actual
+                if ($isToday && $timeInitInterval->lessThanOrEqualTo($currentCarbonNow)) {
+                    $time = $slotEnd->copy(); // Avanzamos el puntero para la siguiente iteración
+                    continue;
+                }
+
+                // Calculamos la disponibilidad para este bloque específico
+                $availability = $this->calculateIntervalAvailability($timeInitInterval, $slotEnd, $area->max_cupo ?? 100, $bookingsInDay);
+                array_push($mm, $availability);
+                
+                $intervalData = [
+                    'time_from' => $timeInitInterval->format('H:i'), 
+                    'time_to'   => $slotEnd->format('H:i'),
+                    'capacity'  => $area->capacity,
+                    'available' => $availability['spots'],
+                    'status'    => $availability['status']
+                ];
+
+                // Determinamos si es mañana, tarde o noche
+                $blockCategory = $this->getTimeBlockCategory((int)$timeInitInterval->format('H'));
+                $blocks[$blockCategory][] = $intervalData;
+
+                // Preparamos el $time para el siguiente ciclo, arrancando exactamente donde terminó este bloque
+                $time = $slotEnd->copy();
             }
-
-            $availability = $this->calculateIntervalAvailability($hora, $intervalSize, $area->max_cupo ?? 100, $bookingsInDay);
-            array_push($mm, $availability);
-            $intervalData = [
-                'time_from' => sprintf('%02d:00', $hora),
-                'time_to'   => sprintf('%02d:00', $hora + $intervalSize),
-                'capacity'  => $area->capacity,
-                'available' => $availability['spots'],
-                'status'    => $availability['status']
-            ];
-
-            // 2. Determinar a qué bloque pertenece usando otra función dedicada
-            $blockCategory = $this->getTimeBlockCategory($hora);
-            $blocks[$blockCategory][] = $intervalData;
         }
 
         return $this->returnSuccess(200, [
@@ -241,30 +284,32 @@ class BookingController extends Controller
     /**
      * Calcula los cupos disponibles y el estado de un intervalo de tiempo específico.
      */
-    private function calculateIntervalAvailability(int $hora, int $intervalSize, int $capacity, $bookings): array
+    private function calculateIntervalAvailability(Carbon $slotStart, Carbon $slotEnd, int $capacity, $bookings): array
     {
         $occupancy = 0;
-        $intervalEnd = $hora + $intervalSize;
 
         foreach ($bookings as $booking) {
-            $bStart = (int) substr($booking->time_from, 0, 2);
-            $bEnd = (int) substr($booking->time_to, 0, 2);
-            if ($bStart < $intervalEnd && $bEnd > $hora) {
+            $bStart = Carbon::parse($booking->time_from);
+            $bEnd = Carbon::parse($booking->time_to);
+            
+            // Hay solapamiento si el inicio de la reserva es ANTES del fin del bloque
+            // y el fin de la reserva es DESPUÉS del inicio del bloque.
+            if ($bStart->lessThan($slotEnd) && $bEnd->greaterThan($slotStart)) {
                 if ($booking->is_exclusive) {
                     $occupancy = $capacity;
-                    break; // Saturación total para este intervalo específico, dejamos de iterar
+                    break; // Saturación total por exclusividad, paramos la iteración
                 }
                 $occupancy++;
             }
         }
 
-        // max() asegura que los cupos nunca sean negativos
+        // Asegura que los cupos nunca sean negativos
         $availableSpots = max(0, $capacity - $occupancy);
 
         $status = 'Disponible';
         if ($availableSpots == 0) {
             $status = 'Ocupado';
-        } elseif ($availableSpots > 0 && $availableSpots <= (round($capacity * 0.3))) {
+        } elseif ($availableSpots > 0 && $availableSpots <= max(1, round($capacity * 0.3))) {
             $status = 'Últimos';
         }
 

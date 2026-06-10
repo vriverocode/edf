@@ -77,8 +77,6 @@ class ComunAreaController extends Controller
             $typeValue = is_array($ruleData['type']) ? $ruleData['type']['value'] : $ruleData['type'];
             $severityValue = is_array($ruleData['severity']) ? $ruleData['severity']['value'] : $ruleData['severity'];
 
-            // Usamos la relación rulesArea() de tu modelo ComunArea para crear la regla
-            // Esto automáticamente asigna el comun_area_id a la regla
             $area->rulesArea()->create([
                 'code' => $ruleData['code'] ?? '',
                 'title' => $ruleData['title'] ?? '',

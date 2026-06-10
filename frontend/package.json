@@ -32,9 +32,9 @@
         "@capacitor/core": "^7.4.4",
         "@capacitor/push-notifications": "^7.0.0",
         "@capacitor/splash-screen": "^7.0.4",
-        "@capacitor/status-bar": "^8.0.1",
-        "@capawesome-team/capacitor-file-opener": "^8.0.1",
-        "@capgo/capacitor-downloader": "^8.1.24",
+        "@capacitor/status-bar": "^7.0.0",
+        "@capawesome-team/capacitor-file-opener": "^7.0.0",
+        "@capgo/capacitor-downloader": "^7.0.0",
         "@quasar/extras": "^1.16.15",
         "firebase": "^11.10.0",
         "mitt": "^3.0.1",
@@ -49,9 +49,13 @@
         "vue3-zoomer": "^1.0.8"
     },
     "overrides": {
-        "tar": "^6.2.1",
+        "tar": "^7.5.11",
         "@capacitor/cli": {
-            "tar": "^6.2.1"
-        }
+            "tar": "^7.5.11"
+        },
+        "@xmldom/xmldom": "^0.8.13",
+        "handlebars": "^4.7.9",
+        "protobufjs": "^7.5.8",
+        "shell-quote": "^1.8.4"
     }
 }

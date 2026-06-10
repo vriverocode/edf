@@ -245,7 +245,7 @@ onMounted(async () => {
 
             <div class="col-12 mt-2 px-2 md:px-12">
               <div class="text-subtitle2 text-black">Descripción</div>
-              <q-input dense borderless clearable type="textarea" rows="3" v-model="comunArea.description"
+              <q-input dense borderless clearable type="textarea" rows="3" autogrow v-model="comunArea.description"
                 class="form__inputsR mt-1" color="primary" />
             </div>
 
