@@ -8,6 +8,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { useConfigStore } from './services/store/config.store';
+import { storeToRefs } from 'pinia';
+
 const showSplash = async () => {
   await SplashScreen.show({
     autoHide: true,
@@ -34,12 +36,12 @@ const setupStatusBar2 = async () => {
   }
 };
 const setupStatusBar = async () => {
-    await StatusBar.setStyle({ style: Style.Light }); 
-    await StatusBar.setBackgroundColor({ color: '#0e344c' }); 
-  };
+  await StatusBar.setStyle({ style: Style.Light });
+  await StatusBar.setBackgroundColor({ color: '#0e344c' });
+};
 onMounted(async () => {
   $q.addressbarColor.set('#0e344c');
-  
+
   showSplash();
   setupStatusBar2
   await updateStore.checkForUpdates();
@@ -88,14 +90,8 @@ watch(
             <q-linear-progress :value="downloadProgress / 100" color="warning" class="q-mt-sm" />
           </div>
 
-          <q-btn 
-            v-else
-            color="warning" 
-            text-color="dark" 
-            label="Descargar e Instalar" 
-            size="lg"
-            @click="updateStore.downloadAndInstall()"
-          />
+          <q-btn v-else color="warning" text-color="dark" label="Descargar e Instalar" size="lg"
+            @click="updateStore.downloadAndInstall()" />
         </q-card-actions>
       </q-card>
     </q-dialog>

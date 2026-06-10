@@ -4,6 +4,10 @@ import { Notify } from 'quasar'
 import { useRoute, useRouter } from 'vue-router';
 import { useComunAreaStore } from '@/services/store/comunArea.store';
 
+const defaultDays = [
+  { day: 1, label: 'Lunes' }, { day: 2, label: 'Martes' }, { day: 3, label: 'Miércoles' },
+  { day: 4, label: 'Jueves' }, { day: 5, label: 'Viernes' }, { day: 6, label: 'Sábado' }, { day: 0, label: 'Domingo' }
+];
 const comunAreaStore = useComunAreaStore()
 const router = useRouter()
 const route = useRoute()
@@ -18,7 +22,7 @@ const backButton = () => {
 }
 const nextStep = () => {
   // Cuando se llega al paso 2, el botón ejecuta el update en lugar de seguir sumando
-  if (step.value === 2) {
+  if (step.value === 3) {
     updateComunArea();
     return;
   }
@@ -63,7 +67,6 @@ const getComunAreaById = () => {
     })
 }
 
-// =========== CONSTANTES Y OPCIONES ===========
 const iconsOption = [
   { value: 'default', name: 'Por defecto' },
   { value: 'arcade', name: 'Arcade' },
@@ -116,26 +119,37 @@ const removeRule = (index) => {
 
 const formatedData = (response) => {
   try {
-    // Aquí asumo que traes la data del store pasandole el ID de la ruta
-
-    let data = response.data; // Adapta esto a la respuesta de tu backend
-
-    // 1. Mapear Selects principales
-    data.type = typeArea.find(t => t.value === data.type) || typeArea[0];
+    let data = response.data || response;
+    data.typeArea = typeArea.find(t => t.value === data.type) || typeArea[0];
     data.icon = iconsOption.find(i => i.value === data.icon) || iconsOption[0];
+    let mappedSchedules = defaultDays.map(d => ({
+      day: d.day,
+      label: d.label,
+      isOpen: false,
+      intervals: []
+    }));
 
-    // 2. Mapear días no disponibles (decodificar el JSON de la BD)
-    try {
-      data.notAvailable = typeof data.not_available_days === 'string'
-        ? JSON.parse(data.not_available_days)
-        : (data.not_available_days || []);
-    } catch (e) { data.notAvailable = [] }
-
-    // 3. Mapear las reglas (Convertir los enteros devuelta a Objetos para los selects)
+    if (data.schedules && data.schedules.length > 0) {
+      data.schedules.forEach(dbSchedule => {
+        let dayTarget = mappedSchedules.find(m => m.day === dbSchedule.day);
+        if (dayTarget) {
+          dayTarget.isOpen = true;
+          dayTarget.intervals.push({
+            from: dbSchedule.time_from ? dbSchedule.time_from.substring(0, 5) : '',
+            to: dbSchedule.time_to ? dbSchedule.time_to.substring(0, 5) : ''
+          });
+        }
+      });
+    } else {
+      mappedSchedules = defaultDays.map(d => ({
+        day: d.day, label: d.label, isOpen: true, intervals: [{ from: '08:00', to: '18:00' }]
+      }));
+    }
+    data.schedules = mappedSchedules;
     if (data.rules_area && data.rules_area.length > 0) {
       data.rulesList = data.rules_area.map(rule => {
         return {
-          id: rule.id, // FUNDAMENTAL MANTENER EL ID
+          id: rule.id,
           title: rule.title,
           code: rule.code,
           description: rule.description,
@@ -145,19 +159,44 @@ const formatedData = (response) => {
         }
       })
     } else {
-      // Si el area no tenía reglas registradas, dejamos una en blanco
-      data.rulesList = [{ id: null, title: '', description: '', type: ruleTypeOptions[0], severity: severityOptions[0], suggest_amount: null }];
+      data.rulesList = [{
+        id: null,
+        title: '',
+        code: '',
+        description: '',
+        type: ruleTypeOptions[0],
+        severity: severityOptions[0],
+        suggest_amount: null
+      }];
     }
-
     comunArea.value = data;
     ready.value = true;
+    loading.value = false;
 
   } catch (error) {
-    console.log(error)
-    showNotify('negative', 'Error al cargar el área');
+    console.log(error);
+    showNotify('negative', 'Error procesando los datos del área');
+    loading.value = false;
   }
 }
-// CUANDO OBTENGAS LA DATA DEL BACKEND (Por ejemplo en tu onMounted):
+const toggleDay = (schedule) => {
+  if (schedule.isOpen && schedule.intervals.length === 0) {
+    schedule.intervals.push({ from: '08:00', to: '18:00' });
+  } else if (!schedule.isOpen) {
+    schedule.intervals = [];
+  }
+};
+
+const addInterval = (schedule) => {
+  schedule.intervals.push({ from: '', to: '' });
+};
+
+const removeInterval = (schedule, index) => {
+  schedule.intervals.splice(index, 1);
+  if (schedule.intervals.length === 0) {
+    schedule.isOpen = false;
+  }
+};
 onMounted(async () => {
   getComunAreaById()
 })
@@ -215,7 +254,6 @@ onMounted(async () => {
 
         <Transition name="horizontal">
           <div class="row w-full" style="height:85%; overflow:auto" v-if="step == 1">
-
             <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">Precio (0 si es gratis)</div>
               <q-input dense borderless clearable type="number" v-model="comunArea.price" class="form__inputsR mt-1"
@@ -237,28 +275,73 @@ onMounted(async () => {
               <q-input dense borderless clearable type="number" v-model="comunArea.max_time_reserve"
                 class="form__inputsR mt-1" color="primary" :rules="[val => !!val || 'Requerido']" />
             </div>
-            <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
-              <div class="text-subtitle2 text-black">Hora de apertura</div>
-              <q-input dense borderless clearable type="time" v-model="comunArea.timeFrom" class="form__inputsR mt-1"
-                color="primary" :rules="[val => !!val || 'Hora requerida']" />
-            </div>
-
-            <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
-              <div class="text-subtitle2 text-black">Hora de cierre</div>
-              <q-input dense borderless clearable type="time" v-model="comunArea.timeTo" class="form__inputsR mt-1"
-                color="primary" :rules="[val => !!val || 'Hora requerida']" />
-            </div>
-            <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
-              <div class="text-subtitle2 text-black">Días NO disponibles</div>
-              <q-select dense borderless multiple v-model="comunArea.notAvailable" :options="dayNotAvailable"
-                class="form__inputsR mt-1 bg-white" clearable use-chips />
-            </div>
-
           </div>
         </Transition>
-
+        <Transition>
+          <div class="row w-full" style="height:85%; overflow:auto" v-if="step == 2">
+            <div class="col-12 mt-4 px-2 md:px-12">
+              <div class="text-subtitle1 text-bold text-black mb-2">
+                Horarios de disponibilidad por día
+              </div>
+              <div class="q-pr-sm">
+                <div v-for="(schedule, index) in comunArea.schedules" :key="index" class="q-mb-md rounded-borders"
+                  style="border: 1px solid #bfbfbfa3; padding: 10px;">
+                  <div class="row items-center justify-between">
+                    <q-toggle v-model="schedule.isOpen" :label="schedule.label" color="primary" keep-color
+                      @update:model-value="toggleDay(schedule)" />
+                    <q-btn v-if="schedule.isOpen" icon="eva-plus-outline" label="Añadir Turno" size="sm" color="primary"
+                      flat rounded @click="addInterval(schedule)" />
+                  </div>
+                  <div v-if="schedule.isOpen" class="q-mt-sm">
+                    <div v-for="(interval, idx) in schedule.intervals" :key="idx"
+                      class="row q-col-gutter-sm items-center q-mb-sm pl-2">
+                      <div class="col-5">
+                        <div class="text-caption text-grey-8">Desde:</div>
+                        <q-input v-model="interval.from" mask="time" :rules="['time']" dense borderless
+                          class="form__inputsR" color="primary">
+                          <template v-slot:append>
+                            <q-icon name="eva-clock-outline" class="cursor-pointer">
+                              <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                                <q-time v-model="interval.from">
+                                  <div class="row items-center justify-end">
+                                    <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                                  </div>
+                                </q-time>
+                              </q-popup-proxy>
+                            </q-icon>
+                          </template>
+                        </q-input>
+                      </div>
+                      <div class="col-5">
+                        <div class="text-caption text-grey-8">Hasta:</div>
+                        <q-input v-model="interval.to" mask="time" :rules="['time']" dense borderless
+                          class="form__inputsR" color="primary">
+                          <template v-slot:append>
+                            <q-icon name="eva-clock-outline" class="cursor-pointer">
+                              <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                                <q-time v-model="interval.to">
+                                  <div class="row items-center justify-end">
+                                    <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                                  </div>
+                                </q-time>
+                              </q-popup-proxy>
+                            </q-icon>
+                          </template>
+                        </q-input>
+                      </div>
+                      <div class="col-2 flex flex-center mt-4">
+                        <q-btn icon="eva-trash-2-outline" color="negative" flat dense round
+                          @click="removeInterval(schedule, idx)" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Transition>
         <Transition name="horizontal">
-          <div class="w-full" style="height:85%; overflow:hidden" v-if="step == 2">
+          <div class="w-full" style="height:85%; overflow:hidden" v-if="step == 3">
             <div class="col-12 px-2 md:px-12 w-full h-full">
               <div class="row justify-between items-center bg-white " style="height: 15%;">
                 <div class="text-subtitle1 text-bold text-black">

@@ -1,72 +1,77 @@
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { CapacitorDownloader } from '@capgo/capacitor-downloader';
-import { FileOpener } from '@capawesome-team/capacitor-file-opener';
-import { Capacitor } from '@capacitor/core';
-import axios from 'axios';
+import { defineStore } from 'pinia'
+import ApiService from '@/services/axios'
+import { CapacitorDownloader } from '@capgo/capacitor-downloader'
+import { FileOpener } from '@capawesome-team/capacitor-file-opener'
+import { Capacitor } from '@capacitor/core'
 
-export const useConfigStore = defineStore('config', () => {
-    const updateAvailable = ref(false);
-    const versionInfo = ref(null);
-    const downloadProgress = ref(0);
-    const isDownloading = ref(false);
-    const currentAppVersionCode = 1; // Aquí colocas el versionCode actual de tu app compilada
-
+export const useConfigStore = defineStore('config', {
+  state: () => ({
+    updateAvailable: false,
+    versionInfo: null,
+    downloadProgress: 0,
+    isDownloading: false,
+    currentAppVersionCode: 1, // Aquí colocas el versionCode actual de tu app compilada
+  }),
+  actions: {
     // 1. Consultar a tu API (Laravel) si hay una nueva versión
-    const checkForUpdates = async () => {
-        try {
-            // Ajusta la URL a la de tu API
-            const { data } = await axios.get('https://tudominio.com/api/app-version');
+    async checkForUpdates() {
+      return await new Promise((resolve, reject) => {
+        // Descomenta la siguiente línea si esta ruta requiere token
+        // if (!ApiService.getToken()) throw ''
 
-            if (data && data.version_code > currentAppVersionCode) {
-                versionInfo.value = data;
-                updateAvailable.value = true;
+        // ApiService.setHeader() // Descomenta si necesitas enviar el token en la cabecera
+        ApiService.get('/api/app-version') // Ajusta la URL según tu backend
+          .then(({ data }) => {
+            // Asumiendo que tu backend devuelve { code: 200, data: {...} } como en los otros stores
+            // Ajusta esta condición si la respuesta es directa
+            const versionData = data.data || data
+
+            if (versionData && versionData.version_code > this.currentAppVersionCode) {
+              this.versionInfo = versionData
+              this.updateAvailable = true
             }
-        } catch (error) {
-            console.error("Error comprobando actualizaciones:", error);
-        }
-    };
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error comprobando actualizaciones')
+          })
+      })
+    },
 
     // 2. Ejecutar la descarga y lanzar el instalador
-    const downloadAndInstall = async () => {
-        if (!isNative()) return; // Solo ejecutar en Android
+    async downloadAndInstall() {
+      if (!this.isNative()) return // Solo ejecutar en Android
 
-        isDownloading.value = true;
-        downloadProgress.value = 0;
+      this.isDownloading = true
+      this.downloadProgress = 0
 
-        try {
-            // Escuchar el progreso para la barra de carga en el frontend
-            CapacitorDownloader.addListener('downloadProgress', ({ progress }) => {
-                downloadProgress.value = progress; // Va de 0 a 100
-            });
+      try {
+        // Escuchar el progreso para la barra de carga en el frontend
+        CapacitorDownloader.addListener('downloadProgress', ({ progress }) => {
+          this.downloadProgress = progress // Va de 0 a 100
+        })
 
-            // Descargar el archivo directamente a la carpeta pública del dispositivo
-            const downloadResult = await CapacitorDownloader.download({
-                url: versionInfo.value.download_url,
-                name: 'actualizacion.apk',
-            });
+        // Descargar el archivo directamente a la carpeta pública del dispositivo
+        const downloadResult = await CapacitorDownloader.download({
+          url: this.versionInfo.download_url,
+          name: 'actualizacion.apk',
+        })
 
-            // Una vez descargado, decirle al Sistema Operativo que lo abra
-            await FileOpener.openFile({
-                path: downloadResult.path,
-                mimeType: 'application/vnd.android.package-archive'
-            });
+        // Una vez descargado, decirle al Sistema Operativo que lo abra
+        await FileOpener.openFile({
+          path: downloadResult.path,
+          mimeType: 'application/vnd.android.package-archive',
+        })
+      } catch (error) {
+        console.error('Error en la descarga/instalación', error)
+      } finally {
+        this.isDownloading = false
+      }
+    },
 
-        } catch (error) {
-            console.error("Error en la descarga/instalación", error);
-        } finally {
-            isDownloading.value = false;
-        }
-    };
-
-    const isNative = () => Capacitor.isNativePlatform();
-
-    return {
-        updateAvailable,
-        versionInfo,
-        downloadProgress,
-        isDownloading,
-        checkForUpdates,
-        downloadAndInstall
-    };
-});
+    isNative() {
+      return Capacitor.isNativePlatform()
+    },
+  },
+})

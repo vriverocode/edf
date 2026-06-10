@@ -218,8 +218,6 @@ class ComunAreaController extends Controller
             'warrantyPrice' => ['required', 'numeric'],
             'description'   => ['nullable',],
             'maxTime'       => ['required', 'numeric'],
-            'timeFrom'      => ['required'],
-            'timeTo'        => ['required'],
             'max_cupo'      => ['nullable', 'numeric'],
             'notAvailable'  => ['nullable', 'array'],
             'icon'          => ['nullable'],
@@ -229,6 +227,7 @@ class ComunAreaController extends Controller
             'rulesList.*.severity.value' => ['required_with:rulesList', 'integer'],
             'rulesList.*.suggest_amount' => ['nullable', 'numeric'],
             'rulesList.*.id' => ['nullable', 'integer'],
+            'schedules' => ['required', 'array'],
         ];
 
         $messages = [
@@ -242,8 +241,6 @@ class ComunAreaController extends Controller
             'warrantyPrice.numeric'  => 'Garantia no valida.',
             'maxTime.required'       => 'Maximo de tiempo de reserva es requerido.',
             'maxTime.numeric'        => 'Formato de tiempo de reserva invalido.',
-            'timeFrom.required'      => 'Horario de apertura es requerido.',
-            'timeTo.required'        => 'Horario de cierre es requerido.',
             'max_cupo.numeric'       => 'El cupo maximo debe ser numérico.',
             'notAvailable.array'     => 'Formato de dias no disponibles invalido.',
             'rulesList.array'                  => 'El formato de la lista de reglas es inválido.',

@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import { useComunAreaStore } from '@/services/store/comunArea.store';
 
 const comunAreaStore = useComunAreaStore()
+const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 const router = useRouter()
 const loading = ref(false)
 const step = ref(0)
@@ -36,6 +37,11 @@ const ruleTypeOptions = [
   { value: 1, name: 'Norma de convivencia (Sin multa)' },
   { value: 2, name: 'Falta con amonestación monetaria' }
 ]
+
+const defaultDays = [
+  { day: 1, label: 'Lunes' }, { day: 2, label: 'Martes' }, { day: 3, label: 'Miércoles' },
+  { day: 4, label: 'Jueves' }, { day: 5, label: 'Viernes' }, { day: 6, label: 'Sábado' }, { day: 0, label: 'Domingo' }
+];
 const dayNotAvailable = [
   'Lunes',
   'Martes',
@@ -53,11 +59,14 @@ const formData = ref({
   description: '',
   maxTime: 1,
   max_cupo: 0,
-  timeFrom: '',
-  timeTo: '',
+  schedules: defaultDays.map(d => ({
+    day: d.day,
+    label: d.label,
+    isOpen: true, // Por defecto marcamos abiertos
+    intervals: [{ from: '08:00', to: '18:00' }] // Un turno por defecto
+  })),
   icon: { value: 'default', name: 'Por defecto' },
   typeArea: { value: 1, name: 'Uso gratuito' },
-  notAvailable: [],
   rulesList: [
     { title: '', code: '', description: '', type: ruleTypeOptions[0], severity: severityOptions[0], suggest_amount: null }
   ]
@@ -81,7 +90,7 @@ const backButton = () => {
   step.value--
 }
 const nextStep = () => {
-  if (step.value == 2) {
+  if (step.value == 3) {
     createArea()
     return
   }
@@ -110,7 +119,6 @@ const createArea = () => {
 
     })
 }
-const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 const showNotify = (type, text) => {
   Notify.create({
     color: type,
@@ -119,6 +127,24 @@ const showNotify = (type, text) => {
   })
 }
 
+const toggleDay = (schedule) => {
+  if (schedule.isOpen && schedule.intervals.length === 0) {
+    schedule.intervals.push({ from: '08:00', to: '18:00' });
+  } else if (!schedule.isOpen) {
+    schedule.intervals = [];
+  }
+};
+
+const addInterval = (schedule) => {
+  schedule.intervals.push({ from: '', to: '' });
+};
+
+const removeInterval = (schedule, index) => {
+  schedule.intervals.splice(index, 1);
+  if (schedule.intervals.length === 0) {
+    schedule.isOpen = false;
+  }
+};
 
 onMounted(() => {
 })
@@ -180,8 +206,6 @@ onMounted(() => {
         </Transition>
         <Transition name="horizontal">
           <div class="row w-full" style="height:85%; overflow:auto" v-if="step == 1">
-
-
             <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
                 Precio por reserva
@@ -198,7 +222,7 @@ onMounted(() => {
             </div>
             <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
-                Maximo de cupo de reservas
+                Maximo de cupos de reservas
               </div>
               <q-input dense borderless clearable v-model="formData.max_cupo" class="form__inputsR mt-1" color="primary"
                 :rules="[val => !(!val) || 'Establece un maximo de cupos']" />
@@ -211,57 +235,66 @@ onMounted(() => {
                 <q-input dense borderless clearable v-model="formData.maxTime" class="form__inputsR mt-1" autofocus
                   color="primary" :rules="[val => !(!val) || 'Las horas maxima de reserva es necesaria']" />
               </div>
-
-              <div class="col-12 mt-2 ">
-                <div class="text-subtitle2 text-black">
-                  Horas disponibles:
-                </div>
-                <div class="row w-full mt-4">
-                  <div class=" col-12 mt-1 mb-4 md:mt-0">
-                    <div class="text-subtitle2 text-black">
-                      Días no disponible
-                    </div>
-                    <q-select class="form__inputsR mt-1" dense borderless v-model="formData.notAvailable" multiple
-                      :options="dayNotAvailable" use-chips stack-label />
+            </div>
+          </div>
+        </Transition>
+        <Transition name="horizontal">
+          <div class="row w-full" style="height:85%; overflow:auto" v-if="step == 2">
+            <div class="col-12 mt-4 px-2 md:px-12">
+              <div class="text-subtitle1 text-bold text-black mb-2">
+                Horarios de disponibilidad por día
+              </div>
+              <div class="q-pr-sm">
+                <div v-for="(schedule, index) in formData.schedules" :key="index" class="q-mb-md rounded-borders"
+                  style="border: 1px solid #bfbfbfa3; padding: 10px;">
+                  <div class="row items-center justify-between">
+                    <q-toggle v-model="schedule.isOpen" :label="schedule.label" color="primary" keep-color
+                      @update:model-value="toggleDay(schedule)" />
+                    <q-btn v-if="schedule.isOpen" icon="eva-plus-outline" label="Añadir Turno" size="sm" color="primary"
+                      flat rounded @click="addInterval(schedule)" />
                   </div>
-                  <div class="col-6  pr-2 md:pr-4">
-                    <div class="text-body2 text-black" style="font-weight: medium;">
-                      Desde:
+                  <div v-if="schedule.isOpen" class="q-mt-sm">
+                    <div v-for="(interval, idx) in schedule.intervals" :key="idx"
+                      class="row q-col-gutter-sm items-center q-mb-sm pl-2">
+                      <div class="col-5">
+                        <div class="text-caption text-grey-8">Desde:</div>
+                        <q-input v-model="interval.from" mask="time" :rules="['time']" dense borderless
+                          class="form__inputsR" color="primary">
+                          <template v-slot:append>
+                            <q-icon name="eva-clock-outline" class="cursor-pointer">
+                              <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                                <q-time v-model="interval.from">
+                                  <div class="row items-center justify-end">
+                                    <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                                  </div>
+                                </q-time>
+                              </q-popup-proxy>
+                            </q-icon>
+                          </template>
+                        </q-input>
+                      </div>
+                      <div class="col-5">
+                        <div class="text-caption text-grey-8">Hasta:</div>
+                        <q-input v-model="interval.to" mask="time" :rules="['time']" dense borderless
+                          class="form__inputsR" color="primary">
+                          <template v-slot:append>
+                            <q-icon name="eva-clock-outline" class="cursor-pointer">
+                              <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                                <q-time v-model="interval.to">
+                                  <div class="row items-center justify-end">
+                                    <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                                  </div>
+                                </q-time>
+                              </q-popup-proxy>
+                            </q-icon>
+                          </template>
+                        </q-input>
+                      </div>
+                      <div class="col-2 flex flex-center mt-4">
+                        <q-btn icon="eva-trash-2-outline" color="negative" flat dense round
+                          @click="removeInterval(schedule, idx)" />
+                      </div>
                     </div>
-                    <q-input v-model="formData.timeFrom" mask="time" :rules="['time']" dense borderless clearable
-                      class="form__inputsR mt-1" color="primary">
-                      <template v-slot:append>
-                        <q-icon name="eva-clock-outline" class="cursor-pointer">
-                          <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                            <q-time v-model="formData.timeFrom">
-                              <div class="row items-center justify-end">
-                                <q-btn v-close-popup label="Aceptar" color="primary" flat />
-                              </div>
-                            </q-time>
-                          </q-popup-proxy>
-                        </q-icon>
-                      </template>
-                    </q-input>
-
-                  </div>
-                  <div class="col-6  pl-2 md:pl-4">
-                    <div class="text-body2 text-black" style="font-weight: medium;">
-                      Hasta:
-                    </div>
-                    <q-input v-model="formData.timeTo" mask="time" :rules="['time']" dense borderless clearable
-                      class="form__inputsR mt-1" color="primary">
-                      <template v-slot:append>
-                        <q-icon name="eva-clock-outline" class="cursor-pointer">
-                          <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                            <q-time v-model="formData.timeTo">
-                              <div class="row items-center justify-end">
-                                <q-btn v-close-popup label="Aceptar" color="primary" flat />
-                              </div>
-                            </q-time>
-                          </q-popup-proxy>
-                        </q-icon>
-                      </template>
-                    </q-input>
                   </div>
                 </div>
               </div>
@@ -269,7 +302,7 @@ onMounted(() => {
           </div>
         </Transition>
         <Transition name="horizontal">
-          <div class="w-full" style="height:85%; overflow:hidden" v-if="step == 2">
+          <div class="w-full" style="height:85%; overflow:hidden" v-if="step == 3">
             <div class="col-12 px-2 md:px-12 w-full h-full">
               <div class="row justify-between items-center bg-white " style="height: 15%;">
                 <div class="text-subtitle1 text-bold text-black">

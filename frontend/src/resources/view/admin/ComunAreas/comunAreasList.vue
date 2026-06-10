@@ -51,7 +51,7 @@ const selectArea = (id) => {
   }, 500);
 }
 const hiddenModal = () => {
-  dialog.value = ''
+  dialog.value = false
 }
 const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
@@ -162,7 +162,7 @@ onMounted(() => {
     </div>
     <template v-if="Object.values(selectedArea).length > 0">
       <deleteAreaModal :comunArea="selectedArea" :dialog="dialog" @closeModal="hiddenModal()"
-        @updateList="getComunArea()" />
+        @updateList="hiddenModal(); getComunArea()" />
     </template>
   </div>
 </template>

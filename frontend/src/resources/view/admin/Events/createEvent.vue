@@ -28,12 +28,12 @@ const ready = ref(false)
 const loading = ref(false)
 const step = ref(1)
 const formData = ref({
-  name:'',
-  description:'',
+  name: '',
+  description: '',
   date: '',
-  location:'',
-  area:'',
-  typeArea:-1,
+  location: '',
+  area: '',
+  typeArea: -1,
   time_from: '',
   time_to: '',
 })
@@ -58,12 +58,12 @@ const nextStep = () => {
 }
 const cleanForm = () => {
   formData.value = {
-    name:'',
-    description:'',
+    name: '',
+    description: '',
     date: '',
-    location:'',
-    area:'',
-    typeArea:{ value:-1, name:'Seleccione una opción'},
+    location: '',
+    area: '',
+    typeArea: { value: -1, name: 'Seleccione una opción' },
     time_from: '',
     time_to: '',
   }
@@ -98,14 +98,14 @@ const showNotify = (type, text) => {
 
 const createEvent = () => {
   loading.value = true
-  const dataEventForm =  new FormData
+  const dataEventForm = new FormData
   dataEventForm.append('title', formData.value.title)
   dataEventForm.append('description', formData.value.description)
   dataEventForm.append('date', formData.value.date)
   dataEventForm.append('time_from', formData.value.time_from)
   dataEventForm.append('time_to', formData.value.time_to)
   dataEventForm.append('type_location', formData.value.typeArea)
-  if(formData.value.typeArea == 1) {
+  if (formData.value.typeArea == 1) {
     dataEventForm.append('area', formData.value.area.id)
   }
   dataEventForm.append('location', formData.value.location)
@@ -131,10 +131,10 @@ const createEvent = () => {
     })
 }
 const cleanAnother = (e) => {
-  if(e == 1){
+  if (e == 1) {
     formData.value.location = '.'
   }
-  if(e == 2){
+  if (e == 2) {
     formData.value.area = ''
   }
 }
@@ -148,13 +148,13 @@ onMounted(() => {
   <div class="md:px-20 h-full " style="overflow: hidden; position: relative;">
     <div class="h-full" v-if="ready">
       <q-form @submit="nextStep()" class="h-full ">
-        <div style="height: 90%; overflow: auto;" >
+        <div style="height: 90%; overflow: auto;">
           <Transition name="horizontal">
-            <div class="h-full"  v-if="step == 1 ">
+            <div class="h-full" v-if="step == 1">
               <div class=" w-full h-full ">
                 <div class="pb-10">
-                  <div class="row w-full pt-5">
-                    
+                  <div class="row w-full pt-0">
+
                     <div class="col-12  row">
                       <div class="col-12 row md:px-5 ">
                         <div class="col-12 text-subtitle1 headerSection my-1 py-2 px-4">
@@ -165,15 +165,9 @@ onMounted(() => {
                             <div class="text-subtitle2 text-black">
                               Titulo del evento
                             </div>
-                            <q-input
-                              dense
-                              borderless
-                              clearable
-                              v-model="formData.title"
-                              class="form__inputsReverse mt-1"
-                              color="primary"
-                              :rules="[ val => val && val.length > 0 || 'Nombre de area es requerido']"
-                            />
+                            <q-input dense borderless clearable v-model="formData.title"
+                              class="form__inputsReverse mt-1" color="primary"
+                              :rules="[val => val && val.length > 0 || 'Nombre de area es requerido']" />
                           </div>
                           <div class="col-12 mb-2">
                             <div class="text-subtitle2 text-black" style="font-weight: medium;">
@@ -225,8 +219,7 @@ onMounted(() => {
                               <template v-slot:append>
                                 <q-icon name="eva-clock-outline" class="cursor-pointer">
                                   <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                    <q-time v-model="formData.time_from"
-                                      :minute-options="minOptionsFrom" >
+                                    <q-time v-model="formData.time_from" :minute-options="minOptionsFrom">
                                       <div class="row items-center justify-end">
                                         <q-btn v-close-popup label="Aceptar" color="primary" flat />
                                       </div>
@@ -235,19 +228,18 @@ onMounted(() => {
                                 </q-icon>
                               </template>
                             </q-input>
-  
+
                           </div>
                           <div class="col-6  pl-2 md:pl-4">
                             <div class="text-subtitle2 text-black" style="font-weight: medium;">
                               Hasta:
                             </div>
                             <q-input v-model="formData.time_to" mask="time" :rules="['time']" dense borderless clearable
-                              class="form__inputsReverse mt-1 q-pb-sm" color="primary" >
+                              class="form__inputsReverse mt-1 q-pb-sm" color="primary">
                               <template v-slot:append>
                                 <q-icon name="eva-clock-outline" class="cursor-pointer">
                                   <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                    <q-time v-model="formData.time_to"  
-                                      :minute-options="minOptionsFrom">
+                                    <q-time v-model="formData.time_to" :minute-options="minOptionsFrom">
                                       <div class="row items-center justify-end">
                                         <q-btn v-close-popup label="Aceptar" color="primary" flat />
                                       </div>
@@ -267,14 +259,14 @@ onMounted(() => {
                         </div>
                       </div>
                     </div>
-  
+
                   </div>
                 </div>
               </div>
             </div>
           </Transition>
           <Transition name="horizontal">
-            <div class="h-full"  v-if="step == 2">
+            <div class="h-full" v-if="step == 2">
               <div class=" w-full h-full ">
                 <div class="pb-10">
                   <div class="row w-full pt-5">
@@ -288,21 +280,13 @@ onMounted(() => {
                             <div class="text-subtitle2 text-black">
                               Usar area común
                             </div>
-                            <q-select 
-                              class="form__inputsReverse mt-1"
-                              v-model="formData.typeArea"
-                              :options="[
-                               { value:-1, name:'Seleccione una opción'},
-                               { value: 1, name:'Si'},
-                               { value: 2, name:'No'},]"
-                              option-label="name"
-                              option-value="value"
-                              emit-value
-                              map-options
-                              @update:model-value="cleanAnother"
-                              :rules="[ val => val != -1 || 'Debes seleccionar un recinto']"
-                              dense borderless />
-                              
+                            <q-select class="form__inputsReverse mt-1" v-model="formData.typeArea" :options="[
+                              { value: -1, name: 'Seleccione una opción' },
+                              { value: 1, name: 'Si' },
+                              { value: 2, name: 'No' },]" option-label="name" option-value="value" emit-value
+                              map-options @update:model-value="cleanAnother"
+                              :rules="[val => val != -1 || 'Debes seleccionar un recinto']" dense borderless />
+
                           </div>
                         </div>
                         <div class="col-12 row mt-3 px-3 md:px-2" v-if="formData.typeArea == 1">
@@ -310,19 +294,14 @@ onMounted(() => {
                             <div class="text-subtitle2 text-black">
                               Selecciona el recinto/ubicación
                             </div>
-                            <q-select 
-                              class="form__inputsReverse mt-1"
-                              v-model="formData.area"
-                              :options="comunAreas"
-                              option-label="name"
-                              option-value="value"
-                              emit-value
-                              map-options
-                              :rules="[ val => val.value != -1 || 'Debes seleccionar un recinto']"
-                              dense borderless />
-                              <div class="text-grey-7" style="font-size: 0.7rem;">
-                                Al escoger un area común como recinto para el evento, se realizara una reservación exclusiva del area seleccionada, con la fecha y horas asignados en este formulario
-                              </div>
+                            <q-select class="form__inputsReverse mt-1" v-model="formData.area" :options="comunAreas"
+                              option-label="name" option-value="value" emit-value map-options
+                              :rules="[val => val.value != -1 || 'Debes seleccionar un recinto']" dense borderless />
+                            <div class="text-grey-7" style="font-size: 0.7rem;">
+                              Al escoger un area común como recinto para el evento, se realizara una reservación
+                              exclusiva del
+                              area seleccionada, con la fecha y horas asignados en este formulario
+                            </div>
                           </div>
                         </div>
                         <div class="col-12 row mt-3 px-3 md:px-2" v-if="formData.typeArea == 2">
@@ -330,14 +309,9 @@ onMounted(() => {
                             <div class="text-subtitle2 text-black">
                               Ubicación/Lugar
                             </div>
-                            <q-input
-                              dense
-                              borderless
-                              clearable
-                              v-model="formData.location"
-                              class="form__inputsReverse mt-1"
-                              color="primary"
-                              :rules="[ val => val && val.length > 0 || 'Nombre de area es requerido']" />
+                            <q-input dense borderless clearable v-model="formData.location"
+                              class="form__inputsReverse mt-1" color="primary"
+                              :rules="[val => val && val.length > 0 || 'Nombre de area es requerido']" />
                           </div>
                         </div>
                       </div>
@@ -358,7 +332,7 @@ onMounted(() => {
                 </div>
               </q-btn>
             </div>
-            <div class=" flex flex-center" :class=" step == 1 ? 'col-12' : 'col-6'">
+            <div class=" flex flex-center" :class="step == 1 ? 'col-12' : 'col-6'">
               <q-btn color="primary" class="" style="width: 90%; border-radius: 0.5rem;" type="submit"
                 :loading="loading">
                 <div class="py-1 md:py-1">
@@ -414,8 +388,8 @@ onMounted(() => {
   border: 1px solid #bfbfbfa3;
   transition: all 0.2s ease-out;
   cursor: pointer;
-w
-  &:hover {
+
+  w &:hover {
     transform: scale(1.01);
   }
 }
@@ -428,10 +402,12 @@ w
     padding: 0px 1rem;
   }
 }
+
 @media (max-width: 780px) {
   .buttonSection {
     box-shadow: 0px -5px 10px 0px rgb(207 207 207)
   }
+
   .form__inputsReverse {
     & .q-field__inner {
 
