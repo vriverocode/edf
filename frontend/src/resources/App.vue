@@ -79,7 +79,7 @@ watch(
     <q-dialog v-model="updateAvailable" persistent maximized transition-show="slide-up" transition-hide="slide-down">
       <q-card class="bg-white  column flex-center">
         <q-card-section class="text-center">
-          <div v-html="iconsApp.updateSys"/>
+          <div v-html="iconsApp.updateSys" />
           <h4 class="q-mt-md text-subtitle1">¡Nueva Versión Disponible!</h4>
           <p class="text-subtitle1">Versión {{ versionInfo?.version }}</p>
           <p class="q-px-lg">{{ versionInfo?.release_notes }}</p>
@@ -91,8 +91,8 @@ watch(
             <q-linear-progress :value="downloadProgress / 100" color="warning" class="q-mt-sm" />
           </div>
 
-          <q-btn v-else color="primary" text-color="white" no-caps  size="lg" rounded
-            @click="updateStore.downloadAndInstall()" >
+          <q-btn v-else color="primary" text-color="white" no-caps size="lg" rounded
+            @click="updateStore.downloadAndInstall()">
             <div class="px-5">
               Descargar e Instalar
             </div>

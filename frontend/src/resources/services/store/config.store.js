@@ -3,6 +3,7 @@ import ApiService from '@/services/axios'
 import { CapacitorDownloader } from '@capgo/capacitor-downloader'
 import { FileOpener } from '@capawesome-team/capacitor-file-opener'
 import { Capacitor } from '@capacitor/core'
+import { Filesystem, Directory } from '@capacitor/filesystem'
 
 export const useConfigStore = defineStore('config', {
   state: () => ({
@@ -47,22 +48,54 @@ export const useConfigStore = defineStore('config', {
       this.downloadProgress = 0
 
       try {
-        // Escuchar el progreso para la barra de carga en el frontend
-        CapacitorDownloader.addListener('downloadProgress', ({ progress }) => {
-          this.downloadProgress = progress // Va de 0 a 100
-        })
+        const fileName = `pacifik_update_${this.versionInfo.version_code}.apk`
 
-        // Descargar el archivo directamente a la carpeta pública del dispositivo
-        const downloadResult = await CapacitorDownloader.download({
-          url: this.versionInfo.download_url,
-          name: 'actualizacion.apk',
+        // NUEVO: Le pedimos a Capacitor la ruta ABSOLUTA de la carpeta Data de la app
+        const { uri: apkAbsolutePath } = await Filesystem.getUri({
+          path: fileName,
+          directory: Directory.Data,
         })
+        await new Promise(async (resolve, reject) => {
 
+          let progressListener = await CapacitorDownloader.addListener(
+            'downloadProgress',
+            ({ progress }) => {
+              this.downloadProgress = progress // Va de 0 a 100
+            }
+          )
+          let failListener = await CapacitorDownloader.addListener('downloadFailed', (error) => {
+            reject(error)
+          })
+          
+          let completedListener = await CapacitorDownloader.addListener(
+            'downloadCompleted',
+            async (result) => {
+              if (result.id === 'update-download') {
+                try {
+                  // Ahora sí, el archivo existe y está completo. Le decimos al SO que lo abra.
+                  await FileOpener.openFile({
+                    path: apkAbsolutePath,
+                    mimeType: 'application/vnd.android.package-archive',
+                  })
+                  resolve()
+                } catch (e) {
+                  reject(e)
+                } finally {
+                  // Limpiar eventos en memoria
+                  progressListener.remove()
+                  failListener.remove()
+                  completedListener.remove()
+                }
+              }
+            }
+          )
+          await CapacitorDownloader.download({
+            url: this.versionInfo.download_url,
+            id: 'update-download',
+            destination: apkAbsolutePath,
+          })
+        })
         // Una vez descargado, decirle al Sistema Operativo que lo abra
-        await FileOpener.openFile({
-          path: downloadResult.path,
-          mimeType: 'application/vnd.android.package-archive',
-        })
       } catch (error) {
         console.error('Error en la descarga/instalación', error)
       } finally {

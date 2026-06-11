@@ -17,6 +17,6 @@ class ConfigController extends Controller
             return response()->json(['message' => 'No versions found'], 404);
         }
 
-        return response()->json($latestVersion);
+        return $this->returnSuccess(200, $latestVersion);
     }
 }
