@@ -35,7 +35,6 @@
         "@capacitor/splash-screen": "^7.0.4",
         "@capacitor/status-bar": "^7.0.0",
         "@capawesome-team/capacitor-file-opener": "^7.0.0",
-        "@capgo/capacitor-downloader": "^7.0.0",
         "@quasar/extras": "^1.16.15",
         "firebase": "^11.10.0",
         "mitt": "^3.0.1",
