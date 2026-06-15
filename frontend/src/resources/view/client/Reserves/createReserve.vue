@@ -39,7 +39,7 @@ const emitter = inject('emitter')
 const comunAreas = ref([])
 const userApartments = computed(() => {
   if (authStore.user.role_id == 5) {
-  
+
   }
   if (!authStore.user?.units) return []
   return authStore.user.units.filter(u => u.type == 1)
@@ -80,6 +80,7 @@ const intervalHorarys = ref({
 const selectedPayData = ref({})
 const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
+  console.log(selectedComunArea.value)
   typeModalShow.value = true;
   visibleBackButton(false)
 
@@ -252,16 +253,16 @@ const getAvaibleBookingByDay = () => {
 }
 
 const daysAvailableForBook = (date) => {
- // 1. Validar que la fecha sea hoy o en el futuro
- const isFutureOrToday = date >= moment().format('YYYY/MM/DD');
-  
+  // 1. Validar que la fecha sea hoy o en el futuro
+  const isFutureOrToday = date >= moment().format('YYYY/MM/DD');
+
   // Si es una fecha pasada, bloqueamos inmediatamente
   if (!isFutureOrToday) return false;
 
   // 2. Si el área aún no carga o es un área vieja sin horarios configurados, 
   // dejamos el comportamiento por defecto (permitir futuro)
   if (!selectedComunArea.value || !selectedComunArea.value.schedules || selectedComunArea.value.schedules.length === 0) {
-    return true; 
+    return true;
   }
 
   // 3. Obtener qué día de la semana es la fecha que el calendario está pintando (0 = Domingo, 6 = Sábado)
@@ -534,7 +535,7 @@ const calculateDiffHour = computed(() => {
 onMounted(() => {
   getComunsArea()
   getPayMethod()
-  
+
   if (userApartments.value.length === 1) {
     formData.value.departament_id = userApartments.value[0].id
   }
@@ -617,16 +618,9 @@ watch(step,
                 <div class="row w-full pt-2">
                   <template v-if="step == 2">
                     <div class="flex flex-center w-full q-px-md">
-                      <q-date 
-                        color="tealedf" 
-                        v-model="formData.date" 
-                        minimal 
-                        class="w-full calendarReserve"
-                        :options="daysAvailableForBook"
-                        @update:model-value="getAvaibleBookingByDay" 
-                        text-color="primary"
-                        :navigation-min-year-month="moment().format('YYYY/MM')" 
-                        :locale="myLocale">
+                      <q-date color="tealedf" v-model="formData.date" minimal class="w-full calendarReserve"
+                        :options="daysAvailableForBook" @update:model-value="getAvaibleBookingByDay"
+                        text-color="primary" :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
                       </q-date>
                       <div class="w-full px-5">
                         <div class="bg-primary mt-4 py-2 w-full textInfoContainer">
@@ -854,7 +848,7 @@ watch(step,
                                     <div class="ml-1">
                                       <div class="text-xsImage text-tealedf">Vaucher adjuntado correctamente</div>
                                       <div class="text-xsImage text-black"> {{ payFormData.vaucher.name.slice(0, 10)
-                                      }}***{{
+                                        }}***{{
                                           payFormData.vaucher.name.slice(-5) }} - {{ fileSizeInMB }} MB</div>
                                     </div>
                                   </div>
@@ -899,15 +893,15 @@ watch(step,
                         </div>
                       </q-btn>
                     </div>
-                    <div class="col-4 flex flex-center" v-if="calculateDiffHour" >
+                    <div class="col-4 flex flex-center" v-if="calculateDiffHour">
                       <q-btn outline color="warning" unelevated no-caps class=""
-                        style="width: 95%; border-radius: 3rem;"  @click="showPayLaterModal(true)" >
+                        style="width: 95%; border-radius: 3rem;" @click="showPayLaterModal(true)">
                         <div class="py-0 md:py-0" style="font-weight: 500;">
                           Pagar luego
                         </div>
                       </q-btn>
                     </div>
-                    <div class="flex flex-center" :class="{'col-4': calculateDiffHour, 'col-8': !calculateDiffHour}">
+                    <div class="flex flex-center" :class="{ 'col-4': calculateDiffHour, 'col-8': !calculateDiffHour }">
                       <q-btn outline color="primary" unelevated no-caps class=""
                         style="width: 95%; border-radius: 3rem;" type="submit" :loading="loading">
                         <div class="py-0 md:py-0" style="font-weight: 500;">
@@ -988,14 +982,14 @@ watch(step,
                     Seguridad - higiene y convivencia
                   </div>
                   <div class="flex items-center justify-between ruleDetailContainer my-2 py-2 px-3 cursor-pointer"
-                    v-for="(rule, index) in selectedComunArea.rules_area" :key="rule.id"
-                    @click="openRuleDetails(rule)">
+                    v-for="(rule, index) in selectedComunArea.rules_area" :key="rule.id" @click="openRuleDetails(rule)">
                     <div class="flex items-center" style="width: 90%;">
                       <div class="ruleDetailContainer__index flex flex-center"
                         :class="{ 'bg-warning': rule.severity == 2, 'bg-negative': rule.severity == 3, 'bg-tealedf': rule.severity == 1 }">
                         {{ index + 1 }}
                       </div>
-                      <div class="ml-2 " style="font-size:0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      <div class="ml-2 "
+                        style="font-size:0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         {{ rule.title }}
                       </div>
                     </div>
@@ -1083,7 +1077,7 @@ watch(step,
                 <div class="pt-2 px-2 text-grey-9" style="font-weight:400; font-size:0.99rem; white-space: pre-line">
                   {{ selectedComunArea.description }}
                 </div>
-                <div class=" px-2 font-bold text-lg text-grey-9 pt-2 mt-2 border-t" >
+                <div class=" px-2 font-bold text-lg text-grey-9 pt-2 mt-2 border-t">
                   Cupo por horarios: {{ selectedComunArea.max_cupo }} cupo(s)
                 </div>
                 <div class="pt-2 px-0 text-grey-9" style="font-weight:400; font-size:0.99rem">
@@ -1095,19 +1089,10 @@ watch(step,
                 </div>
                 <div class="text-center pt-4 font-bold text-2xl text-primary">Opción de reserva</div>
                 <div v-if="userApartments.length > 1" class="mt-4 px-2">
-                  <div style="font-weight: 500; font-size: 0.95rem; margin-bottom: 8px;">Selecciona tu departamento:</div>
-                  <q-select
-                    v-model="formData.departament_id"
-                    :options="userApartments"
-                    option-value="id"
-                    option-label="number"
-                    emit-value
-                    map-options
-                    outlined
-                    dense
-                    color="tealedf"
-                    label="Departamento"
-                  />
+                  <div style="font-weight: 500; font-size: 0.95rem; margin-bottom: 8px;">Selecciona tu departamento:
+                  </div>
+                  <q-select v-model="formData.departament_id" :options="userApartments" option-value="id"
+                    option-label="number" emit-value map-options outlined dense color="tealedf" label="Departamento" />
                 </div>
                 <div>
                   <div v-for="type in reservesByType" :key="type.id"
@@ -1156,20 +1141,14 @@ watch(step,
               </div>
             </div>
           </Transition>
-          
+
         </div>
       </q-form>
       <div id="textToPasteData" />
-      <conditionPayLaterModal 
-        :dialog="isPayLaterModalOpen" 
-        @closeModal="showPayLaterModal(false)"
-        @confirmPayLater="handlePayLaterConfirm"
-      />
+      <conditionPayLaterModal :dialog="isPayLaterModalOpen" @closeModal="showPayLaterModal(false)"
+        @confirmPayLater="handlePayLaterConfirm" />
 
-      <ruleDetailsModal
-        v-model="ruleDetailsModalVisible"
-        :rule="selectedRule"
-      />
+      <ruleDetailsModal v-model="ruleDetailsModalVisible" :rule="selectedRule" />
     </div>
     <div v-else class="flex flex-center py-24 w-full">
       <q-spinner-dots color="primary" size="7rem" />

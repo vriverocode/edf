@@ -2,98 +2,132 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Booking extends Model
 {
-    //
     use SoftDeletes;
 
+    // Evitar "Magic Numbers" en tu aplicación
+    public const STATUS_CANCELLED = 0;
+    public const STATUS_PENDING_PAY = 1;
+    public const STATUS_PENDING_APPROVAL = 2;
+    public const STATUS_SUCCESS = 3;
+
     protected $fillable = [
-        "user_id",
-        "departament_id",
-        "comun_area_id",
-        "booking_number",
-        "date",
-        "time_from",
-        "time_to",
-        "amount",
-        "type",
-        "note",
-        "motive",
-        "status",
-        'pending_pay_notification_sent_at',
-        "is_exclusive",
+        "user_id", "departament_id", "comun_area_id", "booking_number",
+        "date", "time_from", "time_to", "amount", "type",
+        "note", "motive", "status", 'pending_pay_notification_sent_at', "is_exclusive",
     ];
 
     protected $casts = [
-        'pending_pay_notification_sent_at' => 'datetime',
+        'date' => 'date:Y-m-d',
+        'pending_pay_notification_sent_at' => 'datetime:Y-m-d H:i:s',
+        'created_at' => 'datetime:Y-m-d H:i:s',
+        'updated_at' => 'datetime:Y-m-d H:i:s',
     ];
-    public $appends  =   ["booking_hour", "status_label", "status_color", "status_color", 'type_label', "type_color"];
 
-    public function comunArea(): BelongsTo
+    // Corregido: status_color estaba duplicado
+    public $appends = ["booking_hour", "status_label", "status_color", 'type_label', "type_color"];
+
+    /* -------------------------------------------------------------------------- */
+    /* Relaciones                                                                 */
+    /* -------------------------------------------------------------------------- */
+    public function comunArea(): BelongsTo { return $this->belongsTo(ComunArea::class); }
+    public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function departament(): BelongsTo { return $this->belongsTo(Departament::class); }
+    public function pay(): HasOne { return $this->hasOne(Pay::class); }
+
+    /* -------------------------------------------------------------------------- */
+    /* Accessors (Sintaxis Moderna Laravel 9+)                                    */
+    /* -------------------------------------------------------------------------- */
+    protected function bookingHour(): Attribute
     {
-        return $this->belongsTo(ComunArea::class, 'comun_area_id', 'id');
-    }
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-    public function departament(): BelongsTo
-    {
-        return $this->belongsTo(Departament::class);
+        return Attribute::make(
+            get: fn () => Carbon::parse($this->time_to)->diffInHours(Carbon::parse($this->time_from))
+        );
     }
 
-    public function pay(): HasOne
+    protected function statusLabel(): Attribute
     {
-        return $this->hasOne(Pay::class);
+        return Attribute::make(
+            get: fn () => match ((int) $this->status) {
+                self::STATUS_CANCELLED => "Cancelada",
+                self::STATUS_PENDING_PAY => "Pago pendiente",
+                self::STATUS_PENDING_APPROVAL => "Pendiente de aprob.",
+                self::STATUS_SUCCESS => "Exitoso",
+                default => "Desconocido",
+            }
+        );
     }
-    public function getBookingHourAttribute()
+
+    protected function statusColor(): Attribute
     {
-        $hour = intval(substr($this->time_to, 0, 2)) - intval(substr($this->time_from, 0, 2));
-        return  $hour;
+        return Attribute::make(
+            get: fn () => match ((int) $this->status) {
+                self::STATUS_CANCELLED => "negative",
+                self::STATUS_PENDING_PAY, self::STATUS_PENDING_APPROVAL => "warning",
+                self::STATUS_SUCCESS => "positive",
+                default => "grey",
+            }
+        );
     }
-    public function getStatusLabelAttribute()
+
+    protected function typeLabel(): Attribute
     {
-        $status = [
-            "Cancelada",
-            "Pago pendiente",
-            "Pendiente de aprob.",
-            "Exitoso"
-        ];
-        return  $status[$this->status];
+        return Attribute::make(
+            get: fn () => match ((int) $this->type) {
+                0 => "Cancelada",
+                1 => "Compartida",
+                2 => "Exclusiva",
+                3 => "De pago",
+                default => "Desconocido",
+            }
+        );
     }
-    public function getTypeLabelAttribute()
+
+    protected function typeColor(): Attribute
     {
-        $types = [
-            "Cancelada",
-            "Compartida",
-            "Exclusiva",
-            "De pago"
-        ];
-        return  $types[$this->type];
+        return Attribute::make(
+            get: fn () => match ((int) $this->type) {
+                1 => 'blue-9',
+                2 => 'deep-purple-10',
+                3 => 'light-green-13',
+                4 => 'De pago lista de invitados', // Nota: El typeLabel no tiene ID 4, revisar coherencia
+                default => 'No definido',
+            }
+        );
     }
-    public function getTypeColorAttribute()
+
+    /* -------------------------------------------------------------------------- */
+    /* Query Scopes (Filtros extraídos del Controlador)                           */
+    /* -------------------------------------------------------------------------- */
+    public function scopeFilter(Builder $query, array $filters): void
     {
-        return match((int) $this->type) {
-            1 => 'blue-9',
-            2 => 'deep-purple-10',
-            3 => 'light-green-13',
-            4 => 'De pago lista de invitados',
-            default => 'No definido',
-        };
-    }
-    public function getStatusColorAttribute()
-    {
-        $color = [
-            "negative",
-            "warning",
-            "warning",
-            "positive"
-        ];
-        return  $color[$this->status];
+        $query->when(isset($filters['status']) && (int) $filters['status'] !== 4, 
+                fn($q) => $q->where('status', (int) $filters['status']))
+            ->when($filters['area_id'] ?? null, 
+                fn($q, $areaId) => $q->where('comun_area_id', (int) $areaId))
+            ->when($filters['date_from'] ?? null, 
+                fn($q, $date) => $q->whereDate('date', '>=', $date))
+            ->when($filters['date_to'] ?? null, 
+                fn($q, $date) => $q->whereDate('date', '<=', $date))
+            ->when($filters['amount_type'] ?? null, function ($q, $type) {
+                if ($type === 'free') $q->where('amount', 0);
+                if ($type === 'paid') $q->where('amount', '>', 0);
+            });
+
+        $sortBy = in_array($filters['sort_by'] ?? '', ['created_at', 'date', 'status', 'amount']) 
+            ? $filters['sort_by'] 
+            : 'created_at';
+        $sortDir = ($filters['sort_dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortBy, $sortDir);
     }
 }

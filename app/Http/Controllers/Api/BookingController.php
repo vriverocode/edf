@@ -218,14 +218,18 @@ class BookingController extends Controller
             'no' => []
         ];
         $mm = [];
-        $currentCarbonNow = Carbon::now('America/lima');
-
+        
+        
         // Si el área no tiene horarios ese día, devolvemos todo cerrado
         if ($schedules->isEmpty()) {
             return $this->returnSuccess(200, [
-                'blocks' => $blocks,
-                'ss' => $mm,
+                'blocks' => $blocks
             ]);
+        }
+        $currentCarbonNow = Carbon::now()->setTimezone('America/lima');
+        $isCine = strtolower(trim($area->name)) === 'cine';
+        if ($isToday && $isCine) {
+            $currentCarbonNow->addHours(5);
         }
 
         // 3. Iteramos por cada turno del día (Ej: Turno 1: 08:00 - 12:00, Turno 2: 14:00 - 18:00)
@@ -277,7 +281,7 @@ class BookingController extends Controller
 
         return $this->returnSuccess(200, [
             'blocks' => $blocks,
-            'ss' => $mm,
+
         ]);
     }
 
