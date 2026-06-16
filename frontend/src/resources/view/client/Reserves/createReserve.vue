@@ -28,6 +28,7 @@ const myLocale = {
   pluralDay: 'dias'
 }
 const typeModalShow = ref(false)
+const movieModalShow = ref(false)
 const rulesModal = ref(false)
 const ruleDetailsModalVisible = ref(false);
 const selectedRule = ref(null);
@@ -80,7 +81,7 @@ const intervalHorarys = ref({
 const selectedPayData = ref({})
 const selectArea = (id) => {
   selectedComunArea.value = comunAreas.value.find((area) => area.id == id)
-  console.log(selectedComunArea.value)
+  formData.value.typeOfReserve = 0
   typeModalShow.value = true;
   visibleBackButton(false)
 
@@ -129,7 +130,7 @@ const nextStep = () => {
     return
   }
   if (step.value == 1) {
-    typeModalShow.value = false
+      typeModalShow.value = false;
   }
 
   if (step.value == 3 && formData.value.typeOfReserve == 1) {
@@ -253,23 +254,13 @@ const getAvaibleBookingByDay = () => {
 }
 
 const daysAvailableForBook = (date) => {
-  // 1. Validar que la fecha sea hoy o en el futuro
   const isFutureOrToday = date >= moment().format('YYYY/MM/DD');
 
-  // Si es una fecha pasada, bloqueamos inmediatamente
   if (!isFutureOrToday) return false;
-
-  // 2. Si el área aún no carga o es un área vieja sin horarios configurados, 
-  // dejamos el comportamiento por defecto (permitir futuro)
   if (!selectedComunArea.value || !selectedComunArea.value.schedules || selectedComunArea.value.schedules.length === 0) {
     return true;
   }
-
-  // 3. Obtener qué día de la semana es la fecha que el calendario está pintando (0 = Domingo, 6 = Sábado)
   const dayOfWeek = moment(date, 'YYYY/MM/DD').day();
-
-  // 4. Verificar si existe al menos un bloque de horario para ese día
-  // El método .some() devolverá true si encuentra coincidencia, habilitando el día.
   const hasSchedule = selectedComunArea.value.schedules.some(schedule => schedule.day === dayOfWeek);
 
   return hasSchedule;
@@ -327,7 +318,6 @@ const visibleBackButton = (visible) => {
   const element = document.querySelector('.backButton');
   const tope = document.querySelector('.page_continerContent');
   element.style.display = visible ? 'flex' : 'none'
-  // tope.style.height = visible ? '90%' : '100%'
 
 }
 const changeTap = (tab) => {
@@ -355,7 +345,21 @@ const openRuleModal = (status) => {
     showNotify('negative', 'Selecciona un intervalo de tiempo para tu reserva')
     return
   }
-  rulesModal.value = status
+  const isCine = selectedComunArea.value.name && selectedComunArea.value.name.toLowerCase().trim() === 'cine';
+  
+  if (status && isCine && formData.value.typeOfReserve == 1) {
+    movieModalShow.value = true;
+  } else {
+    rulesModal.value = status
+  }
+}
+const continueToRulesFromMovie = () => {
+  if (!formData.value.note || formData.value.note.trim() === '') {
+    showNotify('negative', 'Debes ingresar el nombre de la película para invitar a los demás');
+    return;
+  }
+  movieModalShow.value = false;
+  rulesModal.value = true;
 }
 
 const showPayLaterModal = (status) => {
@@ -366,8 +370,6 @@ const handlePayLaterConfirm = async () => {
   formData.value.pay_later = true
   createReserve();
 };
-
-//payment 
 
 const payFormData = ref({
   pay_method: 0,
@@ -1053,7 +1055,7 @@ watch(step,
               <div class="row py-0 " style="height: 9%;">
                 <div class="col-4 flex flex-center ">
                   <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
-                    @click="rulesModal = false">
+                    @click="rulesModal = false; movieModalShow = true;">
                     <div class="py-0 md:py-0">
                       Volver
                     </div>
@@ -1141,7 +1143,50 @@ watch(step,
               </div>
             </div>
           </Transition>
+          <Transition :name="transitionName">
+            <div class="h-full rulesModal px-3" style="overflow: hidden;" v-if="movieModalShow">
+              <div class="pb-4 flex flex-col justify-center" style="overflow:auto; height:91%">
+                
+                <div class="flex flex-center mt-0">
+                   <q-icon name="eva-film-outline" size="4rem" color="primary" />
+                </div>
+                
+                <div class="text-center py-2 font-bold text-2xl text-primary">Cartelera de Cine</div>
+                
+                <div class="pt-2 px-3 text-grey-9 text-center" style="font-weight:400; font-size:0.95rem;">
+                  Al ser una reserva compartida, se creará un evento en la comunidad invitando a los residentes a asistir.
+                  <br>
+                  <b>Coloca el nombre de la pelicula</b>
+                </div>
+                
+                <div class="mt-6 px-4">
+                  <q-input color="tealedf" label="¿Qué película proyectarás?" dense borderless clearable
+                    v-model="formData.note" class="form__inputsReverse mt-0" :maxlength="12"
+                    :rules="[val => !(!val) || 'Nombre de la pelicula es obligatorio']"  placeholder="Ej. El Padrino, Avengers, etc.">
+                  </q-input>
+                </div>
+              </div>
 
+              <div class="row py-0 " style="height: 9%;">
+                <div class="col-4 flex flex-center">
+                  <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
+                    @click="movieModalShow = false; formData.note = ''">
+                    <div class="py-0 md:py-0">
+                      Volver
+                    </div>
+                  </q-btn>
+                </div>
+                <div class="col-8 flex flex-center">
+                  <q-btn outline color="primary" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
+                    @click="continueToRulesFromMovie()">
+                    <div class="py-0 md:py-0" style="font-weight: 500;">
+                      Continuar
+                    </div>
+                  </q-btn>
+                </div>
+              </div>
+            </div>
+          </Transition>
         </div>
       </q-form>
       <div id="textToPasteData" />

@@ -57,5 +57,13 @@
         "handlebars": "^4.7.9",
         "protobufjs": "^7.5.8",
         "shell-quote": "^1.8.4"
+    },
+    "allowScripts": {
+      "@firebase/util": true,
+      "@parcel/watcher": true,
+      "esbuild": true,
+      "protobufjs": true,
+      "sharp": true,
+      "vue-demi": true
     }
 }

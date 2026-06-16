@@ -12,6 +12,7 @@ use App\Notifications\RealtimeNotification;
 use App\Services\BookingPendingPayNotifier;
 use Carbon\Carbon;
 use Exception;
+use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -60,8 +61,12 @@ class BookingController extends Controller
                 'status' =>  $request->typeOfReserve == 1 ? 3 : 1,
                 'is_exclusive' => $request->exclusive
             ]);
+
+            $this->createEventIfPublicCine($booking);
         } catch (Exception $th) {
-            return $this->returnFail(500, "Error al intentar crear reservación");
+            // return $this->returnFail(500, "Error al intentar crear reservación");
+            return $this->returnFail(500, $th->getMessage());
+
         }
         $this->sendNotification($booking);
 
@@ -193,22 +198,19 @@ class BookingController extends Controller
         $dateStr = date('Y-m-d', strtotime($request->date));
         $isToday = $dateStr === date('Y-m-d');
         
-        // Obtenemos el día de la semana (0 = Domingo, 6 = Sábado)
         $carbonDate = Carbon::parse($dateStr);
         $dayOfWeek = $carbonDate->dayOfWeek;
 
-        // 1. Traemos los turnos configurados para ESE día específico
         $schedules = ComunAreaSchedule::where('comun_area_id', $idArea)
             ->where('day', $dayOfWeek)
             ->get();
 
-        // 2. Solo traemos reservas activas del día
         $bookingsInDay = Booking::where('comun_area_id', $idArea)
             ->where('date', $dateStr)
             ->where('status', '>', 0)
             ->get();
 
-        $intervalSize = $area->max_time_reserve ?? 1; // Tamaño del bloque en horas
+        $intervalSize = $area->max_time_reserve ?? 1;
 
         $blocks = [
             'ma' => [],
@@ -217,8 +219,6 @@ class BookingController extends Controller
         ];
         $mm = [];
         
-        
-        // Si el área no tiene horarios ese día, devolvemos todo cerrado
         if ($schedules->isEmpty()) {
             return $this->returnSuccess(200, [
                 'blocks' => $blocks
@@ -230,35 +230,24 @@ class BookingController extends Controller
             $currentCarbonNow->addHours(5);
         }
 
-        // 3. Iteramos por cada turno del día (Ej: Turno 1: 08:00 - 12:00, Turno 2: 14:00 - 18:00)
         foreach ($schedules as $schedule) {
             $scheduleTimeStart = Carbon::parse($schedule->time_from);
             $scheduleTimeEnd = Carbon::parse($schedule->time_to);
 
             $time = $scheduleTimeStart->copy();
-
-            // Usamos un ciclo while que avanza mientras no lleguemos al cierre del turno
             while ($time->lessThan($scheduleTimeEnd)) {
                 
                 $timeInitInterval = $time->copy();
-                // Calculamos el fin "ideal" del bloque sumando el max_time_reserve
                 $slotEnd = $time->copy()->addHours($intervalSize);
-
-                // TRUCO: Si el fin ideal supera el cierre del área, lo limitamos a la hora de cierre.
-                // Así, un bloque de 21:00 + 4 horas (01:00) se recorta automáticamente a las 23:00.
                 if ($slotEnd->greaterThan($scheduleTimeEnd)) {
                     $slotEnd = $scheduleTimeEnd->copy();
                 }
 
-                // Omitir intervalos pasados si el usuario está viendo el día actual
                 if ($isToday && $timeInitInterval->lessThanOrEqualTo($currentCarbonNow)) {
-                    $time = $slotEnd->copy(); // Avanzamos el puntero para la siguiente iteración
+                    $time = $slotEnd->copy();
                     continue;
                 }
-
-                // Calculamos la disponibilidad para este bloque específico
                 $availability = $this->calculateIntervalAvailability($timeInitInterval, $slotEnd, $area->max_cupo ?? 100, $bookingsInDay);
-                array_push($mm, $availability);
                 
                 $intervalData = [
                     'time_from' => $timeInitInterval->format('H:i'), 
@@ -267,12 +256,8 @@ class BookingController extends Controller
                     'available' => $availability['spots'],
                     'status'    => $availability['status']
                 ];
-
-                // Determinamos si es mañana, tarde o noche
                 $blockCategory = $this->getTimeBlockCategory((int)$timeInitInterval->format('H'));
                 $blocks[$blockCategory][] = $intervalData;
-
-                // Preparamos el $time para el siguiente ciclo, arrancando exactamente donde terminó este bloque
                 $time = $slotEnd->copy();
             }
         }
@@ -293,9 +278,7 @@ class BookingController extends Controller
         foreach ($bookings as $booking) {
             $bStart = Carbon::parse($booking->time_from);
             $bEnd = Carbon::parse($booking->time_to);
-            
-            // Hay solapamiento si el inicio de la reserva es ANTES del fin del bloque
-            // y el fin de la reserva es DESPUÉS del inicio del bloque.
+
             if ($bStart->lessThan($slotEnd) && $bEnd->greaterThan($slotStart)) {
                 if ($booking->is_exclusive) {
                     $occupancy = $capacity;
@@ -304,8 +287,6 @@ class BookingController extends Controller
                 $occupancy++;
             }
         }
-
-        // Asegura que los cupos nunca sean negativos
         $availableSpots = max(0, $capacity - $occupancy);
 
         $status = 'Disponible';
@@ -367,8 +348,6 @@ class BookingController extends Controller
 
         return $validator->all() ;
     }
-
-
     private function sendNotification($booking)
     {
         $users = [
@@ -380,11 +359,6 @@ class BookingController extends Controller
             $this->cancelReserveNotification($users, $booking);
             return;
         }
-        // if ($booking->status == 1) {
-        //     $this->pedingToPayReserveNotification($users, $booking);
-        //     return;
-        // }
-
         $this->successReserveNotification($users, $booking);
     }
     private function successReserveNotification($users, $booking)
@@ -411,7 +385,7 @@ class BookingController extends Controller
                     ]
                 ));
             }
-        } catch (\Throwable $e) {
+        } catch (Exception $e) {
             Log::error('Fallo al enviar notificación de reserva: ' . $e->getMessage());
         }
     }
@@ -443,8 +417,59 @@ class BookingController extends Controller
                     ]
                 ));
             }
-        } catch (\Throwable $e) {
+        } catch (Exception $e) {
             Log::error('Fallo al enviar notificación de reserva: ' . $e->getMessage());
+        }
+    }
+    private function createEventIfPublicCine($booking)
+    {
+        $area = ComunArea::find($booking->comun_area_id);
+        $isCine = $area && strtolower(trim($area->name)) === 'cine';
+
+        if ($isCine && $booking->typeOfReserve == 1) {
+            // Creamos el evento y lo atamos a la reserva recién creada
+            $event = Event::create([
+                'title'       => 'Cine: ' . $booking->note, // El nombre de la película
+                'description' => 'Proyección compartida en el área de Cine para el día '.date('DD/MM/YYYY', strtotime($booking->date)).'. ¡Todos los residentes están invitados! ',
+                'date'        => date('Y-m-d', strtotime($booking->date)),
+                'time_from'   => $booking->time_from,
+                'time_to'     => $booking->time_to,
+                'location'    => $area->name,
+                'booking_id'  => $booking->id 
+            ]);
+
+            // Notificamos a los usuarios sobre el nuevo evento
+            $this->sendEventCreatedNotification($event, $booking->user_id);
+        }
+    }
+
+    private function sendEventCreatedNotification($event, $creatorId)
+    {
+        $users = User::where('rol_id', 2)->get();
+        $creator = User::find($creatorId);
+        
+        if ($creator && !$users->contains('id', $creator->id)) {
+            $users->push($creator);
+        }
+
+        $dataNotificaction = [
+            "title"   => "Nuevo evento programado",
+            "message" => $event->title . ", fue programado. Entra y confirma tu asistencia.",
+            "url"     => "/client/events/view/" . $event->id,
+            "meta"    => ['event_id' => $event->id],
+        ];
+
+        try {
+            foreach ($users as $user) {
+                $user->notify(new RealtimeNotification(
+                    title: $dataNotificaction["title"],
+                    message: $dataNotificaction["message"],
+                    url: $dataNotificaction["url"],
+                    meta: $dataNotificaction["meta"],
+                ));
+            }
+        } catch (Exception $e) {
+            Log::error('Fallo al enviar notificación de evento automático: ' . $e->getMessage());
         }
     }
 }
