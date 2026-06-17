@@ -44,7 +44,7 @@ onMounted(async () => {
   $q.addressbarColor.set('#0e344c');
 
   showSplash();
-  setupStatusBar2
+  setupStatusBar2()
   await updateStore.checkForUpdates();
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {
