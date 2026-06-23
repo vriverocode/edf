@@ -3,146 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reclamo de Pago</title>
+    <title>Registro de Reclamo - Pacifik</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f4f4f5;
             margin: 0;
             padding: 0;
-            color: #1f2937;
+            color: #333333;
+            line-height: 1.5;
+        }
+        .wrapper {
+            width: 100%;
+            padding: 40px 0;
+            background-color: #f4f4f5;
         }
         .container {
             max-width: 600px;
-            margin: 40px auto;
+            margin: 0 auto;
             background-color: #ffffff;
+            border: 1px solid #e4e4e7;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .header {
-            padding: 24px;
             text-align: center;
-            border-bottom: 1px solid #e5e7eb;
-            background-color: #f9fafb;
+            padding: 30px 20px 20px;
+            border-bottom: 1px solid #e4e4e7;
         }
         .header img {
-            max-height: 60px;
-            width: auto;
+            max-width: 120px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            color: #18181b;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
         .content {
-            padding: 32px 24px;
+            padding: 30px;
         }
-        .ticket-badge {
+        .badge {
             display: inline-block;
-            background-color: #eff6ff;
-            color: #2563eb;
-            padding: 6px 12px;
-            border-radius: 9999px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 24px;
+            background-color: #18181b;
+            color: #ffffff;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
         }
-        .title {
-            font-size: 20px;
-            font-weight: 600;
-            margin: 0 0 24px 0;
-            color: #111827;
+        .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #71717a;
+            border-bottom: 1px solid #e4e4e7;
+            padding-bottom: 5px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
         }
         .data-table {
             width: 100%;
             border-collapse: collapse;
         }
-        .data-table th, .data-table td {
-            padding: 12px 0;
-            border-bottom: 1px solid #e5e7eb;
-            text-align: left;
-            font-size: 15px;
-        }
-        .data-table th {
-            color: #6b7280;
-            font-weight: 500;
-            width: 40%;
-        }
         .data-table td {
-            color: #111827;
+            padding: 8px 0;
+            font-size: 14px;
+            vertical-align: top;
+        }
+        .data-table td.label {
+            width: 40%;
+            color: #52525b;
             font-weight: 600;
         }
-        .description-box {
-            margin-top: 24px;
-            background-color: #f9fafb;
-            padding: 16px;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
+        .data-table td.value {
+            width: 60%;
+            color: #18181b;
         }
-        .description-box p {
-            margin: 0;
+        .description-box {
+            background-color: #fafafa;
+            border: 1px solid #e4e4e7;
+            padding: 15px;
+            border-radius: 4px;
             font-size: 14px;
-            line-height: 1.6;
-            color: #4b5563;
+            color: #3f3f46;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        .voucher-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #f4f4f5;
+            color: #18181b;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            border: 1px solid #d4d4d8;
+            border-radius: 4px;
+            text-align: center;
         }
         .footer {
-            padding: 24px;
+            background-color: #fafafa;
+            padding: 20px;
             text-align: center;
-            font-size: 13px;
-            color: #9ca3af;
-            background-color: #f9fafb;
-            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #a1a1aa;
+            border-top: 1px solid #e4e4e7;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Logo de la Junta de Condominio -->
-        <div class="header">
-            <!-- Reemplazar src con la URL absoluta del logo del condominio -->
-            <img src="{{ asset('images/logo-condominio.png') }}" alt="Junta de Propietarios">
-        </div>
-
-        <div class="content">
-            <div class="ticket-badge">
-                Caso #{{ $claimData['ticket_id'] ?? strtoupper(Str::random(8)) }}
+    <div class="wrapper">
+        <div class="container">
+            
+            <div class="header">
+                <img src="https://website-a40e47dc.gtq.fvz.mybluehost.me/public/images/logo/logo.png" style="width: 50px;" alt="Logo Pacifik">
+                <h1>Junta de Condominio Pacifik</h1>
             </div>
 
-            <h2 class="title">Nuevo Reclamo de Pago Registrado</h2>
+            <div class="content">
+                <div class="badge">CASO #{{ $claimData['sequence'] }}</div>
+                
+                <div style="font-size: 16px; margin-bottom: 20px; color: #18181b;">
+                    Se ha registrado un nuevo <strong>{{ $claimData['claim_type'] }}</strong> en el sistema con fecha <strong>{{ $claimData['createDate'] }}</strong>.
+                </div>
 
-            <table class="data-table">
-                <tr>
-                    <th>Residente / Propietario:</th>
-                    <td>{{ $claimData['resident_name'] }}</td>
-                </tr>
-                <tr>
-                    <th>Unidad / Departamento:</th>
-                    <td>{{ $claimData['apartment_unit'] }}</td>
-                </tr>
-                <tr>
-                    <th>Monto Reclamado:</th>
-                    <!-- Interpolación del monto. Ajustado al contexto monetario. -->
-                    <td>S/ {{ number_format($claimData['amount'], 2) }}</td>
-                </tr>
-                <tr>
-                    <th>Fecha de Pago Indicada:</th>
-                    <td>{{ $claimData['payment_date'] }}</td>
-                </tr>
-                <tr>
-                    <th>Nº de Referencia / Operación:</th>
-                    <td>{{ $claimData['reference_number'] }}</td>
-                </tr>
-                <tr>
-                    <th>Banco Emisor:</th>
-                    <td>{{ $claimData['bank_name'] }}</td>
-                </tr>
-            </table>    
+                <div class="section-title">Datos del Residente</div>
+                <table class="data-table">
+                    <tr>
+                        <td class="label">Nombre Completo:</td>
+                        <td class="value">{{ $claimData['fullname'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Documento ({{ $claimData['doctype'] }}):</td>
+                        <td class="value">{{ $claimData['document'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Ubicación:</td>
+                        <td class="value">Piso {{ $claimData['floor'] }}, Dpto. {{ $claimData['departament'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Contacto:</td>
+                        <td class="value">{{ $claimData['phone'] }}<br>{{ $claimData['email'] }}</td>
+                    </tr>
+                </table>
 
-            <div class="description-box">
-                <strong>Observaciones del Residente:</strong><br><br>
-                <p>{!! nl2br(e($claimData['description'])) !!}</p>
+                <div class="section-title">Información del Servicio</div>
+                <table class="data-table">
+                    <tr>
+                        <td class="label">Tipo de Servicio:</td>
+                        <td class="value">{{ $claimData['service_type'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Nº de Servicio:</td>
+                        <td class="value">{{ $claimData['service_number'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Fecha del Servicio:</td>
+                        <td class="value">{{ $claimData['service_date'] }}</td>
+                    </tr>
+                </table>
+
+                <div class="section-title">Detalles del Reclamo</div>
+                <table class="data-table">
+                    <tr>
+                        <td class="label">Tipo de Solicitud:</td>
+                        <td class="value" style="text-transform: capitalize;">{{ $claimData['claim_type'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Monto Involucrado:</td>
+                        <td class="value">{{ number_format($claimData['amount'], 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Fecha Indicada:</td>
+                        <td class="value">{{ $claimData['claim_date'] }}</td>
+                    </tr>
+                </table>
+
+                <div class="section-title">Descripción del Caso</div>
+                <div class="description-box">{!! nl2br(e($claimData['claim_description'])) !!}</div>
+
+                @if(!empty($claimData['claim_vaucher']))
+                <div style="text-align: center;">
+                    <a href="{{ asset($claimData['claim_vaucher']) }}" class="voucher-btn" target="_blank">
+                        &#128206; Ver Comprobante Adjunto
+                    </a>
+                </div>
+                @endif
+
             </div>
-        </div>
 
-        <div class="footer">
-            Este es un correo generado automáticamente por el Sistema de Gestión del Condominio.<br>
-            Por favor, no responda a esta dirección.
+            <div class="footer">
+                Este mensaje fue generado automáticamente por el sistema de gestión del Condominio Pacifik.<br>
+                Por favor, no responda directamente a este correo.
+            </div>
+
         </div>
     </div>
 </body>

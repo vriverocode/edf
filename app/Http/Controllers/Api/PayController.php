@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PayClaims;
 use App\Models\Booking;
 use App\Models\FinancialAccount;
 use App\Models\Pay;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class PayController extends Controller
@@ -244,9 +246,8 @@ class PayController extends Controller
             $financialAccount->save();
 
             $transaction = Transaction::create([
-                'financial_account_id' => $financialAccount->id, 
-                'transaction_category_id' => (int) $request->transaction_category_id, 
-                
+                'financial_account_id' => $financialAccount->id,
+                'transaction_category_id' => (int) $request->transaction_category_id,
                 'pay_id' => $pay->id,
                 'amount' => $amount,
                 'date' => now()->toDateString(),
@@ -365,32 +366,40 @@ class PayController extends Controller
     }
     public function claimsByPay(Request $request)
     {
-        $vaucherPath = $this->uploadVaucher($request, $request, 2);
-        $claimData = [
-            'sequence' => $request->sequence,
-            'fullname' => $request->fullname,
-            'doctype' => $request->doctype,
-            'document' => $request->document,
-            'floor' => $request->floor,
-            'departament' => $request->department,
-            'phone' => $request->phone,
-            'email' => $request->email,
-            'service_type' => $request->service_type,
-            'service_number' => $request->service_number,
-            'service_date' => $request->claim_date,
-            'amount' => $request->amount,
-            'claim_type' => $request->claim_type,
-            'claim_date' => Carbon::parse($request->claim_date)->format('d/m/Y'),
-            'claim_description' => $request->claim_description,
-            'claim_vaucher' => $vaucherPath,
+        // $vaucherPath = $this->uploadVaucher($request, $request, 2);
+        try {
+            $rawSequence = intval($request->sequence);
+            $formattedSequence = '0' . str_pad($rawSequence, 5, '0', STR_PAD_LEFT);
+            $claimData = [
+                'sequence' => $formattedSequence,
+                'fullname' => $request->fullname,
+                'doctype' => $request->doctype,
+                'document' => $request->document,
+                'floor' => $request->floor,
+                'departament' => $request->department,
+                'phone' => $request->phone,
+                'email' => $request->email,
+                'service_type' => $request->service_type,
+                'service_number' => $request->service_number,
+                'service_date' => $request->claim_date,
+                'amount' => $request->amount,
+                'claim_type' => $request->claim_type,
+                'claim_date' => Carbon::parse($request->claim_date)->format('d/m/Y'),
+                'claim_description' => $request->claim_description,
+                'claim_vaucher' => $vaucherPath ?? '',
+                'createDate' => Carbon::parse($request->create_date)->format('d/m/Y'),
+            ];
+            Mail::to('frovic.ve@gmail.com')->send(new PayClaims($claimData));
+            Mail::to('test@edificiopacifik.com')->send(new PayClaims($claimData));
 
-            'createDate' => Carbon::parse($request->create_date)->format('d/m/Y'),
+            Sequence::where('name', 'claims')->update([
+                'value' => $rawSequence + 1,
+            ]);
+        } catch (Exception $th) {
+            return $this->returnFail(500, $th->getMessage());
+        }
 
-        ];
-
-        Sequence::where('name', 'claims')->update([
-            'value' => $request->sequence + 1,
-        ]);
+        return $this->returnSuccess(200, $claimData);
     }
     private function afterPayAction($pay)
     {
@@ -493,8 +502,7 @@ class PayController extends Controller
             $vaucherPath = public_path() . "/images/{$folder}/";
             $vaucher->file("vaucher")->move($vaucherPath, $path);
         }
-        if($type == 1)
-        {
+        if ($type == 1) {
             $pay->save();
             $pay->vaucher = $path;
         }
@@ -533,8 +541,6 @@ class PayController extends Controller
         $dataNotificaction = $this->getDataToNotification($pay);
 
         try {
-
-
             $users["client"]->notify(new RealtimeNotification(
                 title: $dataNotificaction[0]["title"],
                 message: $dataNotificaction[0]["message"],
@@ -594,9 +600,9 @@ class PayController extends Controller
             "admin" => User::find(1),
             "client" => User::find($pay->user_id),
         ];
-        $this->ReserveNotificationByStatus($users, $pay);
+        $this->reserveNotificationByStatus($users, $pay);
     }
-    private function ReserveNotificationByStatus($users, $pay)
+    private function reserveNotificationByStatus($users, $pay)
     {
 
         $data = $pay->status == 0
@@ -697,5 +703,4 @@ class PayController extends Controller
         $sortDir = $request->get('sort_dir') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $sortDir);
     }
-
 }

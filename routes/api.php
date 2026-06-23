@@ -29,6 +29,8 @@ use App\Models\Currency;
 use App\Models\FinancialAccount;
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/pruebaCorreo', [PayController::class, 'claimsByPay']);
+
 Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
 Route::get('/app-version', [ConfigController::class, 'getAppVersion']);
 Route::middleware('auth:sanctum')->post('/token-movile', [UserController::class, 'saveTokenMovile']);
@@ -126,7 +128,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [PayController::class, 'getPayById']);
         Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus']);
         Route::post('/validate/{id}', [PayController::class, 'validatePayment']);
+        Route::get('/claims/sequence', [PayController::class, 'getClaimSequence']);
         Route::post('/claims', [PayController::class, 'claimsByPay']);
+
 
         Route::post('/culqi-payment', [PayController::class, 'processCulqiPayment']);
     });

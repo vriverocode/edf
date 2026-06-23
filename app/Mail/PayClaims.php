@@ -5,21 +5,22 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Address;
+use Illuminate\Mail\Mailables\Attachment;
+use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 class PayClaims extends Mailable
 {
-    use Queueable, SerializesModels;
+    // use Queueable;
+    use SerializesModels;
 
     /**
      * Create a new message instance.
      */
-    public function __construct( public Array $claimData)
+    public function __construct(public array $claimData)
     {
-        
     }
 
     /**
@@ -29,9 +30,9 @@ class PayClaims extends Mailable
     {
         return new Envelope(
             replyTo: [
-                new Address('taylor@example.com', 'Taylor Otwell'),
+                new Address('badcabra.ve@gmail.com', 'Taylor Otwell'),
             ],
-            subject: 'Reclamo de pago Nº '. $this->claimData['sequence'],
+            subject: 'Reclamo de pago Nº ' . $this->claimData['sequence'],
         );
     }
 
@@ -41,7 +42,7 @@ class PayClaims extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mail.claims.claimsClient',
+            view: 'mails.claims.claimsClient',
         );
     }
 
@@ -52,6 +53,8 @@ class PayClaims extends Mailable
      */
     public function attachments(): array
     {
-        return [];
+        return [
+            // Attachment::fromStorage($this->claimData['vaucher'] ?? null),
+        ];
     }
 }
