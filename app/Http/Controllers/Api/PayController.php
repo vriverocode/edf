@@ -2,21 +2,23 @@
 
 namespace App\Http\Controllers\Api;
 
-use Exception;
-use App\Models\Pay;
-use App\Models\User;
-use App\Models\Booking;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\FinancialAccount;
+use App\Models\Pay;
 use App\Models\Quota;
+use App\Models\Sequence;
 use App\Models\Transaction;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Validator;
+use App\Models\User;
 use App\Notifications\RealtimeNotification;
 use App\Services\BookingPendingPayNotifier;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class PayController extends Controller
 {
@@ -274,14 +276,6 @@ class PayController extends Controller
         }
     }
 
-    private function catergoryByTypePay($type){
-        $ids = [
-            1,
-            2,
-        ];
-
-        return $ids[$type];
-    }
     private function normalizedConsolidatedIdsFromPayRequest(Request $request): ?array
     {
         $raw = $request->input('consolidated_ids');
@@ -368,6 +362,35 @@ class PayController extends Controller
         } catch (\Exception $e) {
             return $this->returnFail(500, 'Error procesando la operación');
         }
+    }
+    public function claimsByPay(Request $request)
+    {
+        $vaucherPath = $this->uploadVaucher($request, $request, 2);
+        $claimData = [
+            'sequence' => $request->sequence,
+            'fullname' => $request->fullname,
+            'doctype' => $request->doctype,
+            'document' => $request->document,
+            'floor' => $request->floor,
+            'departament' => $request->department,
+            'phone' => $request->phone,
+            'email' => $request->email,
+            'service_type' => $request->service_type,
+            'service_number' => $request->service_number,
+            'service_date' => $request->claim_date,
+            'amount' => $request->amount,
+            'claim_type' => $request->claim_type,
+            'claim_date' => Carbon::parse($request->claim_date)->format('d/m/Y'),
+            'claim_description' => $request->claim_description,
+            'claim_vaucher' => $vaucherPath,
+
+            'createDate' => Carbon::parse($request->create_date)->format('d/m/Y'),
+
+        ];
+
+        Sequence::where('name', 'claims')->update([
+            'value' => $request->sequence + 1,
+        ]);
     }
     private function afterPayAction($pay)
     {
@@ -457,20 +480,25 @@ class PayController extends Controller
 
         return $validator->all();
     }
-    private function uploadVaucher($pay, $vaucher)
+    private function uploadVaucher($pay, $vaucher, $type = 1)
     {
         $path = "";
-
+        $id = $type == 1 ? $pay->id : $pay->sequence;
+        $folder = $type == 1 ? 'vaucher' : 'claims';
         if ($vaucher->file("vaucher")) {
             $rand = rand(1000000, 9999999);
-            $fileName = trim(str_replace(" ", "_", $pay->id));
+            $fileName = trim(str_replace(" ", "_", $id));
             $extension = $vaucher->file("vaucher")->extension();
-            $path = "/public/images/vaucher/{$rand}_{$fileName}.{$extension}";
-            $vaucherPath = public_path() . "/images/vaucher/";
+            $path = "/public/images/{$folder}/{$rand}_{$fileName}.{$extension}";
+            $vaucherPath = public_path() . "/images/{$folder}/";
             $vaucher->file("vaucher")->move($vaucherPath, $path);
         }
-        $pay->vaucher = $path;
-        $pay->save();
+        if($type == 1)
+        {
+            $pay->save();
+            $pay->vaucher = $path;
+        }
+        return $path;
     }
     private function updateBooking($id, $user)
     {

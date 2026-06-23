@@ -1,5 +1,5 @@
 // src/router/middlewares/role.js
-import { useAuthStore } from '@/services/store/auth.services' 
+import { useAuthStore } from '@/services/store/auth.services'
 
 export default async function role(to, from, next) {
   const authStore = useAuthStore()
@@ -28,7 +28,7 @@ export default async function role(to, from, next) {
     // Redirigimos a la ruta por defecto
     return next({ name: 'dashboardAdmin' })
   }
-  
+
   // 5. Si todo está en orden, permitimos la navegación
   return next()
 }

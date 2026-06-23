@@ -667,6 +667,28 @@ const routes = [
         },
       },
       {
+        path: '/client/pays/menu',
+        component: () => import('@/view/client/Payments/paymentsMenu.vue'),
+        name: 'paymentMenu',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Menu de pagos',
+          depth: 3,
+        },
+      },
+      {
+        path: '/client/claims/add',
+        component: () => import('@/view/client/Claims/claimsCreate.vue'),
+        name: 'paymentClaims',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Nuevo reclamo',
+          depth: 4,
+        },
+      },
+      {
         path: '/client/pays/list',
         component: () => import('@/view/client/Payments/paymentHistory.vue'),
         name: 'paymentHistory',
@@ -674,7 +696,7 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Historial de pagos',
-          depth: 3,
+          depth: 4,
         },
       },
       {
