@@ -24,27 +24,33 @@ const $q = useQuasar()
 const router = useRouter()
 const route = useRoute();
 const transitionName = ref('slide-up');
-const setupStatusBar2 = async () => {
-  if (Capacitor.isNativePlatform()) {
-    try {
-      await StatusBar.setStyle({ style: Style.Light });
-      await StatusBar.setBackgroundColor({ color: '#0e344c' });
-    } catch (error) {
-      console.error('Error configuring StatusBar:', error);
-    }
-  } else {
-    console.log('Running on web: StatusBar plugin ignored.');
-  }
+StatusBar.setOverlaysWebView({ overlay: true });
+
+const setStatusBarStyleDark = async () => {
+  await StatusBar.setStyle({ style: Style.Dark });
+   await StatusBar.setBackgroundColor({ color: '#000' });
 };
-const setupStatusBar = async () => {
+
+const setStatusBarStyleLight = async () => {
   await StatusBar.setStyle({ style: Style.Light });
-  await StatusBar.setBackgroundColor({ color: '#0e344c' });
+   await StatusBar.setBackgroundColor({ color: '#000' });
+};
+
+const hideStatusBar = async () => {
+  await StatusBar.hide();
+};
+
+const showStatusBar = async () => {
+  await StatusBar.show();
 };
 onMounted(async () => {
-  $q.addressbarColor.set('#0e344c');
+  $q.addressbarColor.set('#000');
 
   showSplash();
-  setupStatusBar2()
+  // setupStatusBar2()
+  //setupStatusBar()
+  setStatusBarStyleDark()
+  showStatusBar()
   await updateStore.checkForUpdates();
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {
