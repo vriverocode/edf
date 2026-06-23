@@ -57,6 +57,9 @@ class Departament extends Model
     public function pendingQuotas() {
         return $this->hasMany(Quota::class, 'departament_id')->where('status','=', 1);
     }
+    public function dueQuotas() {
+        return $this->hasMany(Quota::class, 'departament_id')->where('status','=', 4);
+    }
     public function getTypeLabelAttribute()
     {
         $type = [

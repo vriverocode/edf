@@ -126,6 +126,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [PayController::class, 'getPayById']);
         Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus']);
         Route::post('/validate/{id}', [PayController::class, 'validatePayment']);
+        Route::post('/claims', [PayController::class, 'claimsByPay']);
+
         Route::post('/culqi-payment', [PayController::class, 'processCulqiPayment']);
     });
     Route::prefix('notifications')->name('notifications.')->group(function () {

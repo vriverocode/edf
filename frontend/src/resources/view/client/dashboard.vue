@@ -43,7 +43,7 @@ const menu = computed(() => [
   {
     title: 'Pagos',
     icon: pagos,
-    link: '/client/pays/list',
+    link: '/client/pays/menu',
     roles: [2,7]
   },
   {

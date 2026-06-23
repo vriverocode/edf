@@ -88,7 +88,7 @@ class DepartamentController extends Controller
 
     public function getApartmentsByUser(Request $request)
     {
-        $apartments = Departament::with(["owner"])->where("user_id", $request->user()->id)->get();
+        $apartments = Departament::with(["owner", "dueQuotas"])->where("user_id", $request->user()->id)->get();
 
         if (!$apartments) {
             return $this->returnFail(400, "Departamentos no encontrados");

@@ -3,12 +3,15 @@ import { ref, onMounted } from 'vue';
 import iconsApp from '@/assets/icons/index'
 import { useApartmentStore } from '@/services/store/apartment.store'
 import moment from 'moment';
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '@//services/store/auth.services';
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split(
     '_'
   ),
 })
+const { user } = storeToRefs(useAuthStore())
 const apartmentStore = useApartmentStore()
 const ready = ref(false)
 const apartments = ref([])
@@ -62,9 +65,9 @@ onMounted(() => {
                   <!-- Header con nombre y estado -->
                   <div class="flex justify-between items-start pl-1">
                     <!-- Estado badge -->
-                    <span :class="'bg-' + (apartment?.status_color || 'positive')"
+                    <span :class="'bg-' + (apartment?.status_color || 'primary')"
                       class="inline-block px-3 py-2 text-xs font-bold text-white badgeApartment">
-                      {{ apartment?.status_label || 'Habitable' }}
+                      {{ apartment?.type_label || '---' }}
                     </span>
                   </div>
 
@@ -130,7 +133,7 @@ onMounted(() => {
                 <!-- Sección inferior - Estado de pago -->
                 <div class="py-1 px-3 bg-gray-50">
                   <div class="flex justify-between items-center">
-                    <q-chip label="Solvente" color="positive" text-color="white" />
+                    <q-chip :label="apartment.due_quotas.length > 0 ? 'Moroso':'Solvente'" color="positive" text-color="white" />
                     <div class="flex items-center">
                       <q-btn flat rounded size="sm" class="ml-3" @click="showPick(apartment.number)">
                         <q-tooltip class="bg-primary  text-white text-body2" :offset="[10, 10]">
@@ -160,7 +163,7 @@ onMounted(() => {
                       <div class="ml-1 text-black font-medium">{{ 'Departamento' }}</div>
                     </div>
                     <div class="flex my-2">
-                      <div class="text-black font-medium">Nro interno:</div>
+                      <div class="text-black font-medium">Nro. interno:</div>
                       <div class="ml-1 text-black font-medium">{{ internalNumber(apartment.number) }}</div>
                     </div>
                     <div class="flex my-2">
@@ -184,7 +187,7 @@ onMounted(() => {
                       <div class="ml-1 text-black font-medium">{{ apartment.owner.name }}</div>
                     </div>
                     <div class="flex my-2">
-                      <div class="text-black font-medium">Descripcion:</div>
+                      <div class="text-black font-medium">Descripción:</div>
                       <div class="ml-1 text-black font-medium">{{ apartment.description }}</div>
                     </div>
                   </div>

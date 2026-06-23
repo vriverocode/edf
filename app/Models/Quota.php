@@ -151,7 +151,8 @@ class Quota extends Model
             "Cancelada",
             "Pago pendiente",
             "Pendiente de aprob.",
-            "Exitoso"
+            "Exitoso",
+            "Vencida.",
         ];
 
         return $statusLabels[$this->status] ?? '—';
