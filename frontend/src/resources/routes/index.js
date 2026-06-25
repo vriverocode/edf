@@ -678,6 +678,17 @@ const routes = [
         },
       },
       {
+        path: '/client/legals/menu',
+        component: () => import('@/view/client/Legals/legalsMenu.vue'),
+        name: 'legalMenu',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Cumplimiento legal',
+          depth: 3,
+        },
+      },
+      {
         path: '/client/claims/add',
         component: () => import('@/view/client/Claims/claimsCreate.vue'),
         name: 'paymentClaims',

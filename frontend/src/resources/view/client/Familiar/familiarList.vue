@@ -45,7 +45,7 @@ onMounted(() => {
             <div class="h-full" style="overflow: hidden;">
                 <template v-if="residents.length > 0">
                     <div class="mt-4 md:mt-8" style="height:85%; overflow: auto;">
-                        <div class="px-4 md:mx-24 md:pr-12">
+                        <div class="px-4 md:mx-24">
                             <div v-for="item in residents" :key="item.id"
                                 class="md:py-4 py-3 mb-5 userListContainer flex items-center justify-between">
                                 <div class="flex items-center pb-3 pl-2 md:pl-5 ">

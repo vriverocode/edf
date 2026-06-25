@@ -3,11 +3,11 @@ import { createApp } from 'vue';
 import quasarIconSet from 'quasar/icon-set/eva-icons'
 import { createPinia } from 'pinia'
 
-import router  from '@/routes'
+import router from '@/routes'
 
 import '@quasar/extras/material-icons-outlined/material-icons-outlined.css'
-import { 
-  outlinedArrowBack, 
+import {
+  outlinedArrowBack,
   outlinedAddHomeWork,
   outlinedPaid,
   outlinedEvent,
@@ -16,7 +16,7 @@ import {
   outlinedFactCheck,
 } from '@quasar/extras/material-icons-outlined/index.js'
 
-import { 
+import {
   roundNotifications,
 } from '@quasar/extras/material-icons-round/index.js'
 

@@ -134,7 +134,6 @@ class UserController extends Controller
                 // 4. Registrar a los acompañantes como Visitas (Type 3)
                 if (isset($airbnbData['guests']) && is_array($airbnbData['guests'])) {
                     foreach ($airbnbData['guests'] as $index => $guest) {
-
                         // 1. Creamos el registro primero, dejando la foto en null por ahora
                         $visit = Visit::create([
                             'departament_id' => $request->idApartament,
@@ -359,7 +358,6 @@ class UserController extends Controller
             ));
             return $this->returnSuccess(200, 'bien');
         } catch (Exception $e) {
-
             return $this->returnSuccess(400, $e->getMessage());
             // Silenciar errores de notificación para no romper el flujo
         }
@@ -376,6 +374,8 @@ class UserController extends Controller
     public function completeFirstTime(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'email'  => ['required', 'email', 'unique:users,email'],
+
             'password'  => ['required', 'string', 'min:8', 'confirmed'],
             'phone'     => ['required', 'string', 'min:7'],
         ], [
@@ -395,6 +395,7 @@ class UserController extends Controller
             $user->update([
                 'password'      => bcrypt($request->password),
                 'phone'         => $request->phone,
+                'email'         => $request->email,
                 'is_first_time' => 0,
             ]);
 

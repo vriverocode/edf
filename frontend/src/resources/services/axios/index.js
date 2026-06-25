@@ -9,16 +9,16 @@ axios.defaults.withCredentials = true
 axios.defaults.baseURL = import.meta.env.VITE_LARAVEL_API_URL
 
 const ApiService = {
-  
+
   /**
    * Set the default HTTP request headers
    */
-  getToken(){
+  getToken() {
     return storage.getItem('access_token')
   },
-  
+
   setHeader() {
-    
+
     axios.defaults.headers.common["Authorization"] = `Bearer ${this.getToken()}`;
     axios.defaults.headers.common["Accept"] = `application/json`;
 

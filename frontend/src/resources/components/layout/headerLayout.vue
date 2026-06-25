@@ -48,7 +48,9 @@ const hasPendingToPay = computed(() => {
   return quotas;
 })
 
-
+const goTo = (url) => {
+  router.push(url)
+}
 onMounted(() => {
   emitter.on('pagTitle', changePagTitle)
   emitter.on('isReserve', setReserveData)
@@ -60,9 +62,12 @@ onMounted(() => {
 <template>
   <div class="md:px-8 md:mx-28 pb-2 px-6 row bg-primary header__container">
     <section class=" flex justify-between items-stretch col-12">
-      <div class="flex flex-col justify-between">
-        <div class="pt-2">
+      <div class="flex flex-col  justify-between">
+        <div class="pt-2 flex items-center" @click="goTo('/client/legals/menu')">
           <div v-html="iconsApp.menuDots" style="transform: translateX(-0.2rem);" />
+          <div class="text-white" style="font-weight: 500; text-decoration: underline; cursor: pointer;">
+            Legales
+          </div>
         </div>
         <template v-if="isHomePage">
           <div class="text-white mt-3 mb-2">

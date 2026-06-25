@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class ComunArea extends Model
 {
     use SoftDeletes;
-    
+
     protected $table = "comun_areas";
 
     protected $fillable = [
@@ -18,6 +18,7 @@ class ComunArea extends Model
         "warranty_price",
         "description",
         "max_time_reserve",
+        "max_time_reserve_exclusive",
         "timeFrom",
         "timeTo",
         "rules",
@@ -30,18 +31,21 @@ class ComunArea extends Model
     // Agregamos 'type_label' a la lista de appends
     public $appends = ['pay_label', 'format_rules', 'type_label', 'type_label_large', 'type_color'];
 
-    public function getPayLabelAttribute(){
+    public function getPayLabelAttribute()
+    {
         return $this->price == 0 && $this->warranty_price == 0 ? 'Gratis' : 'Pago';
     }
 
-    public function getFormatRulesAttribute(){
+    public function getFormatRulesAttribute()
+    {
         return nl2br(htmlspecialchars($this->rules));
     }
 
     // NUEVO ACCESOR: Crea el atributo "type_label" al vuelo
-    public function getTypeLabelAttribute(){
+    public function getTypeLabelAttribute()
+    {
         // Usamos la expresión match (disponible en PHP 8+) para mapear el número al texto
-        return match((int) $this->type) {
+        return match ((int) $this->type) {
             1 => 'Gratis',
             2 => 'Mixto',
             3 => 'De pago',
@@ -49,9 +53,10 @@ class ComunArea extends Model
             default => 'No definido',
         };
     }
-    public function getTypeLabelLargeAttribute(){
+    public function getTypeLabelLargeAttribute()
+    {
         // Usamos la expresión match (disponible en PHP 8+) para mapear el número al texto
-        return match((int) $this->type) {
+        return match ((int) $this->type) {
             1 => 'Uso compartido',
             2 => 'Uso mixto (Compartido y Exclusivo)',
             3 => 'Uso exclusivo',
@@ -59,22 +64,25 @@ class ComunArea extends Model
             default => 'No definido',
         };
     }
-    public function getTypeColorAttribute(){
+    public function getTypeColorAttribute()
+    {
         // Usamos la expresión match (disponible en PHP 8+) para mapear el número al texto
-        return match((int) $this->type) {
+        return match ((int) $this->type) {
             1 => 'blue-9',
-            2 => 'deep-purple-10',
-            3 => 'light-green-13',
-            4 => 'De pago lista de invitados',
+            2 => 'primary',
+            3 => 'primary',
+            4 => 'primary',
             default => 'No definido',
         };
     }
 
-    public function bookings(){
+    public function bookings()
+    {
         return $this->hasMany(Booking::class, "comun_area_id");
     }
 
-    public function bookingsToValidate(){
+    public function bookingsToValidate()
+    {
         return $this->hasMany(Booking::class, "comun_area_id")->where('status', 2);
     }
 
@@ -82,7 +90,6 @@ class ComunArea extends Model
     {
         return $this->hasMany(Rule::class, "comun_area_id");
     }
-    
     public function schedules()
     {
         return $this->hasMany(ComunAreaSchedule::class, 'comun_area_id');

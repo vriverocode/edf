@@ -389,7 +389,7 @@ class PayController extends Controller
                 'claim_vaucher' => $vaucherPath ?? '',
                 'createDate' => Carbon::parse($request->create_date)->format('d/m/Y'),
             ];
-            Mail::to('frovic.ve@gmail.com')->send(new PayClaims($claimData));
+            Mail::to($request->user()->email)->send(new PayClaims($claimData));
             Mail::to('test@edificiopacifik.com')->send(new PayClaims($claimData));
 
             Sequence::where('name', 'claims')->update([

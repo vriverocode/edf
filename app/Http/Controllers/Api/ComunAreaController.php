@@ -7,7 +7,7 @@ use App\Models\ComunArea;
 use App\Models\ComunAreaSchedule;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class ComunAreaController extends Controller
@@ -33,8 +33,9 @@ class ComunAreaController extends Controller
     public function storeArea(Request $request)
     {
         $validated = $this->validateFieldsFromInput($request->all());
-        if (count($validated) > 0) return $this->returnFail(400, $validated[0]);
-
+        if (count($validated) > 0) {
+            return $this->returnFail(400, $validated[0]);
+        }
         DB::beginTransaction();
         try {
             $area = ComunArea::create([
@@ -44,6 +45,7 @@ class ComunAreaController extends Controller
                 'warranty_price' => $request->warrantyPrice,
                 'description'  => $request->description,
                 'max_time_reserve' => $request->maxTime,
+                'max_time_exclusive' => $request->maxTimeExclusive ?? null,
                 'icon' => $request->imageIcon,
                 'max_cupo' => $request->max_cupo,
                 'type' => $request->type ? (is_array($request->type) ? $request->type['value'] : $request->type) : 1,
@@ -93,12 +95,15 @@ class ComunAreaController extends Controller
     public function updateArea(Request $request, $id)
     {
         $validated = $this->validateFieldsFromInput($request->all());
-        if (count($validated) > 0) return $this->returnFail(400, $validated[0]);
-
+        if (count($validated) > 0) {
+            return $this->returnFail(400, $validated[0]);
+        }
         DB::beginTransaction();
         try {
             $area = ComunArea::find($id);
-            if (!$area) return $this->returnFail(400, 'Area común no encontrada');
+            if (!$area) {
+                return $this->returnFail(400, 'Area común no encontrada');
+            }
 
             $area->update([
                 'name' => $request->name ?? $area->name,
@@ -191,7 +196,7 @@ class ComunAreaController extends Controller
                 }
             }
         }
-        
+
         if (count($insertData) > 0) {
             ComunAreaSchedule::insert($insertData);
         }

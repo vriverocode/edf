@@ -265,6 +265,25 @@ const daysAvailableForBook = (date) => {
 
   return hasSchedule;
 }
+
+const dateEvents = (date) => {
+  return true;
+}
+
+const dateEventColor = (date) => {
+  if (!daysAvailableForBook(date)) {
+    return 'grey';
+  }
+  let cuposDisponibles = 5;
+  if (cuposDisponibles === 0) {
+    return 'negative';
+  }
+  if (cuposDisponibles > 0 && cuposDisponibles < 3) {
+    return 'warning';
+  }
+
+  return 'positive'; 
+}
 const showNotify = (type, text) => {
   Notify.create({
     color: type,
@@ -582,7 +601,7 @@ watch(step,
                   {{ comunArea.name }}
                 </div>
                 <div v-if="comunArea.type > 1" class="pintype"
-                  :class="{ 'bg-warning': comunArea.type == 2, 'bg-positive': comunArea.type >= 3 }">
+                  :class="{ 'bg-warning': comunArea.type !== 1 }">
                   S/.
                 </div>
               </div>
@@ -620,10 +639,19 @@ watch(step,
                 <div class="row w-full pt-2">
                   <template v-if="step == 2">
                     <div class="flex flex-center w-full q-px-md">
-                      <q-date color="tealedf" v-model="formData.date" minimal class="w-full calendarReserve"
+                      <q-date color="tealedf" v-model="formData.date" minimal class="w-full calendarReserve custom-pins"
                         :options="daysAvailableForBook" @update:model-value="getAvaibleBookingByDay"
-                        text-color="primary" :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale">
+                        text-color="primary" :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale"
+                        :events="dateEvents" :event-color="dateEventColor">
                       </q-date>
+                      
+                      <!-- Leyenda de disponibilidad -->
+                      <div class="flex justify-center items-center mt-3 w-full legend-pins">
+                        <div class="flex items-center"><span class="pin-dot bg-positive"></span>Disponible</div>
+                        <div class="flex items-center"><span class="pin-dot bg-warning"></span>Pocos cupos</div>
+                        <div class="flex items-center"><span class="pin-dot bg-negative"></span>Completo</div>
+                        <div class="flex items-center"><span class="pin-dot bg-grey"></span>Bloqueado</div>
+                      </div>
                       <div class="w-full px-5">
                         <div class="bg-primary mt-4 py-2 w-full textInfoContainer">
                           <div class="text-white dateInfoTitle text-center">Fecha seleccionada:</div>
@@ -1424,6 +1452,20 @@ watch(step,
   font-size: 1.3rem;
 }
 
+.legend-pins {
+  font-size: 0.8rem;
+  color: #555;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+.pin-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 5px;
+}
+
 .textInfoContainer {
   border-radius: 0.7rem;
 }
@@ -1449,7 +1491,33 @@ watch(step,
   &.q-date {
     box-shadow: none;
   }
-
+  & .q-date__calendar-item--out div{
+    border-radius: 5px;
+    border: 0px!important;
+    background: rgba(184, 190, 184, 0.075);
+  }
+  & .q-date__today{
+    border: none;
+    box-shadow: 0px 0px 0px 1px rgb(105, 105, 105);
+  }
+  
+  /* Posicionar los pines en la esquina superior derecha */
+  &.custom-pins .q-date__event {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  &.q-date__calendar-item > div, .q-date__calendar-item button{
+    border-radius: 5px;
+    border: 0px!important;
+    background: rgba(34, 231, 34, 0.144);
+  }
   & .q-date__calendar-weekdays .q-date__calendar-item {
     opacity: 1 !important;
     margin-top: 0.7rem;
@@ -1473,7 +1541,7 @@ watch(step,
     &:first-child div {
 
       color: white;
-      background-color: #e6ab4f;
+      background-color: $primary;
     }
   }
 
@@ -1503,12 +1571,15 @@ watch(step,
 
       &.q-date__calendar-item--in:nth-child(7n + 1) .block,
       &.q-date__calendar-item--in:nth-child(7n) .block {
-        color: #e6ab4f;
+        color: $primary;
         /* Tu color dorado */
       }
 
       & .q-btn--unelevated .block {
         color: white !important;
+      }
+      & .q-btn--unelevated {
+        background:  rgb(28, 67, 177)
       }
     }
   }

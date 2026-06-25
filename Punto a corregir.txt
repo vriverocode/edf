@@ -1,0 +1,8 @@
+Punto a corregir 
+
+1. Mismo color amarillo en todos los circulos (amarillo), y colocarlo a la izquierda
+2. Explicar y validar precio  en formulario de reserva
+3. Agregar leyenda en calendario
+4. Lounge debe tener un mes de anticipacion
+5. borrar usuarios de pruebas. habilitar funcion de borrar
+6. cambiar habitado por ocupado

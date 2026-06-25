@@ -24,7 +24,6 @@ const $q = useQuasar()
 const router = useRouter()
 const route = useRoute();
 const transitionName = ref('slide-up');
-StatusBar.setOverlaysWebView({ overlay: true });
 
 const setStatusBarStyleDark = async () => {
   await StatusBar.setStyle({ style: Style.Dark });
@@ -44,14 +43,14 @@ const showStatusBar = async () => {
   await StatusBar.show();
 };
 onMounted(async () => {
-  $q.addressbarColor.set('#000');
+  $q.addressbarColor.set('#fff');
 
   showSplash();
   // setupStatusBar2()
   //setupStatusBar()
-  setStatusBarStyleDark()
-  showStatusBar()
-  await updateStore.checkForUpdates();
+  // setStatusBarStyleDark()
+  // showStatusBar()
+  // await updateStore.checkForUpdates();
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {
       router.go(-1);
@@ -115,7 +114,6 @@ watch(
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  margin: auto;
 }
 
 

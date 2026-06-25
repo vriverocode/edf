@@ -30,7 +30,7 @@ class PayClaims extends Mailable
     {
         return new Envelope(
             replyTo: [
-                new Address('badcabra.ve@gmail.com', 'Taylor Otwell'),
+                new Address('badcabra.ve@gmail.com', 'Administrador Pacifik'),
             ],
             subject: 'Reclamo de pago Nº ' . $this->claimData['sequence'],
         );

@@ -1,54 +1,69 @@
 <!DOCTYPE html>
 <html lang="">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <style>
-      .hiddenx{
-        display: none;
-      }
-      .blockx{
-        display: block;
-      }
-      .flexX{
-        display: flex;
-      }
-      @media (min-width: 768px){
-        .md\:justify-end{
-          justify-content: end!important;
-        }
-        .md\:hiddenx{
-          display: none!important;
-        }
-        .md\:block {
-          display: block!important;
-        }
-        .md\:flex {
-          display: flex!important;
-        }
-        .md\:justify-start{
-          justify-content: start!important;
-        }
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/favicon.ico">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet">
+  <style>
+    .hiddenx {
+      display: none;
+    }
+
+    .blockx {
+      display: block;
+    }
+
+    .flexX {
+      display: flex;
+    }
+
+    @media (min-width: 768px) {
+      .md\:justify-end {
+        justify-content: end !important;
       }
 
-      *{
-        font-family: "Roboto", sans-serif;
-        font-optical-sizing: auto;
-        font-weight: 400;
-        font-style: normal;
+      .md\:hiddenx {
+        display: none !important;
       }
-    </style>
-    <title>Vite App</title>
-  </head>
-  <body class="font-sans antialiased mobile touch dark:bg-black">
-    <div id="app"></div>
-    <script type="module" src="/src/app.js"></script>
-    <script src="https://js.culqi.com/checkout-js"></script>
-  </body>
+
+      .md\:block {
+        display: block !important;
+      }
+
+      .md\:flex {
+        display: flex !important;
+      }
+
+      .md\:justify-start {
+        justify-content: start !important;
+      }
+    }
+
+    * {
+      font-family: "Roboto", sans-serif;
+      font-optical-sizing: auto;
+      font-weight: 400;
+      font-style: normal;
+    }
+  </style>
+  <title>Vite App</title>
+</head>
+
+<body class="font-sans antialiased mobile touch dark:bg-black">
+  <div id="app"></div>
+  <script type="module" src="/src/app.js"></script>
+  <script src="https://js.culqi.com/checkout-js"></script>
+</body>
+
 </html>

@@ -19,6 +19,7 @@ const showConfirmPassword = ref(false)
 
 const form = ref({
   phone: '',
+  email:'',
   password: '',
   password_confirmation: '',
 })
@@ -49,6 +50,7 @@ const submit = async () => {
   loading.value = true
   try {
     await userStore.completeFirstTime({
+      email: form.value.email,
       phone: form.value.phone,
       password: form.value.password,
       password_confirmation: form.value.password_confirmation,
@@ -88,6 +90,22 @@ const submit = async () => {
       <q-card-section class="dialog_body">
         <q-form @submit.prevent="submit" class="form_container">
           <!-- Phone -->
+          <div class="field_group">
+            <label class="field_label">Correo electrónico</label>
+            <q-input
+              v-model="form.email"
+              outlined
+              dense
+              placeholder="Ej: usuario@gmail.com"
+              class="field_input"
+              :rules="[val => !!val || 'Campo requerido']"
+              lazy-rules
+            >
+              <template v-slot:prepend>
+                <q-icon name="eva-email-outline" color="grey-7" />
+              </template>
+            </q-input>
+          </div>
           <div class="field_group">
             <label class="field_label">Número de teléfono</label>
             <q-input

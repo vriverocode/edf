@@ -58,6 +58,7 @@ const formData = ref({
   warrantyPrice: 0,
   description: '',
   maxTime: 1,
+  maxTimeExclusive: 1,
   max_cupo: 0,
   schedules: defaultDays.map(d => ({
     day: d.day,
@@ -211,14 +212,14 @@ onMounted(() => {
         </Transition>
         <Transition name="horizontal">
           <div class="row w-full" style="height:85%; overflow:auto" v-if="step == 1">
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+            <div class="col-md-6 col-12 mt-1 px-2 md:px-12" v-if="formData.typeArea.value != 1">
               <div class="text-subtitle2 text-black">
                 Precio por reserva
               </div>
               <q-input dense borderless clearable v-model="formData.price" class="form__inputsR mt-1" color="primary"
-                hint="Dejar en 0 si no requiere reserva" />
+                hint="Dejarlo en 0 si no requiere reserva" />
             </div>
-            <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
+            <div class="col-md-6 col-12 mt-2 px-2 md:px-12" v-if="formData.typeArea.value != 1">
               <div class="text-subtitle2 text-black">
                 Precio de garantia
               </div>
@@ -232,10 +233,20 @@ onMounted(() => {
               <q-input dense borderless clearable v-model="formData.max_cupo" class="form__inputsR mt-1" color="primary"
                 :rules="[val => !(!val) || 'Establece un maximo de cupos']" />
             </div>
-            <div class="col-md-6 col-12  row mt-1 px-2 md:px-12">
+            
+            <div class="col-md-6 col-12  row mt-1 px-2 md:px-12" v-if="formData.typeArea.value != 1">
               <div class="col-12">
                 <div class="text-subtitle2 text-black ">
                   Maximo de horas de reserva
+                </div>
+                <q-input dense borderless clearable v-model="formData.maxTime" class="form__inputsR mt-1" autofocus
+                  color="primary" :rules="[val => !(!val) || 'Las horas maxima de reserva es necesaria']" />
+              </div>
+            </div>
+            <div class="col-md-6 col-12  row mt-1 px-2 md:px-12">
+              <div class="col-12">
+                <div class="text-subtitle2 text-black ">
+                  Maximo de horas de reserva exclusiva
                 </div>
                 <q-input dense borderless clearable v-model="formData.maxTime" class="form__inputsR mt-1" autofocus
                   color="primary" :rules="[val => !(!val) || 'Las horas maxima de reserva es necesaria']" />

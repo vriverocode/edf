@@ -9,23 +9,28 @@ const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
   {
-    title: 'Historial de pagos',
+    title: 'Terminos y condiciones',
     link: '/client/pays/list',
     icon: iconsApp.cuotaMonthly,
-    roles: [2, 3, 4, 5, 7]
+    roles: []
   },
-//   {
-//     title: 'Multas',
-//     icon: iconsApp.fine,
-//     link: '/client/pays/list',
-//     roles: [2, 3, 4, 5, 7]
-//   },
+  {
+    title: 'Reclamos',
+    icon: iconsApp.claims,
+    link: '/client/claims/add',
+    roles: []
+  },
+
 
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
-  console.log(rol)
-  return menu.filter(item => !item.roles || item.roles.includes(rol))
+  return menu.filter(item => {
+    if (!item.roles || item.roles.length === 0) {
+      return true
+    }
+    return item.roles.includes(rol)
+  })
 })
 const goTo = (url) => {
   router.push(url)

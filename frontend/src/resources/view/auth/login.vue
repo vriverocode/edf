@@ -57,11 +57,6 @@ const authLogin = () => {
     .catch((response) => {
       showNotify('negative', response.status == 505 ? response.data.error : 'Error de conexión')
       loading.value = false;
-      //error.value = true
-      // errorMessage.value = response
-      console.log(error.value)
-      console.log(response.data)
-
     })
 }
 const endTutorial = () => {
@@ -86,7 +81,7 @@ const endTutorial = () => {
                       INGRESO
                     </div>
                     <div class="w-full mt-6 md:mt-8 ">
-                      <q-input class="auth_input" color="white" v-model="login.username" :rules="rules('user')" rounded
+                      <q-input class="auth_input" color="white" autocapitalize="none" v-model="login.username" :rules="rules('user')" rounded
                         standout>
                         <template v-slot:prepend>
                           <div class="pl-2" style="font-size:1rem; font-weight:500">Usuario</div>

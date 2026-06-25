@@ -32,8 +32,8 @@ const confirmAction = () => {
             Posponer pago de reserva
         </div>
         </q-card-section>
-        <section class="content__modalSectionRifa md:mt-5 mt-0 ">
-        <div>
+        <section class="content__modalSectionRifa md:mt-5 mt-0 md:mb-5 ">
+        <div class="text-subtitle1 md:px-5" style="font-weight: 500;">
             El pago puede posponerse, pero debe realizarse con 24 horas
             de antelación a la fecha de la reserva. En caso de no recibir el pago, la reserva será cancelada.
         </div>
