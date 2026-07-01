@@ -62,6 +62,20 @@ class WaterReadingController extends Controller
         return $this->returnSuccess(200, $reading);
     }
 
+    public function getLastByDepartment(int $departmentId)
+    {
+        $reading = WaterReading::where('departament_id', $departmentId)
+            ->orderBy('year', 'desc')
+            ->orderBy('month', 'desc')
+            ->first();
+
+        if (! $reading) {
+            return $this->returnSuccess(200, null);
+        }
+
+        return $this->returnSuccess(200, $reading);
+    }
+
     public function store(Request $request)
     {
         $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
@@ -69,6 +83,8 @@ class WaterReadingController extends Controller
         :0;
         // $priceWater = 0;
         
+        $isInitial = (bool) $request->input('is_initial', false);
+
         try {
             $validated = $request->validate([
                 'departament_id' => ['required', 'integer', 'exists:departaments,id',
@@ -80,8 +96,8 @@ class WaterReadingController extends Controller
                 ],
                 'month' => ['required', 'integer', 'between:1,12'],
                 'year' => ['required', 'integer'],
-                'previous_reading' => ['required', 'numeric', 'min:0'],
-                'current_reading' => ['required', 'numeric', 'gte:previous_reading'],
+                'previous_reading' => $isInitial ? ['nullable', 'numeric', 'min:0'] : ['required', 'numeric', 'min:0'],
+                'current_reading' => ['required', 'numeric', 'gt:previous_reading'],
                 'm3_price' => ['nullable', 'numeric', 'min:0'],
                 'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             ], [
@@ -93,7 +109,7 @@ class WaterReadingController extends Controller
                 'year.required' => 'El año es requerido.',
                 'previous_reading.required' => 'La lectura anterior es requerida.',
                 'current_reading.required' => 'La lectura actual es requerida.',
-                'current_reading.gte' => 'La lectura actual debe ser mayor o igual a la lectura anterior.',
+                'current_reading.gt' => 'La lectura actual debe ser mayor a la lectura anterior.',
                 'photo.required' => 'La foto comprobante del medidor es requerida.',
                 'photo.image' => 'El archivo debe ser una imagen válida.',
             ]);
@@ -101,15 +117,18 @@ class WaterReadingController extends Controller
             return $this->returnFail(422, $e->validator->errors()->first());
         }
 
+        $previousReading = $isInitial ? 0 : ($validated['previous_reading'] ?? 0);
+
         $photoUrl = $this->storePhoto($request);
         $payload = [
             'departament_id' => $validated['departament_id'],
             'month' => $validated['month'],
             'year' => $validated['year'],
-            'previous_reading' => $validated['previous_reading'],
+            'previous_reading' => $previousReading,
             'current_reading' => $validated['current_reading'],
             'm3_price' => $priceWater->water_price_per_m3 ?? $validated['m3_price'] ?? 0,
-            'amount' => ($validated['current_reading'] - $validated['previous_reading']) * ($priceWater->water_price_per_m3 ?? $validated['m3_price'] ?? 0),
+            'amount' => ($validated['current_reading'] - $previousReading) * ($priceWater->water_price_per_m3 ?? $validated['m3_price'] ?? 0),
+            'is_initial' => $isInitial,
         ];
 
         $photoColumn = $this->resolvePhotoColumn();
@@ -146,7 +165,7 @@ class WaterReadingController extends Controller
                 'month' => ['required', 'integer', 'between:1,12'],
                 'year' => ['required', 'integer'],
                 'previous_reading' => ['required', 'numeric', 'min:0'],
-                'current_reading' => ['required', 'numeric', 'gte:previous_reading'],
+                'current_reading' => ['required', 'numeric', 'gt:previous_reading'],
                 'm3_price' => ['nullable', 'numeric', 'min:0'],
                 'photo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             ], [
@@ -158,7 +177,7 @@ class WaterReadingController extends Controller
                 'year.required' => 'El año es requerido.',
                 'previous_reading.required' => 'La lectura anterior es requerida.',
                 'current_reading.required' => 'La lectura actual es requerida.',
-                'current_reading.gte' => 'La lectura actual debe ser mayor o igual a la lectura anterior.',
+                'current_reading.gt' => 'La lectura actual debe ser mayor a la lectura anterior.',
             ]);
         } catch (ValidationException $e) {
             return $this->returnFail(422, $e->validator->errors()->first());

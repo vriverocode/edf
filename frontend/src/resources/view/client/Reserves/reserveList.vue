@@ -181,6 +181,14 @@ onMounted(() => {
                     </q-tooltip>
                     <div v-html="iconsApp.procedToPay"></div>
                   </q-btn>
+                  <q-btn unelevated rounded color="teal-7" size="sm" class="ml-3"
+                    v-if="reserve.status == 3 && reserve.comun_area?.has_extension"
+                    @click="goTo('/client/reserves/extend/' + reserve.id)">
+                    <q-tooltip class="bg-primary text-white text-body2" :offset="[10, 10]">
+                      Extender tiempo
+                    </q-tooltip>
+                    <q-icon name="eva-clock-outline" size="1.1rem" />
+                  </q-btn>
                   <div flat rounded color="primary" size="sm" class="ml-3 cursor-pointer">
                     <div v-html="iconsApp.optionsBook" />
                     <q-menu>
@@ -196,6 +204,11 @@ onMounted(() => {
                         <q-item clickable v-close-popup v-if="reserve.status == 1"
                           @click="goTo('/client/reserves/pay-reserve/' + reserve.id)">
                           <q-item-section>Pagar</q-item-section>
+                        </q-item>
+                        <q-item clickable v-close-popup
+                          v-if="reserve.status == 3 && reserve.comun_area?.has_extension"
+                          @click="goTo('/client/reserves/extend/' + reserve.id)">
+                          <q-item-section>Extender tiempo</q-item-section>
                         </q-item>
                         <q-item clickable v-close-popup v-if="reserve.status == 3">
                           <q-item-section>Descarga pase</q-item-section>

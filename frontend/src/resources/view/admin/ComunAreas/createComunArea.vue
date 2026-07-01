@@ -60,6 +60,9 @@ const formData = ref({
   maxTime: 1,
   maxTimeExclusive: 1,
   max_cupo: 0,
+  has_extension: false,
+  max_time_extension: null,
+  extension_price: null,
   schedules: defaultDays.map(d => ({
     day: d.day,
     label: d.label,
@@ -252,6 +255,27 @@ onMounted(() => {
                   color="primary" :rules="[val => !(!val) || 'Las horas maxima de reserva es necesaria']" />
               </div>
             </div>
+
+            <!-- Extensiones -->
+            
+            <template v-if="formData.has_extension">
+              <div class="col-md-6 col-12 mt-0 px-2 md:px-12">
+                <div class="text-subtitle2 text-black">Máximo de horas de extensión</div>
+                <q-input dense borderless clearable type="number" v-model="formData.max_time_extension"
+                  class="form__inputsR mt-1" color="primary" hint="Horas adicionales permitidas"
+                  :rules="[val => !!val || 'Requerido cuando las extensiones están habilitadas']" />
+              </div>
+              <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
+                <div class="text-subtitle2 text-black">Precio de la extensión (S/)</div>
+                <q-input dense borderless clearable type="number" v-model="formData.extension_price"
+                  class="form__inputsR mt-1" color="primary" hint="Costo de la extensión de tiempo"
+                  :rules="[val => !!val || 'Requerido cuando las extensiones están habilitadas']" />
+              </div>
+            </template>
+            <div class="col-12 mt-3 px-2 md:px-12">
+              <div class="text-subtitle2 text-black mb-1">Extensiones de reserva</div>
+              <q-toggle v-model="formData.has_extension" label="Habilitar extensiones" color="primary" />
+            </div>
           </div>
         </Transition>
         <Transition name="horizontal">
@@ -358,7 +382,7 @@ onMounted(() => {
                       :options="severityOptions" option-label="name" option-value="value" borderless />
                   </div>
 
-                  <div class="col-md-6 col-12 mt-2 px-2">
+                  <div class="col-md-6 col-12 mt-4 px-2">
                     <div class="text-subtitle2 text-black">
                       Tipo de regla
                     </div>
@@ -366,7 +390,7 @@ onMounted(() => {
                       option-label="name" option-value="value" borderless />
                   </div>
 
-                  <div class="col-md-6 col-12 mt-2 px-2" v-if="rule.type.value === 2">
+                  <div class="col-md-6 col-12 mt-4 px-2" v-if="rule.type.value === 2">
                     <div class="text-subtitle2 text-black">
                       Amonestación Monetaria sugerida
                     </div>
@@ -375,7 +399,7 @@ onMounted(() => {
                       :rules="[val => !!val || 'El monto es requerido para este tipo de regla']" />
                   </div>
 
-                  <div class="col-12 col-md-6 mt-2 px-2">
+                  <div class="col-12 col-md-6 mt-4 px-2">
                     <div class="text-subtitle2 text-black">
                       Descripción de la regla
                     </div>

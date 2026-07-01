@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('month');
             $table->integer('year');
             $table->decimal('previous_reading', 10, 2);
-            $table->decimal('current_reading', 10, 2); 
+            $table->decimal('current_reading', 10, 2);
             $table->decimal('m3_price', 10, 4);
             $table->timestamps();
             $table->softDeletes();

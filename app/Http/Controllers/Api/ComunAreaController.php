@@ -49,6 +49,9 @@ class ComunAreaController extends Controller
                 'icon' => $request->imageIcon,
                 'max_cupo' => $request->max_cupo,
                 'type' => $request->type ? (is_array($request->type) ? $request->type['value'] : $request->type) : 1,
+                'has_extension' => $request->has_extension ?? false,
+                'max_time_extension' => $request->has_extension ? ($request->max_time_extension ?? null) : null,
+                'extension_price' => $request->has_extension ? ($request->extension_price ?? null) : null,
             ]);
 
             if ($request->has('rulesList') && is_array($request->rulesList)) {
@@ -115,6 +118,9 @@ class ComunAreaController extends Controller
                 'max_cupo' => $request->max_cupo ?? $area->max_cupo,
                 'icon' => $request->icon ? (is_array($request->icon) ? $request->icon['value'] : $request->icon) : $area->icon,
                 'type' => $request->type ? (is_array($request->type) ? $request->type['value'] : $request->type) : $area->type,
+                'has_extension' => $request->has_extension ?? $area->has_extension,
+                'max_time_extension' => ($request->has_extension ?? $area->has_extension) ? ($request->max_time_extension ?? $area->max_time_extension) : null,
+                'extension_price' => ($request->has_extension ?? $area->has_extension) ? ($request->extension_price ?? $area->extension_price) : null,
             ]);
 
             if ($request->has('rulesList') && is_array($request->rulesList)) {
@@ -231,6 +237,10 @@ class ComunAreaController extends Controller
             'rulesList.*.suggest_amount' => ['nullable', 'numeric'],
             'rulesList.*.id' => ['nullable', 'integer'],
             'schedules' => ['required', 'array'],
+            // Campos de extensión
+            'has_extension'     => ['nullable', 'boolean'],
+            'max_time_extension' => ['nullable', 'numeric'],
+            'extension_price'   => ['nullable', 'numeric'],
         ];
 
         $messages = [

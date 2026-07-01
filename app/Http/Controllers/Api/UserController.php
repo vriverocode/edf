@@ -405,4 +405,20 @@ class UserController extends Controller
             return $this->returnFail(500, 'Error al actualizar los datos.');
         }
     }
+
+    public function destroy(int $id)
+    {
+        $user = User::find($id);
+        if (! $user) {
+            return $this->returnFail(404, 'Usuario no encontrado');
+        }
+
+        if ($user->rol_id === Rol::ADMIN) {
+            return $this->returnFail(400, 'No se puede eliminar un usuario administrador');
+        }
+
+        $user->delete();
+
+        return $this->returnSuccess(200, 'Usuario eliminado con éxito');
+    }
 }

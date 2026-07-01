@@ -30,10 +30,10 @@ class BookingController extends Controller
         try {
             $user = $request->user();
             if ($user->rol_id == 1 || $user->rol_id == 6 || $user->rol_id == 7) {
-                return $this->returnFail(400, ['Usuario no valido', $user] );
+                return $this->returnFail(400, ['Usuario no valido', $user]);
             }
             if ($user->status !== 1) {
-                return $this->returnFail(400, ['Usuario inactivo', $user] );
+                return $this->returnFail(400, ['Usuario inactivo', $user]);
             }
             $departament_id = $request->departament_id;
 
@@ -66,7 +66,6 @@ class BookingController extends Controller
         } catch (Exception $th) {
             // return $this->returnFail(500, "Error al intentar crear reservación");
             return $this->returnFail(500, $th->getMessage());
-
         }
         $this->sendNotification($booking);
 
@@ -197,7 +196,7 @@ class BookingController extends Controller
 
         $dateStr = date('Y-m-d', strtotime($request->date));
         $isToday = $dateStr === date('Y-m-d');
-        
+
         $carbonDate = Carbon::parse($dateStr);
         $dayOfWeek = $carbonDate->dayOfWeek;
 
@@ -218,7 +217,6 @@ class BookingController extends Controller
             'no' => []
         ];
         $mm = [];
-        
         if ($schedules->isEmpty()) {
             return $this->returnSuccess(200, [
                 'blocks' => $blocks
@@ -236,7 +234,6 @@ class BookingController extends Controller
 
             $time = $scheduleTimeStart->copy();
             while ($time->lessThan($scheduleTimeEnd)) {
-                
                 $timeInitInterval = $time->copy();
                 $slotEnd = $time->copy()->addHours($intervalSize);
                 if ($slotEnd->greaterThan($scheduleTimeEnd)) {
@@ -248,9 +245,9 @@ class BookingController extends Controller
                     continue;
                 }
                 $availability = $this->calculateIntervalAvailability($timeInitInterval, $slotEnd, $area->max_cupo ?? 100, $bookingsInDay);
-                
+
                 $intervalData = [
-                    'time_from' => $timeInitInterval->format('H:i'), 
+                    'time_from' => $timeInitInterval->format('H:i'),
                     'time_to'   => $slotEnd->format('H:i'),
                     'capacity'  => $area->capacity,
                     'available' => $availability['spots'],
@@ -315,6 +312,165 @@ class BookingController extends Controller
         }
         return 'no';
     }
+    public function getExtensionSlots(Request $request, int $bookingId)
+    {
+        $booking = Booking::with('comunArea')->find($bookingId);
+
+        if (! $booking) {
+            return $this->returnFail(404, 'Reserva no encontrada');
+        }
+
+        if ($booking->status != Booking::STATUS_SUCCESS) {
+            return $this->returnFail(400, 'Solo se pueden extender reservas exitosas');
+        }
+
+        $area = $booking->comunArea;
+
+        if (! $area || ! $area->has_extension) {
+            return $this->returnFail(400, 'Este área no permite extensiones de tiempo');
+        }
+
+        $intervalSize = $area->max_time_reserve ?? 1;
+        $maxExtension = $area->max_time_extension ?? 0;
+        $dateStr = $booking->date->format('Y-m-d');
+        $isToday = $dateStr === now()->format('Y-m-d');
+
+        $carbonDate = Carbon::parse($dateStr);
+        $dayOfWeek = $carbonDate->dayOfWeek;
+
+        $schedules = ComunAreaSchedule::where('comun_area_id', $area->id)
+            ->where('day', $dayOfWeek)
+            ->get();
+
+        if ($schedules->isEmpty()) {
+            return $this->returnSuccess(200, ['slots' => []]);
+        }
+
+        $bookingsInDay = Booking::where('comun_area_id', $area->id)
+            ->where('date', $dateStr)
+            ->where('status', '>', 0)
+            ->where('id', '!=', $bookingId)
+            ->get();
+
+        $bookingTimeFrom = Carbon::parse($booking->time_from);
+        $bookingTimeTo = Carbon::parse($booking->time_to);
+
+        $slots = [];
+
+        foreach ($schedules as $schedule) {
+            $scheduleTimeStart = Carbon::parse($schedule->time_from);
+            $scheduleTimeEnd = Carbon::parse($schedule->time_to);
+
+            $time = $scheduleTimeStart->copy();
+            while ($time->lessThan($scheduleTimeEnd)) {
+                $slotStart = $time->copy();
+                $slotEnd = $time->copy()->addHours($intervalSize);
+
+                if ($slotEnd->greaterThan($scheduleTimeEnd)) {
+                    $slotEnd = $scheduleTimeEnd->copy();
+                }
+
+                if ($isToday && $slotStart->lessThanOrEqualTo(now()->setTimezone('America/Lima'))) {
+                    $time = $slotEnd->copy();
+                    continue;
+                }
+
+                $isBefore = $slotEnd->equalTo($bookingTimeFrom);
+                $isAfter = $slotStart->equalTo($bookingTimeTo);
+
+                if ($isBefore || $isAfter) {
+                    $availability = $this->calculateIntervalAvailability($slotStart, $slotEnd, $area->max_cupo ?? 100, $bookingsInDay);
+
+                    $slots[] = [
+                        'time_from'   => $slotStart->format('H:i'),
+                        'time_to'     => $slotEnd->format('H:i'),
+                        'position'    => $isBefore ? 'before' : 'after',
+                        'available'   => $availability['spots'],
+                        'status'      => $availability['status'],
+                        'duration'    => $slotEnd->diffInHours($slotStart),
+                    ];
+                }
+
+                $time = $slotEnd->copy();
+            }
+        }
+
+        $slots = array_filter($slots, fn($s) => $s['status'] !== 'Ocupado');
+
+        if ($maxExtension > 0) {
+            $currentHours = $booking->booking_hour;
+            $slots = array_filter($slots, fn($s) => ($currentHours + $s['duration']) <= $maxExtension);
+        }
+
+        return $this->returnSuccess(200, [
+            'booking' => $booking,
+            'area'    => $area,
+            'slots'   => array_values($slots),
+        ]);
+    }
+
+    public function storeExtension(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'booking_id' => ['required', 'integer', 'exists:bookings,id'],
+                'time_from'  => ['required', 'string'],
+                'time_to'    => ['required', 'string'],
+            ], [
+                'booking_id.required' => 'La reserva original es requerida.',
+                'booking_id.exists'   => 'La reserva original no existe.',
+                'time_from.required'  => 'El horario de inicio es requerido.',
+                'time_to.required'    => 'El horario de fin es requerido.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return $this->returnFail(422, $e->validator->errors()->first());
+        }
+
+        $originalBooking = Booking::with('comunArea')->find($validated['booking_id']);
+
+        if (! $originalBooking) {
+            return $this->returnFail(404, 'Reserva original no encontrada');
+        }
+
+        if ($originalBooking->status != Booking::STATUS_SUCCESS) {
+            return $this->returnFail(400, 'Solo se pueden extender reservas exitosas');
+        }
+
+        $area = $originalBooking->comunArea;
+
+        if (! $area || ! $area->has_extension) {
+            return $this->returnFail(400, 'Este área no permite extensiones');
+        }
+
+        $hours = Carbon::parse($validated['time_to'])->diffInHours(Carbon::parse($validated['time_from']));
+        $amount = ($area->extension_price ?? 0) * $hours;
+
+        $bookingType = $originalBooking->type;
+        $newStatus = $bookingType == 1 ? Booking::STATUS_SUCCESS : Booking::STATUS_PENDING_PAY;
+
+        $newBooking = Booking::create([
+            'user_id'         => $originalBooking->user_id,
+            'departament_id'  => $originalBooking->departament_id,
+            'comun_area_id'   => $originalBooking->comun_area_id,
+            'booking_number'  => $originalBooking->user_id . '00' . rand(1000, 9999),
+            'date'            => $originalBooking->date,
+            'time_from'       => $validated['time_from'],
+            'time_to'         => $validated['time_to'],
+            'amount'          => $amount,
+            'type'            => $bookingType,
+            'note'            => 'Extensión de reserva #' . $originalBooking->booking_number,
+            'status'          => $newStatus,
+            'is_exclusive'    => $originalBooking->is_exclusive,
+        ]);
+
+        $this->sendNotification($newBooking);
+
+        return $this->returnSuccess(200, [
+            'id'   => $newBooking->id,
+            'toPay' => $newStatus == Booking::STATUS_PENDING_PAY,
+        ]);
+    }
+
     public function getPendings()
     {
         $waitStatus = 2;
@@ -393,7 +549,7 @@ class BookingController extends Controller
     {
         BookingPendingPayNotifier::notify($booking);
     }
-    static public function cancelReserveNotification($users, $booking)
+    public static function cancelReserveNotification($users, $booking)
     {
         try {
             $users["client"]->notify(new RealtimeNotification(
@@ -430,12 +586,12 @@ class BookingController extends Controller
             // Creamos el evento y lo atamos a la reserva recién creada
             $event = Event::create([
                 'title'       => 'Cine: ' . $booking->note, // El nombre de la película
-                'description' => 'Proyección compartida en el área de Cine para el día '.date('DD/MM/YYYY', strtotime($booking->date)).'. ¡Todos los residentes están invitados! ',
+                'description' => 'Proyección compartida en el área de Cine para el día ' . date('DD/MM/YYYY', strtotime($booking->date)) . '. ¡Todos los residentes están invitados! ',
                 'date'        => date('Y-m-d', strtotime($booking->date)),
                 'time_from'   => $booking->time_from,
                 'time_to'     => $booking->time_to,
                 'location'    => $area->name,
-                'booking_id'  => $booking->id 
+                'booking_id'  => $booking->id
             ]);
 
             // Notificamos a los usuarios sobre el nuevo evento
@@ -447,7 +603,6 @@ class BookingController extends Controller
     {
         $users = User::where('rol_id', 2)->get();
         $creator = User::find($creatorId);
-        
         if ($creator && !$users->contains('id', $creator->id)) {
             $users->push($creator);
         }

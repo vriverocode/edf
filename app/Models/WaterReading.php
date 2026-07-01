@@ -8,7 +8,7 @@ class WaterReading extends Model
 {
     //
     protected $table = 'water_readings';
-    protected $fillable = ['departament_id', 'month', 'year', 'previous_reading', 'current_reading', 'm3_price', 'photo', 'amount'];
+    protected $fillable = ['departament_id', 'month', 'year', 'previous_reading', 'current_reading', 'm3_price', 'photo', 'amount', 'is_initial'];
     public $appends  =   ['month_label'];
 
     public function getMonthLabelAttribute(){

@@ -172,6 +172,8 @@ const formatedData = (response) => {
     comunArea.value = data;
     ready.value = true;
     loading.value = false;
+    // Asegurar que has_extension sea boolean
+    comunArea.value.has_extension = !!data.has_extension;
 
   } catch (error) {
     console.log(error);
@@ -275,6 +277,26 @@ onMounted(async () => {
               <q-input dense borderless clearable type="number" v-model="comunArea.max_time_reserve"
                 class="form__inputsR mt-1" color="primary" :rules="[val => !!val || 'Requerido']" />
             </div>
+
+            <!-- Extensiones -->
+            <div class="col-12 mt-3 px-2 md:px-12">
+              <div class="text-subtitle2 text-black mb-1">Extensiones de reserva</div>
+              <q-toggle v-model="comunArea.has_extension" label="Habilitar extensiones" color="primary" />
+            </div>
+            <template v-if="comunArea.has_extension">
+              <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
+                <div class="text-subtitle2 text-black">Máximo de horas de extensión</div>
+                <q-input dense borderless clearable type="number" v-model="comunArea.max_time_extension"
+                  class="form__inputsR mt-1" color="primary" hint="Horas adicionales permitidas"
+                  :rules="[val => !!val || 'Requerido cuando las extensiones están habilitadas']" />
+              </div>
+              <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
+                <div class="text-subtitle2 text-black">Precio de la extensión (S/. por hora)</div>
+                <q-input dense borderless clearable type="number" v-model="comunArea.extension_price"
+                  class="form__inputsR mt-1" color="primary" hint="Costo por cada hora extra"
+                  :rules="[val => !!val || 'Requerido cuando las extensiones están habilitadas']" />
+              </div>
+            </template>
           </div>
         </Transition>
         <Transition>
@@ -371,26 +393,26 @@ onMounted(async () => {
                       color="primary" />
                   </div>
 
-                  <div class="col-md-6 col-12 mt-1 px-2">
+                  <div class="col-md-6 col-12 mt-4 px-2">
                     <div class="text-subtitle2 text-black">Nivel de severidad</div>
                     <q-select class="form__inputsR mt-1 bg-white" v-model="rule.severity" :options="severityOptions"
                       option-label="name" option-value="value" dense borderless />
                   </div>
 
-                  <div class="col-md-6 col-12 mt-2 px-2">
+                  <div class="col-md-6 col-12 mt-4 px-2">
                     <div class="text-subtitle2 text-black">Tipo de regla</div>
                     <q-select class="form__inputsR mt-1 bg-white" v-model="rule.type" :options="ruleTypeOptions"
                       option-label="name" option-value="value" dense borderless />
                   </div>
 
-                  <div class="col-md-6 col-12 mt-2 px-2" v-if="rule.type.value === 2">
+                  <div class="col-md-6 col-12 mt-4 px-2" v-if="rule.type.value === 2">
                     <div class="text-subtitle2 text-black">Amonestación Monetaria</div>
                     <q-input dense borderless clearable type="number" v-model="rule.suggest_amount"
                       class="form__inputsR mt-1 bg-white" color="primary" hint="Monto a multar"
                       :rules="[val => !!val || 'El monto es requerido para este tipo']" />
                   </div>
 
-                  <div class="col-12 mt-2 px-2">
+                  <div class="col-12 mt-4 px-2">
                     <div class="text-subtitle2 text-black">Descripción de la regla</div>
                     <q-input borderless clearable type="textarea" rows="2" v-model="rule.description"
                       class="form__inputsR mt-1 bg-white" color="primary" />

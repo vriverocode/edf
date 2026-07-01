@@ -64,7 +64,7 @@ onMounted(() => { getApartment() })
             </div>
           </div>
           <div class="itemBadge px-8 py-1 bg-negative">
-            Habitado
+            Ocupado
           </div>
         </div>
         <div class="flex justify-center mt-4">

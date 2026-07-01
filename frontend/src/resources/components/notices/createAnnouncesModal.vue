@@ -203,7 +203,7 @@ watch(() => props.dialog, (newValue) => {
         </section>
         <section class="py-5 ">
           <div class="w-full px-4 text-caption">
-            Recuerda: Para publicar, debe estar solvente con tus pagos y esperar la validación del administrador.
+            Recuerda: Para publicar, debe estar al día con tus pagos y esperar la validación del administrador.
           </div>
           <div class="flex justify-evenly mt-5">
             <q-btn label="Cerrar" unelevated class="q-mx-sm " color="primary" outline

@@ -25,7 +25,10 @@ class ComunArea extends Model
         "icon",
         "max_cupo",
         "not_available_days",
-        "type" // <-- IMPORTANTE: Asegúrate de agregar "type" al fillable para poder guardarlo
+        "type",
+        "has_extension",
+        "max_time_extension",
+        "extension_price",
     ];
 
     // Agregamos 'type_label' a la lista de appends

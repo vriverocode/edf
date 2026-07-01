@@ -656,6 +656,17 @@ const routes = [
         },
       },
       {
+        path: '/client/reserves/extend/:id',
+        component: () => import('@/view/client/Reserves/extendReserve.vue'),
+        name: 'extendReserve',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Extender reserva',
+          depth: 3,
+        },
+      },
+      {
         path: '/client/notifications',
         component: () => import('@/view/client/Notifications/notificationsPage.vue'),
         name: 'notificationsPage',

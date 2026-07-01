@@ -63,6 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/temporary-or-resident', [UserController::class, 'storeResidentUser']);
         Route::post('/complete-first-time', [UserController::class, 'completeFirstTime']);
 
+        Route::delete('/d/{id}', [UserController::class, 'destroy']);
+
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment']);
         Route::post('/assign-property', [DepartamentController::class, 'assingApartment']);
         Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin']);
@@ -106,6 +108,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/availableBooking/{id}', [BookingController::class, 'getAvaibleBookingByDay']);
         Route::get('/byId/{id}', [BookingController::class, 'getBookingById']);
         Route::get('/byArea/{id}', [BookingController::class, 'getBookingByAreaId']);
+        Route::get('/extension-slots/{id}', [BookingController::class, 'getExtensionSlots']);
+        Route::post('/extension', [BookingController::class, 'storeExtension']);
         Route::post('/cancel/{id}', [BookingController::class, 'cancelBooking']);
         Route::get('/pendings', [BookingController::class, 'getPendings']);
     });
@@ -205,6 +209,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('water-readings')->name('waterReadings.')->group(function () {
         Route::get('/', [WaterReadingController::class, 'index']);
         Route::get('/byId/{id}', [WaterReadingController::class, 'show']);
+        Route::get('/last-by-department/{departmentId}', [WaterReadingController::class, 'getLastByDepartment']);
         Route::post('/', [WaterReadingController::class, 'store']);
         Route::post('/u/{id}', [WaterReadingController::class, 'update']);
     });

@@ -138,7 +138,7 @@ export const useUserStore = defineStore('User', {
           throw ''
         }
         ApiService.setHeader()
-        ApiService.post('/api/users/d/' + id)
+        ApiService.delete('/api/users/d/' + id)
           .then(({ data }) => {
             if (data.code != 200) throw data
 
@@ -146,7 +146,7 @@ export const useUserStore = defineStore('User', {
           })
           .catch(({ response }) => {
             console.log(response)
-            reject(response.data.error)
+            reject(response?.data?.error || 'Error al eliminar usuario')
           })
       })
     },
