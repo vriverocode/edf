@@ -63,7 +63,7 @@ const formData = ref({
   is_exclusive: false,
   terms_accept: false,
   multa_accept: false,
-  pay_later: true,
+  pay_later: false,
   departament_id: null,
 })
 const toPayId = ref(null)
@@ -242,7 +242,8 @@ const getAvaibleBookingByDay = () => {
 
   const data = {
     idArea: selectedComunArea.value.id,
-    date: formData.value.date
+    date: formData.value.date,
+    reserveType: formData.value.typeOfReserve
   }
 
   reserveStore.getAvailableReserveInDayByArea(data)
@@ -573,6 +574,11 @@ onBeforeUnmount(() => {
       }
     })
 });
+const hrsFormat = (hr) => {
+ return hr == 1
+  ? moment.duration(hr, 'hours').asMinutes() + ' min'
+  : hr + ' hrs'
+}
 const culqiSuccess = (data) => {
   alert('Bien ahi prepago')
 };
@@ -669,10 +675,10 @@ watch(step,
                           <div class="text-dateBlockTitle">Fecha elegida</div>
                           <div class="text-primary text-bold text-dateBlock">
                             {{ formData.date ? moment(formData.date).format('dddd DD') : '-----' }}
-                            - {{ selectedComunArea.max_time_reserve == 1
-                              ? moment.duration(selectedComunArea.max_time_reserve, 'hours').asMinutes() + ' min'
-                              : selectedComunArea.max_time_reserve + ' hrs'
-                            }}
+                            - 
+                            {{  hrsFormat(formData.typeOfReserve == 1 
+                              ? selectedComunArea.max_time_reserve 
+                              : selectedComunArea.max_time_reserve_exclusive) }}
                           </div>
                         </div>
                         <div>

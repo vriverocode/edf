@@ -234,7 +234,7 @@ onMounted(() => {
                 :rules="[val => !(!val) || 'Establece un maximo de cupos']" />
             </div>
             
-            <div class="col-md-6 col-12  row mt-1 px-2 md:px-12" v-if="formData.typeArea.value != 1">
+            <div class="col-md-6 col-12  row mt-1 px-2 md:px-12" >
               <div class="col-12">
                 <div class="text-subtitle2 text-black ">
                   Maximo de horas de reserva
@@ -243,12 +243,12 @@ onMounted(() => {
                   color="primary" :rules="[val => !(!val) || 'Las horas maxima de reserva es necesaria']" />
               </div>
             </div>
-            <div class="col-md-6 col-12  row mt-1 px-2 md:px-12">
+            <div class="col-md-6 col-12  row mt-1 px-2 md:px-12" v-if="formData.typeArea.value == 2">
               <div class="col-12">
                 <div class="text-subtitle2 text-black ">
                   Maximo de horas de reserva exclusiva
                 </div>
-                <q-input dense borderless clearable v-model="formData.maxTime" class="form__inputsR mt-1" autofocus
+                <q-input dense borderless clearable v-model="formData.maxTimeExclusive" class="form__inputsR mt-1" autofocus
                   color="primary" :rules="[val => !(!val) || 'Las horas maxima de reserva es necesaria']" />
               </div>
             </div>

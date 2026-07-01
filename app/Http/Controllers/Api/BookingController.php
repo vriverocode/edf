@@ -30,10 +30,10 @@ class BookingController extends Controller
         try {
             $user = $request->user();
             if ($user->rol_id == 1 || $user->rol_id == 6 || $user->rol_id == 7) {
-                return $this->returnFail(400, ['Usuario no valido', $user] );
+                return $this->returnFail(400, ['Usuario no valido', $user]);
             }
             if ($user->status !== 1) {
-                return $this->returnFail(400, ['Usuario inactivo', $user] );
+                return $this->returnFail(400, ['Usuario inactivo', $user]);
             }
             $departament_id = $request->departament_id;
 
@@ -66,7 +66,6 @@ class BookingController extends Controller
         } catch (Exception $th) {
             // return $this->returnFail(500, "Error al intentar crear reservación");
             return $this->returnFail(500, $th->getMessage());
-
         }
         $this->sendNotification($booking);
 
@@ -197,7 +196,7 @@ class BookingController extends Controller
 
         $dateStr = date('Y-m-d', strtotime($request->date));
         $isToday = $dateStr === date('Y-m-d');
-        
+
         $carbonDate = Carbon::parse($dateStr);
         $dayOfWeek = $carbonDate->dayOfWeek;
 
@@ -210,7 +209,7 @@ class BookingController extends Controller
             ->where('status', '>', 0)
             ->get();
 
-        $intervalSize = $area->max_time_reserve ?? 1;
+        $intervalSize = $request->reserve_type == 2 ? $area->max_time_reserve_exclusive : $area->max_time_reserve;
 
         $blocks = [
             'ma' => [],
@@ -218,7 +217,6 @@ class BookingController extends Controller
             'no' => []
         ];
         $mm = [];
-        
         if ($schedules->isEmpty()) {
             return $this->returnSuccess(200, [
                 'blocks' => $blocks
@@ -236,7 +234,6 @@ class BookingController extends Controller
 
             $time = $scheduleTimeStart->copy();
             while ($time->lessThan($scheduleTimeEnd)) {
-                
                 $timeInitInterval = $time->copy();
                 $slotEnd = $time->copy()->addHours($intervalSize);
                 if ($slotEnd->greaterThan($scheduleTimeEnd)) {
@@ -248,9 +245,8 @@ class BookingController extends Controller
                     continue;
                 }
                 $availability = $this->calculateIntervalAvailability($timeInitInterval, $slotEnd, $area->max_cupo ?? 100, $bookingsInDay);
-                
                 $intervalData = [
-                    'time_from' => $timeInitInterval->format('H:i'), 
+                    'time_from' => $timeInitInterval->format('H:i'),
                     'time_to'   => $slotEnd->format('H:i'),
                     'capacity'  => $area->capacity,
                     'available' => $availability['spots'],
@@ -393,7 +389,7 @@ class BookingController extends Controller
     {
         BookingPendingPayNotifier::notify($booking);
     }
-    static public function cancelReserveNotification($users, $booking)
+    public static function cancelReserveNotification($users, $booking)
     {
         try {
             $users["client"]->notify(new RealtimeNotification(
@@ -430,12 +426,12 @@ class BookingController extends Controller
             // Creamos el evento y lo atamos a la reserva recién creada
             $event = Event::create([
                 'title'       => 'Cine: ' . $booking->note, // El nombre de la película
-                'description' => 'Proyección compartida en el área de Cine para el día '.date('DD/MM/YYYY', strtotime($booking->date)).'. ¡Todos los residentes están invitados! ',
+                'description' => 'Proyección compartida en el área de Cine para el día ' . date('DD/MM/YYYY', strtotime($booking->date)) . '. ¡Todos los residentes están invitados! ',
                 'date'        => date('Y-m-d', strtotime($booking->date)),
                 'time_from'   => $booking->time_from,
                 'time_to'     => $booking->time_to,
                 'location'    => $area->name,
-                'booking_id'  => $booking->id 
+                'booking_id'  => $booking->id
             ]);
 
             // Notificamos a los usuarios sobre el nuevo evento
@@ -447,7 +443,7 @@ class BookingController extends Controller
     {
         $users = User::where('rol_id', 2)->get();
         $creator = User::find($creatorId);
-        
+
         if ($creator && !$users->contains('id', $creator->id)) {
             $users->push($creator);
         }

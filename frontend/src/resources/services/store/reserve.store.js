@@ -151,7 +151,7 @@ export const useReserveStore = defineStore('Reserve', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/bookings/availableBooking/' + data.idArea + '?date=' + data.date + '&')
+        ApiService.get('/api/bookings/availableBooking/' + data.idArea + '?date=' + data.date + '&' + 'reserve_type=' + data.reserveType + '&')
           .then(({ data }) => {
             if (data.code != 200) throw data;
 

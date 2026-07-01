@@ -148,7 +148,7 @@ onMounted(() => {
                     <div v-html="iconsApp.moneyIcon" />
                     <span class="font-medium">
                       {{ getPaymentAmount(reserve) }} 
-                      <q-chip color="deep-purple-10"  v-if="reserve.type == 2">
+                      <q-chip color="primary"  v-if="reserve.type == 2">
                         <div class="text-white" style="font-weight:600; font-size:0.8rem"> 
                           {{ reserve.type_label }}
                         </div>

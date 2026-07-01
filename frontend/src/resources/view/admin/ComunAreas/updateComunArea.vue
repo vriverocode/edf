@@ -32,6 +32,8 @@ const updateComunArea = () => {
   loading.value = true
   comunArea.value.warrantyPrice = comunArea.value.warranty_price
   comunArea.value.maxTime = comunArea.value.max_time_reserve
+  comunArea.value.maxTimeExclusive = comunArea.value.max_time_reserve_exclusive
+
 
   comunAreaStore.updateComunArea(comunArea.value)
     .then((response) => {
@@ -231,7 +233,7 @@ onMounted(async () => {
 
             <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">Tipo de área</div>
-              <q-select dense borderless v-model="comunArea.type" :options="typeArea" option-label="name"
+              <q-select dense borderless v-model="comunArea.typeArea" :options="typeArea" option-label="name"
                 option-value="value" class="form__inputsR mt-1 bg-white" />
             </div>
 
@@ -274,6 +276,15 @@ onMounted(async () => {
               <div class="text-subtitle2 text-black">Tiempo máximo de reserva (Horas)</div>
               <q-input dense borderless clearable type="number" v-model="comunArea.max_time_reserve"
                 class="form__inputsR mt-1" color="primary" :rules="[val => !!val || 'Requerido']" />
+            </div>
+            <div class="col-md-6 col-12  row mt-1 px-2 md:px-12" v-if="comunArea.typeArea.value == 2">
+              <div class="col-12">
+                <div class="text-subtitle2 text-black ">
+                  Maximo de horas de reserva exclusiva
+                </div>
+                <q-input dense borderless clearable type="number" v-model="comunArea.max_time_reserve_exclusive" class="form__inputsR mt-1" autofocus
+                  color="primary" :rules="[val => !(!val) || 'Las horas maxima de reserva exclusiva es necesaria']" />
+              </div>
             </div>
           </div>
         </Transition>
