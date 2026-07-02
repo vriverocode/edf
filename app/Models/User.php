@@ -66,7 +66,7 @@ class User extends Authenticatable
     {
         $status = [
             '---',
-            'Solvente',
+            'Al día',
             'Moroso',
             'Inactivo',
         ];

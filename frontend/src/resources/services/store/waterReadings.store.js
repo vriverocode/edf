@@ -77,6 +77,24 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
       })
     },
 
+    async getLastWaterReadingByDepartment(departmentId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.get('/api/water-readings/last-by-department/' + departmentId)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al obtener la última medición')
+          })
+      })
+    },
+
     filterQuery(filter) {
       try {
         const params = new URLSearchParams()

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { Notify } from 'quasar';
 import iconsApp from '@/assets/icons/index'
 import { useApartmentStore } from '@/services/store/apartment.store';
+import initialWaterReadingModal from '@/components/admin/initialWaterReadingModal.vue'
 
 const apartmentStore = useApartmentStore()
 
@@ -30,6 +31,14 @@ const unitTypesOptions = [
   { label: 'Estacionamientos', value: 2 },
   { label: 'Depósitos', value: 3 }
 ]
+
+const initialReadingDialog = ref(false)
+const selectedApartmentForReading = ref(null)
+
+const openInitialReadingModal = (apartment) => {
+  selectedApartmentForReading.value = apartment
+  initialReadingDialog.value = true
+}
 
 const getApartment = () => {
   ready.value = false;
@@ -166,6 +175,10 @@ onMounted(() => { getApartment() })
                 @click="openChangeOwnerModal(apartment)" />
             </div>
             <div>
+              <q-btn icon="eva-droplet-outline" class="mx-1" flat color="info" round size="0.85rem"
+                @click="openInitialReadingModal(apartment)" />
+            </div>
+            <div>
               <q-btn icon="eva-settings-outline" class="mx-1" flat color="primary" round size="0.85rem"
                 @click="goTo('/admin/apartments/edit/' + apartment.id)" />
             </div>
@@ -175,7 +188,7 @@ onMounted(() => { getApartment() })
 
           </div>
           <div class="itemBadge px-8 py-1" :class="{ 'bg-positive': !apartment.owner, 'bg-negative': apartment.owner }">
-            {{ !apartment.owner ? 'Disponible' : 'Habitado' }}
+            {{ !apartment.owner ? 'Disponible' : 'Ocupado' }}
           </div>
         </div>
         <div class="flex justify-center mt-4">
@@ -211,6 +224,13 @@ onMounted(() => { getApartment() })
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <initialWaterReadingModal
+      :dialog="initialReadingDialog"
+      :apartment="selectedApartmentForReading"
+      @close-modal="initialReadingDialog = false"
+      @created="getApartment()"
+    />
   </div>
 </template>
 <style lang="scss">

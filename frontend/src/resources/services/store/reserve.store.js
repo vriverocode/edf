@@ -214,6 +214,38 @@ export const useReserveStore = defineStore('Reserve', {
           });
       })
     },
+    async getExtensionSlots(bookingId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.get('/api/bookings/extension-slots/' + bookingId)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al obtener horarios de extensión');
+          });
+      })
+    },
+    async createExtension(data) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.post('/api/bookings/extension', data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al crear extensión');
+          });
+      })
+    },
     async getPendingReserve() {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {

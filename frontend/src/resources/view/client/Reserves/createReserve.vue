@@ -258,6 +258,14 @@ const daysAvailableForBook = (date) => {
   const isFutureOrToday = date >= moment().format('YYYY/MM/DD');
 
   if (!isFutureOrToday) return false;
+
+  // Para el área "Lounge", solo se permiten fechas con más de 30 días de anticipación
+  const isLounge = selectedComunArea.value?.name?.toLowerCase().trim() === 'lounge';
+  if (isLounge) {
+    const minDate = moment().add(30, 'days').format('YYYY/MM/DD');
+    if (date < minDate) return false;
+  }
+
   if (!selectedComunArea.value || !selectedComunArea.value.schedules || selectedComunArea.value.schedules.length === 0) {
     return true;
   }
@@ -347,8 +355,8 @@ const setColor = (status) => {
   return status == 'Disponible'
     ? 'primary'
     : status == 'Últimos'
-      ? 'terciary'
-      : ''
+      ? 'warning'
+      : 'negative'
 }
 const setSelectHour = (index) => {
   if (intervalHorarys.value[tapActive.value][index].status == 'Ocupado') {
@@ -540,7 +548,7 @@ const typeOfReserve = [
     id: 3,
     title: 'Solo reserva con pago',
     description: 'Uso exclusivo obligatorio del área completa con pago requerido',
-    types: [3]
+    types: [3, 4]
   }
 ]
 const reservesByType = computed(() => {
@@ -1500,7 +1508,8 @@ watch(step,
   & .q-date__calendar-item--out div{
     border-radius: 5px;
     border: 0px!important;
-    background: rgba(184, 190, 184, 0.075);
+    background: rgba(14, 197, 14, 0.075);
+    margin-bottom: 0.4rem;
   }
   & .q-date__today{
     border: none;
@@ -1523,13 +1532,16 @@ watch(step,
     border-radius: 5px;
     border: 0px!important;
     background: rgba(34, 231, 34, 0.144);
+    margin-bottom: 0.4rem!important;;
   }
   & .q-date__calendar-weekdays .q-date__calendar-item {
     opacity: 1 !important;
     margin-top: 0.7rem;
     margin-bottom: 0.7rem;
+    
 
     & div {
+      
       background: #5571b7;
       color: white;
       border-radius: 50rem;
@@ -1662,15 +1674,15 @@ watch(step,
 }
 
 .pintype {
-  height: 1.3rem;
-  width: 1.3rem;
+  height: 1.35rem;
+  width: 1.35rem;
   display: flex;
   justify-content: center;
   align-items: center;
   border-radius: 50%;
   position: absolute;
-  right: 0.25rem;
-  top: 0.3rem;
+  left: 0.4rem;
+  top: 0.4rem;
   color: white;
   font-size: 0.68rem;
 
@@ -1680,12 +1692,9 @@ watch(step,
   border-radius: 0.8rem;
   overflow: visible;
   position: relative;
-  // border: 2px solid rgb(3, 156, 195) ;
   width: 100%;
-  //box-shadow: 0px 0.1rem 1rem 0px rgba(0, 0, 0, 0.205);
   background-repeat: no-repeat;
   background-size: cover;
-
   transition: all 0.7s ease-in-out;
   cursor: pointer;
   height: 73%;

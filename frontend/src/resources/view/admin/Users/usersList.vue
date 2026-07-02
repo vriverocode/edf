@@ -3,15 +3,14 @@ import { inject, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/services/store/users.store';
 import iconsApp from '@/assets/icons/index'
-
+import deleteUserModal from '@//components/admin/deleteUserModal.vue';
 const userStore = useUserStore()
 const filterRol = ref(2)
 const page = ref(1)
 const search = ref('')
 const ready = ref(false)
 const materialIcons = inject('materialIcons')
-
-
+const modal = ref('')
 
 const router = useRouter()
 
@@ -20,6 +19,14 @@ const goTo = (url) => {
 }
 
 const users = ref([])
+const selectedUser = ref({})
+
+const openModal = (user, type) => {
+  selectedUser.value = user
+  setTimeout(() => {
+    modal.value = type
+  }, 50);
+}
 
 const getUsers = () => {
 
@@ -166,7 +173,7 @@ onMounted(() => {
               </q-btn>
             </div>
             <div>
-              <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.9rem">
+              <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.9rem" @click="openModal(user, 'delete')">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Borrar usuario
                 </q-tooltip>
@@ -176,6 +183,10 @@ onMounted(() => {
         </div>
       </div>
     </div>
+    <div v-if="Object.values(selectedUser).length > 0">
+      <deleteUserModal :dialog="(modal == 'delete')" :user="selectedUser" @close-modal="modal = ''" @update-list="getUsers()" />
+    </div>
+    
   </div>
 </template>
 <style lang="scss">

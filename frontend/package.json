@@ -3,7 +3,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite --host 192.168.1.234 --port 8031",
+        "dev": "vite --host 192.168.1.246 --port 8031",
         "dev-home": "vite --host 192.168.31.117 --port 8031"
     },
     "devDependencies": {
@@ -59,11 +59,11 @@
         "shell-quote": "^1.8.4"
     },
     "allowScripts": {
-      "@firebase/util": true,
-      "@parcel/watcher": true,
-      "esbuild": true,
-      "protobufjs": true,
-      "sharp": true,
-      "vue-demi": true
+        "@firebase/util": true,
+        "@parcel/watcher": true,
+        "esbuild": true,
+        "protobufjs": true,
+        "sharp": true,
+        "vue-demi": true
     }
 }

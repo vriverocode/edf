@@ -11,7 +11,7 @@ window.Echo = new Echo({
   forceTLS: true,
   authEndpoint: 'https://website-a40e47dc.gtq.fvz.mybluehost.me/broadcasting/auth',
   // authEndpoint: 'http://192.168.31.117:8030/broadcasting/auth',
-  // authEndpoint: 'http://192.168.1.234:8030/broadcasting/auth',
+  // authEndpoint: 'http://192.168.1.246:8030/broadcasting/auth',
 
 
   auth: {
