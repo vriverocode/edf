@@ -16,7 +16,8 @@ class Maintenance extends Model
         'date',
         'time_from',
         'time_to',
-        'status'
+        'status',
+        'photo',
     ];
     public $appends  =   ["status_label"];
 

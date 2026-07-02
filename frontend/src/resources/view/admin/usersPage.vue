@@ -40,7 +40,7 @@ const goTo = (url) => {
 <template>
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-5  md:px-16">
-      <div class="col-md-3 md:px- col-6 px-10 my-3" v-for="(item, key) in menu" :key="key" @click="goTo(item.link)">
+      <div class="col-md-3 md:px- col-6 px-7 my-3" v-for="(item, key) in menu" :key="key" @click="goTo(item.link)">
         <div class="boxItem ">
           <div class="flex justify-center items-center h-full w-full p-1">
             <!-- <img :src="items.icon" class="w-full md:w-auto h-full" /> -->

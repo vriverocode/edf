@@ -50,7 +50,7 @@ const selectSlot = (slot) => {
 
 const extensionCost = () => {
   if (!selectedSlot.value || !area.value) return 0
-  return (area.value.extension_price || 0) * selectedSlot.value.duration
+  return parseFloat(area.value.extension_price)
 }
 
 const confirmExtension = () => {
@@ -92,7 +92,7 @@ onMounted(() => {
 
 <template>
   <div class="h-full" style="overflow: hidden;">
-    <div class="h-full" style="overflow: auto;">
+    <div class="" style="overflow: auto; height: 87%;">
       <!-- Loading -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />
@@ -161,7 +161,7 @@ onMounted(() => {
                     {{ slot.time_from }} - {{ slot.time_to }}
                   </div>
                   <div class="text-grey-6 mt-1" style="font-size: 0.78rem;">
-                    {{ slot.duration }} hora(s) adicional(es)
+                    {{ (slot.duration*-1) }} hora(s) adicional(es)
                   </div>
                 </div>
               </div>
@@ -199,14 +199,14 @@ onMounted(() => {
             <span class="text-bold text-primary">S/ {{ extensionCost().toFixed(2) }}</span>
           </div>
           <div v-if="area?.extension_price" class="text-caption text-grey-6 mt-1">
-            (S/ {{ area.extension_price.toFixed(2) }} x hora)
+            (S/ {{ parseFloat(area.extension_price).toFixed(2) }} x hora)
           </div>
         </div>
       </div>
     </div>
 
     <!-- Botones inferiores -->
-    <div class="px-4 py-3" style="min-height: 10%;">
+    <div class="px-4 py-3 w-full pt-5" style="height: 12%;">
       <div class="row" v-if="!loading && slots.length > 0">
         <div class="col-4 flex flex-center">
           <q-btn outline color="grey-8" unelevated no-caps style="width: 90%; border-radius: 3rem;" @click="goBack">

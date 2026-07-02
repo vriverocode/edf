@@ -126,7 +126,7 @@ onMounted(() => {
                     <span class="font-medium">
                       {{ getPaymentAmount(reserve) }} -
                       <span class="font-medium">
-                        {{ reserve.pay?.pay_method_label ?? 'Confirmada' }}
+                        {{ reserve.pay?.pay_method.name ?? 'Confirmada' }}
                       </span>
                     </span>
                   </div>

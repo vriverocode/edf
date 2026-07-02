@@ -34,15 +34,27 @@ class Booking extends Model
     ];
 
     // Corregido: status_color estaba duplicado
-    public $appends = ["booking_hour", "status_label", "status_color", 'type_label', "type_color"];
+    public $appends = ["booking_hour", "status_label", "status_color", 'type_label', "type_color", "has_extension"];
 
     /* -------------------------------------------------------------------------- */
     /* Relaciones                                                                 */
     /* -------------------------------------------------------------------------- */
-    public function comunArea(): BelongsTo { return $this->belongsTo(ComunArea::class); }
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function departament(): BelongsTo { return $this->belongsTo(Departament::class); }
-    public function pay(): HasOne { return $this->hasOne(Pay::class); }
+    public function comunArea(): BelongsTo
+    {
+        return $this->belongsTo(ComunArea::class);
+    }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+    public function departament(): BelongsTo
+    {
+        return $this->belongsTo(Departament::class);
+    }
+    public function pay(): HasOne
+    {
+        return $this->hasOne(Pay::class);
+    }
 
     /* -------------------------------------------------------------------------- */
     /* Accessors (Sintaxis Moderna Laravel 9+)                                    */
@@ -87,6 +99,8 @@ class Booking extends Model
                 1 => "Compartida",
                 2 => "Exclusiva",
                 3 => "De pago",
+                4 => "Extension",
+
                 default => "Desconocido",
             }
         );
@@ -99,9 +113,22 @@ class Booking extends Model
                 1 => 'blue-9',
                 2 => 'deep-purple-10',
                 3 => 'light-green-13',
-                4 => 'De pago lista de invitados', // Nota: El typeLabel no tiene ID 4, revisar coherencia
+                4 => 'amber-8',
                 default => 'No definido',
             }
+        );
+    }
+
+    protected function hasExtension(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->type != 4 && Booking::where('type', 4)
+                ->where('comun_area_id', $this->comun_area_id)
+                ->where('date', $this->date)
+                ->where('user_id', $this->user_id)
+                ->where('status', '>', 0)
+                ->where('note', 'like', '%' . $this->booking_number . '%')
+                ->exists()
         );
     }
 
@@ -110,21 +137,21 @@ class Booking extends Model
     /* -------------------------------------------------------------------------- */
     public function scopeFilter(Builder $query, array $filters): void
     {
-        $query->when(isset($filters['status']) && (int) $filters['status'] !== 4, 
-                fn($q) => $q->where('status', (int) $filters['status']))
-            ->when($filters['area_id'] ?? null, 
-                fn($q, $areaId) => $q->where('comun_area_id', (int) $areaId))
-            ->when($filters['date_from'] ?? null, 
-                fn($q, $date) => $q->whereDate('date', '>=', $date))
-            ->when($filters['date_to'] ?? null, 
-                fn($q, $date) => $q->whereDate('date', '<=', $date))
+        $query->when(isset($filters['status']) && (int) $filters['status'] !== 4, fn($q) => $q->where('status', (int) $filters['status']))
+            ->when($filters['area_id'] ?? null, fn($q, $areaId) => $q->where('comun_area_id', (int) $areaId))
+            ->when($filters['date_from'] ?? null, fn($q, $date) => $q->whereDate('date', '>=', $date))
+            ->when($filters['date_to'] ?? null, fn($q, $date) => $q->whereDate('date', '<=', $date))
             ->when($filters['amount_type'] ?? null, function ($q, $type) {
-                if ($type === 'free') $q->where('amount', 0);
-                if ($type === 'paid') $q->where('amount', '>', 0);
+                if ($type === 'free') {
+                    $q->where('amount', 0);
+                }
+                if ($type === 'paid') {
+                    $q->where('amount', '>', 0);
+                }
             });
 
-        $sortBy = in_array($filters['sort_by'] ?? '', ['created_at', 'date', 'status', 'amount']) 
-            ? $filters['sort_by'] 
+        $sortBy = in_array($filters['sort_by'] ?? '', ['created_at', 'date', 'status', 'amount'])
+            ? $filters['sort_by']
             : 'created_at';
         $sortDir = ($filters['sort_dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 

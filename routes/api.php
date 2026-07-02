@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\PayMethodController;
 use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\MonthlyBillsController;
 use App\Http\Controllers\Api\WaterReadingController;
+use App\Http\Controllers\Api\MaintenanceController;
 use App\Http\Controllers\Api\FinancialAccountController;
 use App\Http\Controllers\Api\TransactionCategoryController;
 use App\Http\Controllers\Api\ServiceCategoryController;
@@ -189,6 +190,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/set-new-status/{id}', [NoticeController::class, 'setNewStatus']);
         Route::delete('/{id}', [NoticeController::class, 'delete']);
         Route::post('/{id}', [NoticeController::class, 'update']);
+    });
+    Route::prefix('maintenances')->name('maintenance.')->group(function () {
+        Route::get('/', [MaintenanceController::class, 'index']);
+        Route::post('/', [MaintenanceController::class, 'store']);
     });
     Route::prefix('pay-method')->name('payMethod.')->group(function () {
         Route::get('/', [PayMethodController::class, 'index']);

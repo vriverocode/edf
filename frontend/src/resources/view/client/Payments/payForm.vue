@@ -342,6 +342,24 @@ const pegarTexto = async () => {
   }
 }
 
+const handleUpload = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    if (!file.type.startsWith('image/')) {
+      showNotify('negative', 'Por favor, selecciona solo un archivo de imagen.')
+      return
+    }
+    payFormData.value.vaucher = file
+    disable.value = false
+  }
+}
+
+const fileSizeInMB = computed(() => {
+  if (!payFormData.value.vaucher) return 0
+  const size = payFormData.value.vaucher.size / (1024 * 1024)
+  return size.toFixed(2)
+})
+
 watch(step, (toStep, fromStep) => {
   transitionName.value = toStep > fromStep ? 'slide-next' : 'slide-prev'
 })
@@ -584,21 +602,36 @@ watch(step, (toStep, fromStep) => {
                         </div>
                       </div>
                       <div class="rulesContainer mt-2 px-3 w-full py-2">
-                        <div class="text-subtitle2 text-black mb-2">
-                          Vaucher de pago
-                        </div>
-                        <q-file v-model="payFormData.vaucher" dense borderless clearable class="form__inputsPay mt-1"
-                          color="primary" @update:model-value="onFileChange" accept="image/*, application/pdf, .pdf">
-                          <template v-slot:append>
-                            <q-icon name="eva-folder-add-outline" class="cursor-pointer" />
-                          </template>
-                          <template v-slot:selected>
-                            <div class="row items-center q-gutter-x-sm">
-                              <q-icon name="eva-checkmark-circle-2-outline" color="positive" size="sm" />
-                              <div>Archivo subido</div>
+                        <label for="vaucherPay">
+                          <template v-if="!payFormData.vaucher">
+                            <div class="flex flex-center column">
+                              <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
+                              <div class="text-center">
+                                <div class="text-grey-7 font-medium">
+                                  Sube tu comprobante de pago
+                                </div>
+                                <div class="text-grey-6 font-medium">
+                                  Pulsa o haz click aqui para carga tu archivo
+                                </div>
+                              </div>
                             </div>
                           </template>
-                        </q-file>
+                          <template v-else>
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center">
+                                <q-icon color="tealedf" name="eva-checkmark-circle-2" />
+                                <div class="ml-1">
+                                  <div class="text-xsImage text-tealedf">Vaucher adjuntado correctamente</div>
+                                  <div class="text-xsImage text-black">
+                                    {{ payFormData.vaucher.name.slice(0, 10) }}***{{ payFormData.vaucher.name.slice(-5) }} - {{ fileSizeInMB }} MB
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </template>
+                        </label>
+                        <input type="file" id="vaucherPay" style="display: none;" accept="image/*"
+                          @change="handleUpload">
                       </div>
                       <div class="selectedDateBlock mt-4 px-1 w-full py-2">
                         <q-chip color="tealedf" text-color="white" size="0.8rem">
@@ -965,6 +998,11 @@ watch(step, (toStep, fromStep) => {
   font-size: 1rem;
 }
 
+.text-xsImage {
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
 .dataPayCard {
   background: white;
   border-radius: 1.2rem;
@@ -972,10 +1010,17 @@ watch(step, (toStep, fromStep) => {
 
 .form__inputsPay {
   & .q-field__inner {
-    box-shadow: 0px 3px 4px 0px #bfbfbf48;
-    border-radius: 0.5rem;
-    border: 1px solid rgb(223, 223, 223);
+    border-radius: 2rem;
+    border: 2px solid #76b7af;
     padding: 0px 1rem;
+  }
+
+  &.q-field--dense.q-field--float .q-field__label {
+    display: none;
+  }
+
+  &.q-field--labeled.q-field--dense .q-field__native {
+    padding-top: 5px;
   }
 }
 

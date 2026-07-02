@@ -64,11 +64,9 @@ class BookingController extends Controller
 
             $this->createEventIfPublicCine($booking);
         } catch (Exception $th) {
-            // return $this->returnFail(500, "Error al intentar crear reservación");
             return $this->returnFail(500, $th->getMessage());
         }
         $this->sendNotification($booking);
-
         return $this->returnSuccess(200, ['toPay' => (!($booking->type == 1) && $request->pay_later == false), 'id' => $booking->id]);
     }
 
@@ -90,7 +88,7 @@ class BookingController extends Controller
     public function getBookingByAreaId($areaId)
     {
 
-        $bookings = Booking::with('pay', 'user')->where('comun_area_id', $areaId)->orderBy("created_at", "desc");
+        $bookings = Booking::with('pay.payMethod', 'user')->where('comun_area_id', $areaId)->orderBy("created_at", "desc");
         return $this->returnSuccess(200, $bookings->get());
     }
     private function applyFilter($query, Request $request)
@@ -329,6 +327,12 @@ class BookingController extends Controller
             return $this->returnFail(400, 'Este área no permite extensiones de tiempo');
         }
 
+        $existingExtension = $this->existingExtension($area, $booking);
+
+        if ($existingExtension) {
+            return $this->returnFail(400, 'Ya se solicitó una extensión para esta reserva');
+        }
+
         $intervalSize = $area->max_time_reserve ?? 1;
         $maxExtension = $area->max_time_extension ?? 0;
         $dateStr = $booking->date->format('Y-m-d');
@@ -441,8 +445,14 @@ class BookingController extends Controller
             return $this->returnFail(400, 'Este área no permite extensiones');
         }
 
+        $existingExtension = $this->existingExtension($area, $originalBooking);
+
+        if ($existingExtension) {
+            return $this->returnFail(400, 'Ya se solicitó una extensión para esta reserva');
+        }
+
         $hours = Carbon::parse($validated['time_to'])->diffInHours(Carbon::parse($validated['time_from']));
-        $amount = ($area->extension_price ?? 0) * $hours;
+        $amount = $area->extension_price;
 
         $bookingType = $originalBooking->type;
         $newStatus = $bookingType == 1 ? Booking::STATUS_SUCCESS : Booking::STATUS_PENDING_PAY;
@@ -456,7 +466,7 @@ class BookingController extends Controller
             'time_from'       => $validated['time_from'],
             'time_to'         => $validated['time_to'],
             'amount'          => $amount,
-            'type'            => $bookingType,
+            'type'            => 4,
             'note'            => 'Extensión de reserva #' . $originalBooking->booking_number,
             'status'          => $newStatus,
             'is_exclusive'    => $originalBooking->is_exclusive,
@@ -626,5 +636,15 @@ class BookingController extends Controller
         } catch (Exception $e) {
             Log::error('Fallo al enviar notificación de evento automático: ' . $e->getMessage());
         }
+    }
+    private function existingExtension($area, $booking)
+    {
+        return Booking::where('type', 4)
+            ->where('comun_area_id', $area->id)
+            ->where('date', $booking->date)
+            ->where('user_id', $booking->user_id)
+            ->where('status', '>', 0)
+            ->where('note', 'like', '%' . $booking->booking_number . '%')
+            ->exists();
     }
 }

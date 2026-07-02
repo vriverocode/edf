@@ -279,7 +279,6 @@ onMounted(async () => {
               <q-input dense borderless clearable type="number" v-model="comunArea.max_time_reserve"
                 class="form__inputsR mt-1" color="primary" :rules="[val => !!val || 'Requerido']" />
             </div>
-<<<<<<< HEAD
             <div class="col-md-6 col-12  row mt-1 px-2 md:px-12" v-if="comunArea.typeArea.value == 2">
               <div class="col-12">
                 <div class="text-subtitle2 text-black ">
@@ -289,13 +288,9 @@ onMounted(async () => {
                   color="primary" :rules="[val => !(!val) || 'Las horas maxima de reserva exclusiva es necesaria']" />
               </div>
             </div>
-=======
 
             <!-- Extensiones -->
-            <div class="col-12 mt-3 px-2 md:px-12">
-              <div class="text-subtitle2 text-black mb-1">Extensiones de reserva</div>
-              <q-toggle v-model="comunArea.has_extension" label="Habilitar extensiones" color="primary" />
-            </div>
+            
             <template v-if="comunArea.has_extension">
               <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
                 <div class="text-subtitle2 text-black">Máximo de horas de extensión</div>
@@ -310,7 +305,10 @@ onMounted(async () => {
                   :rules="[val => !!val || 'Requerido cuando las extensiones están habilitadas']" />
               </div>
             </template>
->>>>>>> 5f70dcf167161a1dfb1851bc2cf5124f25fd8588
+            <div class="col-12 mt-3 px-2 md:px-12">
+              <div class="text-subtitle2 text-black mb-1">Extensiones de reserva</div>
+              <q-toggle v-model="comunArea.has_extension" label="Habilitar extensiones" color="primary" />
+            </div>
           </div>
         </Transition>
         <Transition>

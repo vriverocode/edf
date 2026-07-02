@@ -301,6 +301,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/comun-area/maintenance/:id/create',
+        component: () => import('@/view/admin/ComunAreas/createMaintenance.vue'),
+        name: 'createMaintenance',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Programar mantenimiento',
+          roles: ['admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/admin/pay/validate/:id',
         component: () => import('@/view/admin/Pays/validatePay.vue'),
         name: 'PayValidate',

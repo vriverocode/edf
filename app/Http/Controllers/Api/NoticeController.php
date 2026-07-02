@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Notice;
 use App\Models\User;
+use App\Notifications\RealtimeNotification;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class NoticeController extends Controller
@@ -57,6 +59,7 @@ class NoticeController extends Controller
         ]);
 
         $this->uploadImages($notice, $request->file('img'));
+        $this->sendNoticeNotification($notice);
 
         return $this->returnSuccess(200, 'ok');
     }
@@ -135,6 +138,27 @@ class NoticeController extends Controller
 
 
         return $this->returnSuccess(200, ['status' => $notice->status]);
+    }
+
+    private function sendNoticeNotification($notice)
+    {
+        $users = User::where('rol_id', '!=', 1)->where('status', 1)->get();
+
+        try {
+            foreach ($users as $user) {
+                $user->notify(new RealtimeNotification(
+                    title: 'Nuevo aviso publicado',
+                    message: $notice->title,
+                    url: '/client/notices',
+                    meta: [
+                        'notice_id' => $notice->id,
+                        'icon' => 'campaign',
+                    ]
+                ));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Fallo al enviar notificación de notice: ' . $e->getMessage());
+        }
     }
 
     private function validateFieldsFromInput($inputs)

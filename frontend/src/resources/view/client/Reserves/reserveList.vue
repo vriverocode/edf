@@ -174,6 +174,13 @@ onMounted(() => {
                   <span class="text-sm font-medium text-gray-700">{{ getPaymentStatus(reserve) }}</span>
                 </div>
                 <div class="flex items-center">
+                  <div v-if="reserve.type == 4" class="mr-3">
+                    <q-chip color="primary" >
+                      <div class="text-white" style="font-weight:600; font-size:0.8rem"> 
+                        {{ reserve.type_label }}
+                      </div>
+                    </q-chip>
+                  </div>
                   <q-btn unelevated rounded color="warning" size="sm" class="ml-3" v-if="reserve.status == 1"
                     @click="goTo('/client/reserves/pay-reserve/' + reserve.id)">
                     <q-tooltip class="bg-primary  text-white text-body2" :offset="[10, 10]">
@@ -182,7 +189,7 @@ onMounted(() => {
                     <div v-html="iconsApp.procedToPay"></div>
                   </q-btn>
                   <q-btn unelevated rounded color="teal-7" size="sm" class="ml-3"
-                    v-if="reserve.status == 3 && reserve.comun_area?.has_extension"
+                    v-if="reserve.status == 3 && reserve.comun_area?.has_extension && !reserve.has_extension"
                     @click="goTo('/client/reserves/extend/' + reserve.id)">
                     <q-tooltip class="bg-primary text-white text-body2" :offset="[10, 10]">
                       Extender tiempo
@@ -206,7 +213,7 @@ onMounted(() => {
                           <q-item-section>Pagar</q-item-section>
                         </q-item>
                         <q-item clickable v-close-popup
-                          v-if="reserve.status == 3 && reserve.comun_area?.has_extension"
+                          v-if="reserve.status == 3 && reserve.comun_area?.has_extension && !reserve.has_extension"
                           @click="goTo('/client/reserves/extend/' + reserve.id)">
                           <q-item-section>Extender tiempo</q-item-section>
                         </q-item>
