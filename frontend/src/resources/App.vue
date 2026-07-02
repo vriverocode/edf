@@ -43,14 +43,14 @@ const showStatusBar = async () => {
   await StatusBar.show();
 };
 onMounted(async () => {
-  $q.addressbarColor.set('#fff');
+  $q.addressbarColor.set('#000');
 
   showSplash();
-  // setupStatusBar2()
-  //setupStatusBar()
+  setupStatusBar2()
+  setupStatusBar()
   // setStatusBarStyleDark()
-  // showStatusBar()
-  // await updateStore.checkForUpdates();
+  showStatusBar()
+  await updateStore.checkForUpdates();
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {
       router.go(-1);
