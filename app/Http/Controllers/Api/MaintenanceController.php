@@ -95,7 +95,7 @@ class MaintenanceController extends Controller
 
             DB::commit();
             return $this->returnSuccess(200, 'Mantenimiento programado con éxito');
-        } catch (\Throwable $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error al registrar mantenimiento: ' . $e->getMessage());
             return $this->returnFail(500, $e->getMessage());
