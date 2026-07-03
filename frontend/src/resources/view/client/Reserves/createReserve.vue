@@ -133,7 +133,7 @@ const nextStep = () => {
       typeModalShow.value = false;
   }
 
-  if (step.value == 3 && formData.value.typeOfReserve == 1) {
+  if (step.value == 3 && formData.value.typeOfReserve == 1 && !selectedComunArea.value.warranty_price) {
     createReserve()
     return
   } else {
@@ -259,11 +259,11 @@ const daysAvailableForBook = (date) => {
 
   if (!isFutureOrToday) return false;
 
-  // Para el área "Lounge", solo se permiten fechas con más de 30 días de anticipación
+  // Para el área "Lounge", máximo 30 días de anticipación
   const isLounge = selectedComunArea.value?.name?.toLowerCase().trim() === 'lounge';
   if (isLounge) {
-    const minDate = moment().add(30, 'days').format('YYYY/MM/DD');
-    if (date < minDate) return false;
+    const maxDate = moment().add(30, 'days').format('YYYY/MM/DD');
+    if (date > maxDate) return false;
   }
 
   if (!selectedComunArea.value || !selectedComunArea.value.schedules || selectedComunArea.value.schedules.length === 0) {
@@ -305,7 +305,7 @@ const createReserve = () => {
   formData.value.comun_area = selectedComunArea.value.id
   formData.value.amount = formData.value.typeOfReserve > 1
     ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
-    : 0
+    : selectedComunArea.value.warranty_price || 0
 
   formData.value.exclusive = formData.value.is_exclusive ? 1 : 0;
 
@@ -420,7 +420,7 @@ const prepareCulqiData = () => {
   formData.value.comun_area = selectedComunArea.value.id
   formData.value.amount = formData.value.typeOfReserve > 1
     ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
-    : 0
+    : selectedComunArea.value.warranty_price || 0
 
   formData.value.exclusive = formData.value.is_exclusive ? 1 : 0;
 }
@@ -780,7 +780,7 @@ watch(step,
                           <div class="text-lg font-bold ">
                             Resumen de pago
                           </div>
-                          <div class="flex items-center justify-between w-full">
+                          <div class="flex items-center justify-between w-full" v-if="selectedComunArea.price > 0">
                             <div class="text__amountItem">Reserva ({{ selectedComunArea.max_time_reserve == 1
                               ? moment.duration(selectedComunArea.max_time_reserve, 'hours').asMinutes() + ' min'
                               : selectedComunArea.max_time_reserve + ' hrs' }})</div>
@@ -794,7 +794,9 @@ watch(step,
                             style="border-top: 2px solid #8b8e9446;">
                             <div class="text__amountTotal">Total</div>
                             <div class="text__amountTotal">
-                              S/ {{ (selectedComunArea.price + selectedComunArea.warranty_price).toFixed(2) }}
+                              S/ {{ formData.typeOfReserve > 1
+                                ? (selectedComunArea.price + selectedComunArea.warranty_price).toFixed(2)
+                                : selectedComunArea.warranty_price.toFixed(2) }}
                             </div>
                           </div>
                         </div>
@@ -937,7 +939,7 @@ watch(step,
                         </div>
                       </q-btn>
                     </div>
-                    <div class="col-4 flex flex-center" v-if="calculateDiffHour">
+                    <div class="col-4 flex flex-center" v-if="calculateDiffHour && step ==4">
                       <q-btn outline color="warning" unelevated no-caps class=""
                         style="width: 95%; border-radius: 3rem;" @click="showPayLaterModal(true)">
                         <div class="py-0 md:py-0" style="font-weight: 500;">
@@ -945,7 +947,7 @@ watch(step,
                         </div>
                       </q-btn>
                     </div>
-                    <div class="flex flex-center" :class="{ 'col-4': calculateDiffHour, 'col-8': !calculateDiffHour }">
+                    <div class="flex flex-center" :class="{ 'col-4': calculateDiffHour && step == 4, 'col-8': !calculateDiffHour, 'col-8': step != 4  }">
                       <q-btn outline color="primary" unelevated no-caps class=""
                         style="width: 95%; border-radius: 3rem;" type="submit" :loading="loading">
                         <div class="py-0 md:py-0" style="font-weight: 500;">

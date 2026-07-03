@@ -58,7 +58,7 @@ class BookingController extends Controller
                 'amount' => $request->amount,
                 'type' => $request->typeOfReserve,
                 'note' => $request->note,
-                'status' =>  $request->typeOfReserve == 1 ? 3 : 1,
+                'status' => ($request->typeOfReserve == 1 && $request->amount == 0) ? 3 : 1,
                 'is_exclusive' => $request->exclusive
             ]);
 
@@ -67,7 +67,7 @@ class BookingController extends Controller
             return $this->returnFail(500, $th->getMessage());
         }
         $this->sendNotification($booking);
-        return $this->returnSuccess(200, ['toPay' => (!($booking->type == 1) && $request->pay_later == false), 'id' => $booking->id]);
+        return $this->returnSuccess(200, ['toPay' => ((!($booking->type == 1) || $booking->amount > 0) && $request->pay_later == false), 'id' => $booking->id]);
     }
 
     public function getBookingsByUser(Request $request)

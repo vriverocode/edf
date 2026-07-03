@@ -96,6 +96,8 @@ class EventController extends Controller
         $event->update([
             'booking_id' => $bookingToEvent,
         ]);
+
+        $this->sendNotification($event, (int) $request->user()->id);
         return $this->returnSuccess(200, 'ok');
     }
     public function destroy($id)

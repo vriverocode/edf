@@ -592,12 +592,10 @@ const onSubmit = () => {
               :loading="loading"
               class="full-width claims-btn"
             >
-              <q-icon name="eva-checkmark-circle-2-outline" class="q-mr-sm" />
               Enviar Reclamo
             </q-btn>
           </div>
         </div>
-  
       </q-form>
     </div>
   </div>

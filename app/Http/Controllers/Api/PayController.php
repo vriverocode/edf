@@ -350,8 +350,9 @@ class PayController extends Controller
                     ]);
 
                     // Ejecutamos tus acciones post-pago y notificaciones
-                    // $this->afterPayAction($pay);
-                    // $this->sendNotification($pay);
+                    $this->afterPayAction($pay);
+                    $this->uploadVaucher($pay, $request);
+                    $this->sendNotification($pay);
 
                     return $this->returnSuccess(200, [
                         "idPay" => $pay->id
@@ -494,6 +495,7 @@ class PayController extends Controller
         $path = "";
         $id = $type == 1 ? $pay->id : $pay->sequence;
         $folder = $type == 1 ? 'vaucher' : 'claims';
+
         if ($vaucher->file("vaucher")) {
             $rand = rand(1000000, 9999999);
             $fileName = trim(str_replace(" ", "_", $id));
@@ -503,8 +505,8 @@ class PayController extends Controller
             $vaucher->file("vaucher")->move($vaucherPath, $path);
         }
         if ($type == 1) {
-            $pay->save();
             $pay->vaucher = $path;
+            $pay->save();
         }
         return $path;
     }

@@ -33,6 +33,7 @@ const updateComunArea = () => {
   comunArea.value.warrantyPrice = comunArea.value.warranty_price
   comunArea.value.maxTime = comunArea.value.max_time_reserve
   comunArea.value.maxTimeExclusive = comunArea.value.max_time_reserve_exclusive
+  comunArea.value.type = comunArea.value.typeArea.value 
 
 
   comunAreaStore.updateComunArea(comunArea.value)
@@ -275,7 +276,7 @@ onMounted(async () => {
                 color="primary" />
             </div>
             <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
-              <div class="text-subtitle2 text-black">Tiempo máximo de reserva (Horas)</div>
+              <div class="text-subtitle2 text-black">Tiempo máximo de reserva</div>
               <q-input dense borderless clearable type="number" v-model="comunArea.max_time_reserve"
                 class="form__inputsR mt-1" color="primary" :rules="[val => !!val || 'Requerido']" />
             </div>
@@ -299,9 +300,9 @@ onMounted(async () => {
                   :rules="[val => !!val || 'Requerido cuando las extensiones están habilitadas']" />
               </div>
               <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
-                <div class="text-subtitle2 text-black">Precio de la extensión (S/. por hora)</div>
+                <div class="text-subtitle2 text-black">Precio de la extensión</div>
                 <q-input dense borderless clearable type="number" v-model="comunArea.extension_price"
-                  class="form__inputsR mt-1" color="primary" hint="Costo por cada hora extra"
+                  class="form__inputsR mt-1" color="primary"
                   :rules="[val => !!val || 'Requerido cuando las extensiones están habilitadas']" />
               </div>
             </template>

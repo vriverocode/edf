@@ -345,21 +345,19 @@ class UserController extends Controller
     }
     public function pruebaRealtimeNotification()
     {
-        $user = User::find(8);
+        $user = User::find(3);
         try {
             $user->notify(new RealtimeNotification(
-                title: 'Pago de reserva aceptado',
-                message: 'Tu pago por la reserva #0004588 fue aprobada.',
-                url: '/client/reserves/view/2',
+                title: 'Notificación de prueba',
+                message: 'Esta es una notificación en tiempo real de prueba.',
+                url: '/',
                 meta: [
-                    'booking_id' => 2,
-                    'icon' => 'eva-checkmark-outline',
+                    'icon' => 'eva-bell-outline',
                 ]
             ));
-            return $this->returnSuccess(200, 'bien');
+            return $this->returnSuccess(200, 'Notificación enviada');
         } catch (Exception $e) {
-            return $this->returnSuccess(400, $e->getMessage());
-            // Silenciar errores de notificación para no romper el flujo
+            return $this->returnFail(500, $e->getMessage());
         }
     }
     public function setAvailableComunAreaToReserve(?PeoplesXDepartaments $people = null)

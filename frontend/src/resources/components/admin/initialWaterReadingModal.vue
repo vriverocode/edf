@@ -205,7 +205,6 @@ watch(dialogVisible, (open) => {
         :options="monthOptions"
         option-label="name"
         option-value="value"
-        emit-value
         dense
         borderless
         class="form__inputsR mt-1"

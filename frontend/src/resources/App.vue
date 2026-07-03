@@ -48,8 +48,8 @@ onMounted(async () => {
   showSplash();
   // setupStatusBar2()
   // setupStatusBar()
-  setStatusBarStyleDark()
-  showStatusBar()
+  // setStatusBarStyleDark()
+  // showStatusBar()
   await updateStore.checkForUpdates();
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {

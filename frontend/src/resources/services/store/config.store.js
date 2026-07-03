@@ -10,7 +10,7 @@ export const useConfigStore = defineStore('config', {
     versionInfo: null,
     downloadProgress: 0,
     isDownloading: false,
-    currentAppVersionCode: 6, // Aquí colocas el versionCode actual de tu app compilada
+    currentAppVersionCode: 9, // Aquí colocas el versionCode actual de tu app compilada
   }),
   actions: {
     // 1. Consultar a tu API (Laravel) si hay una nueva versión
