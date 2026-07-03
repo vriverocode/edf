@@ -26,7 +26,7 @@ export const useQuotaStore = defineStore('Quota', {
       })
     },
     async getMonthlyGlobalQuotasForAdmin(filters) {
-      return await this.getAdminGroupedByOwnerForMonth(filters?.month, { year: filters?.year });
+      return await this.getAdminGroupedByOwnerForMonth(filters?.month, { year: filters?.year, status: filters?.status });
     },
     async getAdminMonthlySummary(filters = {}) {
       return await new Promise((resolve, reject) => {
@@ -46,7 +46,7 @@ export const useQuotaStore = defineStore('Quota', {
           });
       });
     },
-    async getAdminGroupedByOwnerForMonth(month, { year } = {}) {
+    async getAdminGroupedByOwnerForMonth(month, { year, status } = {}) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
@@ -54,6 +54,9 @@ export const useQuotaStore = defineStore('Quota', {
         ApiService.setHeader();
         const params = new URLSearchParams();
         if (year) params.set('year', String(year));
+        if (status !== undefined && status !== null && status !== '' && Number(status) !== 4) {
+          params.set('status', String(status));
+        }
         const qs = params.toString();
         const url = `/api/quotas/admin/by-month/${month}` + (qs ? `?${qs}` : '');
         ApiService.get(url)
@@ -132,7 +135,7 @@ export const useQuotaStore = defineStore('Quota', {
           throw '';
         }
         let query = '';
-        if(data != null) {
+        if (data != null) {
           query = `?year=${data.year}&owner=${data.owner}`
         }
         ApiService.setHeader();

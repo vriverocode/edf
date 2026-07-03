@@ -260,9 +260,9 @@ const daysAvailableForBook = (date) => {
   if (!isFutureOrToday) return false;
 
   // Para el área "Lounge", máximo 30 días de anticipación
-  const isLounge = selectedComunArea.value?.name?.toLowerCase().trim() === 'lounge';
+  const isLounge = selectedComunArea.value?.name?.toLowerCase().includes('lounge');
   if (isLounge) {
-    const maxDate = moment().add(30, 'days').format('YYYY/MM/DD');
+    const maxDate = moment().add(45, 'days').format('YYYY/MM/DD');
     if (date > maxDate) return false;
   }
 
@@ -373,8 +373,8 @@ const openRuleModal = (status) => {
     showNotify('negative', 'Selecciona un intervalo de tiempo para tu reserva')
     return
   }
-  const isCine = selectedComunArea.value.name && selectedComunArea.value.name.toLowerCase().trim() === 'cine';
-  
+  const isCine = selectedComunArea.value.name && selectedComunArea.value.name.toLowerCase().includes('cine');
+
   if (status && isCine && formData.value.typeOfReserve == 1) {
     movieModalShow.value = true;
   } else {
@@ -684,9 +684,9 @@ watch(step,
                           <div class="text-primary text-bold text-dateBlock">
                             {{ formData.date ? moment(formData.date).format('dddd DD') : '-----' }}
                             - 
-                            {{  hrsFormat(formData.typeOfReserve == 1 
-                              ? selectedComunArea.max_time_reserve 
-                              : selectedComunArea.max_time_reserve_exclusive) }}
+                            {{  hrsFormat(formData.typeOfReserve == 2 
+                              ? selectedComunArea.max_time_reserve_exclusive 
+                              : selectedComunArea.max_time_reserve) }}
                           </div>
                         </div>
                         <div>
@@ -969,7 +969,7 @@ watch(step,
                       <q-btn color="tealedf" unelevated="" class="" style="width: 100%; border-radius: 2rem;"
                         type="submit" :loading="loading">
                         <div class="flex w-full flex-center">
-                          <div class="py-2 md:py-1 font-bold mr-2" style="font-size:0.95rem">
+                          <div class="py-1 md:py-1 font-bold mr-2" style="font-size:0.95rem">
                             Elegir horario
                           </div>
                           <div class="flex flex-center"
@@ -1165,6 +1165,28 @@ watch(step,
                   </div>
                 </div>
 
+                <div v-if="selectedComunArea.warranty_price > 0" class="mt-4 px-1 mb-2">
+                  <div class="rounded-xl p-0" style="">
+                    <div class="bg-white rounded-lg p-3" style="border: 2px solid #dce8f4;">
+                      <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center text-[#2d5eaa] font-bold" style="font-size: 1.05rem;">
+                          <q-icon name="eva-shield-outline" size="1.4rem" class="mr-2" />
+                          Garantía
+                        </div>
+                        <div class="text-[#2d5eaa] font-bold" style="font-size: 1.05rem;">
+                          S/ {{ selectedComunArea.warranty_price.toFixed(2) }}
+                        </div>
+                      </div>
+                      <div class="text-grey-8 mt-2" style="font-size: 0.85rem; line-height: 1.4;">
+                        Requerida para todas las reservas • <br> Reembolsable tras el correcto uso
+                      </div>
+                    </div>
+                    
+                    <div class="mt-3 text-grey-8 flex px-2" style="font-size: 0.85rem; line-height: 1.3;">
+                      <span class="mr-1">* Los pagos se coordinan directamente con la administración del edificio</span>
+                    </div>
+                  </div>
+                </div>
 
               </div>
               <div class="row py-0 " style="height: 9%;">

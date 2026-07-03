@@ -145,7 +145,11 @@ onMounted(() => {
                   <div class="row items-center">
                     <div class="flex items-center text-sm text-gray-700 col-6 col-md-3">
                       <q-icon name="eva-home-outline" size="20px" class="mr-1 text-gray-500" />
-                      <span class="font-medium">Dpto. {{ quota.departament?.number }}</span>
+                      <span class="font-medium">Unidad: <span class="text-uppercase font-medium">{{ quota.departament?.number }}</span></span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-700 md:pt-4 pt-2 col-6 col-md-3 ">
+                      <q-icon name="eva-pricetags-outline" size="20px" class="mr-1 text-gray-500" />
+                      <span class="font-medium">Tipo: {{ quota.departament.type_label}}</span>
                     </div>
                     <div class="flex items-center text-sm text-gray-700 col-6 col-md-3">
                       <q-icon name="eva-credit-card-outline" size="20px" class="mr-1 text-gray-500" />
@@ -159,15 +163,16 @@ onMounted(() => {
                       </span>
                     </div>
                     <div class="flex items-center text-sm text-gray-700 col-6 col-md-3 mt-2 md:mt-0">
-                      <q-icon name="eva-calendar-outline" size="20px" class="mr-1 text-gray-500" />
+                      <q-icon name="eva-calendar-outline" size="20px" class="mr-1 text-gray-500"  />
                       <span class="font-medium">Vence: {{ formatDate(quota.due_date) }}</span>
                     </div>
+                    
+                    <div v-if="quota.number" class="flex items-center text-sm text-gray-600 pl-1   md:pt-4 pt-2 col-6 col-md-3">
+                      <span><strong>N° cuota: #{{ quota.number }}</strong></span>
+                    </div>
+                    
                   </div>
 
-                  <div v-if="quota.number" class="flex items-center text-sm text-gray-600 pt-1">
-                    <q-icon name="eva-hash-outline" size="18px" class="mr-1" />
-                    <span>N° cuota: <strong>#{{ quota.number }}</strong></span>
-                  </div>
                 </div>
               </div>
 

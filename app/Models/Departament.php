@@ -14,6 +14,7 @@ class Departament extends Model
 {
     /** @use HasFactory<\Database\Factories\Api\DepartamentControllerFactory> */
     use HasFactory;
+
     const TYPE_DEPARTAMENTO = 1;
     const TYPE_ESTACIONAMIENTO = 2;
     const TYPE_DEPOSITO = 3;
@@ -51,14 +52,17 @@ class Departament extends Model
     {
         return $this->hasMany(Visit::class, 'departament_id', 'id');
     }
-    public function quotas() {
+    public function quotas()
+    {
         return $this->hasMany(Quota::class, 'departament_id');
     }
-    public function pendingQuotas() {
-        return $this->hasMany(Quota::class, 'departament_id')->where('status','=', 1);
+    public function pendingQuotas()
+    {
+        return $this->hasMany(Quota::class, 'departament_id')->where('status', '=', 1);
     }
-    public function dueQuotas() {
-        return $this->hasMany(Quota::class, 'departament_id')->where('status','=', 4);
+    public function dueQuotas()
+    {
+        return $this->hasMany(Quota::class, 'departament_id')->where('status', '=', 4);
     }
     public function getTypeLabelAttribute()
     {

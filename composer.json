@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
         "guzzlehttp/guzzle": "^7.8",
         "kreait/firebase-php": "^7.24",
         "laravel-notification-channels/fcm": "^4.0",
@@ -63,7 +64,7 @@
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"npm run dev\" --names='server,queue,vite'"
         ],
         "dev2": [
-            "@php artisan serve --host 192.168.1.246 --port 8030"
+            "@php artisan serve --host 192.168.1.27 --port 8030"
         ],
         "dev-home": [
             "@php artisan serve --host 192.168.31.117 --port 8030"

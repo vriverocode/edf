@@ -69,7 +69,7 @@ onMounted(() => {
                 </div>
                 <div v-if="item.comun_area" class="mt-2">
                   <q-chip dense color="teal-1" text-color="teal-9" icon="business" size="sm" class="text-bold">
-                    Área: {{ item.comun_area.name }} (Bloqueada)
+                    Área: {{ item.comun_area.name }} (Bloqueada)s
                   </q-chip>
                 </div>
               </div>

@@ -83,7 +83,7 @@ onMounted(loadData);
                       <span :class="'bg-' + (apartment?.status_color || 'positive')"
                         class="inline-block px-3 py-2 text-xs font-bold text-white badgeApartment"
                         style="text-transform: uppercase;">
-                        {{ apartment?.status_label || 'Habitable' }}
+                        {{ apartment?.status_label || 'OCUPADA' }}
                       </span>
                     </div>
 
@@ -93,7 +93,7 @@ onMounted(loadData);
                       </div>
 
                       <div class="flex-1 space-y-1">
-                        <h3 class="text-lg font-bold text-gray-900 mb-1">
+                        <h3 class="text-lg font-bold text-gray-900 mb-1 text-uppercase">
                           #{{ apartment.number }}
                         </h3>
                         <div class="flex items-center text-sm text-gray-700">

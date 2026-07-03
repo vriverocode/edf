@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useQuotaStore } from '@/services/store/quota.store';
 import { useRoute, useRouter } from 'vue-router';
 import moment from 'moment';
@@ -15,9 +15,17 @@ const router = useRouter();
 const quotas = ref([]);
 const loading = ref(true);
 const quotaStore = useQuotaStore();
+const statusFilter = ref(4);
 
 const month = computed(() => Number(route.params.month));
 const year = computed(() => Number(route.params.year));
+
+const statusOptions = [
+  { label: 'Todos', value: 4 },
+  { label: 'Pendiente', value: 1 },
+  { label: 'Pendiente de aprobación', value: 2 },
+  { label: 'Pagado', value: 3 },
+];
 
 const pageTitle = computed(() => {
   const first = quotas.value[0];
@@ -27,8 +35,12 @@ const pageTitle = computed(() => {
 
 const getQuotas = () => {
   loading.value = true;
+  const filters = { year: year.value };
+  if (statusFilter.value !== 4) {
+    filters.status = statusFilter.value;
+  }
   quotaStore
-    .getAdminGroupedByOwnerForMonth(month.value, { year: year.value })
+    .getAdminGroupedByOwnerForMonth(month.value, filters)
     .then((response) => {
       if (response.code !== 200) throw response;
       quotas.value = response.data;
@@ -40,6 +52,14 @@ const getQuotas = () => {
       loading.value = false;
     });
 };
+
+const onChangeStatus = () => {
+  getQuotas();
+};
+
+watch(statusFilter, () => {
+  onChangeStatus();
+});
 
 const goBack = () => {
   router.push({ name: 'quotasMaintenanceList' });
@@ -122,6 +142,10 @@ onMounted(() => {
         <div class="flex items-center q-mb-md md:px-5">
           <h2 class="text-h6 text-weight-bold q-ml-sm q-mb-none">{{ pageTitle }}</h2>
         </div>
+        <div class="flex items-center q-mb-md md:px-5 w-full">
+          <q-select dense borderless v-model="statusFilter" :options="statusOptions" emit-value map-options
+            class="form__inputsStatus w-full" />
+        </div>
         <div v-if="quotas.length > 0" class=" md:px-5 row">
           <div v-for="quota in quotas" :key="quota.id" class="col-md-4 col-12 md:px-2 mb-5 md:mb-4">
             <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 col-md-4 col-12"
@@ -142,7 +166,7 @@ onMounted(() => {
                       </span>
                     </h3>
                     <div class="row">
-                      <div class="flex items-center text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-3 pl-1 ">
+                      <div class="flex items-center text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-4 pl-1 ">
                         <svg style="transform: translateX(-3px);" width="15px" height="15px" viewBox="0 0 24 24"
                           fill="none" xmlns="http://www.w3.org/2000/svg">
                           <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -155,7 +179,7 @@ onMounted(() => {
                         </svg>
                         <span class="font-medium">{{ quota.owner_name }}</span>
                       </div>
-                      <div class="flex items-center text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-9 ">
+                      <div class="flex items-center md:justify-end text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-8 ">
                         <svg style="transform: translateX(-3px);" width="23px" height="23px" viewBox="0 0 64 64"
                           xmlns="http://www.w3.org/2000/svg" stroke-width="2" stroke="#374151" fill="none">
                           <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -177,7 +201,7 @@ onMounted(() => {
                             <line x1="9.46" y1="52.73" x2="54.54" y2="52.73" stroke-linecap="round"></line>
                           </g>
                         </svg>
-                        <span class="font-medium"> {{ unitsInQuota(quota) }}</span>
+                        <span class="font-medium text-uppercase"> {{ unitsInQuota(quota) }}</span>
                       </div>
                     </div>
                     <!-- <div class="text-xs text-gray-500 mb-2">{{ quota.description }}</div> -->
@@ -461,6 +485,17 @@ onMounted(() => {
 .validatePayQoutaButton {
   & .block {
     font-weight: bold;
+  }
+}
+
+.form__inputsStatus {
+  & .q-field__inner {
+    box-shadow: 0px 3px 4px 0px #bfbfbf48;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(223, 223, 223);
+    padding: 0px 1rem;
+    background: white;
+    min-width: 200px;
   }
 }
 </style>

@@ -66,7 +66,7 @@ class QuotaController extends Controller
                     ? Carbon::parse($quota->due_date)->year
                     : now()->year;
 
-                return (int) $quota->month . '_' . $year;
+                return (int) $quota->month.'_'.$year;
             })
             ->map(function ($group) {
                 $first = $group->first();
@@ -104,14 +104,24 @@ class QuotaController extends Controller
             return $this->returnFail(422, ['message' => 'El parámetro year es obligatorio.']);
         }
 
-        $quotas = Quota::baseAdminQuery()
-            ->forMonthYear($month, $year)
-            ->get();
+        $query = Quota::baseAdminQuery()
+            ->forMonthYear($month, $year);
+
+        $statusFilter = $request->query('status');
+        if ($statusFilter !== null && $statusFilter !== '' && (int) $statusFilter !== 4) {
+            $statusFilter = (int) $statusFilter;
+            if ($statusFilter >= 0 && $statusFilter <= 3) {
+                $query->where('status', $statusFilter);
+            }
+        }
+
+        $quotas = $query->get();
 
         $grouped = Quota::groupConsolidatedByOwner($quotas);
 
         return $this->returnSuccess(200, $grouped);
     }
+
     public function getByMonth(Request $request, $month)
     {
         //
@@ -137,14 +147,14 @@ class QuotaController extends Controller
 
         return $this->returnSuccess(200, $quotas->get());
     }
-    
 
     public function getByPay($payId)
     {
 
-        $quotas = Pay::with(["quotas.departament.owner", "quotas.waterReading", "payMethod", "user"])->find($payId);
+        $quotas = Pay::with(['quotas.departament.owner', 'quotas.waterReading', 'payMethod', 'user'])->find($payId);
+
         return $this->returnSuccess(200, $quotas);
-     }
+    }
 
     /**
      * Store a newly created resource in storage.
@@ -159,20 +169,20 @@ class QuotaController extends Controller
      */
     public function show(string $id)
     {
-        $baseQuota = Quota::with("departament")->findOrFail($id);
+        $baseQuota = Quota::with('departament')->findOrFail($id);
         $userId = $baseQuota->departament->user_id;
         $month = $baseQuota->month;
         $year = Carbon::parse($baseQuota->due_date)->year;
 
         $quotas = Quota::with([
-            "departament.owner",
-            "waterReading:id,month,year,previous_reading,current_reading,m3_price"
+            'departament.owner',
+            'waterReading:id,month,year,previous_reading,current_reading,m3_price',
         ])->whereHas('departament', function ($q) use ($userId) {
             $q->where('user_id', $userId);
         })
-        ->where('month', $month)
-        ->whereYear('due_date', $year)
-        ->get();
+            ->where('month', $month)
+            ->whereYear('due_date', $year)
+            ->get();
 
         $monthlyBill = MonthlyBills::query()
             ->select('id', 'total_maintenance_budget', 'water_price_per_m3')
@@ -187,7 +197,7 @@ class QuotaController extends Controller
         $totalParticipation = 0;
         $waterConsumptionM3 = 0;
         $waterPricePerM3 = $monthlyBill?->water_price_per_m3 ?? 0;
-        
+
         $quotaIds = [];
         $descriptionLines = [];
         $breakdown = []; // <-- NUEVO: Array para guardar el detalle por unidad
@@ -215,7 +225,7 @@ class QuotaController extends Controller
                 'water_amount' => $q->water_amount,
                 'water_consumption_m3' => $waterM3,
                 'amount' => $q->amount,
-                'participation' => $q->departament->participation_percentage
+                'participation' => $q->departament->participation_percentage,
             ];
 
             $unitType = match ((int) ($q->departament->type ?? 1)) {
@@ -244,7 +254,7 @@ class QuotaController extends Controller
         $quotaData['maintenance_budget_total'] = $monthlyBill?->total_maintenance_budget;
         $quotaData['monthly_bill_id'] = $monthlyBill?->id;
         $quotaData['consolidated_ids'] = $quotaIds;
-        $quotaData['description'] = implode("\n", $descriptionLines);   
+        $quotaData['description'] = implode("\n", $descriptionLines);
         $quotaData['breakdown'] = $breakdown; // <-- NUEVO: Lo pasamos al front
 
         return $this->returnSuccess(200, $quotaData);
@@ -255,10 +265,10 @@ class QuotaController extends Controller
         $quota = $this->findQuotaForAuthUser($id, $request)
             ->load([
                 'waterReading:id,departament_id,month,year,previous_reading,current_reading,m3_price,photo,created_at',
-                'departament:id,number,participation_percentage,user_id'
+                'departament:id,number,participation_percentage,user_id',
             ]);
 
-        if (!$quota->waterReading) {
+        if (! $quota->waterReading) {
             return $this->returnFail(404, 'La cuota no tiene medición de agua asociada');
         }
 
@@ -288,13 +298,13 @@ class QuotaController extends Controller
         $quota = $this->findQuotaForAuthUser($id, $request)
             ->load([
                 'departament:id,number,participation_percentage,user_id',
-                'waterReading:id,month,year'
+                'waterReading:id,month,year',
             ]);
 
         $month = $quota->waterReading?->month ?? $quota->month;
         $year = $quota->waterReading?->year;
 
-        if (!$year && $quota->due_date) {
+        if (! $year && $quota->due_date) {
             $year = Carbon::parse($quota->due_date)->year;
         }
 

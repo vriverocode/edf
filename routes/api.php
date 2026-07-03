@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\RuleController;
 use App\Http\Controllers\Api\MultaController;
 use App\Http\Controllers\Api\PayMethodController;
 use App\Http\Controllers\Api\VisitController;
+use App\Http\Controllers\Api\BillInvoiceController;
 use App\Http\Controllers\Api\MonthlyBillsController;
 use App\Http\Controllers\Api\WaterReadingController;
 use App\Http\Controllers\Api\MaintenanceController;
@@ -217,6 +218,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/last-by-department/{departmentId}', [WaterReadingController::class, 'getLastByDepartment']);
         Route::post('/', [WaterReadingController::class, 'store']);
         Route::post('/u/{id}', [WaterReadingController::class, 'update']);
+    });
+
+    Route::prefix('bill-invoices')->name('bill-invoice.')->group(function () {
+        Route::get('/by-quota/{quotaId}', [BillInvoiceController::class, 'show']);
+        Route::get('/download/{quotaId}', [BillInvoiceController::class, 'downloadPdf'])->name('download');
+        Route::get('/preview/{quotaId}', [BillInvoiceController::class, 'previewHtml']);
+        Route::post('/send-email/{quotaId}', [BillInvoiceController::class, 'sendEmail']);
+        Route::post('/send-bulk/{monthlyBillId}', [BillInvoiceController::class, 'sendBulkEmails']);
+
+        // Endpoints de prueba
+        Route::get('/test/list-paid', [BillInvoiceController::class, 'listPaidQuotas']);
+        Route::post('/test/send/{quotaId}', [BillInvoiceController::class, 'testSend']);
     });
 
     Route::prefix('transaction-categories')->name('transactionCategories.')->group(function () {

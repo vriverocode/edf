@@ -221,7 +221,7 @@ class BookingController extends Controller
             ]);
         }
         $currentCarbonNow = Carbon::now()->setTimezone('America/lima');
-        $isCine = strtolower(trim($area->name)) === 'cine';
+        $isCine = str_contains(strtolower($area->name), 'cine');
         if ($isToday && $isCine) {
             $currentCarbonNow->addHours(5);
         }
@@ -255,10 +255,8 @@ class BookingController extends Controller
                 $time = $slotEnd->copy();
             }
         }
-
         return $this->returnSuccess(200, [
             'blocks' => $blocks,
-
         ]);
     }
 

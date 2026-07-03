@@ -10,15 +10,17 @@ const router = useRouter()
 const menu = [
   {
     title: 'Terminos y condiciones',
-    link: '/client/pays/list',
-    icon: iconsApp.cuotaMonthly,
-    roles: []
+    link: 'https://www.edificiopacifik.com/terminos_y_condiciones',
+    icon: iconsApp.terms,
+    roles: [],
+    external: true
   },
   {
     title: 'Reclamos',
     icon: iconsApp.claims,
     link: '/client/claims/add',
-    roles: []
+    roles: [],
+    external: false
   },
 
 
@@ -32,7 +34,16 @@ const menuByRol = computed(() => {
     return item.roles.includes(rol)
   })
 })
-const goTo = (url) => {
+const goTo = (url, external = false) => {
+  if (external) {
+    var link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+
+    link.rel = 'noopener noreferrer';
+    link.click();
+    return
+  }
   router.push(url)
 }
 </script>
@@ -40,7 +51,7 @@ const goTo = (url) => {
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-2  md:px-28">
       <div class="col-md-3   col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
-        <div class="boxItem" @click="goTo(items.link)">
+        <div class="boxItem" @click="goTo(items.link, items.external)">
           <div class="flex justify-center items-center h-full w-full p-1">
             <div v-html="items.icon" class="flex justify-center mt-0" />
           </div>

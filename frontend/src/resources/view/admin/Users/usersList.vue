@@ -111,8 +111,8 @@ onMounted(() => {
     <div class="mt-4 md:mt-8">
       <div class="px-4 md:mx-24 md:pr-12">
         <div v-for="user in users" :key="user.id"
-          class="md:py-4 py-3 mb-5 userListContainer flex items-center justify-between">
-          <div class="flex items-center pb-3 pl-2 md:pl-5 ">
+          class="md:py-4 py-3 mb-5 userListContainer row items-center">
+          <div class="flex items-center pb-3 pt-2 pl-2 md:pl-5 col-12 no-wrap">
             <div
               style="height: 2.8rem; width: 2.8rem; background: #b5b5b5; border-radius: 0.5rem; font-size: 2rem; font-weight: bold;"
               class="flex flex-center text-white">
@@ -122,46 +122,39 @@ onMounted(() => {
               <div class="text-subtitle1  text-bold text-black" style="line-height:1.7;">
                 {{ user.name }}
               </div>
-              <div class="flex items-center" v-if="user.rol_id == 2 || user.rol_id == 7">
-                <div class="text-body2 text-grey-6 ">#{{ user.units.length > 0 ? user.formatted_units :
-                  'Apt. no asignado' }}</div>
+              <div class="flex items-center wrap " v-if="user.rol_id == 2 || user.rol_id == 7">
+                <div class="text-body2 text-grey-6 text-uppercase">
+                  #{{ user.units.length > 0 
+                  ? user.formatted_units 
+                  : 'Apt. no asignado' }}
+                </div>
                 <div class="text-caption text-grey-6 ml-1">
                   ({{ user.rol.name }})
                 </div>
               </div>
             </div>
           </div>
-          <div class="flex justify-end  items-center pb-3 pt-1 pr-2 md:pr-5 ">
+          <template v-if="user.status == 2">
+            <div style="position: absolute; top: 0.2rem; right: 1rem;">
+              <div class="pt-1" v-html="iconsApp.cancelHouse" />
+              <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
+                Moroso
+              </q-tooltip>
+            </div>
+          </template>
+          <div class="flex justify-end px-2 w-full pt-3 col-12" style="border-top: 1px solid lightgrey;">
             <div v-if="user.rol_id == 2 || user.rol_id == 7">
-              <q-btn :icon="materialIcons.outlinedAddHomeWork" class="mx-1" flat color="yellow-9" round size="0.9rem"
+              <q-btn :icon="materialIcons.outlinedAddHomeWork" class="mx-1" flat color="yellow-9" size="0.9rem"
                 @click="goTo('/admin/users/assign-property/' + user.id)">
-
+                <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
+                  Agregar unidad
+                </q-tooltip>
               </q-btn>
             </div>
-            <template v-if="user.status == 2">
-
-              <div>
-                <div class="pt-1" v-html="iconsApp.cancelHouse" />
-                <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
-                  Moroso
-                </q-tooltip>
-              </div>
-
-            </template>
-          </div>
-          <div class="flex justify-end px-2 w-full pt-3 " style="border-top: 1px solid lightgrey;">
             <div>
               <q-btn icon="eva-settings-outline" class="mx-1" color="primary" flat size="0.9rem">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
                   Editar usuario
-
-                </q-tooltip>
-              </q-btn>
-            </div>
-            <div>
-              <q-btn :icon="materialIcons.outlinedEvent" class="mx-1" color="light-green-9" flat size="0.9rem" v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6">
-                <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
-                  Ver reservas
                 </q-tooltip>
               </q-btn>
             </div>
@@ -192,6 +185,7 @@ onMounted(() => {
 <style lang="scss">
 .userListContainer {
   overflow: hidden;
+  position: relative;
   border-radius: .5rem;
   box-shadow: 0px 2px 6px 0px rgb(199, 199, 199);
 }
