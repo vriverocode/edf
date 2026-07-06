@@ -171,7 +171,7 @@ watch(
                 <q-btn color="teal" round outline class="text-backButton flex flex-center" size="0.7rem">
                   <q-icon name="eva-arrow-back-outline" />
                 </q-btn>
-                <div class="ml-2 pt-1 backButton-text">REGRESAR</div>
+                <div class="ml-2 pt-1 backButton-text">Volver</div>
               </div>
             </div>
           </transition>

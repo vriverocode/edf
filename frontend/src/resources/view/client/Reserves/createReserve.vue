@@ -534,20 +534,20 @@ const sanciones = computed(() => {
 const typeOfReserve = [
   {
     id: 1,
-    title: 'Reserva Compartida',
-    description: 'Comparte el espacio con otros residentes según los cupos disponibles',
+    title: 'Reserva Compartida (Sin costo)',
+    description: ' ✔ Comparte el uso del espacio con otros residentes durante el horario seleccionado, según la capacidad disponible.',
     types: [1, 2]
   },
   {
     id: 2,
     title: 'Reserva Exclusiva',
-    description: 'Uso exclusivo del área completa durante el horario seleccionado',
+    description: '🔒Disfruta del uso exclusivo de toda el área durante el horario reservado.',
     types: [2]
   },
   {
     id: 3,
-    title: 'Solo reserva con pago',
-    description: 'Uso exclusivo obligatorio del área completa con pago requerido',
+    title: '🔒Reserva exclusiva',
+    description: 'Tendrás el área completa reservada únicamente para ti durante el horario seleccionado.',
     types: [3, 4]
   }
 ]
@@ -1011,13 +1011,11 @@ watch(step,
           <Transition :name="transitionName">
             <div class="h-full rulesModal px-3" style="overflow: hidden;" v-if="rulesModal">
               <div class="pb-4" style="overflow:auto; height:91%">
-                <div class="text-center my-2 font-bold text-2xl text-primary">INSTRUCCIONES</div>
+                <div class="text-center my-2 font-bold text-2xl text-primary">INSTRUCCIONES DE USO</div>
                 <div class="importantInfo__reserve py-2 pl-3 pr-1">
-                  <div class="text-importantInfo text-grey-7">Importante</div>
+                  <div class="text-importantInfo text-grey-7">⚠️ Importante</div>
                   <div class="text-importantInfo">
-                    Para usar el área reservada debes leer y aceptar las normas e instrucciones. El incumplimiento puede
-                    generar
-                    multas y suspensión del uso del área
+                    Antes de utilizar esta área, lee y acepta las normas de uso. El incumplimiento del reglamento puede generar sanciones, multas o la suspensión temporal del acceso al área.
                   </div>
                 </div>
                 <div class="rulesContainer mt-2 px-2 pt-2 pb-1">
@@ -1044,10 +1042,10 @@ watch(step,
                 </div>
                 <div class="rulesContainer mt-2 px-2 pt-2 pb-1">
                   <div class="px-2 rulesContainer__Title">
-                    Sanciones y multas
+                    ⛔ Sanciones
                   </div>
                   <div class="rulesContainer__Subtitle text-grey-7 px-2">
-                    Monto referenciales (editables según reglamento interno)
+                    Multas por incumplimiento. Las sanciones se aplican de acuerdo con el Reglamento Interno del edificio.
                   </div>
                   <div class="flex items-center justify-between ruleDetailContainer my-1 py-1 px-3">
                     <div class="ml-1 font-bold" style="font-size:0.78rem">
@@ -1069,14 +1067,14 @@ watch(step,
                 </div>
                 <div class="importantInfo__reserve py-2 pl-1  pr-1 mt-2">
                   <div class="px-3 rulesContainer__Title">
-                    Aceptación de términos e instrucciones
+                    Aceptación de normas y condiciones
                   </div>
                   <div class="px-2">
                     <div class="mt-1">
                       <q-checkbox v-model="formData.terms_accept" class="check__accept"
                         checked-icon="eva-checkmark-circle-outline">
                         <div class="ml-2 pt-1 accept_text">
-                          {{ 'He leido y acepto las normas de uso del area ' + selectedComunArea.name }}
+                          {{ 'He leído y acepto las normas de uso del area ' + selectedComunArea.name }}
                         </div>
                       </q-checkbox>
 
@@ -1085,13 +1083,13 @@ watch(step,
                       <q-checkbox v-model="formData.multa_accept" class="check__accept"
                         checked-icon="eva-checkmark-circle-outline">
                         <div class="ml-2 accept_text pt-1 ">
-                          Acepto las sanciones y cobros por incumplimiento
+                          Acepto las sanciones y multas aplicables en caso de incumplimiento.
                         </div>
                       </q-checkbox>
 
                     </div>
                     <div class="accept_text text-grey-7 px-2 mt-1">
-                      * Debes marcar ambas casillas para continuar con la reserva
+                      * ℹ️ Debes marcar ambas casillas para continuar con la reserva.
                     </div>
                   </div>
                 </div>
@@ -1099,7 +1097,7 @@ watch(step,
               <div class="row py-0 " style="height: 9%;">
                 <div class="col-4 flex flex-center ">
                   <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
-                    @click="rulesModal = false; movieModalShow = true;">
+                    @click="rulesModal = false; openRuleModal(true)">
                     <div class="py-0 md:py-0">
                       Volver
                     </div>
@@ -1133,7 +1131,7 @@ watch(step,
                     </div>
                   </q-chip>
                 </div>
-                <div class="text-center pt-4 font-bold text-2xl text-primary">Opción de reserva</div>
+                <div class="text-center pt-4 font-bold text-2xl text-primary">Opciones de reserva</div>
                 <div v-if="userApartments.length > 1" class="mt-4 px-2">
                   <div style="font-weight: 500; font-size: 0.95rem; margin-bottom: 8px;">Selecciona tu departamento:
                   </div>
@@ -1165,25 +1163,25 @@ watch(step,
                   </div>
                 </div>
 
-                <div v-if="selectedComunArea.warranty_price > 0" class="mt-4 px-1 mb-2">
+                <div class="mt-4 px-1 mb-2">
                   <div class="rounded-xl p-0" style="">
-                    <div class="bg-white rounded-lg p-3" style="border: 2px solid #dce8f4;">
+                    <div class="bg-white rounded-lg p-3" style="border: 2px solid #dce8f4; " v-if="selectedComunArea.warranty_price > 0"  >
                       <div class="flex justify-between items-center mb-1">
                         <div class="flex items-center text-[#2d5eaa] font-bold" style="font-size: 1.05rem;">
-                          <q-icon name="eva-shield-outline" size="1.4rem" class="mr-2" />
-                          Garantía
+                          🛡️
+                          Depósito en garantía
                         </div>
                         <div class="text-[#2d5eaa] font-bold" style="font-size: 1.05rem;">
                           S/ {{ selectedComunArea.warranty_price.toFixed(2) }}
                         </div>
                       </div>
                       <div class="text-grey-8 mt-2" style="font-size: 0.85rem; line-height: 1.4;">
-                        Requerida para todas las reservas • <br> Reembolsable tras el correcto uso
+                       Se requiere para todas las reservas y se devuelve una vez finalizada la actividad, previa inspección del área.
                       </div>
                     </div>
                     
                     <div class="mt-3 text-grey-8 flex px-2" style="font-size: 0.85rem; line-height: 1.3;">
-                      <span class="mr-1">* Los pagos se coordinan directamente con la administración del edificio</span>
+                      <span class="mr-1">*💳 El pago puede realizarse mediante transferencia bancaria o con tarjeta de crédito o débito.</span>
                     </div>
                   </div>
                 </div>

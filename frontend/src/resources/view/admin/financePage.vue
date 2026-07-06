@@ -16,7 +16,7 @@ const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
   {
-    title: 'Balance de cuentas',
+    title: 'Balance',
     icon: baccount,
     link: '/balances',
   },

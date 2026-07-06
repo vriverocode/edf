@@ -86,6 +86,16 @@ class UserController extends Controller
 
             $tipo = $request->type;
             $isAirbnb = $tipo === 'airbnb';
+            $isFamiliar = $tipo === 'familiar';
+            $isInquilino = $tipo === 'inquilino';
+
+            $rolId = Rol::FAMILIAR;
+            if ($isAirbnb) {
+                $rolId = Rol::AIRBNB;
+            }
+            if ($isInquilino) {
+                $rolId = Rol::INQUILINO;
+            }
 
             // Preparación de credenciales
             $username = $request->username ?? Str::lower(Str::random(8)) . '_' . time();
@@ -100,8 +110,8 @@ class UserController extends Controller
                 'username'    => $username,
                 'phone'       => $request->phone ?? null,
                 'password'    => bcrypt($password),
-                'rol_id'      => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
-                'parentesco'  => $isAirbnb ? null : $request->parentesco,
+                'rol_id'      => $rolId,
+                'parentesco'  => $isFamiliar ? $request->parentesco : null,
                 'status'      => $isAirbnb ? 3 : 1,
                 'active_time' => $isAirbnb ? date('Y-m-d', $activeTime) : null,
                 'end_time'    => $isAirbnb ? date('Y-m-d', $dateEnd) : null,
@@ -112,7 +122,7 @@ class UserController extends Controller
             $people = PeoplesXDepartaments::create([
                 'user_id'        => $user->id,
                 'departament_id' => $request->idApartament,
-                'type'           => $isAirbnb ? Rol::AIRBNB : Rol::FAMILIAR,
+                'type'           => $rolId,
                 'created_by'     => $request->user()->id,
             ]);
 
@@ -206,13 +216,21 @@ class UserController extends Controller
     {
         $residents = PeoplesXDepartaments::with(['user.rol', 'departament'])
             ->where('created_by', $request->user()->id)
-            ->whereIn('type', [Rol::FAMILIAR, Rol::AIRBNB])
+            ->whereIn('type', [Rol::FAMILIAR, Rol::AIRBNB, Rol::INQUILINO])
             ->get()
             ->map(function ($people) {
+                $typeLabel = 'Familiar';
+                if ($people->type === Rol::AIRBNB) {
+                    $typeLabel = 'Airbnb';
+                }
+                if ($people->type === Rol::INQUILINO) {
+                    $typeLabel = 'Inquilino';
+                }
+
                 return [
                     'id'           => $people->id,
                     'type'         => $people->type,
-                    'type_label'   => $people->type === Rol::AIRBNB ? 'Airbnb' : 'Familiar',
+                    'type_label'   => $typeLabel,
                     'user'         => $people->user,
                     'departament'  => $people->departament,
                     'active_time'  => $people->user?->active_time,
@@ -226,7 +244,7 @@ class UserController extends Controller
     private function validateTemporaryOrResidentInput(array $inputs): array
     {
         $rules = [
-            'type'         => ['required', 'in:airbnb,familiar'],
+            'type'         => ['required', 'in:airbnb,familiar,inquilino'],
             'name'         => ['required', 'string', 'max:255'],
             'email'        => ['required', 'email', 'unique:users,email'],
             'idApartament' => ['required', 'integer', 'exists:departaments,id'],
@@ -244,7 +262,7 @@ class UserController extends Controller
             $rules['airbnb.guests.*.name'] = ['required', 'string'];
             $rules['airbnb.guests.*.document'] = ['required', 'string'];
             $rules['airbnb.guests.*.photo'] = ['nullable', 'image', 'max:4096']; // Max 4MB
-        } else {
+        } elseif (($inputs['type'] ?? '') === 'familiar') {
             $rules['parentesco'] = ['required', 'string'];
         }
 

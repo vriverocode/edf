@@ -4,20 +4,24 @@ import { useAuthStore } from '@/services/store/auth.services';
 import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
 import { computed } from 'vue';
+import reclamaciones from '@/assets/img/menu/libro-de-reclamaciones.png'
+import terminos from '@/assets/img/menu/terminos-y-condiciones.png'
+
+
 
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
   {
-    title: 'Terminos y condiciones',
+    title: 'Términos y condiciones',
     link: 'https://www.edificiopacifik.com/terminos_y_condiciones',
-    icon: iconsApp.terms,
+    icon: terminos,
     roles: [],
     external: true
   },
   {
-    title: 'Reclamos',
-    icon: iconsApp.claims,
+    title: 'Libro de reclamaciones',
+    icon: reclamaciones,
     link: '/client/claims/add',
     roles: [],
     external: false
@@ -50,14 +54,14 @@ const goTo = (url, external = false) => {
 <template>
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-2  md:px-28">
-      <div class="col-md-3   col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
-        <div class="boxItem" @click="goTo(items.link, items.external)">
-          <div class="flex justify-center items-center h-full w-full p-1">
-            <div v-html="items.icon" class="flex justify-center mt-0" />
-          </div>
+      <div class="col-md-3   col-6 px-7 my-3" v-for="(item, key) in menuByRol" :key="key">
+        <div class="boxItem" @click="goTo(item.link, item.external)">
+         <div class="flex justify-center items-center h-full w-full p-1">
+             <img :src="item.icon" class="md:w-auto h-4/5"/>
+            </div>
         </div>
-        <div class="text-center mt-2  text-title-squad text-ellipsis ellipsis ">
-          {{ items.title }}
+        <div class="text-center mt-2  text-title-squad  ">
+          {{ item.title }}
         </div>
       </div>
 

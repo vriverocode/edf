@@ -57,7 +57,7 @@ const getPaymentStatus = (booking) => {
     return !booking.pay
       ? 'No pagada'
       : booking.pay.status == 1
-        ? 'Pendiente de aprobación'
+        ? 'Pendiente de aprob.'
         : 'Pagado';
   }
   return booking.status == 3 ? 'Confirmado' : 'Cancelado';

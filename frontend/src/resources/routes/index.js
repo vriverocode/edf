@@ -186,7 +186,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Banlances',
+          pagTitle: 'Balances',
           depth: 2,
         },
       },
@@ -751,7 +751,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Gestion de departamento',
+          pagTitle: 'Mi departamento',
           depth: 3,
         },
       },

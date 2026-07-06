@@ -5,6 +5,10 @@ import bg from '@/assets/img/util/bg3.webp'
 import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
 import { computed } from 'vue';
+import pagos from '@/assets/img/menu/mis-pagos.png'
+import departamentos from '@/assets/img/menu/departamentos.png'
+import cuotas from '@/assets/img/menu/cuotas-mantenimiento.png'
+
 
 const { user } = storeToRefs(useAuthStore())
 const hasQuotasPending = computed(() => {
@@ -18,17 +22,17 @@ const router = useRouter()
 const menu = [
   {
     title: 'Mis pagos',
-    icon: iconsApp.payApartment,
+    icon: pagos,
     link: '/client/pays/list',
   },
   {
     title: 'Mi unidad',
-    icon: iconsApp.myUnit,
+    icon: departamentos,
     link: '/client/department/my-unit',
   },
   {
     title: 'Cuotas / Mantenimiento ',
-    icon: iconsApp.contract,
+    icon: cuotas,
     link: '/client/balance/list',
     badgePay: hasQuotasPending.value > 0,
   },
@@ -44,20 +48,19 @@ const goTo = (url) => {
 
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-5  md:px-20">
-      <div class="col-md-3  col-6 px-7 my-3" v-for="(items, key) in menu" :key="key">
+      <div class="col-md-3  col-6 px-7 my-3" v-for="(item, key) in menu" :key="key">
         <div class="px-3">
-          <div class="boxItem " @click="goTo(items.link)">
-            <div v-if="items.badgePay">
+          <div class="boxItem " @click="goTo(item.link)">
+            <div v-if="item.badgePay">
               <div class="bagdePay" />
             </div>
             <div class="flex justify-center items-center h-full w-full p-1">
-              <!-- <img :src="items.icon" class="w-full md:w-auto h-full" /> -->
-              <div v-html="items.icon" class="flex justify-center mt-0" />
+              <img :src="item.icon" class="h-3/5" />
             </div>
           </div>
         </div>
         <div class="text-center mt-2  text-title-squad">
-          {{ items.title }}
+          {{ item.title }}
         </div>
       </div>
     </div>
