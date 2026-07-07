@@ -109,7 +109,7 @@ class PayController extends Controller
             'consolidated_ids' => $quotaIdsForPay,
             'amount' => $request->amount,
             'reference' => $request->reference ?? '000000',
-            'pay_id' => $prefixPayId[$request->pay_method].($request->booking_id ?? 'Q').'-'.rand(1000, 9999),
+            'pay_id' => $prefixPayId[$request->pay_method] . ($request->booking_id ?? 'Q') . '-' . rand(1000, 9999),
             'pay_date' => $request->pay_date ? date('Y-m-d', strtotime($request->pay_date)) : date('Y-m-d'),
             'type' => $request->type,
             'pay_method' => $request->pay_method,
@@ -354,7 +354,7 @@ class PayController extends Controller
                         'user_id' => $request->user()->id,
                         'amount' => $request->amount,
                         'reference' => $culqiData['id'], // ID de transacción de Culqi
-                        'pay_id' => 'CULQI-'.$request->comun_area_id.'-'.rand(100, 999),
+                        'pay_id' => 'CULQI-' . $request->comun_area_id . '-' . rand(100, 999),
                         'pay_date' => date('Y-m-d'),
                         'type' => 2, // Tipo Pago de Reserva
                         'pay_method' => 3, // Online
@@ -383,7 +383,7 @@ class PayController extends Controller
         // $vaucherPath = $this->uploadVaucher($request, $request, 2);
         try {
             $rawSequence = intval($request->sequence);
-            $formattedSequence = '0'.str_pad($rawSequence, 5, '0', STR_PAD_LEFT);
+            $formattedSequence = '0' . str_pad($rawSequence, 5, '0', STR_PAD_LEFT);
             $claimData = [
                 'sequence' => $formattedSequence,
                 'fullname' => $request->fullname,

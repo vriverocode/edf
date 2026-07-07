@@ -11,6 +11,8 @@ import mi_departamento from '@/assets/img/menu/mi_departamento.svg'
 import mis_reservas from '@/assets/img/menu/mis_reservas.svg'
 import defaulticon from '@/assets/img/menu/default-dash.svg'
 import pagos from '@/assets/img/menu/pagos.svg'
+import residentes from '@/assets/img/menu/residentes.png'
+import visitas from '@/assets/img/menu/visitas.png'
 import eventos from '@/assets/img/menu/eventos.svg'
 
 const { user } = storeToRefs(useAuthStore());
@@ -66,13 +68,13 @@ const menu = computed(() => [
   },
   {
     title: 'Residentes',
-    icon: defaulticon,
+    icon: residentes,
     link: '/client/familiar/list',
     roles: [2]
   },
   {
     title: 'Visitas',
-    icon: defaulticon,
+    icon: visitas,
     link: '/client/visit/list',
     roles: [2]
   },
