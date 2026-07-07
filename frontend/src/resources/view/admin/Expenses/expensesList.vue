@@ -4,6 +4,7 @@ import { Notify } from 'quasar'
 import { useRouter } from 'vue-router'
 import { useExpenseStore } from '@/services/store/expense.store'
 import iconsApp from '@/assets/icons/index'
+import gastos from '@/assets/img/menu/gastos2.png'
 
 const router = useRouter()
 const expenseStore = useExpenseStore()
@@ -202,7 +203,10 @@ onMounted(() => {
                   <div class="col-12 col-md-6 text-sm text-gray-700 mt-1">
                     Tipo: <span class="font-medium">{{ expense.expense_type_label }}</span>
                   </div>
-                  <div class="col-12 col-md-6 text-sm text-gray-700 mt-1 md:text-right">
+                  <div v-if="expense.invoice_number" class="col-6 text-sm text-gray-700 mt-2">
+                    Factura N°: <span class="font-medium">{{ expense.invoice_number }}</span>
+                  </div>
+                  <div class="col-6 col-md-6 text-sm text-gray-700 mt-1 text-end">
                     Presupuesto: <span class="font-medium">{{ monthlyBillLabel(expense.monthly_bill) }}</span>
                   </div>
                   <div class="col-6 text-sm text-gray-700 mt-2">
@@ -211,10 +215,8 @@ onMounted(() => {
                   <div class="col-6 text-sm text-gray-700 mt-2 text-right">
                     Vence: <span class="font-medium">{{ formatDate(expense.due_date) }}</span>
                   </div>
-                  <div v-if="expense.invoice_number" class="col-12 text-sm text-gray-700 mt-2">
-                    Factura N°: <span class="font-medium">{{ expense.invoice_number }}</span>
-                  </div>
                   <div class="col-12 text-sm text-gray-700 mt-2 line-clamp-2">
+                    <b>Descripción:</b>
                     {{ expense.description }}
                   </div>
                 </div>
@@ -236,8 +238,8 @@ onMounted(() => {
           <template v-else>
             <div class="py-20">
               <div class="w-full flex justify-center">
-                <div class="flex flex-center bg-primary" style="height:6rem; width:6rem; border-radius:6rem">
-                  <div v-html="iconsApp.billsMenu" style="transform:scale(0.8)"></div>
+                <div class="w-24 h-24 bg-primary rounded-full flex items-center justify-center mb-6">
+                  <img :src="gastos" class="md:w-auto h-3/5"/>
                 </div>
               </div>
               <div class="flex flex-col items-center justify-center py-5">

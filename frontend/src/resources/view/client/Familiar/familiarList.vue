@@ -125,12 +125,12 @@ onMounted(() => {
                 <template v-else>
                     <div class="flex flex-center column empty-results px-4" style="min-height: 60vh;">
                         <q-icon name="eva-people-outline" size="4rem" color="grey-5" class="q-mb-md" />
-                        <div style="font-size: 1.2rem; font-weight: 600;" class=" text-grey-7 text-center q-mb-sm">No
-                            hay
-                            familiares ni residentes
-                            Airbnb</div>
-                        <div class=" text-grey-6 text-center q-mb-lg">Registra familiares o usuarios temporales de
-                            alquiler.</div>
+                        <div style="font-size: 1.2rem; font-weight: 600;" class=" text-grey-7 text-center q-mb-sm">
+                            No hay usuarios registrados
+                        </div>
+                        <div class=" text-grey-6 text-center q-mb-lg">
+                            Aquí podrás agregar familiares, inquilinos y huéspedes temporales autorizados.
+                        </div>
                         <q-btn color="primary" unelevated style="border-radius: 0.5rem;"
                             @click="goTo('/client/familiar/add')">
                             <q-icon name="eva-plus-outline" class="q-mr-sm" />

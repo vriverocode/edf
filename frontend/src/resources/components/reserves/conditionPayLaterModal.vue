@@ -34,17 +34,20 @@ const confirmAction = () => {
         </q-card-section>
         <section class="content__modalSectionRifa md:pt-5 md:pb-5 pt-1 pb-4  ">
         <div class="text-subtitle1 md:px-5" style="font-weight: 500;">
-            El pago puede posponerse, pero debe realizarse con 24 horas
-            de antelación a la fecha de la reserva. En caso de no recibir el pago, la reserva será cancelada.
+            Puedes realizar el pago más adelante, siempre que se efectúe al menos 24 horas antes de la fecha de la reserva.<br>
+            Si el pago no se registra dentro del plazo establecido, la reserva será cancelada automáticamente.
         </div>
         </section>
-        <section class="pb-2" style="border-top: 1px solid lightgray;">
-            <div class="flex justify-evenly mt-4">
-            <q-btn label="No, volver" unelevated class="q-mx-sm" color="grey-7" outline
-                style="border-radius: 0.8rem; padding:0px 2rem!important;" @click="hideModal" />
-                
-            <q-btn label="Sí, acepto" unelevated class="q-mx-sm" color="primary"
-                style="border-radius: 0.8rem; padding:0px 2rem!important;" @click="confirmAction" />
+        <section class="pb-0" style="border-top: 1px solid lightgray;">
+            <div class="row mt-4 ">
+              <div class="col-6 flex-center flex">
+                <q-btn label="No, volver" unelevated class="q-mx-sm" color="grey-7" outline
+                    style="border-radius: 0.8rem; padding:0.5rem 1.5rem!important;" @click="hideModal" />
+              </div>
+              <div class="col-6 flex-center flex">
+                <q-btn label="Sí, acepto" unelevated class="q-mx-sm" color="primary"
+                    style="border-radius: 0.8rem; padding:0.5rem 1.5rem!important;" @click="confirmAction" />
+              </div>
             </div>
         </section>
 

@@ -8,7 +8,7 @@ import storage from '@/services/storage'
 import bg from '@/assets/img/backgrounds/bg.webp'
 import logoWite from '@/assets/img/logo/logo-white.webp';
 const authServices = useAuthStore()
-const tutorialView = ref(storage.getItem('tutorial'))
+const tutorialView = ref('true')
 
 const login = reactive({
   username: '',
@@ -98,7 +98,7 @@ const endTutorial = () => {
                             color="grey-1" @click="isPwd = !isPwd" />
                         </template>
                       </q-input>
-                      <p class="mt-2 cursor-pointer md:mt-8 text-white text-subtitle1">¿Perdió su contraseña?</p>
+                      <p class="mt-2 cursor-pointer md:mt-8 text-white text-subtitle1" @click="router.push('/forgot-password')">¿Olvidaste tu contraseña?</p>
                     </div>
                   </div>
                   <div class="md:px-16 px-6 mt-5 flex justify-center">

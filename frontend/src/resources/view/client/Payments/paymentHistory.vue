@@ -4,6 +4,7 @@ import { usePayStore } from '@/services/store/pay.store';
 import { useRouter } from 'vue-router';
 import moment from 'moment';
 import paymentFilterModal from '@/components/payments/paymentFilterModal.vue';
+import pagos from '@/assets/img/menu/pagos.png'
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -99,7 +100,7 @@ onMounted(() => {
       <q-btn outline color="primary" icon="eva-funnel-outline" @click="showDialog" />
     </div>
     <!-- Lista de pagos -->
-    <div class="h-full" style="overflow: auto;">
+    <div class="h-full pb-24" style="overflow: auto;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />
@@ -194,15 +195,11 @@ onMounted(() => {
 
         <!-- Estado vacío -->
         <div v-else class="flex flex-col items-center justify-center py-20">
-          <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
-            <svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z">
-              </path>
-            </svg>
+          <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+            <img :src="pagos  " class="md:w-auto h-3/5"/>
           </div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">No tienes pagos</h3>
-          <p class="text-gray-600 text-center mb-6">Aún no has realizado ningún pago.</p>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Aún no tienes pagos registrados</h3>
+          <p class="text-gray-600 text-center mb-6">Cuando realices un pago, podrás consultarlo en esta sección.</p>
         </div>
       </div>
     </div>

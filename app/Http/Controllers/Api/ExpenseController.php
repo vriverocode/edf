@@ -63,6 +63,33 @@ class ExpenseController extends Controller
         ]);
     }
 
+    public function unassigned(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'month' => ['required', 'integer', 'between:1,12'],
+                'year' => ['required', 'integer'],
+            ]);
+        } catch (ValidationException $e) {
+            return $this->returnFail(422, $e->validator->errors()->first());
+        }
+
+        $expenses = Expense::query()
+            ->with(['provider:id,name'])
+            ->whereNull('monthly_bill_id')
+            ->whereMonth('issue_date', $validated['month'])
+            ->whereYear('issue_date', $validated['year'])
+            ->orderBy('issue_date', 'desc')
+            ->get();
+
+        $totalAmount = $expenses->sum('amount');
+
+        return $this->returnSuccess(200, [
+            'expenses' => $expenses,
+            'total_amount' => (float) $totalAmount,
+        ]);
+    }
+
     public function show(int $id)
     {
         $expense = Expense::query()
@@ -161,7 +188,7 @@ class ExpenseController extends Controller
     {
         $file = $request->file('attachment');
         $rand = rand(1000000, 9999999);
-        $name = $rand . '_' . time() . '.' . $file->extension();
+        $name = $rand.'_'.time().'.'.$file->extension();
         $destination = public_path('storage/images/expenses');
 
         if (! is_dir($destination)) {
@@ -170,6 +197,6 @@ class ExpenseController extends Controller
 
         $file->move($destination, $name);
 
-        return config('app.url') . "/storage/images/expenses/{$name}";
+        return config('app.url')."/storage/images/expenses/{$name}";
     }
 }

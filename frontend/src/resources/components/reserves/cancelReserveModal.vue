@@ -61,11 +61,11 @@ watch(() => props.dialog, (newValue) => {
           <q-card-section class="q-pt-none q-px-sm ">
             <div class="px-2">
               <div class="text-h6 text-center text-black md:px-8">
-                ¿Seguro que desea cancelar la reserva <b class="text-primary">"#{{ reserve.booking_number }}"</b> en <b
+                ¿Deseas cancelar la reserva <b class="text-primary">"#{{ reserve.booking_number }}"</b> de <b
                   class="text-primary">{{ reserve.comun_area.name }}</b>?
               </div>
-              <div v-if="reserve.amount > 0" class="mt-2 text-grey-7  text-center">
-                Los pagos realizado seran devuelto dependiendo de las politicas de reserva
+              <div v-if="reserve.amount > 0" class="my-3 text-grey-7  ">
+                En caso de haber realizado el pago de la reserva, el importe abonado será reembolsado en su totalidad.
               </div>
 
               <div class="mt-2">
@@ -81,10 +81,10 @@ watch(() => props.dialog, (newValue) => {
       </div>
       <section class="pb-5" style="border-top: 1px solid lightgray;">
         <div class="flex justify-evenly mt-5">
-          <q-btn label="No" unelevated class="q-mx-sm " color="primary" outline
+          <q-btn label="Mantener reserva" unelevated class="q-mx-sm mt-2" color="primary" outline
             style="border-radius: 0.8rem; padding:0px  2rem!important; font-size: 1rem;  " @click="hideModal()" />
-          <q-btn label="Si" unelevated class="q-mx-sm " color="primary" outline
-            style="border-radius: 0.8rem; padding:0px  2rem!important; font-size: 1rem;  " :loading="loading"
+          <q-btn label="Cancelar reserva" unelevated class="q-mx-sm mt-2" color="negative" outline
+            style="border-radius: 0.8rem;  padding:0px  2rem!important; font-size: 1rem;  " :loading="loading"
             @click="cancelBooking()" />
         </div>
       </section>

@@ -4,6 +4,7 @@ import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@//services/store/auth.services';
 import { storeToRefs } from 'pinia';
+import anuncio from '@/assets/img/menu/anuncio.png'
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split('_'),
@@ -71,9 +72,9 @@ const goTo = (id) => {
   <!-- Estado vacío -->
   <div v-else class="flex flex-col items-center justify-center py-20">
     <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
-      <div v-html="iconsApp.megaphone" />
+      <img :src="anuncio  " class="md:w-auto h-3/5"/>
     </div>
-    <h3 class="text-lg font-semibold text-gray-900 mb-2">No hay anuncios que mostrar</h3>
-    <p class="text-gray-600 text-center mb-6">En breve te traemos más informacion.</p>
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">Sin anuncios por el momento</h3>
+    <p class="text-gray-600 text-center mb-6"> Aquí encontrarás las últimas novedades y comunicados del edificio</p>
   </div>
 </template>

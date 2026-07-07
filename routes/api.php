@@ -1,43 +1,46 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\QuotaController;
-use App\Http\Controllers\Api\PayController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\BillInvoiceController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ComunAreaController;
 use App\Http\Controllers\Api\ConfigController;
 use App\Http\Controllers\Api\DepartamentController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\ExpenseController;
-use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\Api\FinancialAccountController;
+use App\Http\Controllers\Api\IncidentController;
+use App\Http\Controllers\Api\MaintenanceController;
+use App\Http\Controllers\Api\MonthlyBillsController;
+use App\Http\Controllers\Api\MultaController;
 use App\Http\Controllers\Api\NoticeController;
 use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\RuleController;
-use App\Http\Controllers\Api\MultaController;
+use App\Http\Controllers\Api\PayController;
 use App\Http\Controllers\Api\PayMethodController;
-use App\Http\Controllers\Api\VisitController;
-use App\Http\Controllers\Api\BillInvoiceController;
-use App\Http\Controllers\Api\MonthlyBillsController;
-use App\Http\Controllers\Api\WaterReadingController;
-use App\Http\Controllers\Api\MaintenanceController;
-use App\Http\Controllers\Api\FinancialAccountController;
-use App\Http\Controllers\Api\TransactionCategoryController;
+use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\Api\QuotaController;
+use App\Http\Controllers\Api\ResetPasswordController;
+use App\Http\Controllers\Api\RuleController;
 use App\Http\Controllers\Api\ServiceCategoryController;
-use App\Http\Controllers\Api\IncidentController;
+use App\Http\Controllers\Api\TransactionCategoryController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\VisitController;
+use App\Http\Controllers\Api\WaterReadingController;
 use App\Models\Currency;
-use App\Models\FinancialAccount;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/validate-reset-token', [ResetPasswordController::class, 'validateToken']);
+Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
 Route::post('/pruebaCorreo', [PayController::class, 'claimsByPay']);
 
 Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
 Route::get('/app-version', [ConfigController::class, 'getAppVersion']);
 Route::middleware('auth:sanctum')->post('/token-movile', [UserController::class, 'saveTokenMovile']);
 Route::middleware('auth:sanctum')->group(function () {
-    //--- Login/Auth ---
+    // --- Login/Auth ---
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'units' => function ($query) {
@@ -137,7 +140,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/claims/sequence', [PayController::class, 'getClaimSequence']);
         Route::post('/claims', [PayController::class, 'claimsByPay']);
 
-
         Route::post('/culqi-payment', [PayController::class, 'processCulqiPayment']);
     });
     Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -153,7 +155,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/by-month/{month}', [QuotaController::class, 'adminGroupedByOwnerForMonth']);
         Route::get('/byMonth/{id}', [QuotaController::class, 'getByMonth']);
         Route::get('/byPay/{id}', [QuotaController::class, 'getByPay']);
-
 
         Route::get('/byId/{id}', [QuotaController::class, 'show']);
 
@@ -264,6 +265,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('expenses')->name('expense.')->group(function () {
         Route::get('/', [ExpenseController::class, 'index']);
+        Route::get('/unassigned', [ExpenseController::class, 'unassigned']);
         Route::get('/form-options', [ExpenseController::class, 'formOptions']);
         Route::get('/byId/{id}', [ExpenseController::class, 'show']);
         Route::post('/', [ExpenseController::class, 'store']);

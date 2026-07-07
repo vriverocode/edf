@@ -109,7 +109,7 @@ const reloadGetBooking = () => {
 
         <!-- Título de éxito -->
         <h1 class="text-2xl font-bold text-gray-900 mb-2">¡Reserva Confirmada!</h1>
-        <p class="text-gray-600 mb-8 text-center">Tu reserva ha sido procesada exitosamente</p>
+        <p class="text-gray-600 mb-8 text-center">Tu reserva ha sido confirmada correctamente.</p>
 
         <!-- Tarjeta de detalles -->
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-sm p-6 mb-8">

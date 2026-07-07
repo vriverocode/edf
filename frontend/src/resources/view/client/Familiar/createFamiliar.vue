@@ -14,16 +14,20 @@ const hasNoApartments = ref(false)
 const tipoResidentOptions = ref([
     {
         id: '',
-        title: 'Selecciona el tipo de residente'
+        title: 'Selecciona el tipo de usuario'
     },
     {
         id: 'airbnb',
-        title: 'Airbnb (Alquiler temporal)'
+        title: '🧳 Huésped temporal (Airbnb)'
     },
     {
         id: 'familiar',
-        title: 'Familiar / Habitante'
+        title: '👨‍👩‍👧 Familiar'
     },
+    {
+        id: 'inquilino',
+        title: '🏠 Inquilino'
+    }
 ])
 
 const getApartmentsByUser = () => {
@@ -65,7 +69,7 @@ const formData = ref({
     password: '',
     type: {
         id: '',
-        title: 'Selecciona el tipo de residente'
+        title: 'Selecciona el tipo de usuario'
     },
     apartment: {
         id: 0,
@@ -104,6 +108,7 @@ const titleOfSection = [
 ]
 const isAirbnb = () => formData.value.type?.id === 'airbnb'
 const isFamiliar = () => formData.value.type?.id === 'familiar'
+const isInquilino = () => formData.value.type?.id === 'inquilino'
 
 const formatDateForApi = (date) => {
     if (!date) return null
@@ -116,7 +121,7 @@ const nextStep = () => {
     if (!validatorStep()) {
         return false
     }
-    if (step.value == 1 && isFamiliar()) {
+    if (step.value == 1 && (isFamiliar() || isInquilino())) {
         createUser()
         return
     }
@@ -411,7 +416,7 @@ onMounted(() => {
                         <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
                             <q-btn color="primary " style="border-radius: 0.5rem;" type="submit" :loading="loading">
                                 <div class="px-8 py-1 ">
-                                    {{ isFamiliar() ? 'Registrar' : 'Siguiente' }}
+                                    {{ (isFamiliar() || isInquilino()) ? 'Registrar' : 'Siguiente' }}
                                 </div>
                             </q-btn>
                         </div>

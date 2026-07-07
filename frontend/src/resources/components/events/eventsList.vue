@@ -138,20 +138,13 @@ const getPaymentAmount = (booking) => {
         </path>
       </svg>
     </div>
-    <template v-if="user.rol_id == 2">
-
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">No hay eventos listados</h3>
-      <p class="text-gray-600 text-center mb-6">Aún no han realizado ningun evento.</p>
-
-    </template>
-    <template v-else>
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">No hay eventos listados</h3>
-      <p class="text-gray-600 text-center mb-6">Aún no has realizado ningun evento.</p>
-      <button @click="goTo('/admin/events/form/add')"
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">No hay eventos programados</h3>
+      <p class="text-gray-600 text-center mb-6">Aquí encontrarás los próximos eventos y actividades organizados para los residentes del edificio.</p>
+      <button v-if="user.rol_id == 2" @click="goTo('/admin/events/form/add')"
         class="px-6 py-3 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors">
         Crear primer evento
       </button>
-    </template>
+
   </div>
 </template>
 <style scoped>

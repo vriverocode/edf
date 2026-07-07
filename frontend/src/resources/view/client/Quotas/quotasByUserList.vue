@@ -4,6 +4,7 @@ import { useQuotaStore } from '@/services/store/quota.store';
 import { useRouter } from 'vue-router';
 import moment from 'moment';
 import appIcons from '@/assets/icons';
+import cuotas from '@/assets/img/menu/cuotas.png'
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -158,11 +159,11 @@ onMounted(() => {
         </div>
 
         <div v-else class="flex flex-col items-center justify-center py-20">
-          <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
-            <div v-html="appIcons.mensuality" />
+         <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+            <img :src="cuotas" class="md:w-auto h-3/5"/>
           </div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">No tienes cuotas</h3>
-          <p class="text-gray-600 text-center mb-6">Aún no se ha emitido tu primera cuota.</p>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">¡No tienes cuotas pendientes! 🎉</h3>
+          <p class="text-gray-600 text-center mb-6"> Estás al día con tus pagos. Gracias por contribuir al mantenimiento y buen funcionamiento del edificio.</p>
         </div>
       </div>
     </div>

@@ -150,22 +150,22 @@ onMounted(() => {
             <q-card class="md:px-5 mt-2 shadow-md" style="border-radius: 1rem; box-shadow: #7b7b7b38 0px 5px 10px 0px;">
               <q-card-section>
                 <div class=" text-center text-xl pb-2 text-stone-600 md:text-2xl  font-bold">
-                  Ficha Unidad Inmobiliaria
+                  Información del departamento
                 </div>
                 <div class="row">
                   <div class="col-12 col-md-6">
-                    <div class="flex my-2">
+                    <!-- <div class="flex my-2">
                       <div class="text-black font-medium">Dirección:</div>
                       <div class="ml-1 text-black font-medium">{{ apartment.address }}</div>
-                    </div>
+                    </div> -->
                     <div class="flex my-2">
                       <div class="text-black font-medium">Tipo:</div>
                       <div class="ml-1 text-black font-medium">{{ 'Departamento' }}</div>
                     </div>
-                    <div class="flex my-2">
+                    <!-- <div class="flex my-2">
                       <div class="text-black font-medium">Nro. interno:</div>
                       <div class="ml-1 text-black font-medium">{{ internalNumber(apartment.number) }}</div>
-                    </div>
+                    </div> -->
                     <div class="flex my-2">
                       <div class="text-black font-medium">Número:</div>
                       <div class="ml-1 text-black font-medium">{{ internalNumber(apartment.number) }}</div>
@@ -174,16 +174,16 @@ onMounted(() => {
                       <div class="text-black font-medium">Área ocupada (m²):</div>
                       <div class="ml-1 text-black font-medium">{{ apartment.area }}</div>
                     </div>
-                    <div class="flex my-2">
+                    <!-- <div class="flex my-2">
                       <div class="text-black font-medium">Sector / Bloque:</div>
                       <div class="ml-1 text-black font-medium">{{ apartment.block }}</div>
-                    </div>
+                    </div> -->
                     <div class="flex my-2">
                       <div class="text-black font-medium">Propietario:</div>
                       <div class="ml-1 text-black font-medium">{{ apartment.owner.name }}</div>
                     </div>
                     <div class="flex my-2">
-                      <div class="text-black font-medium">Poseedor:</div>
+                      <div class="text-black font-medium">Responsable de la unidad:</div>
                       <div class="ml-1 text-black font-medium">{{ apartment.owner.name }}</div>
                     </div>
                     <div class="flex my-2">
@@ -192,14 +192,14 @@ onMounted(() => {
                     </div>
                   </div>
                   <div class="col-12 col-md-6">
-                    <div class="flex my-2">
+                    <!-- <div class="flex my-2">
                       <div class="text-black font-medium">Urbanización:</div>
                       <div class="ml-1 text-black font-medium"></div>
                     </div>
                     <div class="flex my-2">
                       <div class="text-black font-medium">Uso:</div>
                       <div class="ml-1 text-black font-medium"></div>
-                    </div>
+                    </div> -->
                     <div class="flex my-2">
                       <div class="text-black font-medium">Nro. part. registral:</div>
                       <div class="ml-1 text-black font-medium">0</div>
@@ -210,7 +210,7 @@ onMounted(() => {
                     </div>
                     <div class="flex my-2">
                       <div class="text-black font-medium">Nro. Piso:</div>
-                      <div class="ml-1 text-black font-medium">{{ apartment.floor }}</div>
+                      <div class="ml-1 text-black font-medium">{{ apartment.number.toString().charAt(0) }}</div>
                     </div>
                   </div>
                 </div>

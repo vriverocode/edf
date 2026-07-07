@@ -7,6 +7,7 @@ import panelLayout from '@/layouts/panelLayout.vue'
 import auth from './middlewares/auth'
 import guest from './middlewares/guest'
 import role from './middlewares/role'
+import PanelLayoutForLegals from '../layouts/panelLayoutForLegals.vue'
 
 const routes = [
   {
@@ -30,7 +31,50 @@ const routes = [
           title: 'Bienvenido',
         },
       },
+      {
+        path: '/forgot-password',
+        component: () => import('@/view/auth/forgotPassword.vue'),
+        meta: {
+          title: 'Recuperar contraseña',
+          depth: -1,
+        },
+      },
+      {
+        path: '/reset-password',
+        component: () => import('@/view/auth/resetPassword.vue'),
+        meta: {
+          title: 'Restablecer contraseña',
+          depth: -1,
+        },
+      },
     ],
+  },
+  {
+    path: '/',
+    component: PanelLayoutForLegals,
+    beforeEnter: guest,
+    children: [
+      {
+        path: '/client/legals/menu',
+        component: () => import('@/view/client/Legals/legalsMenu.vue'),
+        name: 'legalMenu',
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Cumplimiento legal',
+          depth: 3,
+        },
+      },
+      {
+        path: '/client/claims/add',
+        component: () => import('@/view/client/Claims/claimsCreate.vue'),
+        name: 'paymentClaims',
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Nuevo reclamo',
+          depth: 4,
+        },
+      },
+    ]
   },
   {
     path: '/',
@@ -186,7 +230,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Banlances',
+          pagTitle: 'Balances',
           depth: 2,
         },
       },
@@ -557,7 +601,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Menu de quotas',
+          pagTitle: 'Cuotas',
           roles: ['admin'],
           depth: 2,
         },
@@ -701,28 +745,6 @@ const routes = [
         },
       },
       {
-        path: '/client/legals/menu',
-        component: () => import('@/view/client/Legals/legalsMenu.vue'),
-        name: 'legalMenu',
-        beforeEnter: [auth, role],
-        meta: {
-          title: 'Bienvenido',
-          pagTitle: 'Cumplimiento legal',
-          depth: 3,
-        },
-      },
-      {
-        path: '/client/claims/add',
-        component: () => import('@/view/client/Claims/claimsCreate.vue'),
-        name: 'paymentClaims',
-        beforeEnter: [auth, role],
-        meta: {
-          title: 'Bienvenido',
-          pagTitle: 'Nuevo reclamo',
-          depth: 4,
-        },
-      },
-      {
         path: '/client/pays/list',
         component: () => import('@/view/client/Payments/paymentHistory.vue'),
         name: 'paymentHistory',
@@ -751,7 +773,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Gestion de departamento',
+          pagTitle: 'Mi departamento',
           depth: 3,
         },
       },

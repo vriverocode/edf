@@ -3,11 +3,16 @@ import { computed, ref, watch } from 'vue'
 import { Notify } from 'quasar'
 import { useMonthlyBillsStore } from '@/services/store/monthlyBills.store'
 import { useRouter } from 'vue-router'
+import includeExpensesModal from '@/components/monthlyBills/includeExpensesModal.vue'
 
 
 const loading = ref(false)
 const monthlyBillsStore = useMonthlyBillsStore()
 const router = useRouter();
+const showExpensesModal = ref(false)
+const selectedExpenseIds = ref([])
+const selectedExpensesData = ref([])
+const previousSelectedTotal = ref(0)
 const parseMaskedMoney = (value) => {
   if (value === null || value === undefined) return null
   const raw = String(value).trim()
@@ -82,6 +87,16 @@ const showNotify = (type, text) => {
   })
 }
 
+const onExpensesSelected = ({ totalAmount, expenseIds, expenses }) => {
+  const currentBudget = parseMaskedMoney(formData.value.total_maintenance_budget) || 0
+  const diff = totalAmount - previousSelectedTotal.value
+  const newBudget = currentBudget + diff
+  formData.value.total_maintenance_budget = formatMaskedMoney(newBudget)
+  selectedExpenseIds.value = expenseIds
+  selectedExpensesData.value = expenses
+  previousSelectedTotal.value = totalAmount
+}
+
 const submit = async () => {
   loading.value = true
   try {
@@ -95,6 +110,10 @@ const submit = async () => {
       total_water_bill_amount: totalWaterBillAmount,
       total_water_consumption_m3: formData.value.total_water_consumption_m3 === null || formData.value.total_water_consumption_m3 === '' ? null : Number(formData.value.total_water_consumption_m3),
       water_price_per_m3: waterPricePerM3
+    }
+
+    if (selectedExpenseIds.value.length > 0) {
+      payload.expense_ids = selectedExpenseIds.value
     }
 
     const response = await monthlyBillsStore.createMonthlyBill(payload)
@@ -139,7 +158,42 @@ const submit = async () => {
               val => parseMaskedMoney(val) !== null || 'El presupuesto total es requerido'
             ]" />
         </div>
+        <div class="w-full flex justify-end">
+          <q-btn
+              flat
+              color="primary"
+              label="Incluir gastos"
+              no-caps
+              icon="eva-list-outline"
+              class="q-mr-sm"
+              @click="showExpensesModal = true"
+            />
+        </div>
 
+        <div v-if="selectedExpensesData.length > 0" class="col-12 px-2 md:px-12 mt-2">
+          <div class="expenses-summary q-pa-sm">
+            <div class="text-caption text-grey-7 q-mb-xs">Gastos incluidos:</div>
+            <div
+              v-for="expense in selectedExpensesData"
+              :key="expense.id"
+              class="row items-center q-py-xs"
+            >
+              <div class="col text-body2 text-black">
+                {{ expense.provider_name }}
+              </div>
+              <div class="col-auto text-body2 text-weight-bold" style="color: #18181b;">
+                S/ {{ formatMaskedMoney(expense.amount) }}
+              </div>
+            </div>
+            <q-separator class="q-my-xs" />
+            <div class="row items-center">
+              <div class="col text-subtitle2 text-black">Total gastos:</div>
+              <div class="col-auto text-subtitle2 text-weight-bold" style="color: #18181b;">
+                S/ {{ formatMaskedMoney(previousSelectedTotal) }}
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="col-md-6 col-12 mt-4 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Monto total recibo de agua (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
@@ -168,6 +222,15 @@ const submit = async () => {
         </div>
       </div>
     </q-form>
+
+    <includeExpensesModal
+      :dialog="showExpensesModal"
+      :current-month="formData.month?.value || now.getMonth() + 1"
+      :current-year="formData.year"
+      :previously-selected-ids="selectedExpenseIds"
+      @close-modal="showExpensesModal = false"
+      @expenses-selected="onExpensesSelected"
+    />
   </div>
 </template>
 
@@ -179,6 +242,12 @@ const submit = async () => {
     border: 1px solid rgb(223, 223, 223);
     padding: 0px 1rem;
   }
+}
+
+.expenses-summary {
+  background-color: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.5rem;
 }
 
 @media (max-width: 780px) {
