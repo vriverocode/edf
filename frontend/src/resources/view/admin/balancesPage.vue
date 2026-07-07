@@ -5,24 +5,20 @@ import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
 import { computed } from 'vue';
 
-import budget from '@/assets/img/menu/presupuesto.png'
-import baccount from '@/assets/img/menu/balance-cuentas.png'
-import account from '@/assets/img/menu/cuentas.png'
-import departamentos from '@/assets/img/menu/departamentos.png'
-import usuarios from '@/assets/img/menu/usuarios.png'
-import visitas from '@/assets/img/menu/visitas.png'
+import saldos from '@/assets/img/menu/saldos-pendientes.png'
+import bills from '@/assets/img/menu/gastos-comunes.png'
 
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
   {
     title: 'Saldos pendientes',
-    icon: baccount,
+    icon: saldos,
     link: '/balances',
   },
   {
     title: 'Gastos comunes',
-    icon: baccount,
+    icon: bills,
     link: '/balances',
   },
 

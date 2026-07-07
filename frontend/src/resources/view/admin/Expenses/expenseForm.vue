@@ -200,7 +200,7 @@ const saveExpense = async () => {
     if (response?.code !== 200) throw response
 
     showNotify('positive', isEdit.value ? 'Gasto actualizado con éxito' : 'Gasto registrado con éxito')
-    setTimeout(() => router.push('/admin/expenses/list'), 800)
+    setTimeout(() => router.go(-1), 800)
   } catch (err) {
     const apiError = err?.error || err?.message || 'No se pudo guardar el gasto'
     showNotify('negative', apiError)

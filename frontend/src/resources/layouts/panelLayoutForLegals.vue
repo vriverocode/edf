@@ -1,0 +1,273 @@
+<script setup>
+import headerLegals from '@/components/layout/headerLegals.vue';
+import infoNewSideBar from '@/components/layout/infoNewSideBar.vue';
+import navbarAdmin from '@/components/layout/navbarAdmin.vue';
+import { useRoute, useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '@/services/store/auth.services';
+import loaderPage from '@/components/layout/loaderPage.vue';
+import { onMounted, ref, watch, inject, computed } from 'vue';
+import budgetReminderBanner from '@/components/layout/budgetReminderBanner.vue';
+import logoutModal from '@/components/layout/logoutModal.vue';
+import firstTimeSetupModal from '@/components/layout/firstTimeSetupModal.vue';
+import storage from '@/services/storage'
+import { useNotificationsStore } from '@/services/store/notifications.store'
+import { useQuasar } from 'quasar'
+import { PushNotificationsService } from '@/services/notifications_push/pushNotifications';
+import { Capacitor } from '@capacitor/core';
+
+const isNative = ref(Capacitor.isNativePlatform());
+const router = useRouter()
+const route = useRoute()
+const ready = ref(false)
+const { user } = storeToRefs(useAuthStore())
+const showModal = ref('')
+const emitter = inject('emitter', null)
+const notificationsStore = useNotificationsStore()
+const $q = useQuasar()
+const prevUnread = ref(0)
+const lastShownId = ref(null)
+const transitionName = ref('slide-up');
+const showFirstTimeModal = computed(() => user.value?.is_first_time === 1);
+const transitionName2 = ref('fade');
+const budgetBannerOffset = ref(0);
+
+
+const panelRootStyle = computed(() => {
+  if (!budgetBannerOffset.value) {
+    return {};
+  }
+  const base = isNative.value ? 32 : 8;
+  return { paddingTop: `${budgetBannerOffset.value + base}px` };
+});
+const goBack = () => {
+  router.go(-1)
+}
+onMounted(() => {
+  if (emitter) emitter.on('logoutModal', () => { showModal.value = 'logout' })
+  useAuthStore().currentUser()
+    .then((response) => {
+
+     ready.value = true
+
+
+    })
+    .catch(() => {
+      console.log('ups')
+      storage.deleteItem("access_token");
+    //   router.push('/login')
+    })
+
+})
+
+const getNotifications = () => {
+  // Inicializar notificaciones
+  notificationsStore.fetchUnreadCount().finally(() => {
+    prevUnread.value = notificationsStore.unreadCount
+  })
+  notificationsStore.bindEchoListener(user.value.id)
+
+}
+const isShowablePage = () => {
+  return (['reserveConfirm', 'reservePayConfirm'].includes(route.name))
+}
+const showNavbar = () => {
+  return ['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)
+}
+const showBack = () => {
+  return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'payConfirm', 'reserveConfirm'].includes(route.name))
+}
+
+watch(() => notificationsStore.unreadCount, (newVal, oldVal) => {
+  prevUnread.value = newVal
+})
+
+watch(() => notificationsStore.lastIncoming, (notif) => {
+  if (!notif) return
+  // Evitar duplicados
+  const id = notif.id || `${notif.title}-${notif.message}-${notif.url}-${Date.now()}`
+  if (lastShownId.value === id) return
+  lastShownId.value = id
+
+  // Si es cliente y es una notificación de "Reserva creada", NO mostrar toast
+  const isClient = user.value?.rol_id && user.value.rol_id != 1
+  const title = notif.title || notif?.data?.title
+  const color = notif?.meta?.color || notif?.data?.meta.color
+  const message = notif.message || notif?.data?.message || 'Nueva notificación recibida'
+
+  if (isClient && title === 'Reserva creada') {
+    return
+  }
+
+  useAuthStore().currentUser()
+    .then((response) => {
+
+      if (user.value.rol_id) {
+        ready.value = true
+        getNotifications()
+        PushNotificationsService.init();
+      } else {
+        throw response
+      }
+
+    })
+    .catch(() => {
+      console.log('ups')
+      storage.deleteItem("access_token");
+      router.push('/login')
+    })
+
+  $q.notify({
+    classes: 'q-mt-lg',
+    color: color ?? 'primary',
+    message: `${title ? title + '' : ''}`,
+    icon: 'eva-bell-outline',
+    position: 'top-right'
+  })
+})
+
+
+watch(
+  () => route.meta.depth,
+  (toDepth, fromDepth) => {
+    transitionName.value = toDepth > fromDepth ? 'slide-up' : 'slide-down';
+  }
+);
+
+watch(
+  () => route.meta.depth,
+  (toDepth, fromDepth) => {
+    transitionName2.value = toDepth > fromDepth ? 'fade' : '';
+  }
+);
+</script>
+
+<template>
+  <div class=" h-full bg-white w-full min-h-screen" style="overflow: hidden;">
+    <div class="panel-layout-root h-full bg-white w-full min-h-screen " :class="panelRootClass" :style="panelRootStyle">
+      <template v-if="ready">
+        <transition :name="'fade'">
+          <headerLegals class="header__container w-100" />
+        </transition>
+        <section class="principal" :class="{
+          'withoutNav': isShowablePage(),
+          'page__container': showNavbar(),
+          'page_continerFull': !showNavbar()
+        }">
+          <transition :name="transitionName2">
+            <div class="row w-full backButton items-center md:px-20 md:mx-16 px-2" v-if="showBack()">
+              <div class="flex items-center" @click="goBack()">
+                <q-btn color="teal" round outline class="text-backButton flex flex-center" size="0.7rem">
+                  <q-icon name="eva-arrow-back-outline" />
+                </q-btn>
+                <div class="ml-2 pt-1 backButton-text">Volver</div>
+              </div>
+            </div>
+          </transition>
+          <div class="relative w-full overflow-hidden pt-3"
+            :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }">
+            <router-view v-slot="{ Component, route }">
+              <transition :name="transitionName">
+                <component :is="Component" :key="route.fullPath" class="inner-page-component" />
+              </transition>
+            </router-view>
+            </div>
+        </section>
+        <navbarAdmin v-if="['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)"
+          @logoutModal="showModal = 'logout'" />
+        <infoNewSideBar />
+        <logoutModal :dialog="(showModal == 'logout')" @closeModal="showModal = ''" />
+        <firstTimeSetupModal :dialog="showFirstTimeModal" />
+      </template>
+      <loaderPage v-else />
+    </div>
+
+  </div>
+</template>
+
+<style lang="scss">
+/* Safe areas: barra de estado (arriba) y barra de navegación/gestos (abajo) */
+.panel-layout-root {
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+
+.inner-page-component {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  /* Fijo para que no se traslapen las vistas */
+
+  /* CRUCIAL PARA EL SCROLL */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* Hardware acceleration para que la animación fluya mientras haces scroll */
+  backface-visibility: hidden;
+  transform: translateZ(0);
+
+
+}
+
+.page_continerContent {
+  height: 92%;
+}
+
+.page_continerContentFull {
+  height: 100%;
+}
+
+.text-backButton {
+  color: #c9a344 !important;
+}
+
+.bg-backButton {
+  background-color: #c9a344 !important;
+}
+
+.backButton-text {
+  font-size: 1.1rem;
+  color: rgb(63, 63, 63);
+  font-weight: 500;
+}
+
+.backButton {
+  height: 8%;
+
+  & .q-btn--outline:before {
+    border-width: 3px;
+  }
+
+  & .q-btn .q-icon {
+    font-size: 2.1em;
+  }
+}
+
+.header__container {
+  max-height: 21%;
+  height: auto;
+  min-height: 16%;
+  overflow: hidden;
+}
+
+.page__container {
+  height: 74%;
+  overflow: hidden;
+  // overflow-x: hidden;
+  // overflow-y: auto;
+}
+
+.page_continerFull {
+  height: 85%;
+  overflow: hidden;
+  // overflow-x: hidden;
+  // overflow-y: auto;
+}
+
+.withoutNav {
+  height: 100%;
+  overflow: hidden;
+}
+</style>

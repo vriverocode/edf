@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SyncWaterReadingsFromMonthlyBillJob;
+use App\Models\Expense;
 use App\Models\MonthlyBills;
 use App\Models\Rol;
 use Illuminate\Http\Request;
@@ -99,6 +100,8 @@ class MonthlyBillsController extends Controller
                 'water_price_per_m3' => ['required', 'numeric'],
                 'total_water_bill_amount' => ['nullable', 'numeric'],
                 'total_water_consumption_m3' => ['nullable', 'numeric'],
+                'expense_ids' => ['nullable', 'array'],
+                'expense_ids.*' => ['integer', 'exists:expenses,id'],
             ], [
                 'month.required' => 'El mes es requerido.',
                 'month.integer' => 'El mes debe ser un número entero.',
@@ -112,10 +115,16 @@ class MonthlyBillsController extends Controller
                 'water_price_per_m3.numeric' => 'El costo unitario de agua por m3 debe ser numérico.',
                 'total_water_bill_amount.numeric' => 'El monto total del recibo de agua debe ser numérico.',
                 'total_water_consumption_m3.numeric' => 'El consumo total de agua debe ser numérico.',
+                'expense_ids.array' => 'Los IDs de gastos deben ser un arreglo.',
+                'expense_ids.*.integer' => 'Cada ID de gasto debe ser un número entero.',
+                'expense_ids.*.exists' => 'Uno o más gastos seleccionados no son válidos.',
             ]);
         } catch (ValidationException $e) {
             return $this->returnFail(422, $e->validator->errors()->first());
         }
+
+        $expenseIds = $validated['expense_ids'] ?? [];
+        unset($validated['expense_ids']);
 
         $monthlyBill = MonthlyBills::create([
             'month' => $validated['month'],
@@ -125,6 +134,12 @@ class MonthlyBillsController extends Controller
             'total_water_bill_amount' => $validated['total_water_bill_amount'] ?? null,
             'total_water_consumption_m3' => $validated['total_water_consumption_m3'] ?? null,
         ]);
+
+        if (count($expenseIds) > 0) {
+            Expense::whereIn('id', $expenseIds)
+                ->whereNull('monthly_bill_id')
+                ->update(['monthly_bill_id' => $monthlyBill->id]);
+        }
 
         SyncWaterReadingsFromMonthlyBillJob::dispatch($monthlyBill->id);
 
@@ -182,4 +197,3 @@ class MonthlyBillsController extends Controller
         return $this->returnSuccess(200, $monthlyBill);
     }
 }
-

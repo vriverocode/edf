@@ -156,5 +156,38 @@ export const useAuthStore = defineStore('auth', {
         resolve('Error al cerrar sesión');
       });
     },
+    async forgotPassword(email) {
+      return await new Promise((resolve, reject) => {
+        ApiService.post('/api/forgot-password', { email })
+          .then(({ data }) => {
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response)
+          })
+      })
+    },
+    async validateResetToken(token) {
+      return await new Promise((resolve, reject) => {
+        ApiService.post('/api/validate-reset-token', { token })
+          .then(({ data }) => {
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response)
+          })
+      })
+    },
+    async resetPassword(payload) {
+      return await new Promise((resolve, reject) => {
+        ApiService.post('/api/reset-password', payload)
+          .then(({ data }) => {
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response)
+          })
+      })
+    },
   },
 })

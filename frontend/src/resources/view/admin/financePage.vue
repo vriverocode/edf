@@ -8,8 +8,8 @@ import { computed } from 'vue';
 import budget from '@/assets/img/menu/presupuesto.png'
 import baccount from '@/assets/img/menu/balance-cuentas.png'
 import account from '@/assets/img/menu/cuentas.png'
-import departamentos from '@/assets/img/menu/departamentos.png'
-import usuarios from '@/assets/img/menu/usuarios.png'
+import cuotas from '@/assets/img/menu/cuotas2.png'
+import gastos from '@/assets/img/menu/gastos2.png'
 import visitas from '@/assets/img/menu/visitas.png'
 
 const { user } = storeToRefs(useAuthStore())
@@ -34,13 +34,13 @@ const menu = [
   },
   {
     title: 'Cuotas',
-    icon: iconsApp.cuotas,
+    icon: cuotas,
     link: '/admin/quotas/pays',
     roles: [1]
   },
   {
     title: 'Gastos',
-    icon: iconsApp.billsMenu,
+    icon: gastos,
     link: '/admin/expenses/list',
     roles: [1]
   },
@@ -61,9 +61,7 @@ const goTo = (url) => {
       <div class="col-md-3   col-6 px-7 my-3" v-for="(item, key) in menuByRol" :key="key">
         <div class="boxItem" @click="goTo(item.link)">
           <div class="flex justify-center items-center h-full w-full p-1">
-            <div v-html="item.icon" class="flex justify-center mt-0" v-if="item.title == 'Cuotas' || item.title == 'Gastos'" />
-            <img :src="item.icon" class="md:w-auto" v-else
-            :class="{ 'h-3/5': item.icon.includes('default-dash'), 'h-3/5': !item.icon.includes('default-dash') }" />
+            <img :src="item.icon" class="md:w-auto h-3/5" />
           </div>
         </div>
         <div class="text-center mt-2  text-title-squad text-ellipsis ellipsis ">

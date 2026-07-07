@@ -98,7 +98,7 @@ const endTutorial = () => {
                             color="grey-1" @click="isPwd = !isPwd" />
                         </template>
                       </q-input>
-                      <p class="mt-2 cursor-pointer md:mt-8 text-white text-subtitle1">¿Olvidaste tu contraseña?</p>
+                      <p class="mt-2 cursor-pointer md:mt-8 text-white text-subtitle1" @click="router.push('/forgot-password')">¿Olvidaste tu contraseña?</p>
                     </div>
                   </div>
                   <div class="md:px-16 px-6 mt-5 flex justify-center">

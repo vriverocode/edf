@@ -39,7 +39,7 @@ const goTo = (url) => {
       <div class="col-md-3 col-6 px-7 my-3" v-for="(item, key) in menuByRol" :key="key">
         <div class="boxItem" @click="goTo(item.link)">
           <div class="flex justify-center items-center h-full w-full p-1">
-            <img :src="item.icon" class="w-full md:w-auto h-3/5" />
+            <img :src="item.icon" class="md:w-auto h-3/5" />
           </div>
         </div>
         <div class="text-center mt-2  text-title-squad">
