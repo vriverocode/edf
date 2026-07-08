@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DepartamentController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\FinancialAccountController;
+use App\Http\Controllers\Api\GuestListController;
 use App\Http\Controllers\Api\IncidentController;
 use App\Http\Controllers\Api\MaintenanceController;
 use App\Http\Controllers\Api\MonthlyBillsController;
@@ -69,6 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/complete-first-time', [UserController::class, 'completeFirstTime']);
 
         Route::delete('/d/{id}', [UserController::class, 'destroy']);
+        Route::put('/resident/{id}', [UserController::class, 'updateResident']);
+        Route::get('/resident/{id}/bookings', [UserController::class, 'getResidentBookings']);
 
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment']);
         Route::post('/assign-property', [DepartamentController::class, 'assingApartment']);
@@ -117,6 +120,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/extension', [BookingController::class, 'storeExtension']);
         Route::post('/cancel/{id}', [BookingController::class, 'cancelBooking']);
         Route::get('/pendings', [BookingController::class, 'getPendings']);
+    });
+    Route::prefix('bookings/{id}/guests')->name('booking.guests.')->group(function () {
+        Route::get('/', [GuestListController::class, 'getByBooking']);
+        Route::post('/', [GuestListController::class, 'store']);
+    });
+    Route::prefix('guests')->name('guests.')->group(function () {
+        Route::put('/{id}', [GuestListController::class, 'update']);
+        Route::delete('/{id}', [GuestListController::class, 'destroy']);
     });
     Route::prefix('events')->name('event.')->group(function () {
         Route::get('/', [EventController::class, 'get']);
@@ -167,6 +178,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/filter-options', [VisitController::class, 'getVisitFilterOptionsByUser']);
         Route::get('/byId/{id}', [VisitController::class, 'show']);
         Route::post('/', [VisitController::class, 'storeVisit']);
+        Route::delete('/{id}', [VisitController::class, 'destroy']);
     });
     Route::prefix('security')->name('security.visit.')->middleware('role:trabajador')->group(function () {
         Route::get('/visits', [VisitController::class, 'getVisitsForSecurity']);

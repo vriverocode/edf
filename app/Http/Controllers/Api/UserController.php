@@ -422,7 +422,87 @@ class UserController extends Controller
         }
     }
 
-    public function destroy(int $id)
+    /**
+     * Actualiza los datos de un residente/familiar/airbnb creado por el propietario autenticado.
+     */
+    public function updateResident(Request $request, int $id)
+    {
+        $user = User::find($id);
+        if (!$user) {
+            return $this->returnFail(404, 'Usuario no encontrado');
+        }
+
+        // Verificar que el usuario autenticado es el creador de este residente
+        $isCreator = PeoplesXDepartaments::where('user_id', $id)
+            ->where('created_by', $request->user()->id)
+            ->exists();
+
+        if (!$isCreator) {
+            return $this->returnFail(403, 'No tiene permiso para editar este usuario.');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name'       => ['required', 'string', 'max:255'],
+            'email'      => ['required', 'email', 'unique:users,email,' . $id],
+            'phone'      => ['nullable', 'string'],
+            'parentesco' => ['nullable', 'string'],
+            'password'   => ['nullable', 'string', 'min:8'],
+        ], [
+            'name.required'  => 'El nombre es requerido.',
+            'email.required' => 'El email es requerido.',
+            'email.email'    => 'El email no es válido.',
+            'email.unique'   => 'El email ya está registrado.',
+            'password.min'   => 'La contraseña debe tener al menos 8 caracteres.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(400, $validator->errors()->first());
+        }
+
+        try {
+            $data = [
+                'name'       => $request->name,
+                'email'      => $request->email,
+                'phone'      => $request->phone,
+                'parentesco' => $request->parentesco,
+            ];
+
+            if ($request->filled('password')) {
+                $data['password'] = bcrypt($request->password);
+            }
+
+            $user->update($data);
+
+            return $this->returnSuccess(200, 'Usuario actualizado con éxito.');
+        } catch (Exception $e) {
+            Log::error("Error en updateResident: " . $e->getMessage());
+            return $this->returnFail(500, 'Error al actualizar el usuario.');
+        }
+    }
+
+    /**
+     * Obtiene las reservas de un residente creado por el propietario autenticado.
+     */
+    public function getResidentBookings(Request $request, int $userId)
+    {
+        // Verificar que el usuario autenticado es el creador de este residente
+        $isCreator = PeoplesXDepartaments::where('user_id', $userId)
+            ->where('created_by', $request->user()->id)
+            ->exists();
+
+        if (!$isCreator) {
+            return $this->returnFail(403, 'No tiene permiso para ver las reservas de este usuario.');
+        }
+
+        $bookings = Booking::with('comunArea', 'pay')
+            ->where('user_id', $userId)
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return $this->returnSuccess(200, $bookings);
+    }
+
+    public function destroy(int $id, Request $request)
     {
         $user = User::find($id);
         if (! $user) {
@@ -432,6 +512,11 @@ class UserController extends Controller
         if ($user->rol_id === Rol::ADMIN) {
             return $this->returnFail(400, 'No se puede eliminar un usuario administrador');
         }
+
+        // Cancelar reservas pendientes (mantener el registro)
+        Booking::where('user_id', $id)
+            ->whereIn('status', [Booking::STATUS_PENDING_PAY, Booking::STATUS_PENDING_APPROVAL, Booking::STATUS_SUCCESS])
+            ->update(['status' => Booking::STATUS_CANCELLED]);
 
         $user->delete();
 

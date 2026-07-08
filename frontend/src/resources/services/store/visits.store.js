@@ -184,5 +184,22 @@ export const useVisitStore = defineStore('Visit', {
           })
       })
     },
+    async deleteVisit(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.delete(`/api/visits/${id}`)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al eliminar visita')
+          })
+      })
+    },
   },
 })

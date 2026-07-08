@@ -52,7 +52,6 @@ const routes = [
   {
     path: '/',
     component: PanelLayoutForLegals,
-    beforeEnter: guest,
     children: [
       {
         path: '/client/legals/menu',
@@ -723,6 +722,17 @@ const routes = [
         },
       },
       {
+        path: '/client/reserves/guests/:id',
+        component: () => import('@/view/client/Reserves/guestList.vue'),
+        name: 'guestList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Lista de invitados',
+          depth: 3,
+        },
+      },
+      {
         path: '/client/notifications',
         component: () => import('@/view/client/Notifications/notificationsPage.vue'),
         name: 'notificationsPage',
@@ -963,6 +973,28 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Crear residente',
+          depth: 4,
+        },
+      },
+      {
+        path: '/client/familiar/edit/:id',
+        component: () => import('@/view/client/Familiar/editFamiliar.vue'),
+        name: 'familiarEdit',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Editar residente',
+          depth: 4,
+        },
+      },
+      {
+        path: '/client/familiar/:id/bookings',
+        component: () => import('@/view/client/Familiar/familiarBookings.vue'),
+        name: 'familiarBookings',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Reservas del residente',
           depth: 4,
         },
       },

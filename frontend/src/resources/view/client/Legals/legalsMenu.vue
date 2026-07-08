@@ -14,7 +14,7 @@ const router = useRouter()
 const menu = [
   {
     title: 'Términos y condiciones',
-    link: 'https://www.edificiopacifik.com/terminos_y_condiciones.pdf',
+    link: 'https://www.edificiopacifik.com/terminos.html',
     icon: terminos,
     roles: [],
     external: true

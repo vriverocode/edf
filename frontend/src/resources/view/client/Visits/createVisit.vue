@@ -131,6 +131,22 @@ const validateData = (apartmentId) => {
   }
   return true
 }
+function visitTimeLimit(hr) {
+ if (hr  >= 7  &&  hr <= 23) {
+    return true
+  }
+  return false
+}
+
+const myLocale = {
+  days: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'),
+  daysShort: 'Dom_Lun_Mar_Mié_Jue_Vie_Sáb'.split('_'),
+  months: 'Enero_Febrero_Marzo_Abril_Mayo_Junio_Julio_Agosto_Septiembre_Octubre_Noviembre_Diciembre'.split('_'),
+  monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
+  firstDayOfWeek: 1,
+  format24h: true,
+  pluralDay: 'días'
+}
 
 onMounted(() => {
   getApartmentsByUser()
@@ -224,10 +240,10 @@ onMounted(() => {
             <template v-slot:append>
               <q-icon name="eva-calendar-outline" class="cursor-pointer">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                  <q-date v-model="formData.date" minimal
+                  <q-date v-model="formData.date" minimal :locale="myLocale"
                     :options="(date) => date.replace(/\//g, '-') >= new Date().toISOString().split('T')[0]">
                     <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="OK" color="primary" flat />
+                      <q-btn v-close-popup label="Cerrar" color="primary" flat />
                     </div>
                   </q-date>
                 </q-popup-proxy>
@@ -244,9 +260,9 @@ onMounted(() => {
             <template v-slot:append>
               <q-icon name="eva-clock-outline" class="cursor-pointer">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                  <q-time v-model="formData.hour" format24h>
+                  <q-time v-model="formData.hour" format24h :options="visitTimeLimit"  >
                     <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="OK" color="primary" flat />
+                      <q-btn v-close-popup label="Cerrar" color="primary" flat />
                     </div>
                   </q-time>
                 </q-popup-proxy>

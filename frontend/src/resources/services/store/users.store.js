@@ -189,5 +189,39 @@ export const useUserStore = defineStore('User', {
           })
       })
     },
+    async updateResident(id, formData) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.put('/api/users/resident/' + id, formData)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al actualizar usuario')
+          })
+      })
+    },
+    async getResidentBookings(userId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.get('/api/users/resident/' + userId + '/bookings')
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al obtener reservas')
+          })
+      })
+    },
   },
 })

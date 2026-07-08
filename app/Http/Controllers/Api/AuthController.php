@@ -52,8 +52,8 @@ class AuthController extends Controller
         $user = User::where('email', $email)->first();
 
         if (! $user) {
-            return $this->returnSuccess(200, [
-                'message' => 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
+            return $this->returnSuccess(400, [
+                'message' => 'Correo no registrado.',
             ]);
         }
 
@@ -72,7 +72,7 @@ class AuthController extends Controller
         Mail::to($user->email)->send(new ResetPasswordMail($user, $token));
 
         return $this->returnSuccess(200, [
-            'message' => 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
+            'message' => 'Correo enviado, recibirás un enlace para restablecer tu contraseña.',
         ]);
     }
 }

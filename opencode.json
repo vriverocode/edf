@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+    "provider": {
+        "nombre-del-proveedor": {
+            "apiKey": "Tctx7sk-1af51f0f-6aa5-45df-acc9-33db15430b13"
+        }
+    }
+}

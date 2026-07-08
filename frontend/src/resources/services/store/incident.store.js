@@ -19,6 +19,7 @@ export const useIncidentStore = defineStore('Incidents', {
       'Incumplimiento de reglas y normativas',
       'Fallas generales',
       'Maltrato por parte de propietario',
+      'Otros'
     ]
   }),
   actions: {
@@ -28,14 +29,14 @@ export const useIncidentStore = defineStore('Incidents', {
           throw '';
         }
         ApiService.setHeader();
-        
+
         ApiService.get('/api/incidents')
-        .then(({data}) => {
-          resolve(data);
-        }).catch(({response}) => {
-          console.log(response)
-          reject(response?.data?.error || 'Error al obtener incidencias');
-        });
+          .then(({ data }) => {
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al obtener incidencias');
+          });
       })
     },
     async getIncidentById(id) {
@@ -44,14 +45,14 @@ export const useIncidentStore = defineStore('Incidents', {
           throw '';
         }
         ApiService.setHeader();
-        
+
         ApiService.get(`/api/incidents/byId/${id}`)
-        .then(({data}) => {
-          resolve(data);
-        }).catch(({response}) => {
-          console.log(response)
-          reject(response?.data?.error || 'Error al obtener la incidencia');
-        });
+          .then(({ data }) => {
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al obtener la incidencia');
+          });
       })
     },
     async createIncident(data) {
@@ -60,14 +61,14 @@ export const useIncidentStore = defineStore('Incidents', {
           throw '';
         }
         ApiService.setHeader();
-        
+
         ApiService.post('/api/incidents', data)
-        .then(({data}) => {
-          resolve(data);
-        }).catch(({response}) => {
-          console.log(response)
-          reject(response?.data?.error || 'Error al crear la incidencia');
-        });
+          .then(({ data }) => {
+            resolve(data);
+          }).catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al crear la incidencia');
+          });
       })
     }
   },

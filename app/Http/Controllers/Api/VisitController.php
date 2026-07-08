@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Visit;
-use App\Models\PeoplesXDepartaments;
-use App\Models\User;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\AirbnbRent;
 use App\Models\Departament;
+use App\Models\PeoplesXDepartaments;
+use App\Models\User;
+use App\Models\Visit;
 use App\Notifications\RealtimeNotification;
 use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class VisitController extends Controller
@@ -52,18 +52,18 @@ class VisitController extends Controller
         $visits = $visitsQuery
             ->map(function ($visit) {
                 return [
-                    'id'            => $visit->id,
-                    'fullname'      => $visit->fullname,
-                    'dni'           => $visit->dni,
-                    'type'          => $visit->type,
-                    'type_label'    => $visit->type_label,
-                    'description'   => $visit->description,
-                    'date'          => $visit->date,
-                    'hour'          => $visit->hour,
-                    'departament'   => $visit->departament,
-                    'created_at'    => $visit->created_at,
-                    'status_label'  => $visit->status_label,
-                    'status_color'  => $visit->status_color,
+                    'id' => $visit->id,
+                    'fullname' => $visit->fullname,
+                    'dni' => $visit->dni,
+                    'type' => $visit->type,
+                    'type_label' => $visit->type_label,
+                    'description' => $visit->description,
+                    'date' => $visit->date,
+                    'hour' => $visit->hour,
+                    'departament' => $visit->departament,
+                    'created_at' => $visit->created_at,
+                    'status_label' => $visit->status_label,
+                    'status_color' => $visit->status_color,
                 ];
             });
 
@@ -82,20 +82,20 @@ class VisitController extends Controller
         $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
         $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
 
-        if (!$apartmentIds->contains((int)$request->departament_id)) {
+        if (! $apartmentIds->contains((int) $request->departament_id)) {
             return $this->returnFail(403, 'No puedes registrar visitas para este departamento');
         }
 
         try {
             $visit = Visit::create([
                 'departament_id' => $request->departament_id,
-                'created_by'     => $request->user()->id,
-                'fullname'       => $request->fullname,
-                'dni'            => $request->dni,
-                'type'           => (int)$request->type,
-                'description'    => $request->description,
-                'date'           => date('Y-m-d', strtotime($request->date)),
-                'hour'           => $request->hour,
+                'created_by' => $request->user()->id,
+                'fullname' => $request->fullname,
+                'dni' => $request->dni,
+                'type' => (int) $request->type,
+                'description' => $request->description,
+                'date' => date('Y-m-d', strtotime($request->date)),
+                'hour' => $request->hour,
             ]);
         } catch (Exception $e) {
             return $this->returnFail(500, $e->getMessage());
@@ -103,7 +103,7 @@ class VisitController extends Controller
 
         return $this->returnSuccess(200, [
             'message' => 'Visita registrada con éxito',
-            'id'      => $visit->id,
+            'id' => $visit->id,
         ]);
     }
 
@@ -142,6 +142,7 @@ class VisitController extends Controller
 
         return $this->returnSuccess(200, $visits);
     }
+
     public function getAirbnbForSecurity(Request $request)
     {
         $search = trim((string) $request->query('search', ''));
@@ -189,7 +190,7 @@ class VisitController extends Controller
             ->get(['id', 'number'])
             ->map(function ($departament) {
                 return [
-                    'label' => 'Apt. #' . $departament->number,
+                    'label' => 'Apt. #'.$departament->number,
                     'value' => $departament->id,
                 ];
             })
@@ -211,7 +212,7 @@ class VisitController extends Controller
             ->get(['id', 'number'])
             ->map(function ($departament) {
                 return [
-                    'label' => 'Apt. #' . $departament->number,
+                    'label' => 'Apt. #'.$departament->number,
                     'value' => $departament->id,
                 ];
             })
@@ -233,7 +234,7 @@ class VisitController extends Controller
             ->get(['id', 'number'])
             ->map(function ($departament) {
                 return [
-                    'label' => 'Apt. #' . $departament->number,
+                    'label' => 'Apt. #'.$departament->number,
                     'value' => $departament->id,
                 ];
             })
@@ -261,12 +262,13 @@ class VisitController extends Controller
         }
 
         $airbnbValidation = $this->validateAirbnbVisitForArrival($visit);
-        if (!$airbnbValidation['valid']) {
+        if (! $airbnbValidation['valid']) {
             return $this->returnFail(400, $airbnbValidation['message']);
         }
 
         if ((int) $visit->status === 2) {
             $this->syncAirbnbRentStatusIfCompleted($visit);
+
             return $this->returnSuccess(200, [
                 'message' => 'La visita ya está marcada como llegada',
                 'id' => $visit->id,
@@ -278,7 +280,7 @@ class VisitController extends Controller
 
         try {
             $visit->status = 2;
-            $visit->arrived_date = date("Y-m-d H:i:s");
+            $visit->arrived_date = date('Y-m-d H:i:s');
             $visit->save();
             $this->syncAirbnbRentStatusIfCompleted($visit);
             $this->sendVisitArrivedNotification($visit);
@@ -294,14 +296,15 @@ class VisitController extends Controller
             'status_color' => $visit->status_color,
         ]);
     }
+
     private function validateAirbnbVisitForArrival(Visit $visit): array
     {
-        if (!$visit->airbnb_rent_id) {
+        if (! $visit->airbnb_rent_id) {
             return ['valid' => true, 'message' => null];
         }
 
         $airbnbRent = AirbnbRent::with('guest')->find($visit->airbnb_rent_id);
-        if (!$airbnbRent) {
+        if (! $airbnbRent) {
             return ['valid' => false, 'message' => 'La renta Airbnb asociada no existe'];
         }
 
@@ -309,7 +312,7 @@ class VisitController extends Controller
             return (int) $guest->id === (int) $visit->id;
         });
 
-        if (!$belongsToRent) {
+        if (! $belongsToRent) {
             return ['valid' => false, 'message' => 'La visita no pertenece a la renta Airbnb indicada'];
         }
 
@@ -318,12 +321,12 @@ class VisitController extends Controller
 
     private function syncAirbnbRentStatusIfCompleted(Visit $visit): void
     {
-        if (!$visit->airbnb_rent_id) {
+        if (! $visit->airbnb_rent_id) {
             return;
         }
 
         $airbnbRent = AirbnbRent::find($visit->airbnb_rent_id);
-        if (!$airbnbRent) {
+        if (! $airbnbRent) {
             return;
         }
 
@@ -335,28 +338,29 @@ class VisitController extends Controller
             $airbnbRent->update(['status' => 2]);
         }
     }
+
     private function sendVisitArrivedNotification(Visit $visit): void
     {
         $visit->loadMissing('departament.owner');
 
         $recipient = null;
-        if (!empty($visit->created_by)) {
+        if (! empty($visit->created_by)) {
             $recipient = User::find($visit->created_by);
         }
 
-        if (!$recipient) {
+        if (! $recipient) {
             $recipient = $visit->departament?->owner;
         }
 
-        if (!$recipient) {
+        if (! $recipient) {
             return;
         }
 
         try {
             $recipient->notify(new RealtimeNotification(
                 title: 'Visita confirmada',
-                message: 'La llegada de ' . $visit->fullname . ' fue confirmada en la unidad ' . ($visit->departament?->number ?? '-'),
-                url: '/client/visits/view/' . $visit->id,
+                message: 'La llegada de '.$visit->fullname.' fue confirmada en la unidad '.($visit->departament?->number ?? '-'),
+                url: '/client/visits/view/'.$visit->id,
                 meta: [
                     'visit_id' => $visit->id,
                     'departament_id' => $visit->departament_id,
@@ -367,6 +371,7 @@ class VisitController extends Controller
             // Silenciar errores de notificación para no romper el flujo
         }
     }
+
     public function show(Request $request, int $id)
     {
         $user = $request->user();
@@ -374,56 +379,84 @@ class VisitController extends Controller
         $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
         $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
         $visit = Visit::with(['departament.owner', 'airbnb.guest'])->find($id);
-        if (!$visit) {
+        if (! $visit) {
             return $this->returnFail(404, 'Visita no encontrada');
         }
-        if (!$apartmentIds->contains($visit->departament_id)) {
+        if (! $apartmentIds->contains($visit->departament_id)) {
             return $this->returnFail(403, 'No tienes permisos para ver esta visita');
         }
         $visitData = [
-            'id'            => $visit->id,
-            'fullname'      => $visit->fullname,
-            'dni'           => $visit->dni,
-            'type'          => $visit->type,
-            'type_label'    => $visit->type_label,
-            'description'   => $visit->description,
-            'date'          => $visit->date,
-            'hour'          => $visit->hour,
-            'departament'   => $visit->departament,
-            'created_at'    => $visit->created_at,
-            'status'        => $visit->status,
-            'status_label'  => $visit->status_label,
-            'status_color'  => $visit->status_color,
-            'arrived_date'  => $visit->arrived_date,
-            'airbnb'        => $visit->airbnb,
+            'id' => $visit->id,
+            'fullname' => $visit->fullname,
+            'dni' => $visit->dni,
+            'type' => $visit->type,
+            'type_label' => $visit->type_label,
+            'description' => $visit->description,
+            'date' => $visit->date,
+            'hour' => $visit->hour,
+            'departament' => $visit->departament,
+            'created_at' => $visit->created_at,
+            'status' => $visit->status,
+            'status_label' => $visit->status_label,
+            'status_color' => $visit->status_color,
+            'arrived_date' => $visit->arrived_date,
+            'airbnb' => $visit->airbnb,
         ];
+
         return $this->returnSuccess(200, $visitData);
     }
+
+    public function destroy(Request $request, int $id)
+    {
+        $visit = Visit::find($id);
+
+        if (! $visit) {
+            return $this->returnFail(404, 'Visita no encontrada');
+        }
+
+        $user = $request->user();
+        $ownedIds = $user->apartaments()->pluck('id');
+        $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
+        $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
+
+        if (! $apartmentIds->contains($visit->departament_id) && $user->rol_id != 1) {
+            return $this->returnFail(403, 'No tienes permisos para eliminar esta visita');
+        }
+
+        try {
+            $visit->delete();
+        } catch (Exception $e) {
+            return $this->returnFail(500, $e->getMessage());
+        }
+
+        return $this->returnSuccess(200, 'ok');
+    }
+
     private function validateFieldsFromInput($inputs)
     {
         $rules = [
             'departament_id' => ['required', 'numeric'],
-            'fullname'       => ['required', 'regex:/^[a-zA-ZÀ-ÿ0-9 .\-]+$/u'],
-            'dni'            => ['required', 'regex:/^[0-9A-Za-z.\-]+$/'],
-            'type'           => ['required', 'numeric', 'between:1,4'],
-            'date'           => ['required', 'date'],
-            'hour'           => ['nullable', 'regex:/^[0-9]{2}:[0-9]{2}$/'],
-            'description'    => ['nullable', 'string'],
+            'fullname' => ['required', 'regex:/^[a-zA-ZÀ-ÿ0-9 .\-]+$/u'],
+            'dni' => ['required', 'regex:/^[0-9A-Za-z.\-]+$/'],
+            'type' => ['required', 'numeric', 'between:1,4'],
+            'date' => ['required', 'date'],
+            'hour' => ['nullable', 'regex:/^[0-9]{2}:[0-9]{2}$/'],
+            'description' => ['nullable', 'string'],
         ];
 
         $messages = [
             'departament_id.required' => 'El departamento es requerido',
-            'departament_id.numeric'  => 'El departamento no es válido',
-            'fullname.required'       => 'El nombre del visitante es requerido',
-            'fullname.regex'          => 'El nombre del visitante no es válido',
-            'dni.required'            => 'El documento de identidad es requerido',
-            'dni.regex'               => 'El documento de identidad no es válido',
-            'type.required'           => 'El tipo de visita es requerido',
-            'type.numeric'            => 'El tipo de visita no es válido',
-            'type.between'            => 'El tipo de visita no es válido',
-            'date.required'           => 'La fecha de la visita es requerida',
-            'date.date'               => 'La fecha de la visita no es válida',
-            'hour.regex'              => 'La hora de llegada no es válida',
+            'departament_id.numeric' => 'El departamento no es válido',
+            'fullname.required' => 'El nombre del visitante es requerido',
+            'fullname.regex' => 'El nombre del visitante no es válido',
+            'dni.required' => 'El documento de identidad es requerido',
+            'dni.regex' => 'El documento de identidad no es válido',
+            'type.required' => 'El tipo de visita es requerido',
+            'type.numeric' => 'El tipo de visita no es válido',
+            'type.between' => 'El tipo de visita no es válido',
+            'date.required' => 'La fecha de la visita es requerida',
+            'date.date' => 'La fecha de la visita no es válida',
+            'hour.regex' => 'La hora de llegada no es válida',
         ];
 
         $validator = Validator::make($inputs, $rules, $messages)->errors();
@@ -437,7 +470,7 @@ class VisitController extends Controller
             $statusInput = explode(',', $statusInput);
         }
 
-        if (!is_array($statusInput)) {
+        if (! is_array($statusInput)) {
             return [];
         }
 

@@ -107,6 +107,11 @@ const endTutorial = () => {
                       <div class="text-h6 text-bold md:px-2 px-12 text-white">Ingresar</div>
                     </q-btn>
                   </div>
+                  <div class=" md:w-1/3 w-2/4 py-3 mx-auto text-center text-white text-bold mt-20" style="border-radius: 0.5rem; border: 1px solid white" >
+                    <a href="https://www.edificiopacifik.com/terminos.html" target="_blank"  style="text-decoration:underline"  >
+                      Términos y Condiciones
+                    </a>
+                  </div>
                 </div>
               </div>
             </q-form>

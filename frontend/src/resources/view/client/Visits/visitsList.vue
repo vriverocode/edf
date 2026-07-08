@@ -21,6 +21,9 @@ const filters = ref({
   departament_id: '',
 })
 const modal = ref('')
+const confirmDeleteModal = ref(false)
+const selectedVisit = ref(null)
+const loadingDelete = ref(false)
 const activeFilterSearch = ref('')
 const statusOptions = ref([])
 const apartmentOptions = ref([])
@@ -75,7 +78,25 @@ const formatDate = (date) => {
 }
 
 const deleteItem = (item) => {
-  console.log(item)
+  selectedVisit.value = item
+  confirmDeleteModal.value = true
+}
+
+const confirmDelete = () => {
+  if (!selectedVisit.value) return
+  loadingDelete.value = true
+  visitStore.deleteVisit(selectedVisit.value.id)
+    .then(() => {
+      showNotify('positive', 'Visita eliminada')
+      confirmDeleteModal.value = false
+      selectedVisit.value = null
+      loadingDelete.value = false
+      getVisits()
+    })
+    .catch((error) => {
+      loadingDelete.value = false
+      showNotify('negative', error || 'Error al eliminar visita')
+    })
 }
 const showNotify = (type, text) => {
   Notify.create({
@@ -103,7 +124,7 @@ onMounted(() => {
         <template v-if="visits.length > 0">
           <div class="pt-0 md:pt-4 pb-8"  style="height:82%; overflow:auto">
             <div class="px-4 md:px-32">
-              <q-slide-item v-for="visit in visits" :key="visit.id" @right="() => deleteItem(visit.id)"
+              <q-slide-item v-for="visit in visits" :key="visit.id" @right="() => deleteItem(visit)"
                 right-color="red-8" class="my-3 listVisit-container" style="border-radius: 12px!important;">
                 <template v-slot:right>
                   <div class="row items-center" style="border-radius: 12px;">
@@ -164,7 +185,7 @@ onMounted(() => {
                           </q-tooltip>
                         </q-btn>
                         <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.9rem"
-                          @click="noDisponible()">
+                          @click="deleteItem(visit)">
                           <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                             class="bg-black text-body2 px-2">
                             Eliminar
@@ -227,6 +248,40 @@ onMounted(() => {
       @closeModal="modal = ''"
       @updateList="getVisitsWithFilter"
     />
+
+    <q-dialog v-model="confirmDeleteModal" persistent backdrop-filter="blur(0.5px)">
+      <q-card class="dialog_document" style="border-radius: 1rem; max-width: 90%;">
+        <div>
+          <q-card-section class="q-px-none">
+            <div class="text-h6 text-center text-black pb-2" style="border-bottom: 1px solid lightgray">
+              Eliminar visita
+            </div>
+          </q-card-section>
+          <section class="mt-3">
+            <q-card-section class="q-pt-none q-px-sm">
+              <div class="px-2 text-center">
+                <div class="text-body1 text-black">
+                  ¿Deseas eliminar la visita de <b class="text-primary">{{ selectedVisit?.fullname }}</b>?
+                </div>
+                <div class="text-grey-7 q-mt-sm">
+                  Esta accion no se puede deshacer.
+                </div>
+              </div>
+            </q-card-section>
+          </section>
+        </div>
+        <section class="pb-5" style="border-top: 1px solid lightgray">
+          <div class="flex justify-evenly mt-4">
+            <q-btn label="Cancelar" unelevated class="q-mx-sm" color="primary" outline
+              style="border-radius: 0.8rem; padding: 0 2rem !important; font-size: 0.9rem"
+              @click="confirmDeleteModal = false; selectedVisit = null" />
+            <q-btn label="Eliminar" unelevated class="q-mx-sm" color="negative" outline
+              style="border-radius: 0.8rem; padding: 0 2rem !important; font-size: 0.9rem"
+              :loading="loadingDelete" @click="confirmDelete()" />
+          </div>
+        </section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <style lang="scss">

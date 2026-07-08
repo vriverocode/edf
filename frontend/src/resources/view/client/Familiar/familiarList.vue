@@ -2,8 +2,10 @@
 import { inject, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/services/store/users.store';
+import { useQuasar } from 'quasar';
 import iconsApp from '@/assets/icons/index'
 
+const $q = useQuasar()
 const userStore = useUserStore()
 const page = ref(1)
 const search = ref('')
@@ -32,6 +34,41 @@ const getUsers = () => {
         })
         .catch(() => {
         })
+}
+
+const confirmDelete = (item) => {
+    $q.dialog({
+        title: 'Eliminar usuario',
+        message: `¿Estás seguro de eliminar a ${item.user?.name}? Sus reservas pendientes serán canceladas.`,
+        cancel: {
+            label: 'Cancelar',
+            flat: true,
+            color: 'grey-7'
+        },
+        ok: {
+            label: 'Eliminar',
+            color: 'negative',
+            unelevated: true,
+        },
+        persistent: true,
+    }).onOk(() => {
+        userStore.deleteUser(item.user.id)
+            .then(() => {
+                $q.notify({
+                    color: 'positive',
+                    message: 'Usuario eliminado correctamente',
+                    timeout: 2000,
+                })
+                getUsers()
+            })
+            .catch((error) => {
+                $q.notify({
+                    color: 'negative',
+                    message: error || 'Error al eliminar usuario',
+                    timeout: 2000,
+                })
+            })
+    })
 }
 
 onMounted(() => {
@@ -81,7 +118,7 @@ onMounted(() => {
                                     style="border-top: 1px solid lightgrey;">
                                     <div>
                                         <q-btn icon="eva-settings-outline" class="mx-1" color="primary" flat
-                                            size="0.9rem">
+                                            size="0.9rem" @click="goTo('/client/familiar/edit/' + item.user?.id)">
                                             <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                                                 :class="'bg-black text-body2 px-2'">
                                                 Editar usuario
@@ -90,7 +127,8 @@ onMounted(() => {
                                     </div>
                                     <div>
                                         <q-btn :icon="materialIcons.outlinedEvent" class="mx-1" color="light-green-9"
-                                            flat size="0.9rem">
+                                            flat size="0.9rem"
+                                            @click="goTo('/client/familiar/' + item.user?.id + '/bookings')">
                                             <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                                                 class="bg-black text-body2 px-2">
                                                 Ver reservas
@@ -99,7 +137,7 @@ onMounted(() => {
                                     </div>
                                     <div>
                                         <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat
-                                            size="0.9rem">
+                                            size="0.9rem" @click="confirmDelete(item)">
                                             <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                                                 class="bg-black text-body2 px-2">
                                                 Borrar usuario

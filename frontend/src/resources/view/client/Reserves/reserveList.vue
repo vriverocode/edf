@@ -196,6 +196,14 @@ onMounted(() => {
                     </q-tooltip>
                     <q-icon name="eva-clock-outline" size="1.1rem" />
                   </q-btn>
+                  <q-btn unelevated rounded color="indigo-7" size="sm" class="ml-3"
+                    v-if="reserve.status == 3 && reserve.comun_area?.type == 4"
+                    @click="goTo('/client/reserves/guests/' + reserve.id)">
+                    <q-tooltip class="bg-primary text-white text-body2" :offset="[10, 10]">
+                      Lista de invitados
+                    </q-tooltip>
+                    <q-icon name="people" size="1.1rem" />
+                  </q-btn>
                   <div flat rounded color="primary" size="sm" class="ml-3 cursor-pointer">
                     <div v-html="iconsApp.optionsBook" />
                     <q-menu>
@@ -219,6 +227,10 @@ onMounted(() => {
                         </q-item>
                         <q-item clickable v-close-popup v-if="reserve.status == 3">
                           <q-item-section>Descarga pase</q-item-section>
+                        </q-item>
+                        <q-item clickable v-close-popup v-if="reserve.status == 3 && reserve.comun_area?.type == 4"
+                          @click="goTo('/client/reserves/guests/' + reserve.id)">
+                          <q-item-section>Lista de invitados</q-item-section>
                         </q-item>
                         <q-separator />
                       </q-list>

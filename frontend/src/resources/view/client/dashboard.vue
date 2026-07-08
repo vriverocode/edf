@@ -125,8 +125,8 @@ const goTo = (url) => {
             </div>
             <div class="flex justify-center items-center h-full w-full p-1">
               <div v-html="item.icon" class="flex justify-center mt-0" v-if="user.rol_id == 6 && (item.title == 'Airbnb' || item.title == 'Visitas')" />
-              <img :src="item.icon" class="w-full md:w-auto " v-else
-                :class="{ 'h-3/5': item.icon.includes('default-dash'), 'h-full': !item.icon.includes('default-dash') }" />
+              <img :src="item.icon" class="w-auto md:w-auto " v-else
+                :class="{ 'h-3/5': item.icon.includes('visitas') || item.icon.includes('residentes'), 'h-full': !item.icon.includes('visitas') && !item.icon.includes('residentes') }" />
             </div>
           </div>
         </div>
