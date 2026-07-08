@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('finance_orders', function (Blueprint $table) {
             $table->id();
             $table->string('description');
-            $table->string("order_number");
+            $table->string('order_number');
             $table->double('amount');
             $table->string('category');
             $table->integer('status');

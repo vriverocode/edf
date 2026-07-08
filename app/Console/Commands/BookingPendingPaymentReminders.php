@@ -21,18 +21,19 @@ class BookingPendingPaymentReminders extends Command
         Booking::where('status', 1)->orderBy('id')->chunkById(100, function ($bookings) {
             foreach ($bookings as $booking) {
                 // 1. Calcular fecha y hora exacta del evento
-                $eventDateTime = Carbon::parse($booking->date . ' ' . $booking->time_from);
+                $eventDateTime = Carbon::parse($booking->date.' '.$booking->time_from);
 
                 // 2. REGLA NUEVA: Cancelar si faltan 23 horas o menos para el evento
                 // Comparamos: si "ahora + 23 horas" es mayor o igual al momento del evento, quedan menos de 23h.
                 if (now()->addHours(23)->gte($eventDateTime)) {
                     $booking->update(['status' => 0]);
                     $users = [
-                        "admin" => User::find(1),
-                        "client" => User::find($booking->user_id),
+                        'admin' => User::find(1),
+                        'client' => User::find($booking->user_id),
                     ];
 
                     BookingController::cancelReserveNotification($users, $booking);
+
                     continue;
                 }
 

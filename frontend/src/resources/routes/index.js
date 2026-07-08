@@ -1097,6 +1097,30 @@ const routes = [
           depth: 3,
         },
       },
+      {
+        path: '/admin/reports',
+        component: () => import('@/view/admin/Others/reportsMenu.vue'),
+        name: 'reportsAdmin',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Reportes',
+          roles: ['admin', 'super-admin'],
+          depth: 2,
+        },
+      },
+      {
+        path: '/admin/reports/bookings',
+        component: () => import('@/view/admin/Reports/reportBookings.vue'),
+        name: 'reportBookings',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Reporte de reservas',
+          pagTitle: 'Reporte de reservas',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      }
     ],
   },
   // Ruta 404 - debe estar al final para capturar todas las rutas no encontradas

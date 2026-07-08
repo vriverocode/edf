@@ -23,7 +23,7 @@ return new class extends Migration
 
             $table->unsignedBigInteger('service_category_id')->change();
             $table->foreign('service_category_id')->references('id')->on('service_categories')->onDelete('cascade');
-            
+
         });
     }
 

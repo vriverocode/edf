@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('water_readings', function (Blueprint $table) {
             //
-             $table->decimal('amount', 15, 2)->default(0)->after('m3_price')->default(0);
+            $table->decimal('amount', 15, 2)->default(0)->after('m3_price')->default(0);
         });
     }
 

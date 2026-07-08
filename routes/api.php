@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\PayController;
 use App\Http\Controllers\Api\PayMethodController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\QuotaController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ResetPasswordController;
 use App\Http\Controllers\Api\RuleController;
 use App\Http\Controllers\Api\ServiceCategoryController;
@@ -46,6 +47,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'units' => function ($query) {
             $query->withCount('pendingQuotas')->withSum('pendingQuotas', 'amount');
+        }, 'departmentsInquilino' => function ($query) {
+            $query->with(['departament' => function ($q) {
+                $q->withCount('pendingQuotas')->withSum('pendingQuotas', 'amount');
+            }]);
         }]);
 
         $currency = Currency::first();
@@ -282,5 +287,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [ExpenseController::class, 'show']);
         Route::post('/', [ExpenseController::class, 'store']);
         Route::post('/u/{id}', [ExpenseController::class, 'update']);
+    });
+
+    Route::prefix('reports')->name('report.')->middleware('role:admin,super-admin')->group(function () {
+        Route::get('/bookings', [ReportController::class, 'bookings']);
+        Route::get('/bookings/export', [ReportController::class, 'exportBookings']);
+        Route::get('/bookings/metrics', [ReportController::class, 'bookingsMetrics']);
     });
 });

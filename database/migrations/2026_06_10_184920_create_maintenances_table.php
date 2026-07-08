@@ -16,18 +16,18 @@ return new class extends Migration
             $table->string('title');
             $table->longText('description')->nullable();
             $table->foreignId('comun_area_id')
-                  ->nullable()
-                  ->constrained('comun_areas')
-                  ->onDelete('cascade');
+                ->nullable()
+                ->constrained('comun_areas')
+                ->onDelete('cascade');
             $table->foreignId('provider_id')
-                  ->nullable()
-                  ->constrained('providers')
-                  ->onDelete('cascade');
+                ->nullable()
+                ->constrained('providers')
+                ->onDelete('cascade');
             $table->date('date');
-            $table->time('time_from')->nullable(); 
+            $table->time('time_from')->nullable();
             $table->time('time_to')->nullable();
-            $table->tinyInteger('status')->default(1); 
-            
+            $table->tinyInteger('status')->default(1);
+
             $table->timestamps();
         });
     }

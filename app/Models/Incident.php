@@ -20,12 +20,14 @@ class Incident extends Model
         'type',
         'user_id',
     ];
+
     protected $appends = ['status_label', 'type_label'];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
+
     public function getStatusLabelAttribute()
     {
         $status = [
@@ -51,6 +53,7 @@ class Incident extends Model
             'Fallas generales',
             'Maltrato por parte de propietario',
         ];
+
         return $typeLabels[$this->type];
     }
 }

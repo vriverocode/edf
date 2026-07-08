@@ -80,9 +80,9 @@ class WaterReadingController extends Controller
     {
         $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
         ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
-        :0;
+        : 0;
         // $priceWater = 0;
-        
+
         $isInitial = (bool) $request->input('is_initial', false);
 
         try {
@@ -145,9 +145,9 @@ class WaterReadingController extends Controller
     {
         $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
         ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
-        :0;
+        : 0;
         // $priceWater = 0;
-        
+
         $reading = WaterReading::find($id);
         if (! $reading) {
             return $this->returnFail(404, 'Medición de agua no encontrada');
@@ -212,6 +212,7 @@ class WaterReadingController extends Controller
                 return $column;
             }
         }
+
         return null;
     }
 
@@ -223,14 +224,13 @@ class WaterReadingController extends Controller
 
         $photo = $request->file('photo');
         $rand = rand(1000000, 9999999);
-        $name = $rand . '_' . time() . '.' . $photo->extension();
+        $name = $rand.'_'.time().'.'.$photo->extension();
         $destination = public_path('storage/images/water-readings');
-        if (!is_dir($destination)) {
+        if (! is_dir($destination)) {
             @mkdir($destination, 0775, true);
         }
         $photo->move($destination, $name);
 
-        return config('app.url') . "/storage/images/water-readings/{$name}";
+        return config('app.url')."/storage/images/water-readings/{$name}";
     }
 }
-

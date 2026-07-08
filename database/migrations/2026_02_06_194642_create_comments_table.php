@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
             $table->longText('content');
-            $table->longText('images')->nullable(); 
+            $table->longText('images')->nullable();
             $table->longText('like')->nullable();
             $table->longText('dislike')->nullable();
             $table->unsignedBigInteger('user_id');

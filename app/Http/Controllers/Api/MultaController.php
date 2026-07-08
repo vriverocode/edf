@@ -53,7 +53,7 @@ class MultaController extends Controller
     {
         $multa = Multa::with(['rule', 'user'])->find($id);
 
-        if (!$multa) {
+        if (! $multa) {
             return $this->returnFail(404, 'Multa no encontrada');
         }
 
@@ -84,7 +84,7 @@ class MultaController extends Controller
     public function update(Request $request, $id)
     {
         $multa = Multa::find($id);
-        if (!$multa) {
+        if (! $multa) {
             return $this->returnFail(404, 'Multa no encontrada');
         }
 
@@ -110,7 +110,7 @@ class MultaController extends Controller
     public function deleteMulta($id)
     {
         $multa = Multa::find($id);
-        if (!$multa) {
+        if (! $multa) {
             return $this->returnFail(404, 'Multa no encontrada');
         }
 
@@ -158,4 +158,3 @@ class MultaController extends Controller
         return $validator->all();
     }
 }
-

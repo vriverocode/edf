@@ -17,8 +17,9 @@ class Event extends Model
         'location',
         'assits',
         'not_assits',
-        'booking_id'
+        'booking_id',
     ];
+
     public function booking(): HasOne
     {
         return $this->hasOne(Booking::class, 'id', 'booking_id');

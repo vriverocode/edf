@@ -39,7 +39,7 @@ class ServiceCategoryController extends Controller
 
             return $this->returnSuccess(200, $category);
         } catch (Exception $e) {
-            return $this->returnFail(500, 'Error al crear la categoría de servicio: ' . $e->getMessage());
+            return $this->returnFail(500, 'Error al crear la categoría de servicio: '.$e->getMessage());
         }
     }
 }

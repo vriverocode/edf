@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use Exception;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Incident;
 use App\Models\Rol;
+use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class IncidentController extends Controller
@@ -19,11 +19,12 @@ class IncidentController extends Controller
             $incidents = Incident::when($isOwnerOrResident, function ($q) use ($user) {
                 return $q->where('user_id', $user->id);
             })
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+                ->orderBy('created_at', 'desc')
+                ->paginate(15);
         } catch (Exception $e) {
             return $this->returnFail(505, $e->getMessage());
         }
+
         return $this->returnSuccess(200, $incidents);
     }
 
@@ -51,21 +52,21 @@ class IncidentController extends Controller
             $file = $request->file('image');
             if ($file->isValid()) {
                 $rand = rand(1000000, 9999999);
-                $name = $rand . '_' . time() . '.' . $file->extension();
+                $name = $rand.'_'.time().'.'.$file->extension();
                 $destination = public_path('images/incidents');
 
-                if (!is_dir($destination)) {
+                if (! is_dir($destination)) {
                     @mkdir($destination, 0775, true);
                 }
 
                 $file->move($destination, $name);
-                $incident->images = config('app.url') . "/images/incidents/{$name}";
+                $incident->images = config('app.url')."/images/incidents/{$name}";
             }
         }
 
         $incident->save();
 
-        return $this->returnSuccess(200, ["data" => $incident, 'message' => 'Incidencia creada con éxito',]);
+        return $this->returnSuccess(200, ['data' => $incident, 'message' => 'Incidencia creada con éxito']);
     }
 
     public function show(Request $request, $id)
@@ -73,7 +74,7 @@ class IncidentController extends Controller
         try {
             $user = $request->user();
             $incident = Incident::find($id);
-            if (!$incident) {
+            if (! $incident) {
                 return $this->returnFail(404, 'Incidencia no encontrada');
             }
             $isOwnerOrResident = in_array($user->rol_id, [Rol::PROPIETARIO, Rol::INQUILINO, Rol::FAMILIAR, Rol::AIRBNB]);

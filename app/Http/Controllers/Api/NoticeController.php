@@ -19,11 +19,11 @@ class NoticeController extends Controller
     public function index(Request $request)
     {
         //
-        $notices = Notice::with(["user"])
-        ->where("type", 1)->orderBy("created_at", "desc")->get();
+        $notices = Notice::with(['user'])
+            ->where('type', 1)->orderBy('created_at', 'desc')->get();
 
-        $announces = Notice::with(["user"])
-        ->where("type", 2)->orderBy("created_at", "desc");
+        $announces = Notice::with(['user'])
+            ->where('type', 2)->orderBy('created_at', 'desc');
 
         if ($request->only_my_posts == 'active') {
             $announces->where('user_id', $request->user()->id);
@@ -31,8 +31,7 @@ class NoticeController extends Controller
             $this->applyPaysFilter($announces, $request);
         }
 
-
-        return $this->returnSuccess(200, ["notices" => $notices, "announces" => $announces->get()]);
+        return $this->returnSuccess(200, ['notices' => $notices, 'announces' => $announces->get()]);
     }
 
     /**
@@ -55,7 +54,7 @@ class NoticeController extends Controller
             'data_contact' => $this->dataContactByUser($request->user()),
             'user_id' => $request->user()->id,
             'views' => '[]',
-            'status' => $request->user()->rol_id == 1 ? 2 : 1
+            'status' => $request->user()->rol_id == 1 ? 2 : 1,
         ]);
 
         $this->uploadImages($notice, $request->file('img'));
@@ -69,10 +68,11 @@ class NoticeController extends Controller
      */
     public function show($id)
     {
-        $notice = Notice::with(["user"])->find($id);
+        $notice = Notice::with(['user'])->find($id);
 
         return $this->returnSuccess(200, $notice);
     }
+
     /**
      * Update the specified resource in storage.
      */
@@ -80,7 +80,7 @@ class NoticeController extends Controller
     {
         //
         $announce = Notice::find($id);
-        if (!$announce) {
+        if (! $announce) {
             return $this->returnFail(404, 'Anuncion no encontrado');
         }
 
@@ -90,6 +90,7 @@ class NoticeController extends Controller
             'group' => $request->group,
             'category' => $request->category,
         ]);
+
         return $this->returnSuccess(200, $announce);
     }
 
@@ -100,19 +101,20 @@ class NoticeController extends Controller
     {
         //
         try {
-            //code...
+            // code...
             $notice = Notice::find($id);
 
             if ($notice->user_id == $request->user()->id) {
                 $notice->delete();
             }
         } catch (Exception $th) {
-            //throw $th;
+            // throw $th;
             return $this->returnFail(500, $th->getMessage());
         }
 
         return $this->returnSuccess(200, 'OK');
     }
+
     public function setViewer(Request $request, $noticeId)
     {
         $notice = Notice::find($noticeId);
@@ -124,18 +126,18 @@ class NoticeController extends Controller
 
         array_push($viewers, $request->user()->id);
         $notice->update([
-            "views" => json_encode($viewers)
+            'views' => json_encode($viewers),
         ]);
 
         return $this->returnSuccess(200, 'ok');
     }
+
     public function setNewStatus(Request $request, $noticeId)
     {
-        $notice =  Notice::findOrFail($noticeId);
+        $notice = Notice::findOrFail($noticeId);
         $notice->update([
-            'status' => $request->status
+            'status' => $request->status,
         ]);
-
 
         return $this->returnSuccess(200, ['status' => $notice->status]);
     }
@@ -157,7 +159,7 @@ class NoticeController extends Controller
                 ));
             }
         } catch (\Throwable $e) {
-            Log::error('Fallo al enviar notificación de notice: ' . $e->getMessage());
+            Log::error('Fallo al enviar notificación de notice: '.$e->getMessage());
         }
     }
 
@@ -171,29 +173,31 @@ class NoticeController extends Controller
             'type' => ['required', 'numeric'],
         ];
         $messages = [
-            'title.required'      => 'El titulo de la publicación es requerido.',
-            'title.regex'         => 'Titulo de la publicación no valido',
+            'title.required' => 'El titulo de la publicación es requerido.',
+            'title.regex' => 'Titulo de la publicación no valido',
             'decription.required' => 'Descripción de la publicación es requerida.',
-            'decription.regex'    => 'Descripción no valida',
-            'group.required'      => 'La publicacón debe pertenecer a un grupo',
-            'group.numeric'       => 'Grupo valido',
-            'category.required'   => 'La publicacón debe pertenecer a una categoria',
-            'category.numeric'    => 'Categoria no valida',
-            'type.numeric'        => 'Tipo no valido',
+            'decription.regex' => 'Descripción no valida',
+            'group.required' => 'La publicacón debe pertenecer a un grupo',
+            'group.numeric' => 'Grupo valido',
+            'category.required' => 'La publicacón debe pertenecer a una categoria',
+            'category.numeric' => 'Categoria no valida',
+            'type.numeric' => 'Tipo no valido',
         ];
 
+        $validator = Validator::make($inputs, $rules, $messages)->errors();
 
-         $validator = Validator::make($inputs, $rules, $messages)->errors();
-
-        return $validator->all() ;
+        return $validator->all();
     }
+
     private function dataContactByUser($user)
     {
         if ($user->rol_id == 1) {
             return 'Admin';
         }
-        return '{"name":"' . $user->name . '", "apartment":"' . $user->apartaments[0]->number . '"}';
+
+        return '{"name":"'.$user->name.'", "apartment":"'.$user->apartaments[0]->number.'"}';
     }
+
     private function applyPaysFilter($query, Request $request)
     {
         $VIEW_ALL_STATUS = 4;
@@ -233,15 +237,16 @@ class NoticeController extends Controller
         // $sortDir = $request->get('sort_dir') === 'asc' ? 'asc' : 'desc';
         // $query->orderBy($sortBy, $sortDir);
     }
+
     private function uploadImages($notice, $images)
     {
-        $path = "";
+        $path = '';
         $allImages = [];
 
         if ($images) {
             for ($i = 0; $i < count($images); $i++) {
                 $path = $this->getFormatNameImage($notice, $images[$i]);
-                $imagesPath = public_path('storage') . "/images/post/";
+                $imagesPath = public_path('storage').'/images/post/';
                 $images[$i]->move($imagesPath, $path);
 
                 array_push($allImages, $path);
@@ -250,11 +255,13 @@ class NoticeController extends Controller
 
         $notice->update(['img' => json_encode($allImages)]);
     }
+
     private function getFormatNameImage($notice, $image)
     {
         $rand = rand(1000000, 9999999);
-        $fileName = trim(str_replace(" ", "_", $notice->id));
+        $fileName = trim(str_replace(' ', '_', $notice->id));
         $extension = $image->extension();
-        return config("app.url") . "/storage/images/post/{$rand}_{$fileName}.{$extension}";
+
+        return config('app.url')."/storage/images/post/{$rand}_{$fileName}.{$extension}";
     }
 }

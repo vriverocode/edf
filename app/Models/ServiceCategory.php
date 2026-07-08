@@ -8,5 +8,6 @@ class ServiceCategory extends Model
 {
     //
     protected $table = 'service_categories';
+
     protected $fillable = ['name', 'status'];
 }

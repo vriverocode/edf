@@ -8,10 +8,11 @@ class Currency extends Model
 {
     //
     protected $table = 'currencies';
+
     protected $fillable = ['name', 'status', 'symbol', 'factor'];
+
     public function financialAccounts()
     {
         return $this->hasMany(FinancialAccount::class);
     }
 }
-    

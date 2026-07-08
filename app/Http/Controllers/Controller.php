@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Validation\ValidatesRequests;
 
 abstract class Controller
 {
@@ -15,7 +15,7 @@ abstract class Controller
     {
         return response()->json([
             'code' => $code,
-            'data' => $data
+            'data' => $data,
         ], $code);
     }
 
@@ -23,7 +23,7 @@ abstract class Controller
     {
         return response()->json([
             'code' => $code,
-            'error' => $error
+            'error' => $error,
         ], $code);
     }
 }

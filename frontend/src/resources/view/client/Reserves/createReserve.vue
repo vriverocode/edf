@@ -1180,7 +1180,7 @@ watch(step,
                       </div>
                     </div>
                     
-                    <div class="mt-3 text-grey-8 flex px-2" style="font-size: 0.85rem; line-height: 1.3;">
+                    <div class="mt-3 text-grey-8 flex px-2" v-if="selectedComunArea.warranty_price > 0 || selectedComunArea.price > 0" style="font-size: 0.85rem; line-height: 1.3;">
                       <span class="mr-1">*💳 El pago puede realizarse mediante transferencia bancaria o con tarjeta de crédito o débito.</span>
                     </div>
                   </div>

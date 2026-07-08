@@ -15,8 +15,10 @@ class PayMethodController extends Controller
         // $payMethod->dataList = json_decode($payMethod->data);
         $payMethods = PayMethod::get();
         $formattedPayMethods = $this->formattedData($payMethods);
+
         return $this->returnSuccess(200, $formattedPayMethods);
     }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -30,24 +32,24 @@ class PayMethodController extends Controller
             return $this->returnFail(400, $validator->errors()->first());
         }
         try {
-           PayMethod::create([
+            PayMethod::create([
                 'name' => $request->name,
                 'data' => json_encode($request->dataList),
                 'status' => 1,
             ]);
 
-
             return $this->returnSuccess(200, 'ok');
 
         } catch (\Exception $e) {
-            return $this->returnFail(500, 'Error al crear el área y sus reglas: ' . $e->getMessage());
+            return $this->returnFail(500, 'Error al crear el área y sus reglas: '.$e->getMessage());
         }
     }
+
     public function show($id)
     {
         $payMethod = PayMethod::find($id);
 
-        if (!$payMethod) {
+        if (! $payMethod) {
             return $this->returnFail(404, 'Método de pago no encontrado');
         }
 
@@ -65,7 +67,7 @@ class PayMethodController extends Controller
             'dataList' => 'required|array|min:1',
             'dataList.*.title' => 'required|string',
             'dataList.*.data' => 'required|string',
-            'status' => 'nullable|integer|in:0,1'
+            'status' => 'nullable|integer|in:0,1',
         ]);
 
         if ($validator->fails()) {
@@ -75,7 +77,7 @@ class PayMethodController extends Controller
         try {
             $payMethod = PayMethod::find($id);
 
-            if (!$payMethod) {
+            if (! $payMethod) {
                 return $this->returnFail(404, 'Método de pago no encontrado');
             }
 
@@ -87,14 +89,15 @@ class PayMethodController extends Controller
 
             return $this->returnSuccess(200, 'Método de pago actualizado exitosamente');
         } catch (\Exception $e) {
-            return $this->returnFail(500, 'Error al actualizar el método de pago: ' . $e->getMessage());
+            return $this->returnFail(500, 'Error al actualizar el método de pago: '.$e->getMessage());
         }
     }
+
     public function updateStatus(Request $request, $id)
     {
         // Validaciones en backend
         $validator = Validator::make($request->all(), [
-            'status' => 'nullable|integer|in:0,1'
+            'status' => 'nullable|integer|in:0,1',
         ]);
 
         if ($validator->fails()) {
@@ -104,7 +107,7 @@ class PayMethodController extends Controller
         try {
             $payMethod = PayMethod::find($id);
 
-            if (!$payMethod) {
+            if (! $payMethod) {
                 return $this->returnFail(404, 'Método de pago no encontrado');
             }
 
@@ -114,9 +117,10 @@ class PayMethodController extends Controller
 
             return $this->returnSuccess(200, 'Método de pago actualizado exitosamente');
         } catch (\Exception $e) {
-            return $this->returnFail(500, 'Error al actualizar el método de pago: ' . $e->getMessage());
+            return $this->returnFail(500, 'Error al actualizar el método de pago: '.$e->getMessage());
         }
     }
+
     public function formattedData($MethodsData)
     {
         foreach ($MethodsData as $key) {
@@ -125,5 +129,4 @@ class PayMethodController extends Controller
 
         return $MethodsData;
     }
-
 }

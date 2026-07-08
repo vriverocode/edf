@@ -19,6 +19,7 @@ class Rule extends Model
         'active',
         'suggest_amount',
     ];
+
     // Rule.php
     public function multa()
     {

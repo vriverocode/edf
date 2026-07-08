@@ -16,9 +16,9 @@ class RuleController extends Controller
         if ($request->filled('search')) {
             $search = $request->get('search');
             $rules->where(function ($query) use ($search) {
-                $query->where('code', 'like', '%' . $search . '%')
-                    ->orWhere('title', 'like', '%' . $search . '%')
-                    ->orWhere('description', 'like', '%' . $search . '%');
+                $query->where('code', 'like', '%'.$search.'%')
+                    ->orWhere('title', 'like', '%'.$search.'%')
+                    ->orWhere('description', 'like', '%'.$search.'%');
             });
         }
 
@@ -43,7 +43,7 @@ class RuleController extends Controller
     {
         $rule = Rule::find($id);
 
-        if (!$rule) {
+        if (! $rule) {
             return $this->returnFail(404, 'Regla no encontrada');
         }
 
@@ -74,7 +74,7 @@ class RuleController extends Controller
     public function update(Request $request, $id)
     {
         $rule = Rule::find($id);
-        if (!$rule) {
+        if (! $rule) {
             return $this->returnFail(404, 'Regla no encontrada');
         }
 
@@ -100,7 +100,7 @@ class RuleController extends Controller
     public function deleteRule($id)
     {
         $rule = Rule::find($id);
-        if (!$rule) {
+        if (! $rule) {
             return $this->returnFail(404, 'Regla no encontrada');
         }
 
@@ -141,4 +141,3 @@ class RuleController extends Controller
         return $validator->all();
     }
 }
-

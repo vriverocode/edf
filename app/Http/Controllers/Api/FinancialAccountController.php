@@ -19,6 +19,7 @@ class FinancialAccountController extends Controller
         $formatted = $accounts->map(function ($account) {
             $account->status_label = (int) $account->status === 1 ? 'Activo' : 'Inactivo';
             $account->status_color = (int) $account->status === 1 ? 'bg-green-500' : 'bg-red-500';
+
             return $account;
         });
 
@@ -28,7 +29,7 @@ class FinancialAccountController extends Controller
     public function show($id)
     {
         $account = FinancialAccount::with('currency:id,name,symbol')->find($id);
-        if (!$account) {
+        if (! $account) {
             return $this->returnFail(404, 'Cuenta financiera no encontrada');
         }
 
@@ -67,7 +68,7 @@ class FinancialAccountController extends Controller
 
             return $this->returnSuccess(200, $account->load('currency:id,name,symbol'));
         } catch (\Exception $e) {
-            return $this->returnFail(500, 'Error al crear la cuenta financiera: ' . $e->getMessage());
+            return $this->returnFail(500, 'Error al crear la cuenta financiera: '.$e->getMessage());
         }
     }
 
@@ -88,7 +89,7 @@ class FinancialAccountController extends Controller
 
         try {
             $account = FinancialAccount::find($id);
-            if (!$account) {
+            if (! $account) {
                 return $this->returnFail(404, 'Cuenta financiera no encontrada');
             }
 
@@ -103,7 +104,7 @@ class FinancialAccountController extends Controller
 
             return $this->returnSuccess(200, $account->fresh('currency:id,name,symbol'));
         } catch (\Exception $e) {
-            return $this->returnFail(500, 'Error al actualizar la cuenta financiera: ' . $e->getMessage());
+            return $this->returnFail(500, 'Error al actualizar la cuenta financiera: '.$e->getMessage());
         }
     }
 
@@ -119,20 +120,22 @@ class FinancialAccountController extends Controller
 
         try {
             $account = FinancialAccount::find($id);
-            if (!$account) {
+            if (! $account) {
                 return $this->returnFail(404, 'Cuenta financiera no encontrada');
             }
 
             $account->update(['status' => (int) $request->status]);
+
             return $this->returnSuccess(200, 'Estado actualizado');
         } catch (\Exception $e) {
-            return $this->returnFail(500, 'Error al actualizar estado: ' . $e->getMessage());
+            return $this->returnFail(500, 'Error al actualizar estado: '.$e->getMessage());
         }
     }
 
     public function currencies()
     {
         $currencies = Currency::where('status', 1)->orderBy('name')->get();
+
         return $this->returnSuccess(200, $currencies);
     }
 }

@@ -9,18 +9,19 @@ class Notice extends Model
 {
     //
     protected $fillable = [
-        "title",
-        "description",
-        "data_contact",
-        "group",
-        "category",
-        "img",
-        "type",
-        "views",
-        "status",
-        "user_id"
+        'title',
+        'description',
+        'data_contact',
+        'group',
+        'category',
+        'img',
+        'type',
+        'views',
+        'status',
+        'user_id',
     ];
-    public $appends  =   ["group_label", "category_label", "status_label", "status_color"];
+
+    public $appends = ['group_label', 'category_label', 'status_label', 'status_color'];
 
     public function user(): BelongsTo
     {
@@ -30,60 +31,67 @@ class Notice extends Model
     public function getGroupLabelAttribute()
     {
         $groupLabel = [
-            "Información",
-            "Automotores",
-            "Empleos",
-            "Inmuebles",
-            "Oportunidades"
+            'Información',
+            'Automotores',
+            'Empleos',
+            'Inmuebles',
+            'Oportunidades',
         ];
-        return  $groupLabel[$this->group];
+
+        return $groupLabel[$this->group];
     }
+
     public function getCategoryLabelAttribute()
     {
         $categoryByGroupLabels = [
             [
-                "Información junta de condominio",
+                'Información junta de condominio',
             ],
             [
-                "Venta de automovil",
-                "Venta de maquinaria",
-                "Venta de respuesto",
-                "Compra de automovil",
-                "Compra de maquinaria",
-                "Compra de respuesto",
-                "Servicios"
+                'Venta de automovil',
+                'Venta de maquinaria',
+                'Venta de respuesto',
+                'Compra de automovil',
+                'Compra de maquinaria',
+                'Compra de respuesto',
+                'Servicios',
             ],
             [
-                "Oferta laboral",
-                "Servicios",
+                'Oferta laboral',
+                'Servicios',
             ],
             [
-                "Venta de inmueble",
-                "Alquier de inmueble",
-                "Servicios"
+                'Venta de inmueble',
+                'Alquier de inmueble',
+                'Servicios',
             ],
             [
-               "Oportunidad"
+                'Oportunidad',
             ],
         ];
-        return  $categoryByGroupLabels[$this->group][$this->category];
+
+        return $categoryByGroupLabels[$this->group][$this->category];
     }
+
     public function getStatusLabelAttribute()
     {
         $statusLabel = [
-            "Rechazada",
-            "Pendiente de aprb.",
-            "Publicada"
+            'Rechazada',
+            'Pendiente de aprb.',
+            'Publicada',
         ];
-        return  $statusLabel[$this->status];
+
+        return $statusLabel[$this->status];
     }
+
     public function getStatusColorAttribute()
     {
         $statusColor = [
-            "negative",
-            "warning",
-            "positive"
+            'negative',
+            'warning',
+            'positive',
         ];
-        return  $statusColor[$this->status];
+
+        return $statusColor[$this->status];
     }
 }

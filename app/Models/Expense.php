@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -20,7 +21,7 @@ class Expense extends Model
         'unit',
         'description',
         'attachment_url',
-        'status'
+        'status',
     ];
 
     public function provider()

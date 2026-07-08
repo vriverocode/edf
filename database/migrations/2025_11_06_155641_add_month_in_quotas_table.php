@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('quotas', function (Blueprint $table) {
             //
-            $table->integer("month")->nullable()->after("number");
+            $table->integer('month')->nullable()->after('number');
         });
     }
 

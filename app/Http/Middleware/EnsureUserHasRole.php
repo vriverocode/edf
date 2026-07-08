@@ -13,7 +13,7 @@ class EnsureUserHasRole
      * Expects roles as comma-separated values: role:1,2 or role:admin,propietario
      * Numeric values are matched against rol_id; non-numeric against roles.name.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
@@ -24,7 +24,7 @@ class EnsureUserHasRole
             return response()->json(['message' => 'No autenticado.'], 401);
         }
 
-        $allowed = array_map('trim', $roles) ;
+        $allowed = array_map('trim', $roles);
         $allowed = array_filter($allowed);
 
         if (empty($allowed)) {

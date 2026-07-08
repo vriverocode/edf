@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppVersion;
-use Illuminate\Http\Request;
 
 class ConfigController extends Controller
 {
@@ -13,7 +12,7 @@ class ConfigController extends Controller
         // Obtenemos el último registro basado en la fecha de creación
         $latestVersion = AppVersion::latest()->first();
 
-        if (!$latestVersion) {
+        if (! $latestVersion) {
             return response()->json(['message' => 'No versions found'], 404);
         }
 

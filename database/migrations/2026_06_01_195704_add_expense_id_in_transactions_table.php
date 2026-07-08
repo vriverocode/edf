@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::table('transactions', function (Blueprint $table) {
             $table->foreignId('expense_id')
-            ->after('transaction_category_id')
-            ->nullable()
-            ->constrained('expenses'); 
+                ->after('transaction_category_id')
+                ->nullable()
+                ->constrained('expenses');
             //
         });
     }

@@ -15,24 +15,30 @@ class Quota extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        "departament_id",
-        "water_reading_id",
-        "maintenance_amount",
-        "water_amount",
-        "amount",
-        "number",
-        "month",
-        "due_date",
-        "type",
-        "description",
-        "status",
+        'departament_id',
+        'peoples_x_departments_id',
+        'water_reading_id',
+        'maintenance_amount',
+        'water_amount',
+        'amount',
+        'number',
+        'month',
+        'due_date',
+        'type',
+        'description',
+        'status',
     ];
 
-    public $appends = ["status_label", "status_color", "status_icon", "month_label"];
+    public $appends = ['status_label', 'status_color', 'status_icon', 'month_label'];
 
     public function departament(): BelongsTo
     {
         return $this->belongsTo(Departament::class, 'departament_id', 'id');
+    }
+
+    public function responsiblePivot(): BelongsTo
+    {
+        return $this->belongsTo(PeoplesXDepartaments::class, 'peoples_x_departments_id');
     }
 
     public function pays(): BelongsToMany
@@ -43,6 +49,11 @@ class Quota extends Model
     public function waterReading(): BelongsTo
     {
         return $this->belongsTo(WaterReading::class, 'water_reading_id', 'id');
+    }
+
+    public function isTenantResponsible(): bool
+    {
+        return $this->peoples_x_departments_id !== null;
     }
 
     public function scopeForMonthYear(Builder $query, int $month, int $year): Builder
@@ -60,6 +71,7 @@ class Quota extends Model
                     $query->where('status', '!=', 0);
                 },
                 'departament.owner',
+                'responsiblePivot.user',
             ])
             ->orderBy('created_at', 'desc');
     }
@@ -104,7 +116,7 @@ class Quota extends Model
                     ? Carbon::parse($quota->due_date)->year
                     : now()->year;
 
-                return $userId . '_' . $quota->month . '_' . $year;
+                return $userId.'_'.$quota->month.'_'.$year;
             })
             ->map(function ($group) {
                 $firstQuota = $group->first();
@@ -113,33 +125,41 @@ class Quota extends Model
                 $payId = $pay?->id;
                 $payStatus = $pay !== null ? (int) $pay->status : null;
 
-                // Lógica de jerarquía para el estatus consolidado
                 if ($group->contains(fn ($q) => (int) $q->status === 1)) {
-                    $status = 1; // 1: Pago pendiente
+                    $status = 1;
                 } elseif ($group->contains(fn ($q) => (int) $q->status === 2)) {
-                    $status = 2; // 2: Pendiente de aprob.
+                    $status = 2;
                 } elseif ($group->contains(fn ($q) => (int) $q->status === 3)) {
-                    $status = 3; // 3: Exitoso
+                    $status = 3;
                 } else {
-                    $status = 0; // 0: Cancelada
+                    $status = 0;
+                }
+
+                $details = $group->values()->all();
+
+                foreach ($details as &$detail) {
+                    if (isset($detail['responsible_pivot']) && $detail['responsible_pivot']?->user) {
+                        $detail['responsible_name'] = $detail['responsible_pivot']['user']['name'];
+                        $detail['responsible_id'] = $detail['responsible_pivot']['user']['id'];
+                    }
                 }
 
                 return [
-                    'id' => 'group-' . $group->pluck('id')->join('-'),
+                    'id' => 'group-'.$group->pluck('id')->join('-'),
                     'month' => $firstQuota->month,
                     'due_date' => $firstQuota->due_date,
-                    'description' => 'Cuota Consolidada (' . $group->count() . ' unidades asignadas)',
+                    'description' => 'Cuota Consolidada ('.$group->count().' unidades asignadas)',
                     'owner_name' => $owner ? $owner->name : 'Desconocido',
                     'owner_id' => $owner?->id,
                     'maintenance_amount' => $group->sum('maintenance_amount'),
                     'water_amount' => $group->sum('water_amount'),
                     'amount' => $group->sum('amount'),
-                    'status' => $status, // <--- Estatus calculado implementado aquí
+                    'status' => $status,
                     'pay' => $payId,
                     'pay_id' => $payId,
                     'pay_status' => $payStatus,
                     'pending_validation' => $payStatus === 1,
-                    'details' => $group->values()->all(),
+                    'details' => $details,
                 ];
             })
             ->values();
@@ -148,11 +168,11 @@ class Quota extends Model
     public function getStatusLabelAttribute()
     {
         $statusLabels = [
-            "Cancelada",
-            "Pago pendiente",
-            "Pendiente de aprob.",
-            "Exitoso",
-            "Vencida.",
+            'Cancelada',
+            'Pago pendiente',
+            'Pendiente de aprob.',
+            'Exitoso',
+            'Vencida.',
         ];
 
         return $statusLabels[$this->status] ?? '—';
@@ -173,7 +193,7 @@ class Quota extends Model
             'Septiembre',
             'Octubre',
             'Noviembre',
-            'Diciembre'
+            'Diciembre',
         ];
 
         return $months[$this->month] ?? '';
@@ -182,10 +202,10 @@ class Quota extends Model
     public function getStatusColorAttribute()
     {
         $color = [
-            "negative",
-            "warning",
-            "warning",
-            "positive"
+            'negative',
+            'warning',
+            'warning',
+            'positive',
         ];
 
         return $color[$this->status] ?? 'grey';
@@ -194,10 +214,10 @@ class Quota extends Model
     public function getStatusIconAttribute()
     {
         $status = [
-            "eva-close-outline",
-            "eva-alert-circle-outline",
-            "eva-alert-circle-outline",
-            "eva-checkmark-outline"
+            'eva-close-outline',
+            'eva-alert-circle-outline',
+            'eva-alert-circle-outline',
+            'eva-checkmark-outline',
         ];
 
         return $status[$this->status] ?? 'eva-question-mark-outline';

@@ -7,7 +7,7 @@ import comunArea from '@/assets/img/menu/areas-comunes.png'
 import booking from '@/assets/img/menu/reservas.png'
 import news from '@/assets/img/menu/noticias.png'
 import events from '@/assets/img/menu/eventos-admin.png'
-
+import report from '@/assets/img/menu/reports.png'
 
 const pendindgsCount = ref([]);
 
@@ -47,6 +47,12 @@ const menu = [
     subtitle: 'Modulo de gestion de eventos',
     link: '/admin/events',
   },
+  {
+    title: 'Reportes',
+    icon: report,
+    subtitle: 'Reportes',
+    link: '/admin/reports',
+  }
 ];
 
 const goTo = (url) => {

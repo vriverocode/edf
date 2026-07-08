@@ -9,26 +9,26 @@ class ComunArea extends Model
 {
     use SoftDeletes;
 
-    protected $table = "comun_areas";
+    protected $table = 'comun_areas';
 
     protected $fillable = [
-        "name",
-        "capacity",
-        "price",
-        "warranty_price",
-        "description",
-        "max_time_reserve",
-        "max_time_reserve_exclusive",
-        "timeFrom",
-        "timeTo",
-        "rules",
-        "icon",
-        "max_cupo",
-        "not_available_days",
-        "type",
-        "has_extension",
-        "max_time_extension",
-        "extension_price",
+        'name',
+        'capacity',
+        'price',
+        'warranty_price',
+        'description',
+        'max_time_reserve',
+        'max_time_reserve_exclusive',
+        'timeFrom',
+        'timeTo',
+        'rules',
+        'icon',
+        'max_cupo',
+        'not_available_days',
+        'type',
+        'has_extension',
+        'max_time_extension',
+        'extension_price',
     ];
 
     // Agregamos 'type_label' a la lista de appends
@@ -56,6 +56,7 @@ class ComunArea extends Model
             default => 'No definido',
         };
     }
+
     public function getTypeLabelLargeAttribute()
     {
         // Usamos la expresión match (disponible en PHP 8+) para mapear el número al texto
@@ -67,6 +68,7 @@ class ComunArea extends Model
             default => 'No definido',
         };
     }
+
     public function getTypeColorAttribute()
     {
         // Usamos la expresión match (disponible en PHP 8+) para mapear el número al texto
@@ -81,18 +83,19 @@ class ComunArea extends Model
 
     public function bookings()
     {
-        return $this->hasMany(Booking::class, "comun_area_id");
+        return $this->hasMany(Booking::class, 'comun_area_id');
     }
 
     public function bookingsToValidate()
     {
-        return $this->hasMany(Booking::class, "comun_area_id")->where('status', 2);
+        return $this->hasMany(Booking::class, 'comun_area_id')->where('status', 2);
     }
 
     public function rulesArea()
     {
-        return $this->hasMany(Rule::class, "comun_area_id");
+        return $this->hasMany(Rule::class, 'comun_area_id');
     }
+
     public function schedules()
     {
         return $this->hasMany(ComunAreaSchedule::class, 'comun_area_id');

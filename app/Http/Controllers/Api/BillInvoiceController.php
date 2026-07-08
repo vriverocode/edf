@@ -73,10 +73,10 @@ class BillInvoiceController extends Controller
             ->setPaper('letter')
             ->setOption('isRemoteEnabled', true);
 
-        $filename = 'recibo-' .
-            $invoiceData['departament']->number .
-            '-' . strtolower($invoiceData['monthLabel']) .
-            '-' . $invoiceData['year'] . '.pdf';
+        $filename = 'recibo-'.
+            $invoiceData['departament']->number.
+            '-'.strtolower($invoiceData['monthLabel']).
+            '-'.$invoiceData['year'].'.pdf';
 
         return $pdf->download($filename);
     }
@@ -110,6 +110,7 @@ class BillInvoiceController extends Controller
         // Change from inline() to stream()
         return $pdf->stream('preview.pdf');
     }
+
     public function previewHtml(Request $request, int $quotaId)
     {
         $quota = Quota::with([
@@ -170,7 +171,7 @@ class BillInvoiceController extends Controller
         Mail::to($owner->email)->send(new BillInvoiceMail($invoiceData));
 
         return $this->returnSuccess(200, [
-            'message' => 'Recibo enviado exitosamente a ' . $owner->email,
+            'message' => 'Recibo enviado exitosamente a '.$owner->email,
         ]);
     }
 
@@ -207,7 +208,7 @@ class BillInvoiceController extends Controller
             $owner = $quota->departament->owner;
             if (! $owner || ! $owner->email) {
                 $failedCount++;
-                $failedEmails[] = $quota->departament->number . ' (sin email)';
+                $failedEmails[] = $quota->departament->number.' (sin email)';
 
                 continue;
             }
@@ -222,7 +223,7 @@ class BillInvoiceController extends Controller
                 $sentCount++;
             } catch (\Exception $e) {
                 $failedCount++;
-                $failedEmails[] = $quota->departament->number . ' (' . $owner->email . ')';
+                $failedEmails[] = $quota->departament->number.' ('.$owner->email.')';
             }
         }
 

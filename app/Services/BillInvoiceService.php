@@ -36,6 +36,7 @@ class BillInvoiceService
         try {
             $quota->load([
                 'departament.owner',
+                'responsiblePivot.user',
                 'waterReading',
                 'pays' => function ($query) {
                     $query->where('status', 2)
@@ -44,9 +45,9 @@ class BillInvoiceService
                 },
             ]);
 
-            $owner = $quota->departament->owner;
-            if (! $owner || ! $owner->email) {
-                Log::warning("BillInvoiceService: Owner not found or no email for quota {$quota->id}");
+            $recipient = $quota->responsiblePivot?->user ?? $quota->departament->owner;
+            if (! $recipient || ! $recipient->email) {
+                Log::warning("BillInvoiceService: Recipient not found or no email for quota {$quota->id}");
 
                 return false;
             }
@@ -56,9 +57,10 @@ class BillInvoiceService
                 'quotaId' => $quota->id,
             ]);
 
-            Mail::to($owner->email)->send(new BillInvoiceMail($invoiceData));
+            Mail::to($recipient->email)->send(new BillInvoiceMail($invoiceData));
 
-            Log::info("BillInvoiceService: Invoice sent for quota {$quota->id} to {$owner->email}");
+            $recipientType = $quota->isTenantResponsible() ? 'inquilino' : 'propietario';
+            Log::info("BillInvoiceService: Invoice sent for quota {$quota->id} to {$recipient->email} ({$recipientType})");
 
             return true;
         } catch (\Throwable $e) {
@@ -96,6 +98,8 @@ class BillInvoiceService
     {
         $departament = $quota->departament;
         $owner = $departament->owner;
+        $responsiblePivot = $quota->responsiblePivot;
+        $responsibleUser = $responsiblePivot?->user;
         $waterReading = $quota->waterReading;
 
         $month = (int) $quota->month;

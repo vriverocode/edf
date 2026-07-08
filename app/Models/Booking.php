@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Booking extends Model
 {
@@ -16,14 +16,17 @@ class Booking extends Model
 
     // Evitar "Magic Numbers" en tu aplicación
     public const STATUS_CANCELLED = 0;
+
     public const STATUS_PENDING_PAY = 1;
+
     public const STATUS_PENDING_APPROVAL = 2;
+
     public const STATUS_SUCCESS = 3;
 
     protected $fillable = [
-        "user_id", "departament_id", "comun_area_id", "booking_number",
-        "date", "time_from", "time_to", "amount", "type",
-        "note", "motive", "status", 'pending_pay_notification_sent_at', "is_exclusive",
+        'user_id', 'departament_id', 'comun_area_id', 'booking_number',
+        'date', 'time_from', 'time_to', 'amount', 'type',
+        'note', 'motive', 'status', 'pending_pay_notification_sent_at', 'is_exclusive',
     ];
 
     protected $casts = [
@@ -34,30 +37,33 @@ class Booking extends Model
     ];
 
     // Corregido: status_color estaba duplicado
-    public $appends = ["booking_hour", "status_label", "status_color", 'type_label', "type_color", "has_extension"];
+    public $appends = ['booking_hour', 'status_label', 'status_color', 'type_label', 'type_color', 'has_extension'];
 
     /* -------------------------------------------------------------------------- */
-    /* Relaciones                                                                 */
+    /* Relaciones */
     /* -------------------------------------------------------------------------- */
     public function comunArea(): BelongsTo
     {
         return $this->belongsTo(ComunArea::class);
     }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
+
     public function departament(): BelongsTo
     {
         return $this->belongsTo(Departament::class);
     }
+
     public function pay(): HasOne
     {
         return $this->hasOne(Pay::class);
     }
 
     /* -------------------------------------------------------------------------- */
-    /* Accessors (Sintaxis Moderna Laravel 9+)                                    */
+    /* Accessors (Sintaxis Moderna Laravel 9+) */
     /* -------------------------------------------------------------------------- */
     protected function bookingHour(): Attribute
     {
@@ -70,11 +76,11 @@ class Booking extends Model
     {
         return Attribute::make(
             get: fn () => match ((int) $this->status) {
-                self::STATUS_CANCELLED => "Cancelada",
-                self::STATUS_PENDING_PAY => "Pago pendiente",
-                self::STATUS_PENDING_APPROVAL => "Pendiente de aprob.",
-                self::STATUS_SUCCESS => "Exitoso",
-                default => "Desconocido",
+                self::STATUS_CANCELLED => 'Cancelada',
+                self::STATUS_PENDING_PAY => 'Pago pendiente',
+                self::STATUS_PENDING_APPROVAL => 'Pendiente de aprob.',
+                self::STATUS_SUCCESS => 'Exitoso',
+                default => 'Desconocido',
             }
         );
     }
@@ -83,10 +89,10 @@ class Booking extends Model
     {
         return Attribute::make(
             get: fn () => match ((int) $this->status) {
-                self::STATUS_CANCELLED => "negative",
-                self::STATUS_PENDING_PAY, self::STATUS_PENDING_APPROVAL => "warning",
-                self::STATUS_SUCCESS => "positive",
-                default => "grey",
+                self::STATUS_CANCELLED => 'negative',
+                self::STATUS_PENDING_PAY, self::STATUS_PENDING_APPROVAL => 'warning',
+                self::STATUS_SUCCESS => 'positive',
+                default => 'grey',
             }
         );
     }
@@ -95,13 +101,13 @@ class Booking extends Model
     {
         return Attribute::make(
             get: fn () => match ((int) $this->type) {
-                0 => "Cancelada",
-                1 => "Compartida",
-                2 => "Exclusiva",
-                3 => "De pago",
-                4 => "Extension",
+                0 => 'Cancelada',
+                1 => 'Compartida',
+                2 => 'Exclusiva',
+                3 => 'De pago',
+                4 => 'Extension',
 
-                default => "Desconocido",
+                default => 'Desconocido',
             }
         );
     }
@@ -127,20 +133,20 @@ class Booking extends Model
                 ->where('date', $this->date)
                 ->where('user_id', $this->user_id)
                 ->where('status', '>', 0)
-                ->where('note', 'like', '%' . $this->booking_number . '%')
+                ->where('note', 'like', '%'.$this->booking_number.'%')
                 ->exists()
         );
     }
 
     /* -------------------------------------------------------------------------- */
-    /* Query Scopes (Filtros extraídos del Controlador)                           */
+    /* Query Scopes (Filtros extraídos del Controlador) */
     /* -------------------------------------------------------------------------- */
     public function scopeFilter(Builder $query, array $filters): void
     {
-        $query->when(isset($filters['status']) && (int) $filters['status'] !== 4, fn($q) => $q->where('status', (int) $filters['status']))
-            ->when($filters['area_id'] ?? null, fn($q, $areaId) => $q->where('comun_area_id', (int) $areaId))
-            ->when($filters['date_from'] ?? null, fn($q, $date) => $q->whereDate('date', '>=', $date))
-            ->when($filters['date_to'] ?? null, fn($q, $date) => $q->whereDate('date', '<=', $date))
+        $query->when(isset($filters['status']) && (int) $filters['status'] !== 4, fn ($q) => $q->where('status', (int) $filters['status']))
+            ->when($filters['area_id'] ?? null, fn ($q, $areaId) => $q->where('comun_area_id', (int) $areaId))
+            ->when($filters['date_from'] ?? null, fn ($q, $date) => $q->whereDate('date', '>=', $date))
+            ->when($filters['date_to'] ?? null, fn ($q, $date) => $q->whereDate('date', '<=', $date))
             ->when($filters['amount_type'] ?? null, function ($q, $type) {
                 if ($type === 'free') {
                     $q->where('amount', 0);

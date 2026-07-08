@@ -8,6 +8,7 @@ class MonthlyBills extends Model
 {
     //
     protected $table = 'monthly_bills';
+
     protected $fillable = [
         'month',
         'year',

@@ -3,13 +3,13 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Fcm\FcmChannel;
 use NotificationChannels\Fcm\FcmMessage;
 use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+
 class RealtimeNotification extends Notification implements ShouldBroadcastNow
 {
     use Queueable;
@@ -19,8 +19,7 @@ class RealtimeNotification extends Notification implements ShouldBroadcastNow
         public string $message,
         public ?string $url = null,
         public array $meta = []
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -41,14 +40,15 @@ class RealtimeNotification extends Notification implements ShouldBroadcastNow
     {
         return new BroadcastMessage($this->toArray($notifiable));
     }
+
     public function toFcm($notifiable): FcmMessage
     {
         return FcmMessage::create()
             // CORRECCIÓN 1: Es 'data', no 'setData'
-            ->data(['url' => $this->url ?? '']) 
-            
+            ->data(['url' => $this->url ?? ''])
+
             // CORRECCIÓN 2: Es 'notification', no 'setNotification'
-            ->notification( 
+            ->notification(
                 FcmNotification::create()
                     ->title($this->title)
                     ->body($this->message)

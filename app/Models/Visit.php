@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Visit extends Model
 {
@@ -18,30 +18,36 @@ class Visit extends Model
         'type',
         'description',
         'date',
-        'hour', 
+        'hour',
         'arrived_date',
         'status',
-        'airbnb_rent_id'
+        'airbnb_rent_id',
     ];
-    public $appends  =   ["status_label", "status_color", "type_label"];
+
+    public $appends = ['status_label', 'status_color', 'type_label'];
+
     public function getStatusLabelAttribute()
     {
         $statusLabels = [
-            "Cancelada",
-            "Pendiente de llegada",
-            "Llegada confirmada.",
+            'Cancelada',
+            'Pendiente de llegada',
+            'Llegada confirmada.',
         ];
-        return  $statusLabels[$this->status];
+
+        return $statusLabels[$this->status];
     }
+
     public function getStatusColorAttribute()
     {
         $color = [
-            "negative",
-            "warning",
-            "primary",
+            'negative',
+            'warning',
+            'primary',
         ];
-        return  $color[$this->status];
+
+        return $color[$this->status];
     }
+
     public function getTypeLabelAttribute()
     {
         $labels = [
@@ -51,18 +57,22 @@ class Visit extends Model
             4 => 'Servicio',
             5 => 'Otro',
         ];
+
         return $labels[$this->type] ?? 'Visita';
     }
+
     public function departament()
     {
         return $this->belongsTo(Departament::class);
     }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
     public function airbnb()
     {
-        return $this->belongsTo(AirbnbRent::class, "airbnb_rent_id");
+        return $this->belongsTo(AirbnbRent::class, 'airbnb_rent_id');
     }
 }

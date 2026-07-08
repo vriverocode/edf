@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreign('pay_method')->references('id')->on('pay_methods')->onDelete('cascade');
         });
     }
+
     /**
      * Reverse the migrations.
      */

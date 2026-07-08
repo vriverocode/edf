@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //para usarios airbnb;
+            // para usarios airbnb;
             $table->date('active_time')->nullable()->after('rol_id');
         });
     }

@@ -2,10 +2,11 @@
 
 namespace Database\Factories\Api;
 
+use App\Models\Api\DepartamentController;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Api\DepartamentController>
+ * @extends Factory<DepartamentController>
  */
 class DepartamentControllerFactory extends Factory
 {

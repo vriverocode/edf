@@ -9,5 +9,5 @@ use Illuminate\Support\Facades\Schedule;
 // })->purpose('Display an inspiring quote')->hourly();
 Schedule::command('app:monthly-quota')->everyMinute();
 Schedule::command('app:booking-pending-pay-reminders')->everyThirtyMinutes();
-//Schedule::command('app:active-ordesactive-air-bnb-users')->dailyAt('10:00');
+// Schedule::command('app:active-ordesactive-air-bnb-users')->dailyAt('10:00');
 Schedule::command('app:active-ordesactive-air-bnb-users')->everyMinute();

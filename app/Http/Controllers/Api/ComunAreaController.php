@@ -14,19 +14,22 @@ class ComunAreaController extends Controller
 {
     public function paginationAreas(Request $request)
     {
-        $comunAreas = ComunArea::withCount(["bookings", "bookingsToValidate", "schedules"])->orderBy('name', 'asc')->paginate(40);
+        $comunAreas = ComunArea::withCount(['bookings', 'bookingsToValidate', 'schedules'])->orderBy('name', 'asc')->paginate(40);
+
         return $this->returnSuccess(200, $comunAreas);
     }
 
     public function getAll()
     {
         $comunAreas = ComunArea::with(['rulesArea', 'schedules'])->orderBy('name', 'asc')->get();
+
         return $this->returnSuccess(200, $comunAreas);
     }
 
     public function comunAreaById($id)
     {
         $area = ComunArea::with(['rulesArea', 'schedules'])->find($id);
+
         return $this->returnSuccess(200, $area);
     }
 
@@ -43,7 +46,7 @@ class ComunAreaController extends Controller
                 'capacity' => $request->capacity,
                 'price' => $request->price,
                 'warranty_price' => $request->warrantyPrice,
-                'description'  => $request->description,
+                'description' => $request->description,
                 'max_time_reserve' => $request->maxTime,
                 'max_time_reserve_exclusive' => $request->maxTimeExclusive,
                 'icon' => $request->imageIcon,
@@ -64,10 +67,12 @@ class ComunAreaController extends Controller
             }
 
             DB::commit();
+
             return $this->returnSuccess(200, 'ok');
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->returnFail(500, 'Error al crear el área: ' . $e->getMessage());
+
+            return $this->returnFail(500, 'Error al crear el área: '.$e->getMessage());
         }
     }
 
@@ -104,7 +109,7 @@ class ComunAreaController extends Controller
         DB::beginTransaction();
         try {
             $area = ComunArea::find($id);
-            if (!$area) {
+            if (! $area) {
                 return $this->returnFail(400, 'Area común no encontrada');
             }
 
@@ -113,7 +118,7 @@ class ComunAreaController extends Controller
                 'capacity' => $request->capacity ?? $area->capacity,
                 'price' => $request->price ?? $area->price,
                 'warranty_price' => $request->warrantyPrice ?? $area->warranty_price,
-                'description'  => $request->description ?? $area->description,
+                'description' => $request->description ?? $area->description,
                 'max_time_reserve' => $request->maxTime ?? $area->max_time_reserve,
                 'max_time_reserve_exclusive' => $request->maxTimeExclusive ?? $area->max_time_reserve_exclusive,
                 'max_cupo' => $request->max_cupo ?? $area->max_cupo,
@@ -132,10 +137,12 @@ class ComunAreaController extends Controller
             }
 
             DB::commit();
+
             return $this->returnSuccess(200, 'ok');
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->returnFail(500, 'Error al actualizar: ' . $e->getMessage());
+
+            return $this->returnFail(500, 'Error al actualizar: '.$e->getMessage());
         }
     }
 
@@ -155,7 +162,7 @@ class ComunAreaController extends Controller
             $typeValue = is_array($ruleData['type']) ? $ruleData['type']['value'] : $ruleData['type'];
             $severityValue = is_array($ruleData['severity']) ? $ruleData['severity']['value'] : $ruleData['severity'];
 
-            if (isset($ruleData['id']) && !empty($ruleData['id'])) {
+            if (isset($ruleData['id']) && ! empty($ruleData['id'])) {
                 // Si tiene ID, buscamos la regla y la actualizamos
                 $rule = $area->rulesArea()->find($ruleData['id']);
                 if ($rule) {
@@ -182,6 +189,7 @@ class ComunAreaController extends Controller
             }
         }
     }
+
     private function syncSchedules(ComunArea $area, array $schedules)
     {
         $area->schedules()->delete();
@@ -190,7 +198,7 @@ class ComunAreaController extends Controller
         foreach ($schedules as $schedule) {
             if (isset($schedule['isOpen']) && $schedule['isOpen']) {
                 foreach ($schedule['intervals'] as $interval) {
-                    if (!empty($interval['from']) && !empty($interval['to'])) {
+                    if (! empty($interval['from']) && ! empty($interval['to'])) {
                         $insertData[] = [
                             'comun_area_id' => $area->id,
                             'day' => $schedule['day'],
@@ -208,13 +216,15 @@ class ComunAreaController extends Controller
             ComunAreaSchedule::insert($insertData);
         }
     }
+
     public function deleteArea($id)
     {
         $area = ComunArea::find($id);
-        if (!$area) {
+        if (! $area) {
             return $this->returnFail(400, 'Area común no encontrada');
         }
         $area->delete();
+
         return $this->returnSuccess(200, 'ok');
     }
 
@@ -222,50 +232,51 @@ class ComunAreaController extends Controller
     {
         $rules = [
             // Campos originales
-            'name'          => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\-]+$/i'],
-            'capacity'      => ['required', 'numeric'],
-            'price'         => ['required', 'numeric'],
+            'name' => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\-]+$/i'],
+            'capacity' => ['required', 'numeric'],
+            'price' => ['required', 'numeric'],
             'warrantyPrice' => ['required', 'numeric'],
-            'description'   => ['nullable',],
-            'maxTime'       => ['required', 'numeric'],
-            'max_cupo'      => ['nullable', 'numeric'],
-            'notAvailable'  => ['nullable', 'array'],
-            'icon'          => ['nullable'],
-            'rulesList'                  => ['nullable', 'array'],
-            'rulesList.*.title'          => ['required_with:rulesList', 'string'],
-            'rulesList.*.type.value'     => ['required_with:rulesList', 'integer'],
+            'description' => ['nullable'],
+            'maxTime' => ['required', 'numeric'],
+            'max_cupo' => ['nullable', 'numeric'],
+            'notAvailable' => ['nullable', 'array'],
+            'icon' => ['nullable'],
+            'rulesList' => ['nullable', 'array'],
+            'rulesList.*.title' => ['required_with:rulesList', 'string'],
+            'rulesList.*.type.value' => ['required_with:rulesList', 'integer'],
             'rulesList.*.severity.value' => ['required_with:rulesList', 'integer'],
             'rulesList.*.suggest_amount' => ['nullable', 'numeric'],
             'rulesList.*.id' => ['nullable', 'integer'],
             'schedules' => ['required', 'array'],
             // Campos de extensión
-            'has_extension'     => ['nullable', 'boolean'],
+            'has_extension' => ['nullable', 'boolean'],
             'max_time_extension' => ['nullable', 'numeric'],
-            'extension_price'   => ['nullable', 'numeric'],
+            'extension_price' => ['nullable', 'numeric'],
         ];
 
         $messages = [
-            'name.required'          => 'Nombre del area es requerido.',
-            'name.regex'             => 'Nombre no valido.',
-            'capacity.required'      => 'Capacidad es requerida.',
-            'capacity.numeric'       => 'Capacidad no valida.',
-            'price.required'         => 'Precio es requerido.',
-            'price.numeric'          => 'Precio no valido.',
+            'name.required' => 'Nombre del area es requerido.',
+            'name.regex' => 'Nombre no valido.',
+            'capacity.required' => 'Capacidad es requerida.',
+            'capacity.numeric' => 'Capacidad no valida.',
+            'price.required' => 'Precio es requerido.',
+            'price.numeric' => 'Precio no valido.',
             'warrantyPrice.required' => 'Garantia es requerida.',
-            'warrantyPrice.numeric'  => 'Garantia no valida.',
-            'maxTime.required'       => 'Maximo de tiempo de reserva es requerido.',
-            'maxTime.numeric'        => 'Formato de tiempo de reserva invalido.',
-            'max_cupo.numeric'       => 'El cupo maximo debe ser numérico.',
-            'notAvailable.array'     => 'Formato de dias no disponibles invalido.',
-            'rulesList.array'                  => 'El formato de la lista de reglas es inválido.',
-            'rulesList.*.title.required_with'  => 'Todas las reglas añadidas deben tener un título.',
-            'rulesList.*.type.value.required_with'     => 'Debes seleccionar el tipo para todas las reglas.',
+            'warrantyPrice.numeric' => 'Garantia no valida.',
+            'maxTime.required' => 'Maximo de tiempo de reserva es requerido.',
+            'maxTime.numeric' => 'Formato de tiempo de reserva invalido.',
+            'max_cupo.numeric' => 'El cupo maximo debe ser numérico.',
+            'notAvailable.array' => 'Formato de dias no disponibles invalido.',
+            'rulesList.array' => 'El formato de la lista de reglas es inválido.',
+            'rulesList.*.title.required_with' => 'Todas las reglas añadidas deben tener un título.',
+            'rulesList.*.type.value.required_with' => 'Debes seleccionar el tipo para todas las reglas.',
             'rulesList.*.severity.value.required_with' => 'Debes seleccionar la severidad para todas las reglas.',
-            'rulesList.*.suggest_amount.numeric'       => 'El monto de amonestación ingresado debe ser un número válido.',
-            'rulesList.*.id.integer'                   => 'Esta regla no existe'
+            'rulesList.*.suggest_amount.numeric' => 'El monto de amonestación ingresado debe ser un número válido.',
+            'rulesList.*.id.integer' => 'Esta regla no existe',
         ];
 
         $validator = Validator::make($inputs, $rules, $messages)->errors();
+
         return $validator->all();
     }
 }

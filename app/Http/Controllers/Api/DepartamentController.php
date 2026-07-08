@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\User;
-use App\Models\Departament;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Departament;
+use App\Models\Rol;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class DepartamentController extends Controller
@@ -16,8 +16,9 @@ class DepartamentController extends Controller
     public function paginationApartment(Request $request)
     {
         // Por defecto busca tipo 1 (Departamentos)
-        $type = $request->input('type', 1); 
+        $type = $request->input('type', 1);
         $departaments = Departament::with('owner')->where('type', $type)->paginate(15);
+
         return $this->returnSuccess(200, $departaments);
     }
 
@@ -39,6 +40,7 @@ class DepartamentController extends Controller
         if ($request->find == 'allDepartmentWithoutReadingThisMonth') {
             $departaments->where('type', 1)->with(['waterReadings'])->whereDoesntHave('waterReadings');
         }
+
         return $this->returnSuccess(200, $departaments->get());
     }
 
@@ -48,7 +50,9 @@ class DepartamentController extends Controller
     public function storeApartment(Request $request)
     {
         $validated = $this->validateFieldsFromInput($request->all());
-        if (count($validated) > 0) return $this->returnFail(400, $validated[0]);
+        if (count($validated) > 0) {
+            return $this->returnFail(400, $validated[0]);
+        }
 
         Departament::create([
             'number' => $request->number,
@@ -63,12 +67,13 @@ class DepartamentController extends Controller
 
         return $this->returnSuccess(200, 'Creado con éxito');
     }
+
     public function getApartmentById($id)
     {
-        $apartments = Departament::with(["owner"])->find($id);
+        $apartments = Departament::with(['owner'])->find($id);
 
-        if (!$apartments) {
-            return $this->returnFail(400, "Departamento no encontrado");
+        if (! $apartments) {
+            return $this->returnFail(400, 'Departamento no encontrado');
         }
 
         return $this->returnSuccess(200, $apartments);
@@ -76,10 +81,10 @@ class DepartamentController extends Controller
 
     public function assingApartment(Request $request)
     {
-        //-
+        // -
         if ($request->user()->id == 1) {
             Departament::find($request->idApartament)->update([
-                'user_id' => $request->user
+                'user_id' => $request->user,
             ]);
         }
 
@@ -88,10 +93,10 @@ class DepartamentController extends Controller
 
     public function getApartmentsByUser(Request $request)
     {
-        $apartments = Departament::with(["owner", "dueQuotas"])->where("user_id", $request->user()->id)->get();
+        $apartments = Departament::with(['owner', 'dueQuotas'])->where('user_id', $request->user()->id)->get();
 
-        if (!$apartments) {
-            return $this->returnFail(400, "Departamentos no encontrados");
+        if (! $apartments) {
+            return $this->returnFail(400, 'Departamentos no encontrados');
         }
 
         return $this->returnSuccess(200, $apartments);
@@ -108,9 +113,12 @@ class DepartamentController extends Controller
         }
 
         $apartment = Departament::find($id);
-        if (!$apartment) return $this->returnFail(404, 'No encontrado');
+        if (! $apartment) {
+            return $this->returnFail(404, 'No encontrado');
+        }
 
         $apartment->update($request->all());
+
         return $this->returnSuccess(200, $apartment);
     }
 
@@ -129,13 +137,14 @@ class DepartamentController extends Controller
             ->where('type', Departament::TYPE_DEPARTAMENTO)
             ->whereNotNull('user_id')
             ->paginate(15);
+
         return $this->returnSuccess(200, $departments);
     }
 
     public function getDepartmentResidents(Request $request, $id)
     {
         $department = Departament::with(['owner', 'peoples.user'])->find($id);
-        if (!$department) {
+        if (! $department) {
             return $this->returnFail(404, 'Departamento no encontrado');
         }
 
@@ -144,7 +153,7 @@ class DepartamentController extends Controller
         if ($department->owner) {
             $ownerData = $department->owner->toArray();
             $ownerData['type_label'] = 'Propietario';
-            $ownerData['type_id'] = \App\Models\Rol::PROPIETARIO;
+            $ownerData['type_id'] = Rol::PROPIETARIO;
             $residents[] = $ownerData;
         }
 
@@ -152,13 +161,15 @@ class DepartamentController extends Controller
         foreach ($department->peoples as $people) {
             if ($people->user) {
                 // Evitar duplicar al propietario si estuviera en la tabla por alguna razon
-                if ($department->user_id == $people->user_id && $people->type == \App\Models\Rol::PROPIETARIO) continue;
-                
+                if ($department->user_id == $people->user_id && $people->type == Rol::PROPIETARIO) {
+                    continue;
+                }
+
                 $userData = $people->user->toArray();
                 $typeLabel = 'Residente';
-                if ($people->type == \App\Models\Rol::AIRBNB) {
+                if ($people->type == Rol::AIRBNB) {
                     $typeLabel = 'Airbnb';
-                } elseif ($people->type == \App\Models\Rol::PROPIETARIO) {
+                } elseif ($people->type == Rol::PROPIETARIO) {
                     $typeLabel = 'Propietario';
                 }
                 $userData['type_label'] = $typeLabel;
@@ -175,26 +186,27 @@ class DepartamentController extends Controller
         $isDepartment = isset($inputs['type']) && $inputs['type'] == 1;
 
         $rules = [
-            'type'       => ['required', 'in:1,2,3'],
-            'number'     => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\\-]+$/i'],
+            'type' => ['required', 'in:1,2,3'],
+            'number' => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\\-]+$/i'],
             'participation_percentage' => ['required', 'numeric'],
-            'description' => ['nullable','regex:/^[a-z a-z 0-9 A-Z-À-ÿ ., \\-]+$/i'],
+            'description' => ['nullable', 'regex:/^[a-z a-z 0-9 A-Z-À-ÿ ., \\-]+$/i'],
         ];
 
         // Validaciones estrictas solo si es Departamento
         if ($isDepartment) {
             $rules['address'] = ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .,# &]+$/i'];
-            $rules['area']    = ['required', 'numeric'];
-            $rules['floor']   = ['required'];
-            $rules['block']   = ['nullable', 'regex:/^[a-z 0-9 A-Z À-ÿ .]+$/i'];
+            $rules['area'] = ['required', 'numeric'];
+            $rules['floor'] = ['required'];
+            $rules['block'] = ['nullable', 'regex:/^[a-z 0-9 A-Z À-ÿ .]+$/i'];
         } else {
             $rules['address'] = ['nullable'];
-            $rules['area']    = ['nullable'];
-            $rules['floor']   = ['nullable'];
-            $rules['block']   = ['nullable'];
+            $rules['area'] = ['nullable'];
+            $rules['floor'] = ['nullable'];
+            $rules['block'] = ['nullable'];
         }
 
         $validator = Validator::make($inputs, $rules);
+
         return $validator->errors()->all();
     }
 }

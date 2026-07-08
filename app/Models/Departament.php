@@ -2,23 +2,25 @@
 
 namespace App\Models;
 
+use Database\Factories\Api\DepartamentControllerFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use App\Models\Quota;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 // use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Departament extends Model
 {
-    /** @use HasFactory<\Database\Factories\Api\DepartamentControllerFactory> */
+    /** @use HasFactory<DepartamentControllerFactory> */
     use HasFactory;
 
     const TYPE_DEPARTAMENTO = 1;
+
     const TYPE_ESTACIONAMIENTO = 2;
+
     const TYPE_DEPOSITO = 3;
-    public $appends  =   ["inter_number", "pending_amount_quota", "type_label"];
+
+    public $appends = ['inter_number', 'pending_amount_quota', 'type_label'];
 
     protected $fillable = [
         'number',
@@ -32,56 +34,76 @@ class Departament extends Model
         'user_id',
         'participation_percentage',
     ];
+
     public function getInterNumberAttribute()
     {
         return substr($this->number, -3);
     }
+
     public function owner()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
+
     public function peoples()
     {
         return $this->hasMany(PeoplesXDepartaments::class, 'departament_id', 'id');
     }
+
+    public function activeTenantPivot()
+    {
+        return $this->peoples()
+            ->where('type', Rol::INQUILINO)
+            ->whereHas('user', fn ($q) => $q->where('status', '!=', 3)->whereNull('deleted_at'))
+            ->first();
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
+
     public function visits()
     {
         return $this->hasMany(Visit::class, 'departament_id', 'id');
     }
+
     public function quotas()
     {
         return $this->hasMany(Quota::class, 'departament_id');
     }
+
     public function pendingQuotas()
     {
         return $this->hasMany(Quota::class, 'departament_id')->where('status', '=', 1);
     }
+
     public function dueQuotas()
     {
         return $this->hasMany(Quota::class, 'departament_id')->where('status', '=', 4);
     }
+
     public function getTypeLabelAttribute()
     {
         $type = [
-            "",
-            "Departamento",
-            "Estacionamiento",
-            "Deposito",
+            '',
+            'Departamento',
+            'Estacionamiento',
+            'Deposito',
         ];
-        return  $type[$this->type];
+
+        return $type[$this->type];
     }
+
     protected function pendingAmountQuota(): Attribute
     {
         return Attribute::make(
             get: fn () => Quota::where('departament_id', $this->id)
-                            ->where('status', '!=', 3)
-                            ->value('amount')
+                ->where('status', '!=', 3)
+                ->value('amount')
         );
     }
+
     public function waterReadings()
     {
         return $this->hasMany(WaterReading::class, 'departament_id');

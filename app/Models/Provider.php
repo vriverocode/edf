@@ -19,20 +19,18 @@ class Provider extends Model
 
     public $appends = ['status_label'];
 
-
     public function getStatusLabelAttribute()
     {
         $statusLabels = [
-            "Inactivo",
-            "Activo"
+            'Inactivo',
+            'Activo',
         ];
 
         return $statusLabels[$this->status] ?? '—';
     }
+
     public function category()
     {
         return $this->belongsTo(ServiceCategory::class, 'service_category_id');
     }
-    
-
 }

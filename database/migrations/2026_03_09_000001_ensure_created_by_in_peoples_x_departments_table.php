@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('peoples_x_departments', function (Blueprint $table) {
-            if (!Schema::hasColumn('peoples_x_departments', 'created_by')) {
+            if (! Schema::hasColumn('peoples_x_departments', 'created_by')) {
                 $table->unsignedBigInteger('created_by')->nullable()->after('type');
                 $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
             }

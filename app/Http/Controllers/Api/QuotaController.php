@@ -8,6 +8,7 @@ use App\Models\Pay;
 use App\Models\Quota;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class QuotaController extends Controller
@@ -17,15 +18,16 @@ class QuotaController extends Controller
         $query = Quota::query();
 
         if ((int) $request->user()->id !== 1) {
-            $query->whereHas('departament', function (Builder $builder) use ($request) {
-                $builder->where('user_id', $request->user()->id);
+            $query->where(function (Builder $queryBuilder) use ($request) {
+                $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $request->user()->id))
+                    ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $request->user()->id));
             });
         }
 
         return $query->findOrFail($id);
     }
 
-    private function ensureAdmin(Request $request): ?\Illuminate\Http\JsonResponse
+    private function ensureAdmin(Request $request): ?JsonResponse
     {
         if ((int) $request->user()->id !== 1) {
             return $this->returnFail(403, ['message' => 'No autorizado']);
@@ -42,8 +44,9 @@ class QuotaController extends Controller
         $query = Quota::baseAdminQuery();
 
         if ($request->user()->id != 1) {
-            $query->whereHas('departament', function ($q) use ($request) {
-                $q->where('user_id', $request->user()->id);
+            $query->where(function (Builder $queryBuilder) use ($request) {
+                $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $request->user()->id))
+                    ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $request->user()->id));
             });
         }
 
@@ -124,19 +127,20 @@ class QuotaController extends Controller
 
     public function getByMonth(Request $request, $month)
     {
-        //
         $quotas = Quota::with([
             'pays' => function ($query) {
                 $query->where('status', '!=', 0)->orderByDesc('pay_date');
             },
             'pays.payMethod',
             'departament.owner',
+            'responsiblePivot.user',
         ])->orderBy('created_at', 'desc');
 
         $userQuota = $request->owner ?? $request->user()->id;
 
-        $quotas->whereHas('departament', function (Builder $query) use ($userQuota) {
-            $query->where('user_id', $userQuota);
+        $quotas->where(function (Builder $queryBuilder) use ($userQuota) {
+            $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $userQuota))
+                ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $userQuota));
         });
 
         $quotas->where('month', $month);
@@ -169,16 +173,21 @@ class QuotaController extends Controller
      */
     public function show(string $id)
     {
-        $baseQuota = Quota::with('departament')->findOrFail($id);
-        $userId = $baseQuota->departament->user_id;
+        $baseQuota = Quota::with('departament', 'responsiblePivot.user')->findOrFail($id);
+        $ownerId = $baseQuota->departament->user_id;
+        $tenantPivotId = $baseQuota->peoples_x_departments_id;
         $month = $baseQuota->month;
         $year = Carbon::parse($baseQuota->due_date)->year;
 
         $quotas = Quota::with([
             'departament.owner',
+            'responsiblePivot.user',
             'waterReading:id,month,year,previous_reading,current_reading,m3_price',
-        ])->whereHas('departament', function ($q) use ($userId) {
-            $q->where('user_id', $userId);
+        ])->where(function ($q) use ($ownerId, $tenantPivotId) {
+            $q->whereHas('departament', fn ($b) => $b->where('user_id', $ownerId));
+            if ($tenantPivotId) {
+                $q->orWhere('peoples_x_departments_id', $tenantPivotId);
+            }
         })
             ->where('month', $month)
             ->whereYear('due_date', $year)

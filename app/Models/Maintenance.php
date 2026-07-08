@@ -19,7 +19,8 @@ class Maintenance extends Model
         'status',
         'photo',
     ];
-    public $appends  =   ["status_label"];
+
+    public $appends = ['status_label'];
 
     /**
      * Obtiene el área común asociada al mantenimiento (si aplica)
@@ -28,14 +29,16 @@ class Maintenance extends Model
     {
         return $this->belongsTo(ComunArea::class, 'comun_area_id', 'id');
     }
+
     public function getStatusLabelAttribute()
     {
         $status = [
-            "Cancelada",
-            "Pendiente",
-            "Terminado",
-            "Pospuestas",
+            'Cancelada',
+            'Pendiente',
+            'Terminado',
+            'Pospuestas',
         ];
+
         return $status[$this->status] ?? '—';
     }
 }

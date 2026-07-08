@@ -23,7 +23,7 @@ return new class extends Migration
             $table->date('init_day');
             $table->date('end_date');
             $table->integer('status');
-            
+
             $table->timestamps();
         });
     }

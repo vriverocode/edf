@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('quotas', function (Blueprint $table) {
             //
-            $table->string("number")->nullable()->after("amount");
+            $table->string('number')->nullable()->after('amount');
         });
     }
 
