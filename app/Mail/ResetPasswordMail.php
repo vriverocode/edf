@@ -25,9 +25,9 @@ class ResetPasswordMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('admin@pacifik.com', 'Administrador Pacifik'),
+            from: new Address('test@edificiopacifik.com', 'Administración Pacifik'),
             replyTo: [
-                new Address('admin@pacifik.com', 'Administrador Pacifik'),
+                new Address('test@edificiopacifik.com', 'Administración Pacifik'),
             ],
             subject: 'Restablecer contraseña - Pacifik',
         );

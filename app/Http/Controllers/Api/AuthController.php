@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\ResetPasswordMail;
 use App\Models\User;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -69,7 +70,11 @@ class AuthController extends Controller
             'created_at' => now(),
         ]);
 
-        Mail::to($user->email)->send(new ResetPasswordMail($user, $token));
+        try {
+            Mail::to($user->email)->send(new ResetPasswordMail($user, $token));
+        } catch (Exception $e) {
+            return $this->returnFail(500, 'Error al enviar el correo. Intente nuevamente.');
+        }
 
         return $this->returnSuccess(200, [
             'message' => 'Correo enviado, recibirás un enlace para restablecer tu contraseña.',
