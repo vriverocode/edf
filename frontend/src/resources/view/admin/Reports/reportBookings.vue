@@ -54,39 +54,45 @@
       <div class="col-6">
         <q-card flat bordered class="q-pa-md">
           <div class="text-subtitle2 text-grey-8 q-mb-sm">Top 5 áreas más reservadas</div>
-          <q-list dense>
-            <q-item v-for="(area, i) in metrics.top_areas" :key="i" class="q-px-none">
-              <q-item-section avatar class="min-width-auto q-pr-sm">
-                <span class="text-weight-bold text-primary">#{{ i + 1 }}</span>
-              </q-item-section>
-              <q-item-section>{{ area.name }}</q-item-section>
-              <q-item-section side>
-                <q-badge color="primary">{{ area.total }}</q-badge>
-              </q-item-section>
-            </q-item>
-            <q-item v-if="metrics.top_areas?.length === 0" class="text-grey-5 q-px-none">
-              Sin datos
-            </q-item>
-          </q-list>
+          <div v-if="metrics.top_areas?.length === 0" class="text-grey-5 text-center q-py-md">Sin datos</div>
+          <div v-for="(area, i) in metrics.top_areas" :key="i" class="q-mb-sm">
+            <div class="row items-center q-mb-xs">
+              <div class="col text-weight-medium text-grey-8 text-no-wrap ellipsis">
+                #{{ i + 1 }} {{ area.name }}
+              </div>
+              <div class="col-auto text-grey-7 text-caption q-ml-sm">{{ area.total }}</div>
+              <div class="col-auto text-primary text-weight-medium q-ml-xs" style="min-width: 44px; text-align: right">
+                {{ area.percentage }}%
+              </div>
+            </div>
+            <q-linear-progress
+              :value="area.percentage / 100"
+              color="primary"
+              class="rounded-borders"
+              style="height: 8px"
+            />
+          </div>
         </q-card>
       </div>
       <div class="col-6">
         <q-card flat bordered class="q-pa-md">
-          <div class="text-subtitle2 text-grey-8 q-mb-sm">Top 5 días con más reservas</div>
-          <q-list dense>
-            <q-item v-for="(dia, i) in metrics.top_dias" :key="i" class="q-px-none">
-              <q-item-section avatar class="min-width-auto q-pr-sm">
-                <span class="text-weight-bold text-primary">#{{ i + 1 }}</span>
-              </q-item-section>
-              <q-item-section>{{ dia.date }}</q-item-section>
-              <q-item-section side>
-                <q-badge color="primary">{{ dia.total }}</q-badge>
-              </q-item-section>
-            </q-item>
-            <q-item v-if="metrics.top_dias?.length === 0" class="text-grey-5 q-px-none">
-              Sin datos
-            </q-item>
-          </q-list>
+          <div class="text-subtitle2 text-grey-8 q-mb-sm">Reservas por día de la semana</div>
+          <div v-if="metrics.top_dias?.length === 0" class="text-grey-5 text-center q-py-md">Sin datos</div>
+          <div v-for="(dia, i) in metrics.top_dias" :key="i" class="q-mb-sm">
+            <div class="row items-center q-mb-xs">
+              <div class="col text-weight-medium text-grey-8">{{ dia.day_name }}</div>
+              <div class="col-auto text-grey-7 text-caption q-ml-sm">{{ dia.total }}</div>
+              <div class="col-auto text-primary text-weight-medium q-ml-xs" style="min-width: 44px; text-align: right">
+                {{ dia.percentage }}%
+              </div>
+            </div>
+            <q-linear-progress
+              :value="dia.percentage / 100"
+              color="primary"
+              class="rounded-borders"
+              style="height: 8px"
+            />
+          </div>
         </q-card>
       </div>
     </div>

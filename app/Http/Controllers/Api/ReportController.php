@@ -55,7 +55,7 @@ class ReportController extends Controller
             };
         }
 
-        $filename = 'reporte-reservas-' . now()->format('Y-m-d-His') . '.xlsx';
+        $filename = 'reporte-reservas-'.now()->format('Y-m-d-His').'.xlsx';
 
         return Excel::download(new BookingsExport($filters), $filename);
     }
@@ -81,6 +81,8 @@ class ReportController extends Controller
 
         $active = (clone $base)->where('status', '!=', 0);
 
+        $activeTotal = (clone $active)->count();
+
         $topAreas = (clone $active)
             ->select('comun_area_id', DB::raw('count(*) as total'))
             ->groupBy('comun_area_id')
@@ -88,21 +90,34 @@ class ReportController extends Controller
             ->with('comunArea:id,name')
             ->take(5)
             ->get()
-            ->map(fn ($item) => [
-                'name' => $item->comunArea?->name ?? '—',
-                'total' => (int) $item->total,
-            ]);
+            ->map(function ($item) use ($activeTotal) {
+                return [
+                    'name' => $item->comunArea?->name ?? '—',
+                    'total' => (int) $item->total,
+                    'percentage' => $activeTotal ? round(((int) $item->total / $activeTotal) * 100, 1) : 0,
+                ];
+            });
+
+        $dayNames = [1 => 'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        $dayOrder = ['Lunes' => 0, 'Martes' => 1, 'Miércoles' => 2, 'Jueves' => 3, 'Viernes' => 4, 'Sábado' => 5, 'Domingo' => 6];
 
         $topDias = (clone $active)
-            ->select('date', DB::raw('count(*) as total'))
-            ->groupBy('date')
+            ->select(DB::raw('DAYOFWEEK(date) as day_num'), DB::raw('count(*) as total'))
+            ->whereNotNull('date')
+            ->groupBy('day_num')
             ->orderByDesc('total')
-            ->take(5)
             ->get()
-            ->map(fn ($item) => [
-                'date' => $item->date?->format('d/m/Y'),
-                'total' => (int) $item->total,
-            ]);
+            ->map(function ($item) use ($activeTotal, $dayNames) {
+                return [
+                    'day_name' => $dayNames[(int) $item->day_num] ?? '—',
+                    'total' => (int) $item->total,
+                    'percentage' => $activeTotal ? round(((int) $item->total / $activeTotal) * 100, 1) : 0,
+                ];
+            })
+            ->sortBy(function ($i) use ($dayOrder) {
+                return $dayOrder[$i['day_name']] ?? 99;
+            })
+            ->values();
 
         return $this->returnSuccess(200, [
             'total' => $total,
