@@ -7,6 +7,9 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
+        'http://localhost',             // Para desarrollo web local (Capacitor/Vite)
+        'capacitor://localhost',        // Para iOS nativo en Capacitor
+        'ionic://localhost',
         'http://192.168.1.27:8031',
         'http://192.168.31.117:8031',
         'https://192.168.31.117:8031',
@@ -15,7 +18,7 @@ return [
         'https://web.edificiopacifik.com',
         'http://web.edificiopacifik.com',
     ],
-    'allowed_origins_patterns' => ['*'],
+    'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
     'exposed_headers' => [],
     'max_age' => 0,

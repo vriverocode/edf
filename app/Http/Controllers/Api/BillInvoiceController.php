@@ -24,6 +24,11 @@ class BillInvoiceController extends Controller
 
     public function show(Request $request, int $quotaId)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $quota = Quota::with([
             'departament.owner',
             'waterReading',
@@ -49,6 +54,11 @@ class BillInvoiceController extends Controller
 
     public function downloadPdf(Request $request, int $quotaId)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $quota = Quota::with([
             'departament.owner',
             'waterReading',
@@ -83,6 +93,11 @@ class BillInvoiceController extends Controller
 
     public function previewPdf(Request $request, int $quotaId)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $quota = Quota::with([
             'departament.owner',
             'waterReading',
@@ -113,6 +128,11 @@ class BillInvoiceController extends Controller
 
     public function previewHtml(Request $request, int $quotaId)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $quota = Quota::with([
             'departament.owner',
             'waterReading',
@@ -139,6 +159,11 @@ class BillInvoiceController extends Controller
 
     public function sendEmail(Request $request, int $quotaId)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $quota = Quota::with([
             'departament.owner',
             'waterReading',
@@ -177,6 +202,11 @@ class BillInvoiceController extends Controller
 
     public function sendBulkEmails(Request $request, int $monthlyBillId)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $monthlyBill = MonthlyBills::find($monthlyBillId);
         if (! $monthlyBill) {
             return $this->returnFail(404, 'Presupuesto mensual no encontrado');
@@ -237,6 +267,11 @@ class BillInvoiceController extends Controller
 
     public function testSend(Request $request, int $quotaId)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $quota = Quota::with([
             'departament.owner',
             'waterReading',
@@ -266,6 +301,11 @@ class BillInvoiceController extends Controller
 
     public function listPaidQuotas(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $quotas = Quota::with([
             'departament.owner',
             'waterReading',

@@ -38,6 +38,11 @@ class FinancialAccountController extends Controller
 
     public function store(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'currency_id' => 'required|exists:currencies,id',
@@ -74,6 +79,11 @@ class FinancialAccountController extends Controller
 
     public function update(Request $request, $id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'currency_id' => 'required|exists:currencies,id',
@@ -110,6 +120,11 @@ class FinancialAccountController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'status' => 'required|integer|in:0,1',
         ]);

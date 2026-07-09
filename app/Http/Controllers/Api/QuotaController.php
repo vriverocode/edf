@@ -154,10 +154,20 @@ class QuotaController extends Controller
 
     public function getByPay($payId)
     {
+        $pay = Pay::with(['quotas.departament.owner', 'quotas.waterReading', 'payMethod', 'user'])->find($payId);
+        if (! $pay) {
+            return $this->returnFail(404, 'Pago no encontrado');
+        }
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            $userDepartments = $user->apartaments()->pluck('id');
+            $payDepartmentIds = $pay->quotas->pluck('departament_id');
+            if ($payDepartmentIds->intersect($userDepartments)->isEmpty()) {
+                return $this->returnFail(403, 'No autorizado');
+            }
+        }
 
-        $quotas = Pay::with(['quotas.departament.owner', 'quotas.waterReading', 'payMethod', 'user'])->find($payId);
-
-        return $this->returnSuccess(200, $quotas);
+        return $this->returnSuccess(200, $pay);
     }
 
     /**
@@ -171,102 +181,21 @@ class QuotaController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show($id)
     {
-        $baseQuota = Quota::with('departament', 'responsiblePivot.user')->findOrFail($id);
-        $ownerId = $baseQuota->departament->user_id;
-        $tenantPivotId = $baseQuota->peoples_x_departments_id;
-        $month = $baseQuota->month;
-        $year = Carbon::parse($baseQuota->due_date)->year;
-
-        $quotas = Quota::with([
-            'departament.owner',
-            'responsiblePivot.user',
-            'waterReading:id,month,year,previous_reading,current_reading,m3_price',
-        ])->where(function ($q) use ($ownerId, $tenantPivotId) {
-            $q->whereHas('departament', fn ($b) => $b->where('user_id', $ownerId));
-            if ($tenantPivotId) {
-                $q->orWhere('peoples_x_departments_id', $tenantPivotId);
+        $quota = Quota::find($id);
+        if (! $quota) {
+            return $this->returnFail(404, 'Cuota no encontrada');
+        }
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            $userDepartments = $user->apartaments()->pluck('id');
+            if (! $userDepartments->contains($quota->departament_id)) {
+                return $this->returnFail(403, 'No autorizado');
             }
-        })
-            ->where('month', $month)
-            ->whereYear('due_date', $year)
-            ->get();
-
-        $monthlyBill = MonthlyBills::query()
-            ->select('id', 'total_maintenance_budget', 'water_price_per_m3')
-            ->where('month', $month)
-            ->where('year', $year)
-            ->latest('id')
-            ->first();
-
-        $totalMaintenance = 0;
-        $totalWater = 0;
-        $totalAmount = 0;
-        $totalParticipation = 0;
-        $waterConsumptionM3 = 0;
-        $waterPricePerM3 = $monthlyBill?->water_price_per_m3 ?? 0;
-
-        $quotaIds = [];
-        $descriptionLines = [];
-        $breakdown = []; // <-- NUEVO: Array para guardar el detalle por unidad
-
-        foreach ($quotas as $q) {
-            $totalMaintenance += $q->maintenance_amount;
-            $totalWater += $q->water_amount;
-            $totalAmount += $q->amount;
-            $totalParticipation += $q->departament?->participation_percentage ?? 0;
-            $quotaIds[] = $q->id;
-
-            $waterM3 = 0;
-            if ($q->waterReading) {
-                $waterM3 = max(0, (float) $q->waterReading->current_reading - (float) $q->waterReading->previous_reading);
-                $waterConsumptionM3 += $waterM3;
-                $waterPricePerM3 = $q->waterReading->m3_price ?? $waterPricePerM3;
-            }
-
-            // <-- NUEVO: Llenamos el array de desglose
-            $breakdown[] = [
-                'id' => $q->id,
-                'unit_type' => $q->departament->type ?? 1,
-                'unit_number' => $q->departament->number,
-                'maintenance_amount' => $q->maintenance_amount,
-                'water_amount' => $q->water_amount,
-                'water_consumption_m3' => $waterM3,
-                'amount' => $q->amount,
-                'participation' => $q->departament->participation_percentage,
-            ];
-
-            $unitType = match ((int) ($q->departament->type ?? 1)) {
-                2 => 'Estacionamiento',
-                3 => 'Deposito',
-                default => 'Departamento',
-            };
-
-            $descriptionLines[] = sprintf(
-                '%s %s: Mantenimiento %.2f | Agua %.2f | Total %.2f',
-                $unitType,
-                $q->departament->number,
-                (float) $q->maintenance_amount,
-                (float) $q->water_amount,
-                (float) $q->amount
-            );
         }
 
-        $quotaData = $baseQuota->toArray();
-        $quotaData['maintenance_amount'] = $totalMaintenance;
-        $quotaData['water_amount'] = $totalWater;
-        $quotaData['amount'] = $totalAmount;
-        $quotaData['water_consumption_m3'] = $waterConsumptionM3;
-        $quotaData['water_price_per_m3'] = $waterPricePerM3;
-        $quotaData['maintenance_participation_percentage'] = $totalParticipation;
-        $quotaData['maintenance_budget_total'] = $monthlyBill?->total_maintenance_budget;
-        $quotaData['monthly_bill_id'] = $monthlyBill?->id;
-        $quotaData['consolidated_ids'] = $quotaIds;
-        $quotaData['description'] = implode("\n", $descriptionLines);
-        $quotaData['breakdown'] = $breakdown; // <-- NUEVO: Lo pasamos al front
-
-        return $this->returnSuccess(200, $quotaData);
+        return $this->returnSuccess(200, $quota);
     }
 
     public function clientWaterDetail(Request $request, string $id)

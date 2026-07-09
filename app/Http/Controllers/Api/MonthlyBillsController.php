@@ -88,6 +88,10 @@ class MonthlyBillsController extends Controller
 
     public function store(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
         try {
             $validated = $request->validate([
                 'month' => ['required', 'integer', 'between:1,12',
@@ -148,6 +152,10 @@ class MonthlyBillsController extends Controller
 
     public function update(Request $request, int $id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
         $monthlyBill = MonthlyBills::find($id);
         if (! $monthlyBill) {
             return $this->returnFail(404, 'Presupuesto mensual no encontrado');

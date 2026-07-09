@@ -24,6 +24,11 @@ class TransactionCategoryController extends Controller
 
     public function store(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'type' => 'nullable|integer|in:1,2',

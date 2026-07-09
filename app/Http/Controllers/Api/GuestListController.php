@@ -155,7 +155,7 @@ class GuestListController extends Controller
     {
         date_default_timezone_set('America/Lima');
         $now = Carbon::now();
-        $bookingDateTime = Carbon::parse($booking->date.' '.$booking->time_from);
+        $bookingDateTime = Carbon::parse($booking->date->format('Y-m-d').' '.$booking->time_from);
 
         return $now->diffInMinutes($bookingDateTime, false) <= self::BLOCK_MINUTES;
     }

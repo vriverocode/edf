@@ -134,6 +134,13 @@ class NoticeController extends Controller
 
     public function setNewStatus(Request $request, $noticeId)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'Solo el administrador puede cambiar el estado de noticias'], 403);
+        }
+
+        $request->validate(['status' => 'required|integer|in:0,1,2']);
+
         $notice = Notice::findOrFail($noticeId);
         $notice->update([
             'status' => $request->status,

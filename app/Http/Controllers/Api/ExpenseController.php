@@ -105,6 +105,10 @@ class ExpenseController extends Controller
 
     public function store(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
         try {
             $validated = $this->validateExpense($request);
         } catch (ValidationException $e) {
@@ -119,6 +123,10 @@ class ExpenseController extends Controller
 
     public function update(Request $request, int $id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
         $expense = Expense::find($id);
         if (! $expense) {
             return $this->returnFail(404, 'Gasto no encontrado');

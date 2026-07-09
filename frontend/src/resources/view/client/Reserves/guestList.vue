@@ -33,7 +33,7 @@ const canAddGuest = computed(() => !isLocked.value && guestCount.value < maxGues
 
 const lockMinutesRemaining = computed(() => {
   if (!booking.value) return null
-  const bookingDateTime = moment(booking.value.date + ' ' + booking.value.time_from)
+  const bookingDateTime = moment(moment(booking.value.date).format('YYYY-MM-DD') + ' ' + booking.value.time_from)
   const diff = bookingDateTime.diff(now.value, 'minutes')
   return diff > 0 ? diff : 0
 })
@@ -48,7 +48,7 @@ const startTimer = () => {
   timer = setInterval(() => {
     now.value = moment()
     if (booking.value) {
-      const bookingDateTime = moment(booking.value.date + ' ' + booking.value.time_from)
+      const bookingDateTime = moment(moment(booking.value.date).format('YYYY-MM-DD') + ' ' + booking.value.time_from)
       isLocked.value = now.value.diff(bookingDateTime, 'minutes') <= 60
     }
   }, 30000)
@@ -109,23 +109,17 @@ onUnmounted(() => {
 
       <!-- Content -->
       <div v-else class="px-4 py-6 md:px-28">
-        <!-- Header -->
-        <div class="flex items-center q-mb-md">
-          <q-btn flat round icon="arrow_back" color="primary" @click="goBack" />
-          <div class="text-h6 text-primary q-ml-sm font-bold">Lista de invitados</div>
-        </div>
-
         <!-- Booking Info -->
         <div v-if="booking" class="bg-white rounded-xl shadow-md border border-gray-100 p-4 q-mb-md">
           <div class="text-subtitle1 font-bold text-grey-9 q-mb-sm">
             {{ booking.comun_area?.name || 'Area comun' }}
           </div>
           <div class="row items-center text-body2 text-grey-7 q-mb-xs">
-            <q-icon name="calendar_today" size="1rem" class="q-mr-sm" />
+            <q-icon name="eva-calendar-outline" size="1rem" class="q-mr-sm" />
             {{ moment(booking.date).format('DD MMM YYYY') }}
           </div>
           <div class="row items-center text-body2 text-grey-7">
-            <q-icon name="schedule" size="1rem" class="q-mr-sm" />
+            <q-icon name="eva-clock-outline" size="1rem" class="q-mr-sm" />
             {{ booking.time_from }} - {{ booking.time_to }}
           </div>
         </div>
@@ -133,7 +127,7 @@ onUnmounted(() => {
         <!-- Lock Warning -->
         <div v-if="isLockedDisplay" class="bg-orange-1 rounded-xl border border-orange-3 p-3 q-mb-md">
           <div class="row items-center">
-            <q-icon name="lock" color="orange-8" size="1.2rem" class="q-mr-sm" />
+            <q-icon name="eva-lock-outline" color="orange-8" size="1.2rem" class="q-mr-sm" />
             <div class="text-body2 text-orange-9">
               <b>Bloqueado:</b> Ya falta 1 hora o menos para el inicio de la reserva.
               No se pueden agregar, editar ni eliminar invitados.
@@ -164,10 +158,10 @@ onUnmounted(() => {
                 <div v-if="guest.age" class="text-caption text-grey-6">Edad: {{ guest.age }}</div>
               </div>
               <div class="row items-center q-gutter-xs" v-if="!isLockedDisplay">
-                <q-btn flat round icon="edit" color="warning" size="sm" @click="openEditModal(guest)">
+                <q-btn flat round icon="eva-edit-2-outline" color="warning" size="sm" @click="openEditModal(guest)">
                   <q-tooltip>Editar</q-tooltip>
                 </q-btn>
-                <q-btn flat round icon="delete" color="negative" size="sm" @click="openDeleteModal(guest)">
+                <q-btn flat round icon="eva-trash-2-outline" color="negative" size="sm" @click="openDeleteModal(guest)">
                   <q-tooltip>Eliminar</q-tooltip>
                 </q-btn>
               </div>
@@ -178,11 +172,7 @@ onUnmounted(() => {
         <!-- Empty State -->
         <div v-else class="flex flex-col items-center justify-center py-16">
           <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center q-mb-md">
-            <svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z">
-              </path>
-            </svg>
+            <q-icon name="eva-people-outline" size="2.5rem" class="text-blue-500" />
           </div>
           <h3 class="text-body1 font-semibold text-grey-9 q-mb-sm">No hay invitados</h3>
           <p class="text-grey-6 text-center">

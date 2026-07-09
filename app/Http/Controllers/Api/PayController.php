@@ -45,6 +45,11 @@ class PayController extends Controller
             return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Pago no encontrado']);
         }
 
+        $user = request()->user();
+        if ($user->rol_id != 1 && $pay->user_id !== $user->id) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+
         if ((int) $pay->type === 1) {
             $consolidated = $pay->quotas;
             if ($consolidated->isEmpty()) {
@@ -102,8 +107,10 @@ class PayController extends Controller
             $quotaIdsForPay = $consolidatedIdsForStore;
         }
 
+        $user = $request->user();
+
         $pay = Pay::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $user->id,
             'booking_id' => $request->type == 2 ? $request->to_pay_id : null,
             'quota_id' => $quotaIdsForPay ? $quotaIdsForPay[0] : null,
             'consolidated_ids' => $quotaIdsForPay,

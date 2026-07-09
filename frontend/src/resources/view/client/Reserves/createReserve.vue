@@ -719,6 +719,7 @@ watch(step,
                                   text-color="white" size="0.8rem">
                                   <div style="font-size: 0.7rem;" class="">
                                     {{ selectedInterval?.id !== index ? interval.status : 'Seleccionado' }}
+                                    <span v-if="selectedComunArea?.max_cupo" class="q-ml-xs">({{ interval.available }}/{{ selectedComunArea.max_cupo }})</span>
                                   </div>
                                 </q-chip>
                               </div>
@@ -1175,7 +1176,7 @@ watch(step,
                           S/ {{ selectedComunArea.warranty_price.toFixed(2) }}
                         </div>
                       </div>
-                      <div class="text-grey-8 mt-2" style="font-size: 0.85rem; line-height: 1.4;">
+                      <div class="text-grey-8 mt-1" style="font-size: 0.8rem; line-height: 1.4;">
                        Se requiere para todas las reservas y se devuelve una vez finalizada la actividad, previa inspección del área.
                       </div>
                     </div>

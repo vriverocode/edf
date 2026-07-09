@@ -52,6 +52,11 @@ class RuleController extends Controller
 
     public function store(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $validated = $this->validateFieldsFromInput($request->all());
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);
@@ -73,6 +78,11 @@ class RuleController extends Controller
 
     public function update(Request $request, $id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $rule = Rule::find($id);
         if (! $rule) {
             return $this->returnFail(404, 'Regla no encontrada');
@@ -99,6 +109,11 @@ class RuleController extends Controller
 
     public function deleteRule($id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $rule = Rule::find($id);
         if (! $rule) {
             return $this->returnFail(404, 'Regla no encontrada');

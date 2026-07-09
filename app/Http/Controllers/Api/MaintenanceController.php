@@ -26,6 +26,11 @@ class MaintenanceController extends Controller
 
     public function store(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $validated = $this->validateFieldsFromInput($request->all());
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);

@@ -81,14 +81,21 @@ class DepartamentController extends Controller
 
     public function assingApartment(Request $request)
     {
-        // -
-        if ($request->user()->id == 1) {
-            Departament::find($request->idApartament)->update([
-                'user_id' => $request->user,
-            ]);
+        $user = $request->user();
+        if ($user->rol_id != 1) {
+            return $this->returnFail(403, 'Solo los administradores pueden asignar departamentos');
         }
 
-        return $this->returnSuccess(200, 'ok');
+        $departament = Departament::find($request->idApartament);
+        if (! $departament) {
+            return $this->returnFail(404, 'Departamento no encontrado');
+        }
+
+        $departament->update([
+            'user_id' => $request->user,
+        ]);
+
+        return $this->returnSuccess(200, 'Asignado con éxito');
     }
 
     public function getApartmentsByUser(Request $request)
@@ -117,7 +124,20 @@ class DepartamentController extends Controller
             return $this->returnFail(404, 'No encontrado');
         }
 
-        $apartment->update($request->all());
+        if (! $this->verifyApartmentOwnership($apartment)) {
+            return $this->returnFail(403, 'No tienes permiso para modificar este departamento');
+        }
+
+        $apartment->update([
+            'number' => $request->number,
+            'address' => $request->address,
+            'block' => $request->block,
+            'area' => $request->area,
+            'floor' => $request->floor,
+            'description' => $request->description,
+            'participation_percentage' => $request->participation_percentage,
+            'type' => $request->type,
+        ]);
 
         return $this->returnSuccess(200, $apartment);
     }
@@ -179,6 +199,13 @@ class DepartamentController extends Controller
         }
 
         return $this->returnSuccess(200, $residents);
+    }
+
+    private function verifyApartmentOwnership($departament): bool
+    {
+        $user = request()->user();
+
+        return $user->rol_id == 1 || $departament->user_id === $user->id;
     }
 
     private function validateFieldsFromInput($inputs)

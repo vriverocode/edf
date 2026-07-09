@@ -77,6 +77,18 @@ onMounted(() => {
 
 <template>
   <div class="h-full" style="overflow: hidden;">
+     <div class="reserve-list-footer px-4 md:flex md:justify-center items-center md:w-full md:px-12"
+      style="min-height: 10%;">
+      <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
+        style="border-radius: 0.5rem; width: 100%;" @click="goTo('/client/reserves/form/add')">
+        <div class="flex items-center py-2">
+          <q-icon name="eva-plus-outline" />
+          <div class="q-pt-xs text-bold pl-1">
+            Agregar reserva
+          </div>
+        </div>
+      </q-btn>
+    </div>
     <div class="" style="height: 90%; overflow: auto;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
@@ -202,7 +214,7 @@ onMounted(() => {
                     <q-tooltip class="bg-primary text-white text-body2" :offset="[10, 10]">
                       Lista de invitados
                     </q-tooltip>
-                    <q-icon name="people" size="1.1rem" />
+                    <q-icon name="eva-list-outline" size="1.1rem" />
                   </q-btn>
                   <div flat rounded color="primary" size="sm" class="ml-3 cursor-pointer">
                     <div v-html="iconsApp.optionsBook" />
@@ -257,18 +269,7 @@ onMounted(() => {
       </div>
     </div>
     <!-- Botón flotante para crear reserva -->
-    <div class="reserve-list-footer px-4 md:flex md:justify-center items-center md:w-full md:px-12"
-      style="min-height: 10%;">
-      <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
-        style="border-radius: 0.5rem; width: 100%;" @click="goTo('/client/reserves/form/add')">
-        <div class="flex items-center py-2">
-          <q-icon name="eva-plus-outline" />
-          <div class="q-pt-xs text-bold pl-1">
-            Agregar reserva
-          </div>
-        </div>
-      </q-btn>
-    </div>
+   
     <template v-if="Object.values(selectedReserve).length > 0">
       <cancelReserveModal :dialog="(dialog == 'cancel')" :reserve="selectedReserve" @closeModal="dialog = ''"
         @updateList="getReserves()" />

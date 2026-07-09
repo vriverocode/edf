@@ -32,17 +32,21 @@ use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// ─── PUBLIC ROUTES ───────────────────────────────────────────
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/validate-reset-token', [ResetPasswordController::class, 'validateToken']);
 Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
-Route::post('/pruebaCorreo', [PayController::class, 'claimsByPay']);
-
-Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
 Route::get('/app-version', [ConfigController::class, 'getAppVersion']);
-Route::middleware('auth:sanctum')->post('/token-movile', [UserController::class, 'saveTokenMovile']);
+
+// ─── TEST ROUTES (kept per user request) ─────────────────────
+Route::post('/pruebaCorreo', [PayController::class, 'claimsByPay']);
+Route::post('/prueba/notify', [UserController::class, 'pruebaRealtimeNotification']);
+
+// ─── AUTHENTICATED ROUTES ────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
-    // --- Login/Auth ---
+
+    // ── Auth / User profile ──────────────────────────────────
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'units' => function ($query) {
@@ -62,70 +66,94 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return $userData;
     });
+    Route::middleware('auth:sanctum')->post('/token-movile', [UserController::class, 'saveTokenMovile']);
 
+    // ── Users ────────────────────────────────────────────────
     Route::prefix('users')->name('user.')->group(function () {
+        // Read
         Route::get('/', [UserController::class, 'getOwners']);
         Route::get('/byId/{id}', [UserController::class, 'getUserById']);
         Route::get('/get-resident', [UserController::class, 'getResident']);
         Route::get('/without-apartment', [UserController::class, 'getOwnersWithoutApartment']);
+        Route::get('/with-publish', [UserController::class, 'getAllUserWithPublish']);
+        Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin']);
+        Route::get('/resident/{id}/bookings', [UserController::class, 'getResidentBookings']);
 
+        // Write - ownership or admin
         Route::post('/', [UserController::class, 'store']);
         Route::post('/byPropietario', [UserController::class, 'store']);
         Route::post('/temporary-or-resident', [UserController::class, 'storeResidentUser']);
         Route::post('/complete-first-time', [UserController::class, 'completeFirstTime']);
-
         Route::delete('/d/{id}', [UserController::class, 'destroy']);
         Route::put('/resident/{id}', [UserController::class, 'updateResident']);
-        Route::get('/resident/{id}/bookings', [UserController::class, 'getResidentBookings']);
-
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment']);
         Route::post('/assign-property', [DepartamentController::class, 'assingApartment']);
-        Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin']);
-        Route::get('/with-publish', [UserController::class, 'getAllUserWithPublish']);
     });
-    Route::prefix('apartments')->name('apartment.')->group(function () {
-        Route::get('/', [DepartamentController::class, 'paginationApartment']);
-        Route::post('/', [DepartamentController::class, 'storeApartment']);
-        Route::post('/u/{id}', [DepartamentController::class, 'updateApartment']);
-        Route::get('/byId/{id}', [DepartamentController::class, 'getApartmentById']);
 
+    // ── Apartments ───────────────────────────────────────────
+    Route::prefix('apartments')->name('apartment.')->group(function () {
+        // Read
+        Route::get('/', [DepartamentController::class, 'paginationApartment']);
+        Route::get('/byId/{id}', [DepartamentController::class, 'getApartmentById']);
         Route::get('/byFind', [DepartamentController::class, 'apartmentsByfind']);
         Route::get('/byUser', [DepartamentController::class, 'getApartmentsByUser']);
+        // Write - admin only
+        Route::post('/', [DepartamentController::class, 'storeApartment'])->middleware('role:admin,super-admin');
+        Route::post('/u/{id}', [DepartamentController::class, 'updateApartment'])->middleware('role:admin,super-admin');
     });
+
+    // ── Comun Areas ──────────────────────────────────────────
     Route::prefix('comun-area')->name('comun.area.')->group(function () {
+        // Read
         Route::get('/', [ComunAreaController::class, 'paginationAreas']);
         Route::get('/all', [ComunAreaController::class, 'getAll']);
         Route::get('/byId/{id}', [ComunAreaController::class, 'comunAreaById']);
         Route::get('/bySearch', [ComunAreaController::class, 'AreasBySearch']);
-        Route::post('/', [ComunAreaController::class, 'storeArea']);
-        Route::post('/u/{id}', [ComunAreaController::class, 'updateArea']);
-        Route::post('/d/{id}', [ComunAreaController::class, 'deleteArea']);
+        // Write - admin only
+        Route::post('/', [ComunAreaController::class, 'storeArea'])->middleware('role:admin,super-admin');
+        Route::post('/u/{id}', [ComunAreaController::class, 'updateArea'])->middleware('role:admin,super-admin');
+        Route::post('/d/{id}', [ComunAreaController::class, 'deleteArea'])->middleware('role:admin,super-admin');
     });
+
+    // ── Rules ────────────────────────────────────────────────
     Route::prefix('rules')->name('rule.')->group(function () {
+        // Read
         Route::get('/', [RuleController::class, 'index']);
         Route::get('/byId/{id}', [RuleController::class, 'ruleById']);
-        Route::post('/', [RuleController::class, 'store']);
-        Route::post('/u/{id}', [RuleController::class, 'update']);
-        Route::post('/d/{id}', [RuleController::class, 'deleteRule']);
+        // Write - admin only
+        Route::post('/', [RuleController::class, 'store'])->middleware('role:admin,super-admin');
+        Route::post('/u/{id}', [RuleController::class, 'update'])->middleware('role:admin,super-admin');
+        Route::post('/d/{id}', [RuleController::class, 'deleteRule'])->middleware('role:admin,super-admin');
     });
+
+    // ── Multas ───────────────────────────────────────────────
     Route::prefix('multas')->name('multa.')->group(function () {
+        // Read
         Route::get('/', [MultaController::class, 'index']);
         Route::get('/byId/{id}', [MultaController::class, 'multaById']);
-        Route::post('/', [MultaController::class, 'store']);
-        Route::post('/u/{id}', [MultaController::class, 'update']);
-        Route::post('/d/{id}', [MultaController::class, 'deleteMulta']);
+        // Write - admin only
+        Route::post('/', [MultaController::class, 'store'])->middleware('role:admin,super-admin');
+        Route::post('/u/{id}', [MultaController::class, 'update'])->middleware('role:admin,super-admin');
+        Route::post('/d/{id}', [MultaController::class, 'deleteMulta'])->middleware('role:admin,super-admin');
     });
+
+    // ── Bookings ─────────────────────────────────────────────
     Route::prefix('bookings')->name('booking.')->group(function () {
+        // Read
         Route::get('/', [BookingController::class, 'getBookingsByUser']);
-        Route::post('/', [BookingController::class, 'storeBooking']);
         Route::get('/availableBooking/{id}', [BookingController::class, 'getAvaibleBookingByDay']);
         Route::get('/byId/{id}', [BookingController::class, 'getBookingById']);
         Route::get('/byArea/{id}', [BookingController::class, 'getBookingByAreaId']);
         Route::get('/extension-slots/{id}', [BookingController::class, 'getExtensionSlots']);
+        // Write - ownership checked in controller
+        Route::post('/', [BookingController::class, 'storeBooking']);
         Route::post('/extension', [BookingController::class, 'storeExtension']);
         Route::post('/cancel/{id}', [BookingController::class, 'cancelBooking']);
-        Route::get('/pendings', [BookingController::class, 'getPendings']);
+        // Admin only
+        Route::get('/pendings', [BookingController::class, 'getPendings'])->middleware('role:admin,super-admin');
     });
+
+    // ── Guest Lists ──────────────────────────────────────────
     Route::prefix('bookings/{id}/guests')->name('booking.guests.')->group(function () {
         Route::get('/', [GuestListController::class, 'getByBooking']);
         Route::post('/', [GuestListController::class, 'store']);
@@ -134,30 +162,36 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{id}', [GuestListController::class, 'update']);
         Route::delete('/{id}', [GuestListController::class, 'destroy']);
     });
+
+    // ── Events ───────────────────────────────────────────────
     Route::prefix('events')->name('event.')->group(function () {
+        // Read
         Route::get('/', [EventController::class, 'get']);
-        Route::post('/', [EventController::class, 'create']);
         Route::get('/byId/{id}', [EventController::class, 'show']);
-        Route::delete('/{id}', [EventController::class, 'destroy']);
-        Route::post('/{id}', [EventController::class, 'update']);
-        Route::post('/set-assits/{id}', [EventController::class, 'setAssist']);
-        // Route::get('/availableBooking/{id}', [EventController::class, 'getAvaibleBookingByDay']);
-        // Route::get('/byArea/{id}', [EventController::class, 'getBookingByAreaId']);
-        // Route::post('/cancel/{id}', [EventController::class, 'cancelBooking']);
-        // Route::get('/pendings', [EventController::class, 'getPendings']);
+        Route::post('/set-assists/{id}', [EventController::class, 'setAssist']);
+        // Write - admin only
+        Route::post('/', [EventController::class, 'create'])->middleware('role:admin,super-admin');
+        Route::delete('/{id}', [EventController::class, 'destroy'])->middleware('role:admin,super-admin');
+        Route::post('/{id}', [EventController::class, 'update'])->middleware('role:admin,super-admin');
     });
+
+    // ── Payments ─────────────────────────────────────────────
     Route::prefix('pays')->name('pay.')->group(function () {
+        // Read
         Route::get('/', [PayController::class, 'getPaysByUser']);
+        Route::get('/byId/{id}', [PayController::class, 'getPayById']);
+        Route::get('/claims/sequence', [PayController::class, 'getClaimSequence']);
+        // Write - ownership checked in controller
         Route::post('/bookings', [PayController::class, 'storePay']);
         Route::post('/quotas', [PayController::class, 'storePay']);
-        Route::get('/byId/{id}', [PayController::class, 'getPayById']);
-        Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus']);
-        Route::post('/validate/{id}', [PayController::class, 'validatePayment']);
-        Route::get('/claims/sequence', [PayController::class, 'getClaimSequence']);
-        Route::post('/claims', [PayController::class, 'claimsByPay']);
-
         Route::post('/culqi-payment', [PayController::class, 'processCulqiPayment']);
+        Route::post('/claims', [PayController::class, 'claimsByPay']);
+        // Admin only
+        Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus'])->middleware('role:admin,super-admin');
+        Route::post('/validate/{id}', [PayController::class, 'validatePayment'])->middleware('role:admin,super-admin');
     });
+
+    // ── Notifications ────────────────────────────────────────
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [NotificationController::class, 'index']);
         Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
@@ -165,18 +199,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/mark-all-as-read', [NotificationController::class, 'markAllAsRead']);
         Route::delete('/{id}', [NotificationController::class, 'destroy']);
     });
+
+    // ── Quotas ───────────────────────────────────────────────
     Route::prefix('quotas')->name('quota.')->group(function () {
+        // Read
         Route::get('/', [QuotaController::class, 'index']);
-        Route::get('/admin/monthly-summary', [QuotaController::class, 'adminMonthlySummary']);
-        Route::get('/admin/by-month/{month}', [QuotaController::class, 'adminGroupedByOwnerForMonth']);
         Route::get('/byMonth/{id}', [QuotaController::class, 'getByMonth']);
         Route::get('/byPay/{id}', [QuotaController::class, 'getByPay']);
-
         Route::get('/byId/{id}', [QuotaController::class, 'show']);
-
         Route::get('/client-water-detail/{id}', [QuotaController::class, 'clientWaterDetail']);
         Route::get('/client-maintenance-detail/{id}', [QuotaController::class, 'clientMaintenanceDetail']);
+        // Admin only
+        Route::get('/admin/monthly-summary', [QuotaController::class, 'adminMonthlySummary'])->middleware('role:admin,super-admin');
+        Route::get('/admin/by-month/{month}', [QuotaController::class, 'adminGroupedByOwnerForMonth'])->middleware('role:admin,super-admin');
     });
+
+    // ── Visits ───────────────────────────────────────────────
     Route::prefix('visits')->name('visit.')->group(function () {
         Route::get('/', [VisitController::class, 'getVisitsByUser']);
         Route::get('/search', [VisitController::class, 'getVisitsByUser']);
@@ -185,6 +223,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [VisitController::class, 'storeVisit']);
         Route::delete('/{id}', [VisitController::class, 'destroy']);
     });
+
+    // ── Security (trabajador) ────────────────────────────────
     Route::prefix('security')->name('security.visit.')->middleware('role:trabajador')->group(function () {
         Route::get('/visits', [VisitController::class, 'getVisitsForSecurity']);
         Route::get('/visits/search', [VisitController::class, 'getVisitsForSecurity']);
@@ -192,87 +232,112 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/visits/arrived/{id}', [VisitController::class, 'markVisitArrived']);
         Route::get('/airbnb', [VisitController::class, 'getAirbnbForSecurity']);
         Route::get('/airbnb/filter-options', [VisitController::class, 'getAirbnbFilterOptionsForSecurity']);
-
-        // Bookings
         Route::get('/bookings', [BookingController::class, 'getBookingsForSecurity']);
         Route::post('/bookings/cancel-maintenance/{id}', [BookingController::class, 'cancelBookingForMaintenance']);
-
-        // Departments
         Route::get('/departments/inhabited', [DepartamentController::class, 'getInhabitedDepartments']);
         Route::get('/departments/{id}/residents', [DepartamentController::class, 'getDepartmentResidents']);
     });
+
+    // ── Notices ──────────────────────────────────────────────
     Route::prefix('notices')->name('notice.')->group(function () {
+        // Read + write (ownership checked in controller)
         Route::get('/', [NoticeController::class, 'index']);
         Route::get('/byId/{id}', [NoticeController::class, 'show']);
         Route::post('/', [NoticeController::class, 'store']);
         Route::post('/set-viewer/{id}', [NoticeController::class, 'setViewer']);
-        Route::post('/set-new-status/{id}', [NoticeController::class, 'setNewStatus']);
         Route::delete('/{id}', [NoticeController::class, 'delete']);
         Route::post('/{id}', [NoticeController::class, 'update']);
-    });
-    Route::prefix('maintenances')->name('maintenance.')->group(function () {
-        Route::get('/', [MaintenanceController::class, 'index']);
-        Route::post('/', [MaintenanceController::class, 'store']);
-    });
-    Route::prefix('pay-method')->name('payMethod.')->group(function () {
-        Route::get('/', [PayMethodController::class, 'index']);
-        Route::post('/', [PayMethodController::class, 'store']);
-        Route::get('/byId/{id}', [PayMethodController::class, 'show']);
-        Route::post('/u/{id}', [PayMethodController::class, 'update']);
-        Route::post('/status/{id}', [PayMethodController::class, 'updateStatus']);
+        // Admin only - status changes
+        Route::post('/set-new-status/{id}', [NoticeController::class, 'setNewStatus'])->middleware('role:admin,super-admin');
     });
 
+    // ── Maintenances ─────────────────────────────────────────
+    Route::prefix('maintenances')->name('maintenance.')->group(function () {
+        // Read
+        Route::get('/', [MaintenanceController::class, 'index']);
+        // Write - admin only
+        Route::post('/', [MaintenanceController::class, 'store'])->middleware('role:admin,super-admin');
+    });
+
+    // ── Pay Methods ──────────────────────────────────────────
+    Route::prefix('pay-method')->name('payMethod.')->group(function () {
+        // Read
+        Route::get('/', [PayMethodController::class, 'index']);
+        Route::get('/byId/{id}', [PayMethodController::class, 'show']);
+        // Write - admin only
+        Route::post('/', [PayMethodController::class, 'store'])->middleware('role:admin,super-admin');
+        Route::post('/u/{id}', [PayMethodController::class, 'update'])->middleware('role:admin,super-admin');
+        Route::post('/status/{id}', [PayMethodController::class, 'updateStatus'])->middleware('role:admin,super-admin');
+    });
+
+    // ── Monthly Bills ────────────────────────────────────────
     Route::prefix('monthly-bills')->name('monthlyBills.')->group(function () {
+        // Read
         Route::get('/', [MonthlyBillsController::class, 'index']);
         Route::get('/exists-for-period', [MonthlyBillsController::class, 'existsForPeriod']);
         Route::get('/byId/{id}', [MonthlyBillsController::class, 'show']);
-        Route::post('/', [MonthlyBillsController::class, 'store']);
-        Route::post('/u/{id}', [MonthlyBillsController::class, 'update']);
+        // Write - admin only
+        Route::post('/', [MonthlyBillsController::class, 'store'])->middleware('role:admin,super-admin');
+        Route::post('/u/{id}', [MonthlyBillsController::class, 'update'])->middleware('role:admin,super-admin');
     });
 
+    // ── Water Readings ───────────────────────────────────────
     Route::prefix('water-readings')->name('waterReadings.')->group(function () {
-        Route::get('/', [WaterReadingController::class, 'index']);
-        Route::get('/byId/{id}', [WaterReadingController::class, 'show']);
-        Route::get('/last-by-department/{departmentId}', [WaterReadingController::class, 'getLastByDepartment']);
-        Route::post('/', [WaterReadingController::class, 'store']);
-        Route::post('/u/{id}', [WaterReadingController::class, 'update']);
+        // Read - admin only (financial data)
+        Route::get('/', [WaterReadingController::class, 'index'])->middleware('role:admin,super-admin');
+        Route::get('/byId/{id}', [WaterReadingController::class, 'show'])->middleware('role:admin,super-admin');
+        Route::get('/last-by-department/{departmentId}', [WaterReadingController::class, 'getLastByDepartment'])->middleware('role:admin,super-admin');
+        // Write - admin only
+        Route::post('/', [WaterReadingController::class, 'store'])->middleware('role:admin,super-admin');
+        Route::post('/u/{id}', [WaterReadingController::class, 'update'])->middleware('role:admin,super-admin');
     });
 
-    Route::prefix('bill-invoices')->name('bill-invoice.')->group(function () {
+    // ── Bill Invoices ────────────────────────────────────────
+    Route::prefix('bill-invoices')->name('bill-invoice.')->middleware('role:admin,super-admin')->group(function () {
         Route::get('/by-quota/{quotaId}', [BillInvoiceController::class, 'show']);
         Route::get('/download/{quotaId}', [BillInvoiceController::class, 'downloadPdf'])->name('download');
         Route::get('/preview/{quotaId}', [BillInvoiceController::class, 'previewHtml']);
         Route::post('/send-email/{quotaId}', [BillInvoiceController::class, 'sendEmail']);
         Route::post('/send-bulk/{monthlyBillId}', [BillInvoiceController::class, 'sendBulkEmails']);
-
-        // Endpoints de prueba
         Route::get('/test/list-paid', [BillInvoiceController::class, 'listPaidQuotas']);
         Route::post('/test/send/{quotaId}', [BillInvoiceController::class, 'testSend']);
     });
 
+    // ── Transaction Categories ───────────────────────────────
     Route::prefix('transaction-categories')->name('transactionCategories.')->group(function () {
+        // Read
         Route::get('/', [TransactionCategoryController::class, 'index']);
-        Route::post('/', [TransactionCategoryController::class, 'store']);
+        // Write - admin only
+        Route::post('/', [TransactionCategoryController::class, 'store'])->middleware('role:admin,super-admin');
     });
 
+    // ── Service Categories ───────────────────────────────────
     Route::prefix('service-categories')->name('serviceCategories.')->group(function () {
+        // Read
         Route::get('/', [ServiceCategoryController::class, 'index']);
-        Route::post('/', [ServiceCategoryController::class, 'store']);
+        // Write - admin only
+        Route::post('/', [ServiceCategoryController::class, 'store'])->middleware('role:admin,super-admin');
     });
 
+    // ── Financial Accounts ───────────────────────────────────
     Route::prefix('financial-accounts')->name('financialAccounts.')->group(function () {
-        Route::get('/', [FinancialAccountController::class, 'index']);
-        Route::get('/currencies', [FinancialAccountController::class, 'currencies']);
-        Route::get('/byId/{id}', [FinancialAccountController::class, 'show']);
-        Route::post('/', [FinancialAccountController::class, 'store']);
-        Route::post('/u/{id}', [FinancialAccountController::class, 'update']);
-        Route::post('/status/{id}', [FinancialAccountController::class, 'updateStatus']);
+        // Read - admin only (financial data)
+        Route::get('/', [FinancialAccountController::class, 'index'])->middleware('role:admin,super-admin');
+        Route::get('/currencies', [FinancialAccountController::class, 'currencies'])->middleware('role:admin,super-admin');
+        Route::get('/byId/{id}', [FinancialAccountController::class, 'show'])->middleware('role:admin,super-admin');
+        // Write - admin only
+        Route::post('/', [FinancialAccountController::class, 'store'])->middleware('role:admin,super-admin');
+        Route::post('/u/{id}', [FinancialAccountController::class, 'update'])->middleware('role:admin,super-admin');
+        Route::post('/status/{id}', [FinancialAccountController::class, 'updateStatus'])->middleware('role:admin,super-admin');
     });
 
+    // ── Providers ────────────────────────────────────────────
     Route::prefix('providers')->name('providers.')->group(function () {
-        Route::post('/', [ProviderController::class, 'store']);
+        // Write - admin only
+        Route::post('/', [ProviderController::class, 'store'])->middleware('role:admin,super-admin');
     });
 
+    // ── Incidents ────────────────────────────────────────────
     Route::prefix('incidents')->name('incidents.')->group(function () {
         Route::get('/', [IncidentController::class, 'index']);
         Route::get('/byId/{id}', [IncidentController::class, 'show']);
@@ -280,15 +345,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/u/{id}', [IncidentController::class, 'update']);
     });
 
+    // ── Expenses ─────────────────────────────────────────────
     Route::prefix('expenses')->name('expense.')->group(function () {
-        Route::get('/', [ExpenseController::class, 'index']);
-        Route::get('/unassigned', [ExpenseController::class, 'unassigned']);
-        Route::get('/form-options', [ExpenseController::class, 'formOptions']);
-        Route::get('/byId/{id}', [ExpenseController::class, 'show']);
-        Route::post('/', [ExpenseController::class, 'store']);
-        Route::post('/u/{id}', [ExpenseController::class, 'update']);
+        // Read - admin only (financial data)
+        Route::get('/', [ExpenseController::class, 'index'])->middleware('role:admin,super-admin');
+        Route::get('/unassigned', [ExpenseController::class, 'unassigned'])->middleware('role:admin,super-admin');
+        Route::get('/form-options', [ExpenseController::class, 'formOptions'])->middleware('role:admin,super-admin');
+        Route::get('/byId/{id}', [ExpenseController::class, 'show'])->middleware('role:admin,super-admin');
+        // Write - admin only
+        Route::post('/', [ExpenseController::class, 'store'])->middleware('role:admin,super-admin');
+        Route::post('/u/{id}', [ExpenseController::class, 'update'])->middleware('role:admin,super-admin');
     });
 
+    // ── Reports ──────────────────────────────────────────────
     Route::prefix('reports')->name('report.')->middleware('role:admin,super-admin')->group(function () {
         Route::get('/bookings', [ReportController::class, 'bookings']);
         Route::get('/bookings/export', [ReportController::class, 'exportBookings']);

@@ -48,6 +48,18 @@ class BookingController extends Controller
                 }
             }
 
+            if (! $departament_id) {
+                return $this->returnFail(400, 'No se encontró un departamento asociado a tu cuenta');
+            }
+
+            $ownedIds = $user->apartaments()->pluck('id');
+            $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
+            $allowedIds = $ownedIds->merge($residentIds)->unique()->values();
+
+            if (! $allowedIds->contains((int) $departament_id)) {
+                return $this->returnFail(403, 'No tienes permisos para crear reservas en este departamento');
+            }
+
             $booking = Booking::create([
                 'user_id' => $user->id,
                 'departament_id' => $departament_id,
@@ -86,6 +98,12 @@ class BookingController extends Controller
     public function getBookingById($id)
     {
         $booking = Booking::with('comunArea', 'user', 'pay')->find($id);
+        if (! $booking) {
+            return $this->returnFail(404, 'Reserva no encontrada');
+        }
+        if (! $this->verifyBookingOwnership($booking)) {
+            return $this->returnFail(403, 'No autorizado');
+        }
 
         return $this->returnSuccess(200, $booking);
     }
@@ -138,7 +156,10 @@ class BookingController extends Controller
         if (! $booking) {
             return $this->returnFail(400, 'Reserva no encontrada');
         }
-        $booking->update($request->all());
+        if (! $this->verifyBookingOwnership($booking)) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+        $booking->update($request->only(['date', 'time_from', 'time_to', 'note', 'amount']));
 
         return $this->returnSuccess(200, 'ok');
     }
@@ -148,6 +169,9 @@ class BookingController extends Controller
         $booking = Booking::find($id);
         if (! $booking) {
             return $this->returnFail(400, 'Reserva no encontrada');
+        }
+        if (! $this->verifyBookingOwnership($booking)) {
+            return $this->returnFail(403, 'No autorizado');
         }
         $booking->delete();
 
@@ -160,6 +184,9 @@ class BookingController extends Controller
         $booking = Booking::find($id);
         if (! $booking) {
             return $this->returnFail(400, 'Reserva no encontrada');
+        }
+        if (! $this->verifyBookingOwnership($booking)) {
+            return $this->returnFail(403, 'No autorizado');
         }
         $booking->update([
             'status' => 0,
@@ -258,7 +285,7 @@ class BookingController extends Controller
                 $intervalData = [
                     'time_from' => $timeInitInterval->format('H:i'),
                     'time_to' => $slotEnd->format('H:i'),
-                    'capacity' => $area->capacity,
+                    'capacity' => $area->max_cupo,
                     'available' => $availability['spots'],
                     'status' => $availability['status'],
                 ];
@@ -328,6 +355,10 @@ class BookingController extends Controller
 
         if (! $booking) {
             return $this->returnFail(404, 'Reserva no encontrada');
+        }
+
+        if (! $this->verifyBookingOwnership($booking)) {
+            return $this->returnFail(403, 'No autorizado');
         }
 
         if ($booking->status != Booking::STATUS_SUCCESS) {
@@ -449,6 +480,10 @@ class BookingController extends Controller
             return $this->returnFail(404, 'Reserva original no encontrada');
         }
 
+        if (! $this->verifyBookingOwnership($originalBooking)) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+
         if ($originalBooking->status != Booking::STATUS_SUCCESS) {
             return $this->returnFail(400, 'Solo se pueden extender reservas exitosas');
         }
@@ -496,6 +531,11 @@ class BookingController extends Controller
 
     public function getPendings()
     {
+        $user = request()->user();
+        if ($user->rol_id != 1) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+
         $waitStatus = 2;
         $pendings = Booking::where('status', $waitStatus)->get();
 
@@ -527,6 +567,13 @@ class BookingController extends Controller
         $validator = Validator::make($inputs, $rules, $messages)->errors();
 
         return $validator->all();
+    }
+
+    private function verifyBookingOwnership(Booking $booking): bool
+    {
+        $user = request()->user();
+
+        return $booking->user_id === $user->id || $user->rol_id == 1;
     }
 
     private function sendNotification($booking)

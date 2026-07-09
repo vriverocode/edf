@@ -34,6 +34,11 @@ class EventController extends Controller
 
     public function create(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'Solo el administrador puede gestionar eventos'], 403);
+        }
+
         $LOCATION_TYPE_COMUN_AREA = 1;
 
         $validated = $this->validateFieldsFromInput($request->all());
@@ -62,6 +67,11 @@ class EventController extends Controller
 
     public function update(Request $request, $id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'Solo el administrador puede gestionar eventos'], 403);
+        }
+
         $LOCATION_TYPE_COMUN_AREA = 1;
         $LOCATION_TYPE_STANDAR = 2;
         $validated = $this->validateFieldsFromInput($request->all());
@@ -107,6 +117,11 @@ class EventController extends Controller
 
     public function destroy($id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'Solo el administrador puede gestionar eventos'], 403);
+        }
+
         $event = Event::find($id);
         if (! $event) {
             return $this->returnFail(404, 'Evento no encontrado');

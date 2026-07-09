@@ -78,6 +78,10 @@ class WaterReadingController extends Controller
 
     public function store(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
         $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
         ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
         : 0;
@@ -143,6 +147,10 @@ class WaterReadingController extends Controller
 
     public function update(Request $request, int $id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
         $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
         ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
         : 0;

@@ -35,6 +35,10 @@ class ComunAreaController extends Controller
 
     public function storeArea(Request $request)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
         $validated = $this->validateFieldsFromInput($request->all());
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);
@@ -102,6 +106,10 @@ class ComunAreaController extends Controller
 
     public function updateArea(Request $request, $id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
         $validated = $this->validateFieldsFromInput($request->all());
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);
@@ -219,6 +227,10 @@ class ComunAreaController extends Controller
 
     public function deleteArea($id)
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
         $area = ComunArea::find($id);
         if (! $area) {
             return $this->returnFail(400, 'Area común no encontrada');

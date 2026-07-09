@@ -73,7 +73,7 @@ class AuthController extends Controller
         try {
             Mail::to($user->email)->send(new ResetPasswordMail($user, $token));
         } catch (Exception $e) {
-            return $this->returnFail(500, 'Error al enviar el correo. Intente nuevamente.');
+            return $this->returnFail(500, $e->getMessage());
         }
 
         return $this->returnSuccess(200, [

@@ -40,6 +40,13 @@ class UserController extends Controller
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);
         }
+
+        $creatorRole = request()->user()->rol_id;
+        $requestedRole = $request->rol_id ?? 2;
+        if ($creatorRole != 1 && $requestedRole <= $creatorRole) {
+            return response()->json(['code' => 403, 'error' => 'No puedes crear usuarios con este rol'], 403);
+        }
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -321,6 +328,11 @@ class UserController extends Controller
 
     public function getCountPendingsForAdmin()
     {
+        $user = request()->user();
+        if ($user->rol_id != 1 && $user->rol_id != 8) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $noticeTypeForAnnunce = 2;
         $waitStatus = [
             'reserve' => 2,
@@ -533,6 +545,11 @@ class UserController extends Controller
 
     public function destroy(int $id, Request $request)
     {
+        $authUser = request()->user();
+        if ($authUser->rol_id != 1) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
         $user = User::find($id);
         if (! $user) {
             return $this->returnFail(404, 'Usuario no encontrado');
