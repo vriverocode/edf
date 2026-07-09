@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ComunArea;
 use App\Models\ComunAreaSchedule;
+use App\Models\Rol;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class ComunAreaController extends Controller
     public function storeArea(Request $request)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         $validated = $this->validateFieldsFromInput($request->all());
@@ -107,7 +108,7 @@ class ComunAreaController extends Controller
     public function updateArea(Request $request, $id)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         $validated = $this->validateFieldsFromInput($request->all());
@@ -228,7 +229,7 @@ class ComunAreaController extends Controller
     public function deleteArea($id)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         $area = ComunArea::find($id);

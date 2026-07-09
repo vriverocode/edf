@@ -367,6 +367,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/pay/register',
+        component: () => import('@/view/admin/Pays/registerPay.vue'),
+        name: 'registerPay',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Registrar pago',
+          roles: ['admin', 'super-admin'],
+          depth: 2,
+        },
+      },
+      {
         path: '/admin/notices',
         component: () => import('@/view/admin/Notices/noticesPage.vue'),
         name: 'noticesPages',

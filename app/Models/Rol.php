@@ -20,6 +20,8 @@ class Rol extends Model
 
     public const PARCIAL = 7;
 
+    public const SUPER_ADMIN = 8;
+
     /** Nombres de rol para uso en middleware (deben coincidir con roles.name en BD) */
     public const ADMIN_NAME = 'Admin';
 
@@ -34,6 +36,8 @@ class Rol extends Model
     public const TRABAJADOR_NAME = 'Trabajador';
 
     public const PARCIAL_NAME = 'Propietario Parcial';
+
+    public const SUPER_ADMIN_NAME = 'Super-Admin';
 
     protected $table = 'roles';
 }

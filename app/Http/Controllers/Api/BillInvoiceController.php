@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\BillInvoiceMail;
 use App\Models\MonthlyBills;
 use App\Models\Quota;
+use App\Models\Rol;
 use App\Services\BillInvoiceService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class BillInvoiceController extends Controller
     public function show(Request $request, int $quotaId)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
@@ -55,7 +56,7 @@ class BillInvoiceController extends Controller
     public function downloadPdf(Request $request, int $quotaId)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
@@ -94,7 +95,7 @@ class BillInvoiceController extends Controller
     public function previewPdf(Request $request, int $quotaId)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
@@ -129,7 +130,7 @@ class BillInvoiceController extends Controller
     public function previewHtml(Request $request, int $quotaId)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
@@ -160,7 +161,7 @@ class BillInvoiceController extends Controller
     public function sendEmail(Request $request, int $quotaId)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
@@ -203,7 +204,7 @@ class BillInvoiceController extends Controller
     public function sendBulkEmails(Request $request, int $monthlyBillId)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
@@ -268,7 +269,7 @@ class BillInvoiceController extends Controller
     public function testSend(Request $request, int $quotaId)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
@@ -302,7 +303,7 @@ class BillInvoiceController extends Controller
     public function listPaidQuotas(Request $request)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 

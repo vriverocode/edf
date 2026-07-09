@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Multa;
+use App\Models\Rol;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -63,7 +64,7 @@ class MultaController extends Controller
     public function store(Request $request)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         $validated = $this->validateFieldsFromInput($request->all());
@@ -88,7 +89,7 @@ class MultaController extends Controller
     public function update(Request $request, $id)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         $multa = Multa::find($id);
@@ -118,7 +119,7 @@ class MultaController extends Controller
     public function deleteMulta($id)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         $multa = Multa::find($id);

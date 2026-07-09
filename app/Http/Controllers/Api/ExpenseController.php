@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\MonthlyBills;
 use App\Models\Provider;
+use App\Models\Rol;
 use App\Models\ServiceCategory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -106,7 +107,7 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         try {
@@ -124,7 +125,7 @@ class ExpenseController extends Controller
     public function update(Request $request, int $id)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         $expense = Expense::find($id);

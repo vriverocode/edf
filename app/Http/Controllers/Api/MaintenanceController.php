@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\ComunArea;
 use App\Models\Maintenance;
 use App\Models\Notice;
+use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
 use Exception;
@@ -27,7 +28,7 @@ class MaintenanceController extends Controller
     public function store(Request $request)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 

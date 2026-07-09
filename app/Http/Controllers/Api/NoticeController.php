@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notice;
+use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 
 class NoticeController extends Controller
@@ -18,7 +20,6 @@ class NoticeController extends Controller
      */
     public function index(Request $request)
     {
-        //
         $notices = Notice::with(['user'])
             ->where('type', 1)->orderBy('created_at', 'desc')->get();
 
@@ -31,7 +32,19 @@ class NoticeController extends Controller
             $this->applyPaysFilter($announces, $request);
         }
 
-        return $this->returnSuccess(200, ['notices' => $notices, 'announces' => $announces->get()]);
+        $notices = $notices->map(fn ($n) => $this->safeNotice($n));
+        $announces = $announces->get()->map(fn ($n) => $this->safeNotice($n));
+
+        return $this->returnSuccess(200, ['notices' => $notices, 'announces' => $announces]);
+    }
+
+    private function safeNotice($notice): array
+    {
+        $data = $notice->toArray();
+        $data['author_name'] = $notice->user?->name ?? 'Anónimo';
+        unset($data['user']);
+
+        return $data;
     }
 
     /**
@@ -39,7 +52,13 @@ class NoticeController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $user = $request->user();
+        $isAdmin = $user->rol_id === Rol::ADMIN || $user->rol_id === Rol::SUPER_ADMIN;
+
+        if ((int) $request->type === 1 && ! $isAdmin) {
+            return $this->returnFail(403, 'Solo los administradores pueden crear noticias.');
+        }
+
         $validated = $this->validateFieldsFromInput($request->all());
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);
@@ -51,10 +70,10 @@ class NoticeController extends Controller
             'group' => $request->group,
             'category' => $request->category,
             'type' => $request->type,
-            'data_contact' => $this->dataContactByUser($request->user()),
-            'user_id' => $request->user()->id,
+            'data_contact' => $this->dataContactByUser($user),
+            'user_id' => $user->id,
             'views' => '[]',
-            'status' => $request->user()->rol_id == 1 ? 2 : 1,
+            'status' => $isAdmin ? 2 : 1,
         ]);
 
         $this->uploadImages($notice, $request->file('img'));
@@ -66,11 +85,23 @@ class NoticeController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $notice = Notice::with(['user'])->find($id);
+        if (! $notice) {
+            return $this->returnFail(404, 'Aviso no encontrado');
+        }
 
-        return $this->returnSuccess(200, $notice);
+        $data = $notice->toArray();
+        $data['author_name'] = $notice->user?->name ?? 'Anónimo';
+        unset($data['user']);
+
+        $authUser = $request->user();
+        if ($notice->user_id !== $authUser->id && ! in_array($authUser->rol_id, [Rol::ADMIN])) {
+            unset($data['views']);
+        }
+
+        return $this->returnSuccess(200, $data);
     }
 
     /**
@@ -78,10 +109,20 @@ class NoticeController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $user = $request->user();
+        $isAdmin = $user->rol_id === Rol::ADMIN || $user->rol_id === Rol::SUPER_ADMIN;
+
         $announce = Notice::find($id);
         if (! $announce) {
-            return $this->returnFail(404, 'Anuncion no encontrado');
+            return $this->returnFail(404, 'Publicación no encontrada');
+        }
+
+        if ((int) $announce->type === 1 && ! $isAdmin) {
+            return $this->returnFail(403, 'Solo los administradores pueden editar noticias.');
+        }
+
+        if ((int) $announce->type !== 1 && $announce->user_id !== $user->id && ! $isAdmin) {
+            return $this->returnFail(403, 'No tienes permiso para editar esta publicación.');
         }
 
         $announce->update([
@@ -99,16 +140,25 @@ class NoticeController extends Controller
      */
     public function delete(Request $request, $id)
     {
-        //
         try {
-            // code...
-            $notice = Notice::find($id);
+            $user = $request->user();
+            $isAdmin = $user->rol_id === Rol::ADMIN || $user->rol_id === Rol::SUPER_ADMIN;
 
-            if ($notice->user_id == $request->user()->id) {
-                $notice->delete();
+            $notice = Notice::find($id);
+            if (! $notice) {
+                return $this->returnFail(404, 'Publicación no encontrada');
             }
+
+            if ((int) $notice->type === 1 && ! $isAdmin) {
+                return $this->returnFail(403, 'Solo los administradores pueden eliminar noticias.');
+            }
+
+            if ((int) $notice->type !== 1 && $notice->user_id !== $user->id && ! $isAdmin) {
+                return $this->returnFail(403, 'No tienes permiso para eliminar esta publicación.');
+            }
+
+            $notice->delete();
         } catch (Exception $th) {
-            // throw $th;
             return $this->returnFail(500, $th->getMessage());
         }
 
@@ -135,7 +185,7 @@ class NoticeController extends Controller
     public function setNewStatus(Request $request, $noticeId)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'Solo el administrador puede cambiar el estado de noticias'], 403);
         }
 
@@ -151,20 +201,18 @@ class NoticeController extends Controller
 
     private function sendNoticeNotification($notice)
     {
-        $users = User::where('rol_id', '!=', 1)->where('status', 1)->get();
+        $users = User::where('rol_id', '!=', Rol::ADMIN)->where('status', 1)->get();
 
         try {
-            foreach ($users as $user) {
-                $user->notify(new RealtimeNotification(
-                    title: 'Nuevo aviso publicado',
-                    message: $notice->title,
-                    url: '/client/notices',
-                    meta: [
-                        'notice_id' => $notice->id,
-                        'icon' => 'campaign',
-                    ]
-                ));
-            }
+            Notification::send($users, new RealtimeNotification(
+                title: 'Nuevo aviso publicado',
+                message: $notice->title,
+                url: '/client/notices',
+                meta: [
+                    'notice_id' => $notice->id,
+                    'icon' => 'campaign',
+                ]
+            ));
         } catch (\Throwable $e) {
             Log::error('Fallo al enviar notificación de notice: '.$e->getMessage());
         }
@@ -198,7 +246,7 @@ class NoticeController extends Controller
 
     private function dataContactByUser($user)
     {
-        if ($user->rol_id == 1) {
+        if ($user->rol_id === Rol::ADMIN) {
             return 'Admin';
         }
 

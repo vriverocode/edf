@@ -15,12 +15,12 @@ const apartmentsOptions = ref([
 ])
 
 const typeOptions = ref([
-  { id: '', title: 'Selecciona el tipo de visita' },
-  { id: 1, title: 'Personal' },
-  { id: 2, title: 'Entrega' },
-  { id: 3, title: 'Servicio' },
-  { id: 4, title: 'Airbnb' },
-  { id: 5, title: 'Otro' },
+  { id: '', title: 'Selecciona el motivo de la visita' },
+  { id: 1, title: '👤 Visita personal' },
+  { id: 2, title: '📦 Entrega' },
+  { id: 3, title: '🔧 Servicio técnico' },
+  // { id: 4, title: '🏠 Airbnb' },
+  { id: 5, title: '💬 Otro' },
 ])
 
 const formData = ref({
@@ -226,15 +226,15 @@ onMounted(() => {
 
         <div class="col-12 col-md-6 md:my-0 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black pt-2">
-            Motivo / descripción (opcional)
+            Motivo o empresa (opcional)
           </div>
           <q-input borderless clearable type="textarea" autogrow dense class="form__inputsCR mt-2" color="primary"
-            v-model="formData.description" />
+            v-model="formData.description" placeholder="Ej. Servicio técnico de internet" />
         </div>
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black pt-2">
-            Fecha de la visita
+            Fecha de ingreso
           </div>
           <q-input borderless dense class="form__inputsCR mt-2" v-model="formData.date" mask="date" :rules="['date']">
             <template v-slot:append>
@@ -254,7 +254,7 @@ onMounted(() => {
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black md:mt-2">
-            Hora aproximada de llegada
+            Hora aproximada de ingreso
           </div>
           <q-input borderless dense class="form__inputsCR mt-2" v-model="formData.hour" mask="time">
             <template v-slot:append>

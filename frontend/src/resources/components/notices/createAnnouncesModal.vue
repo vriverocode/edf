@@ -108,6 +108,9 @@ watch(() => props.dialog, (newValue) => {
           </div>
         </q-card-section>
         <section class="content__modalSectionRifa md:mt-5 py-0 ">
+          <div class="px-5 mt-2 text-gray-600" style="font-size: 12px;">
+            Comparte tu emprendimiento, vende un producto, ofrece un servicio o publica una oportunidad para la comunidad.
+          </div>
           <div class="row w-full px-4" >
             <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
@@ -118,6 +121,7 @@ watch(() => props.dialog, (newValue) => {
                   borderless
                   clearable
                   v-model="formData.title"
+                  placeholder="Ej. Tortas personalizadas para cumpleaños"
                   class="form__inputsR mt-1"
                   color="primary"
                   :rules="[ val => val && val.length > 0 || 'Titulo del anuncio es obligatorio']"
@@ -125,7 +129,7 @@ watch(() => props.dialog, (newValue) => {
             </div>
             <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
-                Grupo *
+                ¿Qué deseas publicar? *
               </div>
               <q-select 
                 class="form__inputsR mt-1"
@@ -162,6 +166,7 @@ watch(() => props.dialog, (newValue) => {
                 dense
                 borderless
                 type="textarea"
+                placeholder="Describe lo que ofreces, puedes incluir precio, horarios, ubicación o cualquier información importante."
                 v-model="formData.description"
                 class="form__inputsR mt-1"
                 color="primary"

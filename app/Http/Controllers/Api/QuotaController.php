@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MonthlyBills;
 use App\Models\Pay;
 use App\Models\Quota;
+use App\Models\Rol;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +18,7 @@ class QuotaController extends Controller
     {
         $query = Quota::query();
 
-        if ((int) $request->user()->id !== 1) {
+        if ($request->user()->rol_id !== Rol::ADMIN) {
             $query->where(function (Builder $queryBuilder) use ($request) {
                 $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $request->user()->id))
                     ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $request->user()->id));
@@ -29,7 +30,7 @@ class QuotaController extends Controller
 
     private function ensureAdmin(Request $request): ?JsonResponse
     {
-        if ((int) $request->user()->id !== 1) {
+        if ($request->user()->rol_id !== Rol::ADMIN) {
             return $this->returnFail(403, ['message' => 'No autorizado']);
         }
 
@@ -43,7 +44,7 @@ class QuotaController extends Controller
     {
         $query = Quota::baseAdminQuery();
 
-        if ($request->user()->id != 1) {
+        if ($request->user()->rol_id !== Rol::ADMIN) {
             $query->where(function (Builder $queryBuilder) use ($request) {
                 $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $request->user()->id))
                     ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $request->user()->id));
@@ -145,6 +146,10 @@ class QuotaController extends Controller
 
         $quotas->where('month', $month);
 
+        if ($request->filled('status')) {
+            $quotas->where('status', (int) $request->status);
+        }
+
         if ($request->filled('year')) {
             $quotas->whereYear('due_date', (int) $request->query('year'));
         }
@@ -159,7 +164,7 @@ class QuotaController extends Controller
             return $this->returnFail(404, 'Pago no encontrado');
         }
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             $userDepartments = $user->apartaments()->pluck('id');
             $payDepartmentIds = $pay->quotas->pluck('departament_id');
             if ($payDepartmentIds->intersect($userDepartments)->isEmpty()) {
@@ -188,7 +193,7 @@ class QuotaController extends Controller
             return $this->returnFail(404, 'Cuota no encontrada');
         }
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             $userDepartments = $user->apartaments()->pluck('id');
             if (! $userDepartments->contains($quota->departament_id)) {
                 return $this->returnFail(403, 'No autorizado');

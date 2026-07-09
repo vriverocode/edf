@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Event;
+use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ class EventController extends Controller
     public function create(Request $request)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'Solo el administrador puede gestionar eventos'], 403);
         }
 
@@ -68,7 +69,7 @@ class EventController extends Controller
     public function update(Request $request, $id)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'Solo el administrador puede gestionar eventos'], 403);
         }
 
@@ -118,7 +119,7 @@ class EventController extends Controller
     public function destroy($id)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'Solo el administrador puede gestionar eventos'], 403);
         }
 

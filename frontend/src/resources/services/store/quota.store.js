@@ -136,7 +136,12 @@ export const useQuotaStore = defineStore('Quota', {
         }
         let query = '';
         if (data != null) {
-          query = `?year=${data.year}&owner=${data.owner}`
+          const params = new URLSearchParams()
+          if (data.year) params.set('year', String(data.year))
+          if (data.owner) params.set('owner', String(data.owner))
+          if (data.status !== undefined && data.status !== null && data.status !== '') params.set('status', String(data.status))
+          const qs = params.toString()
+          query = qs ? '?' + qs : ''
         }
         ApiService.setHeader();
         ApiService.get('/api/quotas/byMonth/' + month + query)

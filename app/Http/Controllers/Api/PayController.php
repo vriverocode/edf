@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\FinancialAccount;
 use App\Models\Pay;
 use App\Models\Quota;
+use App\Models\Rol;
 use App\Models\Sequence;
 use App\Models\Transaction;
 use App\Models\User;
@@ -46,7 +47,7 @@ class PayController extends Controller
         }
 
         $user = request()->user();
-        if ($user->rol_id != 1 && $pay->user_id !== $user->id) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]) && $pay->user_id !== $user->id) {
             return $this->returnFail(403, 'No autorizado');
         }
 
@@ -78,7 +79,7 @@ class PayController extends Controller
         $pays = Pay::with(['booking.comunArea', 'quotas.departament', 'user', 'payMethod']);
 
         // Filtrar por usuario si no es admin
-        if ($request->user()->id != 1) {
+        if (! in_array($request->user()->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             $pays->where('user_id', $request->user()->id);
         }
 
@@ -107,7 +108,11 @@ class PayController extends Controller
             $quotaIdsForPay = $consolidatedIdsForStore;
         }
 
-        $user = $request->user();
+        $authUser = $request->user();
+        $user = $authUser;
+        if ($request->has('user_id') && in_array($authUser->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            $user = User::findOrFail((int) $request->user_id);
+        }
 
         $pay = Pay::create([
             'user_id' => $user->id,

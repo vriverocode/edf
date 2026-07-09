@@ -61,14 +61,14 @@ onMounted(() => {
               <div class="col-8">
                 <div class="text-subtitle1 text-bold text-gray-900">{{ item.title }}</div>
                 <div class="text-caption text-grey-7 mt-1 row items-center">
-                  <q-icon name="event" size="1rem" class="q-mr-xs" />
+                  <q-icon name="eva-calendar-outline" size="1rem" class="q-mr-xs" />
                   {{ moment(item.date).format('DD/MM/YYYY') }} 
                   <span class="q-mx-sm">|</span>
-                  <q-icon name="access_time" size="1rem" class="q-mr-xs" />
+                  <q-icon name="eva-clock-outline" size="1rem" class="q-mr-xs" />
                   {{ item.time_from ? item.time_from.substring(0,5) : '00:00' }} - {{ item.time_to ? item.time_to.substring(0,5) : '23:59' }}
                 </div>
                 <div v-if="item.comun_area" class="mt-2">
-                  <q-chip dense color="teal-1" text-color="teal-9" icon="business" size="sm" class="text-bold">
+                  <q-chip dense color="teal-1" text-color="teal-9" icon="eva-building-outline" size="sm" class="text-bold">
                     Área: {{ item.comun_area.name }} (Bloqueada)s
                   </q-chip>
                 </div>
@@ -90,7 +90,7 @@ onMounted(() => {
 
         <div v-else class="flex flex-col items-center justify-center py-20 text-center">
           <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 mx-auto">
-            <q-icon name="build" size="2.5rem" color="grey-5" />
+            <q-icon name="eva-tool-outline" size="2.5rem" color="grey-5" />
           </div>
           <h3 class="text-lg font-semibold text-gray-900 mb-1">No hay mantenimientos programados</h3>
           <p class="text-gray-500 max-w-sm">Todas las instalaciones y áreas comunes se encuentran operando al 100%.</p>

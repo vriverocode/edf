@@ -15,18 +15,23 @@ use App\Notifications\RealtimeNotification;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
-    //
-    public function getUserById($id)
+    public function getUserById(Request $request, $id)
     {
         $user = User::with(['units'])->find($id);
         if (! $user) {
             return $this->returnFail(404, 'Usuario no encontrado');
+        }
+
+        $authUser = $request->user();
+        if ((int) $authUser->id !== (int) $id && ! in_array($authUser->rol_id, [Rol::ADMIN])) {
+            return $this->returnFail(403, 'No autorizado');
         }
 
         return $this->returnSuccess(200, $user);
@@ -43,7 +48,7 @@ class UserController extends Controller
 
         $creatorRole = request()->user()->rol_id;
         $requestedRole = $request->rol_id ?? 2;
-        if ($creatorRole != 1 && $requestedRole <= $creatorRole) {
+        if ($creatorRole !== Rol::ADMIN && $requestedRole <= $creatorRole) {
             return response()->json(['code' => 403, 'error' => 'No puedes crear usuarios con este rol'], 403);
         }
 
@@ -52,7 +57,7 @@ class UserController extends Controller
             'email' => $request->email,
             'username' => $request->username,
             'phone' => $request->phone,
-            'password' => bcrypt($request->password),
+            'password' => Hash::make($request->password),
             'rol_id' => $request->idRol,
             'parentesco' => $request->parentesco ?? null,
             'active_time' => $request->active_time ?? null,
@@ -129,7 +134,7 @@ class UserController extends Controller
                 'email' => $request->email,
                 'username' => $username,
                 'phone' => $request->phone ?? null,
-                'password' => bcrypt($password),
+                'password' => Hash::make($password),
                 'rol_id' => $rolId,
                 'parentesco' => $isFamiliar ? $request->parentesco : null,
                 'status' => $isAirbnb ? 3 : 1,
@@ -196,8 +201,6 @@ class UserController extends Controller
             return $this->returnSuccess(200, [
                 'message' => $isAirbnb ? 'Airbnb y acompañantes registrados' : 'Residente registrado con éxito',
                 'user_id' => $user->id,
-                'ss' => isset($airbnbData['guests']) && is_array($airbnbData['guests']) ? 'si' : 'no',
-                'fff' => isset($guestFiles[0]['photo']) && $guestFiles[0]['photo']->isValid() ? 'si' : 'no',
             ]);
         } catch (Exception $e) {
             DB::rollBack();
@@ -329,7 +332,7 @@ class UserController extends Controller
     public function getCountPendingsForAdmin()
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if ($user->rol_id != Rol::ADMIN && $user->rol_id != Rol::SUPER_ADMIN) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
@@ -428,6 +431,12 @@ class UserController extends Controller
      */
     public function completeFirstTime(Request $request)
     {
+        $user = $request->user();
+
+        if (! $user->is_first_time) {
+            return $this->returnFail(409, 'Este usuario ya completó su configuración inicial.');
+        }
+
         $validator = Validator::make($request->all(), [
             'email' => ['required', 'email', 'unique:users,email'],
 
@@ -446,9 +455,8 @@ class UserController extends Controller
         }
 
         try {
-            $user = $request->user();
             $user->update([
-                'password' => bcrypt($request->password),
+                'password' => Hash::make($request->password),
                 'phone' => $request->phone,
                 'email' => $request->email,
                 'is_first_time' => 0,
@@ -508,7 +516,7 @@ class UserController extends Controller
             ];
 
             if ($request->filled('password')) {
-                $data['password'] = bcrypt($request->password);
+                $data['password'] = Hash::make($request->password);
             }
 
             $user->update($data);
@@ -546,7 +554,7 @@ class UserController extends Controller
     public function destroy(int $id, Request $request)
     {
         $authUser = request()->user();
-        if ($authUser->rol_id != 1) {
+        if ($authUser->rol_id !== Rol::ADMIN) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 

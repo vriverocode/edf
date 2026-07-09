@@ -76,7 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/get-resident', [UserController::class, 'getResident']);
         Route::get('/without-apartment', [UserController::class, 'getOwnersWithoutApartment']);
         Route::get('/with-publish', [UserController::class, 'getAllUserWithPublish']);
-        Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin']);
+        Route::get('/admin/get_pendings', [UserController::class, 'getCountPendingsForAdmin'])->middleware('role:admin,super-admin');
         Route::get('/resident/{id}/bookings', [UserController::class, 'getResidentBookings']);
 
         // Write - ownership or admin
@@ -86,8 +86,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/complete-first-time', [UserController::class, 'completeFirstTime']);
         Route::delete('/d/{id}', [UserController::class, 'destroy']);
         Route::put('/resident/{id}', [UserController::class, 'updateResident']);
-        Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment']);
-        Route::post('/assign-property', [DepartamentController::class, 'assingApartment']);
+        Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin');
+        Route::post('/assign-property', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin');
     });
 
     // ── Apartments ───────────────────────────────────────────
@@ -240,15 +240,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Notices ──────────────────────────────────────────────
     Route::prefix('notices')->name('notice.')->group(function () {
-        // Read + write (ownership checked in controller)
+        // Read — accessible to all authenticated users
         Route::get('/', [NoticeController::class, 'index']);
         Route::get('/byId/{id}', [NoticeController::class, 'show']);
-        Route::post('/', [NoticeController::class, 'store']);
+        // Mark as viewed — any authenticated user
         Route::post('/set-viewer/{id}', [NoticeController::class, 'setViewer']);
+        // Admin only — MUST be before {id} wildcard
+        Route::post('/set-new-status/{id}', [NoticeController::class, 'setNewStatus'])->middleware('role:admin,super-admin');
+        // Write — type 1 (noticias) admin-only, type 2 (anuncios) any user
+        Route::post('/', [NoticeController::class, 'store']);
         Route::delete('/{id}', [NoticeController::class, 'delete']);
         Route::post('/{id}', [NoticeController::class, 'update']);
-        // Admin only - status changes
-        Route::post('/set-new-status/{id}', [NoticeController::class, 'setNewStatus'])->middleware('role:admin,super-admin');
     });
 
     // ── Maintenances ─────────────────────────────────────────

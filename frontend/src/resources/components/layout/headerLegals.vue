@@ -8,7 +8,6 @@ import logo from '@/assets/img/logo/logo-white.webp'
 const route = useRoute()
 const router = useRouter()
 const emitter = inject('emitter')
-const materialIcons = inject('materialIcons')
 const pagTitle = ref(route.meta.pagTitle)
 const homePagesNameToHeader = ['dashboardAdmin', 'financePage', 'usersAdmin']
 const isHomePage = ref(homePagesNameToHeader.includes(route.name))

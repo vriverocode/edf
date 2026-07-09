@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, inject, watch } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import transfer from '@/assets/img/util/transfer.webp'
 import cash from '@/assets/img/util/cash.webp'
 import { useRoute, useRouter } from 'vue-router';
@@ -41,7 +41,6 @@ const ready = ref(false)
 const step = ref(1)
 const loading = ref(false)
 const disable = ref(true)
-const materialIcons = inject('materialIcons')
 const toPay = ref({})
 const transitionName = ref('slide-next');
 const typePay = () => {

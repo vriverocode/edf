@@ -272,6 +272,7 @@ export const useReserveStore = defineStore('Reserve', {
         if (filter.date_from) params.set('date_from', String(filter.date_from));
         if (filter.date_to) params.set('date_to', String(filter.date_to));
         if (filter.amount_type) params.set('amount_type', String(filter.amount_type));
+        if (filter.user_id) params.set('user_id', String(filter.user_id));
         if (filter.sort_by) params.set('sort_by', String(filter.sort_by));
         if (filter.sort_dir) params.set('sort_dir', String(filter.sort_dir));
         return params.toString();

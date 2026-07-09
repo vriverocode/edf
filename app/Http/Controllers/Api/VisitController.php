@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AirbnbRent;
 use App\Models\Departament;
 use App\Models\PeoplesXDepartaments;
+use App\Models\Rol;
 use App\Models\User;
 use App\Models\Visit;
 use App\Notifications\RealtimeNotification;
@@ -419,7 +420,7 @@ class VisitController extends Controller
         $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
         $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
 
-        if (! $apartmentIds->contains($visit->departament_id) && $user->rol_id != 1) {
+        if (! $apartmentIds->contains($visit->departament_id) && $user->rol_id !== Rol::ADMIN) {
             return $this->returnFail(403, 'No tienes permisos para eliminar esta visita');
         }
 

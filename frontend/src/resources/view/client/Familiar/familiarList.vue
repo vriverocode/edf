@@ -1,5 +1,5 @@
 <script setup>
-import { inject, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/services/store/users.store';
 import { useQuasar } from 'quasar';
@@ -10,7 +10,6 @@ const userStore = useUserStore()
 const page = ref(1)
 const search = ref('')
 const ready = ref(false)
-const materialIcons = inject('materialIcons')
 
 const router = useRouter()
 
@@ -126,7 +125,7 @@ onMounted(() => {
                                         </q-btn>
                                     </div>
                                     <div>
-                                        <q-btn :icon="materialIcons.outlinedEvent" class="mx-1" color="light-green-9"
+                                        <q-btn icon="eva-calendar-outline" class="mx-1" color="light-green-9"
                                             flat size="0.9rem"
                                             @click="goTo('/client/familiar/' + item.user?.id + '/bookings')">
                                             <q-tooltip transition-show="flip-right" transition-hide="flip-left"

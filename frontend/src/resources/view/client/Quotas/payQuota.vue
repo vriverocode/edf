@@ -1,5 +1,5 @@
 <script setup>
-import { ref, inject, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import transfer from '@/assets/img/util/transfer.webp'
 import yape from '@/assets/img/util/yape.webp'
 import cash from '@/assets/img/util/cash.webp'
@@ -27,7 +27,6 @@ const ready = ref(false)
 const step = ref(1)
 const loading = ref(false)
 const disable =  ref(true)
-const materialIcons = inject('materialIcons')
 const quota = ref({})
 const payFormData = ref({
   pay_method:0,
@@ -220,7 +219,7 @@ onMounted(() => {
           style=" border-bottom-left-radius: 2rem; border-bottom-right-radius: 2rem; height: 10%; position: relative; z-index: 2;">
             <div class="flex items-center">
               <div class="flex items-center">
-                <q-btn :icon="materialIcons.outlinedArrowBack" unelevated color="white" flat size="1rem" round
+                <q-btn icon="eva-arrow-back-outline" unelevated color="white" flat size="1rem" round
                   @click="stepBack()" />
               </div>
               <div class="text-h6 text-bold text-white ml-2">

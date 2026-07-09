@@ -95,6 +95,9 @@ watch(() => props.myPost, (newValue) => {
       <img :src="anuncio  " class="md:w-auto h-3/5"/>
     </div>
     <h3 class="text-lg font-semibold text-gray-900 mb-2">Sin anuncios por el momento</h3>
-    <p class="text-gray-600 text-center mb-6"> Aquí encontrarás las últimas novedades y comunicados del edificio</p>
+    <p class="text-gray-600 text-center mb-6">
+      Este es el espacio para compartir productos, servicios,
+      emprendimientos y oportunidades entre propietarios y residentes.
+    </p>
   </div>
 </template>

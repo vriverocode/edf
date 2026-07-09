@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\GuestList;
+use App\Models\Rol;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class GuestListController extends Controller
         }
 
         $user = request()->user();
-        if ($booking->user_id !== $user->id && $user->rol_id != 1) {
+        if ($booking->user_id !== $user->id && $user->rol_id !== Rol::ADMIN) {
             return $this->returnFail(403, 'No autorizado');
         }
 

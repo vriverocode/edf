@@ -2,7 +2,6 @@
 import {  inject, onMounted, ref} from 'vue';
 
 const emitter = inject('emitter')
-const icon = inject('materialIcons')
 
 const showXs = ref( window.screen.width < 780 ? false : true)
 
@@ -25,7 +24,7 @@ onMounted(() =>{
 
     <div>
       <div style="position: absolute;left: -1.5rem; top: 0rem;" class=" md:hidden">
-        <q-btn rounded unelevated :icon="icon.outlinedClose" class="close_buttonSidebar q-py-md" size="md"  text-color="white"  @click="showXs = false"/>
+        <q-btn rounded unelevated icon="eva-close-outline" class="close_buttonSidebar q-py-md" size="md"  text-color="white"  @click="showXs = false"/>
       </div>
       <div class="text-center text-bold mt-8 text-2xl text-primary">
         <!-- <img :src="logo" alt=""  style="width:12rem" class="mx-auto"> -->

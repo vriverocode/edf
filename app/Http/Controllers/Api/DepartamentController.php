@@ -82,7 +82,7 @@ class DepartamentController extends Controller
     public function assingApartment(Request $request)
     {
         $user = $request->user();
-        if ($user->rol_id != 1) {
+        if ($user->rol_id !== Rol::ADMIN) {
             return $this->returnFail(403, 'Solo los administradores pueden asignar departamentos');
         }
 
@@ -205,7 +205,7 @@ class DepartamentController extends Controller
     {
         $user = request()->user();
 
-        return $user->rol_id == 1 || $departament->user_id === $user->id;
+        return $user->rol_id === Rol::ADMIN || $departament->user_id === $user->id;
     }
 
     private function validateFieldsFromInput($inputs)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyBills;
+use App\Models\Rol;
 use App\Models\WaterReading;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -79,7 +80,7 @@ class WaterReadingController extends Controller
     public function store(Request $request)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
@@ -148,7 +149,7 @@ class WaterReadingController extends Controller
     public function update(Request $request, int $id)
     {
         $user = request()->user();
-        if ($user->rol_id != 1 && $user->rol_id != 8) {
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
         $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()

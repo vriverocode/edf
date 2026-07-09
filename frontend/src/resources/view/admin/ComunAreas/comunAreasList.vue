@@ -1,5 +1,5 @@
 <script setup>
-import { inject, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import iconsApp from '@/assets/icons/index'
 import { useComunAreaStore } from '@/services/store/comunArea.store';
@@ -8,7 +8,6 @@ import deleteAreaModal from '@/components/comunAreas/deleteAreaModal.vue';
 const comunAreaStore = useComunAreaStore()
 
 const page = ref(1)
-const materialIcons = inject('materialIcons')
 const search = ref('')
 const filter = ref(0)
 const lastPage = ref(1)
@@ -103,7 +102,7 @@ onMounted(() => {
             </div>
             <div class="flex w-full justify-end py-1" style="border-top: 1px solid lightgrey;">
               <div class="position-relative relative">
-                <q-btn :icon="materialIcons.outlinedBuild" class="mx-1 iconInverted" flat color="primary" round size="0.85rem"
+                <q-btn icon="eva-tool-outline" class="mx-1 iconInverted" flat color="primary" round size="0.85rem"
                   @click="goTo('/admin/comun-area/maintenance/' + comunArea.id + '/create')">
                   <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                     :class="'bg-black text-body2 px-2'">
@@ -112,7 +111,7 @@ onMounted(() => {
                 </q-btn>
               </div>
               <div class="position-relative relative">
-                <q-btn :icon="materialIcons.outlinedFactCheck" class="mx-1 " flat color="yellow-9" round size="0.85rem"
+                <q-btn icon="eva-checkmark-circle-outline" class="mx-1 " flat color="yellow-9" round size="0.85rem"
                   @click="goTo('/admin/comun-area/bookings/' + comunArea.id + '/list')">
                   <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                     :class="'bg-black text-body2 px-2'">

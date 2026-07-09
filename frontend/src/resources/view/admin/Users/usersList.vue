@@ -1,5 +1,5 @@
 <script setup>
-import { inject, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/services/store/users.store';
 import iconsApp from '@/assets/icons/index'
@@ -9,7 +9,6 @@ const filterRol = ref(2)
 const page = ref(1)
 const search = ref('')
 const ready = ref(false)
-const materialIcons = inject('materialIcons')
 const modal = ref('')
 
 const router = useRouter()
@@ -144,7 +143,7 @@ onMounted(() => {
           </template>
           <div class="flex justify-end px-2 w-full pt-3 col-12" style="border-top: 1px solid lightgrey;">
             <div v-if="user.rol_id == 2 || user.rol_id == 7">
-              <q-btn :icon="materialIcons.outlinedAddHomeWork" class="mx-1" flat color="yellow-9" size="0.9rem"
+              <q-btn icon="eva-home-outline" class="mx-1" flat color="yellow-9" size="0.9rem"
                 @click="goTo('/admin/users/assign-property/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
                   Agregar unidad
@@ -159,7 +158,7 @@ onMounted(() => {
               </q-btn>
             </div>
             <div>
-              <q-btn :icon="materialIcons.outlinedPaid" class="mx-1" color="amber-6" flat size="0.9rem" v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6">
+              <q-btn icon="eva-credit-card-outline" class="mx-1" color="amber-6" flat size="0.9rem" v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Ver pagos
                 </q-tooltip>

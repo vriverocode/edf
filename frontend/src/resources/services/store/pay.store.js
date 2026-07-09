@@ -27,12 +27,13 @@ export const usePayStore = defineStore('Pay', {
       })
     },
     async createPay(data) {
+      const endpoint = Number(data.type) === 2 ? '/api/pays/bookings' : '/api/pays/quotas'
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/pays', data)
+        ApiService.post(endpoint, data)
         .then(({data}) => {
           if(data.code !=200) throw data;
           

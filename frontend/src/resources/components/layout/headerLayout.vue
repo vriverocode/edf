@@ -12,7 +12,6 @@ const router = useRouter()
 const { user } = storeToRefs(useAuthStore())
 const notificationsStore = useNotificationsStore()
 const emitter = inject('emitter')
-const materialIcons = inject('materialIcons')
 const pagTitle = ref(route.meta.pagTitle)
 const homePagesNameToHeader = ['dashboardAdmin', 'financePage', 'usersAdmin']
 const isHomePage = ref(homePagesNameToHeader.includes(route.name))
@@ -100,7 +99,7 @@ onMounted(() => {
         <div class="relative pt-2" @click="router.push({ name: 'notificationsPage' })">
           <q-badge class="badgeNotificationCount " v-if="notificationsStore.unreadCount > 0" color="red"
             :label="notificationsStore.unreadCount" />
-          <q-icon :name="materialIcons.roundNotifications" color="white" size="1.8rem" />
+          <q-icon name="eva-bell-outline" color="white" size="1.8rem" />
         </div>
       </div>
     </section>
