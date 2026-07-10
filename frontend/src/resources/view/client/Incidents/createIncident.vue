@@ -113,6 +113,7 @@ const onSubmit = () => {
           <q-input
             v-model="form.date"
             type="date"
+            :max="moment().format('YYYY-MM-DD')"
             borderless
             dense
             class="form__inputsCR mt-2"

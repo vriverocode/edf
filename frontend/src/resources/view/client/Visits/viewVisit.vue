@@ -115,7 +115,7 @@ const reloadVisit = () => {
               <!-- Fecha de visita -->
               <div class="flex justify-between items-center pb-2" style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Fecha programada</span>
-                <span class="text-gray-900 font-semibold">{{ new Date(visit.date).toLocaleDateString('es-ES') }}</span>
+                <span class="text-gray-900 font-semibold">{{ moment(visit.date).format('DD/MM/YYYY') }}</span>
               </div>
 
               <!-- Hora -->

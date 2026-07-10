@@ -126,6 +126,10 @@ const reloadBooking = () => {
                 <div class="text-grey-7 font-medium text-md">Contacto:</div>
                 <div class="text-primary text-md font-bold">{{ booking.user.phone ?? '' }}</div>
               </div>
+              <div class="mt-4 md:pr-5 pr-3">
+                <div class="text-grey-7 font-medium text-md">Unidad:</div>
+                <div class="text-primary text-md font-bold">{{ booking.departament?.number ? '#' + booking.departament.number : '-' }}</div>
+              </div>
             </div>
           </div>
           <!-- Tarjeta de detalles -->
@@ -149,8 +153,7 @@ const reloadBooking = () => {
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Fecha de reserva</span>
-                <span class="text-gray-900 font-semibold">{{ new Date(booking.date).toLocaleDateString('es-ES')
-                }}</span>
+                <span class="text-gray-900 font-semibold">{{ moment(booking.date).format('DD/MM/YYYY') }}</span>
               </div>
 
               <!-- Método de pago -->

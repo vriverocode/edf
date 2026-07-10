@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useReserveStore } from '@/services/store/reserve.store';
 import { useRouter } from 'vue-router';
 import iconsApp from '@/assets/icons/index'
@@ -19,6 +19,42 @@ const reserveStore = useReserveStore();
 const router = useRouter();
 const dialog = ref('');
 const selectedReserve = ref({})
+const filterModal = ref(false)
+
+const userFilters = ref({
+  hideCanceled: true,
+  hidePast: true,
+  status: '',
+  date_from: moment().format('YYYY-MM-DD'),
+  date_to: '',
+})
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (!userFilters.value.hideCanceled) count++
+  if (!userFilters.value.hidePast) count++
+  if (userFilters.value.status && userFilters.value.status !== '') count++
+  if (userFilters.value.date_to) count++
+  return count
+})
+
+const filteredReserves = computed(() => {
+  let list = reserves.value
+  if (userFilters.value.hideCanceled) {
+    list = list.filter(r => r.status != 0)
+  }
+  if (userFilters.value.hidePast) {
+    list = list.filter(r => r.date >= moment().format('YYYY-MM-DD'))
+  }
+  if (userFilters.value.status && userFilters.value.status !== '') {
+    list = list.filter(r => r.status == userFilters.value.status)
+  }
+  if (userFilters.value.date_to) {
+    list = list.filter(r => r.date <= userFilters.value.date_to)
+  }
+  return list
+})
+
 const getReserves = () => {
   loading.value = true;
   reserveStore.getReservesByUser()
@@ -32,6 +68,16 @@ const getReserves = () => {
     .finally(() => {
       loading.value = false;
     });
+}
+
+const resetFilters = () => {
+  userFilters.value = {
+    hideCanceled: true,
+    hidePast: true,
+    status: '',
+    date_from: moment().format('YYYY-MM-DD'),
+    date_to: '',
+  }
 }
 
 const goTo = (url) => {
@@ -73,21 +119,35 @@ const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
   getReserves();
 });
+
+const statusOptions = [
+  { label: 'Todos', value: '' },
+  { label: 'Cancelada', value: 0 },
+  { label: 'Pago pendiente', value: 1 },
+  { label: 'Pendiente de aprob.', value: 2 },
+  { label: 'Exitoso', value: 3 },
+]
 </script>
 
 <template>
   <div class="h-full" style="overflow: hidden;">
      <div class="reserve-list-footer px-4 md:flex md:justify-center items-center md:w-full md:px-12"
       style="min-height: 10%;">
-      <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
-        style="border-radius: 0.5rem; width: 100%;" @click="goTo('/client/reserves/form/add')">
-        <div class="flex items-center py-2">
-          <q-icon name="eva-plus-outline" />
-          <div class="q-pt-xs text-bold pl-1">
-            Agregar reserva
+      <div class="flex items-center w-full gap-2 md:mx-24">
+        <q-btn color="primary" unelevated class="flex-1 createBookingButton"
+          style="border-radius: 0.5rem;" @click="goTo('/client/reserves/form/add')">
+          <div class="flex items-center py-2">
+            <q-icon name="eva-plus-outline" />
+            <div class="q-pt-xs text-bold pl-1">
+              Agregar reserva
+            </div>
           </div>
-        </div>
-      </q-btn>
+        </q-btn>
+        <q-btn flat round color="grey-8" size="md" @click="filterModal = true" class="filter-btn">
+          <q-icon name="eva-funnel-outline" size="1.4rem" />
+          <q-badge v-if="activeFilterCount > 0" color="primary" floating>{{ activeFilterCount }}</q-badge>
+        </q-btn>
+      </div>
     </div>
     <div class="" style="height: 90%; overflow: auto;">
       <!-- Loading State -->
@@ -100,8 +160,8 @@ onMounted(() => {
       <!-- Content -->
       <div v-else class="px-4 py-6 md:px-28">
         <!-- Lista de reservas -->
-        <div v-if="reserves.length > 0" class="space-y-3 md:px-5">
-          <div v-for="reserve in reserves" :key="reserve.id"
+        <div v-if="filteredReserves.length > 0" class="space-y-3 md:px-5">
+          <div v-for="reserve in filteredReserves" :key="reserve.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
             style="position: relative;">
 
@@ -110,10 +170,12 @@ onMounted(() => {
               <!-- Header con nombre y estado -->
               <div class="flex justify-between items-start mb-2">
                 <div class="flex-1">
-                  <h3 class="text-lg font-bold text-gray-900 mb-2">
-                    {{ reserve.comun_area?.name || 'Área Común' }} 
-                    
+                  <h3 class="text-lg font-bold text-gray-900 mb-1">
+                    {{ reserve.comun_area?.name || 'Área Común' }}
                   </h3>
+                  <div v-if="reserve.departament" class="text-sm text-gray-500 mb-2">
+                    Unidad #{{ reserve.departament.number }}
+                  </div>
                 </div>
                 <!-- Estado badge -->
                 <span :class="'bg-' + reserve.status_color"
@@ -263,12 +325,50 @@ onMounted(() => {
               </path>
             </svg>
           </div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">No tienes reservas</h3>
-          <p class="text-gray-600 text-center mb-6">Aún no has realizado ninguna reserva de áreas comunes.</p>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2" v-if="activeFilterCount > 0">Sin resultados</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2" v-else>No tienes reservas</h3>
+          <p class="text-gray-600 text-center mb-6" v-if="activeFilterCount > 0">Ninguna reserva coincide con los filtros actuales. Intenta ajustarlos.</p>
+          <p class="text-gray-600 text-center mb-6" v-else>Aún no has realizado ninguna reserva de áreas comunes.</p>
         </div>
       </div>
     </div>
-    <!-- Botón flotante para crear reserva -->
+    <!-- Filtro modal -->
+    <q-dialog v-model="filterModal" persistent>
+      <q-card style="min-width: 320px; border-radius: 1rem;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6 text-bold">Filtros</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-card-section class="q-pt-md">
+          <q-list>
+            <q-item tag="label" v-ripple>
+              <q-item-section avatar>
+                <q-checkbox v-model="userFilters.hideCanceled" checked-icon="check" color="primary" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Ocultar canceladas</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item tag="label" v-ripple>
+              <q-item-section avatar>
+                <q-checkbox v-model="userFilters.hidePast" checked-icon="check" color="primary" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Solo próximas (>= hoy)</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+          <q-select v-model="userFilters.status" :options="statusOptions" label="Estado" emit-value map-options
+            class="q-mt-md" dense outlined />
+          <q-input v-model="userFilters.date_to" label="Hasta fecha" type="date" dense outlined class="q-mt-md" />
+        </q-card-section>
+        <q-card-actions align="right" class="q-px-md q-pb-md">
+          <q-btn flat label="Limpiar" color="grey-7" @click="resetFilters" />
+          <q-btn unelevated label="Aplicar" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
    
     <template v-if="Object.values(selectedReserve).length > 0">
       <cancelReserveModal :dialog="(dialog == 'cancel')" :reserve="selectedReserve" @closeModal="dialog = ''"
@@ -290,6 +390,10 @@ onMounted(() => {
   right: 0;
   border-bottom-left-radius: 0.5rem;
   top: 0;
+}
+
+.filter-btn {
+  position: relative;
 }
 
 .boxItem_list_v2 {

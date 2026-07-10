@@ -243,6 +243,7 @@ class UserController extends Controller
         $residents = PeoplesXDepartaments::with(['user.rol', 'departament'])
             ->where('created_by', $request->user()->id)
             ->whereIn('type', [Rol::FAMILIAR, Rol::AIRBNB, Rol::INQUILINO])
+            ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($people) {
                 $typeLabel = 'Familiar';

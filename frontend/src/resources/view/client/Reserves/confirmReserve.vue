@@ -2,13 +2,16 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useReserveStore } from '@/services/store/reserve.store'
-import checkIcon from '@/assets/img/util/check.webp'
+import notificationSound from '@/assets/audio/audio_1.mp3'
+import moment from 'moment'
+
 const route = useRoute()
 const router = useRouter()
 const reserveStore = useReserveStore()
 const booking = ref(null)
 const loading = ref(false)
 const error = ref(null)
+const sound = new Audio(notificationSound)
 
 const getBookingById = async (id) => {
   try {
@@ -52,6 +55,12 @@ const reloadGetBooking = () => {
     getBookingById(bookingId)
   }
 }
+
+onMounted(() => {
+  setTimeout(() => {
+    sound.play()
+  }, 2000);
+})
 </script>
 
 <template>
@@ -104,7 +113,16 @@ const reloadGetBooking = () => {
           </svg>
         </div> -->
         <div class="mb-4">
-          <img :src="checkIcon" alt="" style="width: 6rem;">
+          <div class="main-container">
+            <div class="check-container">
+              <div class="check-background">
+                <svg viewBox="0 0 65 51" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 25L27.3077 44L58.5 7" stroke="white" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <div class="check-shadow"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Título de éxito -->
@@ -132,7 +150,14 @@ const reloadGetBooking = () => {
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Fecha de reserva</span>
-              <span class="text-gray-900 font-semibold">{{ new Date(booking.date).toLocaleDateString('es-ES') }}</span>
+              <span class="text-gray-900 font-semibold">{{ moment(booking.date).format('DD/MM/YYYY') }}</span>
+            </div>
+
+            <!-- Unidad -->
+            <div class="flex justify-between items-center pb-2"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">Unidad</span>
+              <span class="text-gray-900 font-semibold">{{ booking.departament?.number ? '#' + booking.departament.number : '-' }}</span>
             </div>
 
             <!-- Método de pago -->
@@ -182,10 +207,10 @@ const reloadGetBooking = () => {
 
           <!-- Enlace de volver al inicio -->
           <div class="text-center">
-            <button @click="goToReserveList"
-              class="text-gray-600 font-medium underline hover:text-gray-800 transition-colors">
+            <q-btn @click="goToReserveList" color="primary" unelevated rounded
+              class="text-gray-600 font-medium py-2 px-8 hover:text-gray-800 transition-colors">
               Volver al inicio
-            </button>
+            </q-btn>
           </div>
         </div>
       </div>
@@ -201,7 +226,7 @@ const reloadGetBooking = () => {
         </div>
         <h2 class="text-xl font-bold text-gray-900 mb-2">Reserva no encontrada</h2>
         <p class="text-gray-600 text-center mb-6">La reserva solicitada no existe o no tienes permisos para verla.</p>
-        <button @click="goToReserveList"
+        <button @click="goToReserveList" 
           class="px-6 py-3 bg-gray-500 text-white rounded-full font-medium hover:bg-gray-600 transition-colors">
           Volver al inicio
         </button>
@@ -209,3 +234,131 @@ const reloadGetBooking = () => {
     </div>
   </div>
 </template>
+<style>
+
+
+
+.main-container {
+	width: 100%;
+	height: 100vh;
+	display: flex;
+	flex-flow: column;
+	justify-content: center;
+	align-items: center;
+	animation: animateTotal 0.75s ease-out forwards 2s;
+
+}
+
+.check-container {
+	width: 7.5rem;
+	height: 8.5rem;
+	display: flex;
+	flex-flow: column;
+	align-items: center;
+	justify-content: space-between;
+
+	.check-background {
+		width: 100%;
+		height: calc(100% - 1.25rem);
+		background: linear-gradient(to bottom right, #006cd0, #006cd0);
+		box-shadow: 0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset;
+		transform: scale(0.84);
+		border-radius: 50%;
+		animation: animateContainer 0.75s ease-out forwards 0.75s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		opacity: 0;
+
+		svg {
+			width: 65%;
+			transform: translateY(0.25rem);
+			stroke-dasharray: 80;
+			stroke-dashoffset: 80;
+			animation: animateCheck 0.35s forwards 1.25s ease-out;
+		}
+	}
+
+	.check-shadow {
+		bottom: calc(-15% - 5px);
+		left: 0;
+		border-radius: 50%;
+		background: radial-gradient(closest-side, rgb(32, 44, 95), transparent);
+		animation: animateShadow 0.75s ease-out forwards 0.75s;
+	}
+}
+
+@keyframes animateContainer {
+	0% {
+		opacity: 0;
+		transform: scale(0);
+		box-shadow: 0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset;
+	}
+	25% {
+		opacity: 1;
+		transform: scale(0.9);
+		box-shadow: 0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset;
+	}
+	43.75% {
+		transform: scale(1.15);
+		box-shadow: 0px 0px 0px 43.334px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset;
+	}
+	62.5% {
+		transform: scale(1);
+		box-shadow: 0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 21.667px rgba(255, 255, 255, 0.25) inset;
+	}
+	81.25% {
+		box-shadow: 0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset;
+	}
+	100% {
+		opacity: 1;
+		box-shadow: 0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset;
+	}
+}
+
+@keyframes animateCheck {
+	from {
+		stroke-dashoffset: 80;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes animateShadow {
+	0% {
+		opacity: 0;
+		width: 100%;
+		height: 15%;
+	}
+	25% {
+		opacity: 0.25;
+	}
+	43.75% {
+		width: 40%;
+		height: 7%;
+		opacity: 0.35;
+	}
+	100% {
+		width: 85%;
+		height: 15%;
+		opacity: 0.25;
+	}
+}
+
+@keyframes animateTotal {
+	0% {
+		height: 100vh;
+	}
+	100% {
+	  height: 20vh;
+	}
+}
+</style>

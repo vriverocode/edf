@@ -11,6 +11,7 @@ const userStore = useUserStore()
 const apartmentStore = useApartmentStore()
 const apartmentsOptions = ref([])
 const hasNoApartments = ref(false)
+const deptosWithInquilino = ref(new Set())
 const tipoResidentOptions = ref([
     {
         id: '',
@@ -33,7 +34,7 @@ const tipoResidentOptions = ref([
 const getApartmentsByUser = () => {
     apartmentStore.getApartmentByUser()
         .then((response) => {
-            const apartments = response.data || []
+            const apartments = (response.data || []).filter(a => a.type == 1)
             hasNoApartments.value = apartments.length === 0
 
             if (apartments.length === 0) {
@@ -54,6 +55,16 @@ const getApartmentsByUser = () => {
             hasNoApartments.value = true
             apartmentsOptions.value = []
         })
+}
+
+const getInquilinosByUser = () => {
+    userStore.getResidents()
+        .then((response) => {
+            const residents = response.data || []
+            const inquilinos = residents.filter(r => r.type === 3)
+            deptosWithInquilino.value = new Set(inquilinos.map(r => r.departament?.id))
+        })
+        .catch(() => {})
 }
 
 
@@ -200,6 +211,10 @@ const validatorStep = () => {
             showNotify('negative', 'Indica el parentesco')
             return false
         }
+        if (isInquilino() && deptosWithInquilino.value.has(apartmentId)) {
+            showNotify('negative', 'Este departamento ya tiene un inquilino asignado')
+            return false
+        }
     }
     if (step.value == 1) {
         if (!formData.value.name) {
@@ -231,6 +246,16 @@ const validatorStep = () => {
         if (!airbnbFormData.value.end_time) {
             showNotify('negative', 'Fecha de finalización es requerido')
             return false
+        }
+        if (airbnbFormData.value.end_time && airbnbFormData.value.init_time) {
+            const initParts = airbnbFormData.value.init_time.split('/')
+            const endParts = airbnbFormData.value.end_time.split('/')
+            const initDate = new Date(initParts[2], initParts[1] - 1, initParts[0])
+            const endDate = new Date(endParts[2], endParts[1] - 1, endParts[0])
+            if (endDate < initDate) {
+                showNotify('negative', 'La fecha de finalización no puede ser anterior a la fecha de inicio')
+                return false
+            }
         }
     }
     if (step.value == 3) {
@@ -282,6 +307,7 @@ const myLocale = {
 
 onMounted(() => {
     getApartmentsByUser()
+    getInquilinosByUser()
 })
 
 </script>

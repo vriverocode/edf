@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import iconsApp from '@/assets/icons/index'
 import { usePayStore } from '@/services/store/pay.store'
 import { useTransactionCategoryStore } from '@/services/store/transactionCategory.store'
+import moment from 'moment'
 import voucherModal from '@/components/pay/voucherModal.vue'
 import createTransactionCategoryModal from '@/components/finance/createTransactionCategoryModal.vue'
 import createFinancialAccountModal from '@/components/finance/createFinancialAccountModal.vue'
@@ -311,7 +312,7 @@ const showModal = () => {
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Fecha de pago</span>
-              <span class="text-gray-900 font-semibold">{{ new Date(pay.pay_date).toLocaleDateString('es-PE') }}</span>
+              <span class="text-gray-900 font-semibold">{{ moment(pay.pay_date).format('DD/MM/YYYY') }}</span>
             </div>
 
             <div class="flex justify-between items-center pb-2"

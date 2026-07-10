@@ -87,12 +87,8 @@ const reloadIncident = () => {
               <div class="flex justify-end">
                 <div class="p-4 dateFact text-primary text-md font-bold">
                   <span class="text-grey-7 font-medium text-md">Reportada el:</span> {{
-                    moment(incident.created_at).format('DD/MM/YYYY') }}
+                    moment(incident.created_at).format('DD/MM/YYYY HH:mm') }}
                 </div>
-              </div>
-              <div class="mt-4 md:pr-5 pr-3">
-                <div class="text-grey-7 font-medium text-md">Hora:</div>
-                <div class="text-primary text-md font-bold">{{moment(moment(incident.created_at).format('DD/MM/YYYY')+' '+incident.hour).format('hh:mm A')  }}</div>
               </div>
             </div>
           </div>

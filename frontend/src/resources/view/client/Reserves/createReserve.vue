@@ -38,6 +38,7 @@ const paymentMethodStore = usePayMethodStore()
 const authStore = useAuthStore()
 const emitter = inject('emitter')
 const comunAreas = ref([])
+const blockedAreaIds = ref([])
 const userApartments = computed(() => {
   if (authStore.user.role_id == 5) {
 
@@ -200,6 +201,16 @@ const getComunsArea = () => {
       showNotify('negative', 'Error al obtener areas comunes')
     })
 }
+const fetchBlockedAreas = () => {
+  const today = moment().format('YYYY-MM-DD')
+  reserveStore.getReservesByUser({ status: 1 })
+    .then((response) => {
+      if (response.code !== 200) throw response
+      const todayBookings = response.data.filter(b => b.date === today)
+      blockedAreaIds.value = [...new Set(todayBookings.map(b => b.comun_area_id))]
+    })
+    .catch(() => {})
+}
 const getPayMethod = () => {
   paymentMethodStore.getPayMethod()
     .then((response) => {
@@ -239,6 +250,15 @@ const validateStepForm = () => {
   return true
 }
 const getAvaibleBookingByDay = () => {
+  const selectedDate = moment(formData.value.date).format('YYYY-MM-DD')
+  const alreadyBlocked = blockedAreaIds.value.includes(selectedComunArea.value.id) &&
+    selectedDate === moment().format('YYYY-MM-DD')
+
+  if (alreadyBlocked) {
+    showNotify('negative', 'Ya tienes una reserva activa para esta área en el día seleccionado')
+    formData.value.date = ''
+    return
+  }
 
   const data = {
     idArea: selectedComunArea.value.id,
@@ -250,7 +270,6 @@ const getAvaibleBookingByDay = () => {
     .then((response) => {
       disabledTime.value = false
       intervalHorarys.value = response.data.blocks
-
     })
 }
 
@@ -321,17 +340,14 @@ const createReserve = () => {
         setTimeout(() => {
           loading.value = false
           router.push('/client/reserves/confirm-reserve/' + response.data.id)
-          rulesModal.value = false
+          // rulesModal.value = false
         }, 1000);
         return
       }
-      console.log('por aqui si son los pagados')
-
       toPayId.value = response.data.id
       createPay(response.data.id)
     })
     .catch((response) => {
-      console.log(response)
       setTimeout(() => {
         loading.value = false
         showNotify('negative', 'Error al realizar reserva')
@@ -449,7 +465,6 @@ const copyData = (texto) => {
     const success = document.execCommand('copy');
     showNotify('positive', 'Datos copiados con exito')
   } catch (err) {
-    console.error(err.name, err.message);
   }
   finally {
     element.removeChild(textArea);
@@ -565,6 +580,7 @@ const calculateDiffHour = computed(() => {
 onMounted(() => {
   getComunsArea()
   getPayMethod()
+  fetchBlockedAreas()
 
   if (userApartments.value.length === 1) {
     formData.value.departament_id = userApartments.value[0].id
@@ -604,10 +620,13 @@ watch(step,
         <Transition :name="transitionName">
           <div class="px-2 form-step row" v-if="step == 1">
             <div class="col-md-3 col-4 px-2 md:px-5 my-3" v-for="comunArea in comunAreas" :key="comunArea.id">
-              <div class="boxContentV2 ">
-                <div class="boxItem_v2  md:px-6 " @click="selectArea(comunArea.id)">
+              <div class="boxContentV2 " :class="{ 'areaBlocked': blockedAreaIds.includes(comunArea.id) }">
+                <div class="boxItem_v2  md:px-6 " @click="blockedAreaIds.includes(comunArea.id) ? showNotify('negative', 'Ya tienes una reserva activa para esta área el día de hoy') : selectArea(comunArea.id)">
                   <div class="flex justify-center items-center h-full w-full ">
                     <img :src="mediaUrl + '/images/icons/' + comunArea.icon + '.svg'" alt="" style="height:100%">
+                  </div>
+                  <div v-if="blockedAreaIds.includes(comunArea.id)" class="areaBlockedBadge">
+                    Reservado
                   </div>
                 </div>
                 <div class="text-center mt-0 pt-1 px-2 text-title-squadV2 text-white text-ellipsis ellipsis "
@@ -689,7 +708,12 @@ watch(step,
                               : selectedComunArea.max_time_reserve) }}
                           </div>
                         </div>
-                        <div>
+                        <div class="flex gap-2">
+                          <q-btn outline color="grey-7" rounded no-caps class="backFecha" @click="backButton()">
+                            <div class="text-bold text-sm">
+                              Volver
+                            </div>
+                          </q-btn>
                           <q-btn outline color="tealedf" rounded no-caps class="backFecha" @click="backButton()">
                             <div class="text-bold text-sm">
                               Cambiar fecha
@@ -719,7 +743,7 @@ watch(step,
                                   text-color="white" size="0.8rem">
                                   <div style="font-size: 0.7rem;" class="">
                                     {{ selectedInterval?.id !== index ? interval.status : 'Seleccionado' }}
-                                    <span v-if="selectedComunArea?.max_cupo" class="q-ml-xs">({{ interval.available }}/{{ selectedComunArea.max_cupo }})</span>
+                                    <span v-if="selectedComunArea?.max_cupo" class="q-ml-xs">({{ interval.occupancy }}/{{ selectedComunArea.max_cupo }})</span>
                                   </div>
                                 </q-chip>
                               </div>
@@ -1694,6 +1718,26 @@ watch(step,
   overflow: hidden;
   position: relative;
   height: 8.1rem;
+
+  &.areaBlocked {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+.areaBlockedBadge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 1rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 10;
 }
 
 .pintype {
