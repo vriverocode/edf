@@ -210,7 +210,7 @@ onMounted(() => {
                     </div>
                     <div class="flex my-2">
                       <div class="text-black font-medium">Nro. Piso:</div>
-                      <div class="ml-1 text-black font-medium">{{ apartment.number.toString().charAt(0) }}</div>
+                      <div class="ml-1 text-black font-medium">{{ apartment.inter_number.toString().charAt(0) }}</div>
                     </div>
                   </div>
                 </div>

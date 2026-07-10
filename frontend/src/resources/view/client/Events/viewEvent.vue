@@ -71,8 +71,12 @@ const setAssist = (type) => {
   })
 }
 const yetAssist = () => {
- let assits = JSON.parse(eventData.value.assits)
- let notAssits = JSON.parse(eventData.value.not_assits)
+  
+ let assits = JSON.parse(eventData.value.assits ?? '[]')
+ let notAssits = JSON.parse(eventData.value.not_assits ?? '[]')
+
+ console.log(assits)
+ console.log(notAssits)
  
   if(assits.includes(user.value.id) || notAssits.includes(user.value.id)){
     confirmAssits.value = false 
@@ -80,8 +84,8 @@ const yetAssist = () => {
   youAssistVote()
 }
 const youAssistVote = () => {
-  let assits = JSON.parse(eventData.value.assits)
-  let notAssits = JSON.parse(eventData.value.not_assits)
+  let assits = JSON.parse(eventData.value.assits ?? '[]')
+  let notAssits = JSON.parse(eventData.value.not_assits ?? '[]')
  
   if(assits.includes(user.value.id)){
     assistVote.value = {
@@ -210,7 +214,7 @@ onMounted(() => {
           <!-- Botones -->
           <div class="w-full pb-5 row">
             <template v-if="confirmAssits">
-              <div class="col-12 col-md-6 px-5">
+              <div class="col-12 col-md-6 mt-3 md:mt-0 px-5">
                 <q-btn
                   @click="setAssist(0)"
                   class="w-full flex flex-center py-3"
@@ -226,7 +230,7 @@ onMounted(() => {
                   </div>
                 </q-btn>
               </div>
-              <div class="col-12 col-md-6 px-5">
+              <div class="col-12 col-md-6 mt-5 md:mt-0 px-5">
                 <q-btn
                   @click="setAssist(1)"
                   class="w-full flex flex-center py-3" 

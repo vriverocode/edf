@@ -79,7 +79,7 @@ const getNotifications = () => {
 
 }
 const isShowablePage = () => {
-  return (['reserveConfirm', 'reservePayConfirm'].includes(route.name))
+  return (['reservePayConfirm'].includes(route.name))
 }
 const showNavbar = () => {
   return ['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)
