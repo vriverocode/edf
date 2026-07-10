@@ -683,7 +683,6 @@ class BookingController extends Controller
 
             // Notificamos a los usuarios sobre el nuevo evento
             $this->sendEventCreatedNotification($event, $booking->user_id);
-
         }
         return $area;
     }
