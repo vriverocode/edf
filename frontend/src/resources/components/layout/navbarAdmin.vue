@@ -63,12 +63,16 @@ const availableByRol = (roles) => {
 
   & .q-tab__indicator {
     bottom: 97% !important;
-    display: none;
+    background: #02205d;
+    height: 3px;
   }
 
   & .q-tab--active {
+    background: rgba(2, 32, 93, 0.06);
+
     & span {
       color: #02205d !important;
+      font-weight: 700;
     }
 
     & path {

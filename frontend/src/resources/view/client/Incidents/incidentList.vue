@@ -87,6 +87,10 @@ onMounted(() => {
                     </svg>
                     <span class="font-medium">{{ moment(incident.date).format('DD MMM YYYY') }}</span>
                   </div>
+                  <div class="flex items-center text-sm text-gray-500">
+                    <q-icon name="eva-clock-outline" size="1rem" class="mr-2 text-gray-400" />
+                    <span>Reportado {{ moment(incident.created_at).format('DD MMM YYYY') }}</span>
+                  </div>
 
                   <!-- Horario -->
                   <div class="flex items-center text-sm text-gray-700">

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/services/store/auth.services';
 import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
 import { computed } from 'vue';
+import { Notify } from 'quasar'
 
 import saldos from '@/assets/img/menu/saldos-pendientes.png'
 import bills from '@/assets/img/menu/gastos-comunes.png'
@@ -14,12 +15,12 @@ const menu = [
   {
     title: 'Saldos pendientes',
     icon: saldos,
-    link: '/balances',
+    placeholder: true,
   },
   {
     title: 'Gastos comunes',
     icon: bills,
-    link: '/balances',
+    placeholder: true,
   },
 
 ];
@@ -28,15 +29,23 @@ const menuByRol = computed(() => {
   console.log(rol)
   return menu.filter(item => !item.roles || item.roles.includes(rol))
 })
-const goTo = (url) => {
-  router.push(url)
+const goTo = (item) => {
+  if (item.placeholder) {
+    Notify.create({
+      color: 'info',
+      message: 'Próximamente disponible',
+      timeout: 2000,
+    })
+    return
+  }
+  if (item.link) router.push(item.link)
 }
 </script>
 <template>
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-2  md:px-28">
       <div class="col-md-3   col-6 px-7 my-3" v-for="(item, key) in menuByRol" :key="key">
-        <div class="boxItem" @click="goTo(item.link)">
+        <div class="boxItem" :class="{ 'opacity-50': item.placeholder }" @click="goTo(item)">
           <div class="flex justify-center items-center h-full w-full p-1">
             <div v-html="item.icon" class="flex justify-center mt-0" v-if="item.title == 'Cuotas' || item.title == 'Gastos'" />
             <img :src="item.icon" class="md:w-auto" v-else

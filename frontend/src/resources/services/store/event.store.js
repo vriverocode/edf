@@ -199,7 +199,7 @@ export const useEventStore = defineStore('Event', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/events/set-assits/'+id, data)
+        ApiService.post('/api/events/set-assists/'+id, data)
         .then(({data}) => {
           if(data.code !=200) throw data;
           

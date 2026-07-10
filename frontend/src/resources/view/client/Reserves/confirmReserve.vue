@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useReserveStore } from '@/services/store/reserve.store'
 import notificationSound from '@/assets/audio/audio_1.mp3'
+import moment from 'moment'
 
 const route = useRoute()
 const router = useRouter()
@@ -149,7 +150,14 @@ onMounted(() => {
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Fecha de reserva</span>
-              <span class="text-gray-900 font-semibold">{{ new Date(booking.date).toLocaleDateString('es-ES') }}</span>
+              <span class="text-gray-900 font-semibold">{{ moment(booking.date).format('DD/MM/YYYY') }}</span>
+            </div>
+
+            <!-- Unidad -->
+            <div class="flex justify-between items-center pb-2"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">Unidad</span>
+              <span class="text-gray-900 font-semibold">{{ booking.departament?.number ? '#' + booking.departament.number : '-' }}</span>
             </div>
 
             <!-- Método de pago -->

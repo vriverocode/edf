@@ -129,6 +129,15 @@ const validateData = (apartmentId) => {
     showNotify('negative', 'Indica la fecha de la visita')
     return false
   }
+  if (formData.value.date === moment().format('DD/MM/YYYY') && formData.value.hour) {
+    const [h, m] = formData.value.hour.split(':')
+    const selectedMinutes = parseInt(h) * 60 + parseInt(m)
+    const nowMinutes = moment().hours() * 60 + moment().minutes()
+    if (selectedMinutes < nowMinutes) {
+      showNotify('negative', 'La hora seleccionada ya pasó. Elige una hora posterior.')
+      return false
+    }
+  }
   return true
 }
 function visitTimeLimit(hr) {

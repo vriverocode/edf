@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import checkIcon from '@/assets/img/util/check.webp'
+import moment from 'moment'
 import { usePayStore } from '@/services/store/pay.store'
 const route = useRoute()
 const router = useRouter()
@@ -142,7 +143,7 @@ const reloadBooking = () => {
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Fecha de pago</span>
-              <span class="text-gray-900 font-semibold">{{ new Date(pay.pay_date).toLocaleDateString('es-ES') }}</span>
+              <span class="text-gray-900 font-semibold">{{ moment(pay.pay_date).format('DD/MM/YYYY') }}</span>
             </div>
 
             <!-- Método de pago -->

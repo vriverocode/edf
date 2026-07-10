@@ -708,7 +708,12 @@ watch(step,
                               : selectedComunArea.max_time_reserve) }}
                           </div>
                         </div>
-                        <div>
+                        <div class="flex gap-2">
+                          <q-btn outline color="grey-7" rounded no-caps class="backFecha" @click="backButton()">
+                            <div class="text-bold text-sm">
+                              Volver
+                            </div>
+                          </q-btn>
                           <q-btn outline color="tealedf" rounded no-caps class="backFecha" @click="backButton()">
                             <div class="text-bold text-sm">
                               Cambiar fecha

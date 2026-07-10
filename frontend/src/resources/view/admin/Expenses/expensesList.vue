@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { Notify } from 'quasar'
 import { useRouter } from 'vue-router'
 import { useExpenseStore } from '@/services/store/expense.store'
+import moment from 'moment'
 import iconsApp from '@/assets/icons/index'
 import gastos from '@/assets/img/menu/gastos2.png'
 
@@ -64,7 +65,7 @@ const formatDate = (value) => {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('es-PE')
+  return moment(date).format('DD/MM/YYYY')
 }
 
 const formatMoney = (value) => {

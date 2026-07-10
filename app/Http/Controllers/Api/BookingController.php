@@ -64,6 +64,15 @@ class BookingController extends Controller
                 return $this->returnFail(403, 'No tienes permisos para crear reservas en este departamento');
             }
 
+            $date = date('Y-m-d', strtotime($request->date));
+            if ($this->hasActiveBookingForDay($user->id, $request->comun_area, $date)) {
+                return $this->returnFail(409, 'Ya tienes una reserva activa para esta área en el día seleccionado. Cancela la reserva existente para poder crear una nueva.');
+            }
+
+            if (! $this->hasAvailableSlots($request->comun_area, $date, $request->time_from, $request->time_to, $request->exclusive)) {
+                return $this->returnFail(409, 'No hay cupos disponibles para el horario seleccionado.');
+            }
+
             $booking = Booking::create([
                 'user_id' => $user->id,
                 'departament_id' => $departament_id,
@@ -94,7 +103,7 @@ class BookingController extends Controller
 
     public function getBookingsByUser(Request $request)
     {
-        $bookings = Booking::with('comunArea', 'user', 'pay');
+        $bookings = Booking::with('comunArea', 'user', 'pay', 'departament');
         if ($request->user()->rol_id !== Rol::ADMIN) {
             $bookings->where('user_id', $request->user()->id)->orderBy('date', 'asc');
         } elseif ($request->filled('user_id')) {
@@ -107,7 +116,7 @@ class BookingController extends Controller
 
     public function getBookingById($id)
     {
-        $booking = Booking::with('comunArea', 'user', 'pay')->find($id);
+        $booking = Booking::with('comunArea', 'user', 'pay', 'departament')->find($id);
         if (! $booking) {
             return $this->returnFail(404, 'Reserva no encontrada');
         }
@@ -296,6 +305,7 @@ class BookingController extends Controller
                     'time_from' => $timeInitInterval->format('H:i'),
                     'time_to' => $slotEnd->format('H:i'),
                     'capacity' => $area->max_cupo,
+                    'occupancy' => ($area->max_cupo ?? 100) - $availability['spots'],
                     'available' => $availability['spots'],
                     'status' => $availability['status'],
                 ];
@@ -586,6 +596,46 @@ class BookingController extends Controller
         return $booking->user_id === $user->id || $user->rol_id === Rol::ADMIN;
     }
 
+    private function hasActiveBookingForDay(int $userId, int $comunAreaId, string $date): bool
+    {
+        return Booking::where('user_id', $userId)
+            ->where('comun_area_id', $comunAreaId)
+            ->where('date', $date)
+            ->where('status', '>', 0)
+            ->exists();
+    }
+
+    private function hasAvailableSlots(int $comunAreaId, string $date, string $timeFrom, string $timeTo, int $isExclusive): bool
+    {
+        $area = ComunArea::find($comunAreaId);
+        if (! $area) {
+            return false;
+        }
+
+        $capacity = $area->max_cupo ?? 100;
+
+        $bookingsInSlot = Booking::where('comun_area_id', $comunAreaId)
+            ->where('date', $date)
+            ->where('status', '>', 0)
+            ->where('time_from', '<', $timeTo)
+            ->where('time_to', '>', $timeFrom)
+            ->get();
+
+        $occupancy = 0;
+        foreach ($bookingsInSlot as $booking) {
+            if ($booking->is_exclusive) {
+                return false;
+            }
+            $occupancy++;
+        }
+
+        if ($isExclusive) {
+            return $occupancy === 0;
+        }
+
+        return $occupancy < $capacity;
+    }
+
     private function sendNotification($booking)
     {
         $users = [
@@ -669,11 +719,11 @@ class BookingController extends Controller
         $area = ComunArea::find($booking->comun_area_id);
         $isCine = $area && str_contains(strtolower($area->name), 'cine');
 
-        if ($isCine && $booking->typeOfReserve == 1) {
+        if ($isCine && $booking->type == 1) {
             // Creamos el evento y lo atamos a la reserva recién creada
             $event = Event::create([
                 'title' => 'Cine: ' . $booking->note, // El nombre de la película
-                'description' => 'Proyección compartida en el área de Cine para el día ' . date('DD/MM/YYYY', strtotime($booking->date)) . '. ¡Todos los residentes están invitados! ',
+                'description' => 'Proyección compartida en el área de Cine para el día ' . date('d/m/Y', strtotime($booking->date)) . '. ¡Todos los residentes están invitados! ',
                 'date' => date('Y-m-d', strtotime($booking->date)),
                 'time_from' => $booking->time_from,
                 'time_to' => $booking->time_to,
@@ -683,7 +733,6 @@ class BookingController extends Controller
 
             // Notificamos a los usuarios sobre el nuevo evento
             $this->sendEventCreatedNotification($event, $booking->user_id);
-
         }
         return $area;
     }
