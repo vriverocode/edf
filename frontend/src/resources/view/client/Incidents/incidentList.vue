@@ -35,7 +35,7 @@ onMounted(() => {
 
 <template>
   <div class="h-full" style="overflow: hidden;">
-    <div class="" style="height: 90%; overflow: auto;">
+    <div class="" style="height: 80%; overflow: auto;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />
@@ -50,13 +50,19 @@ onMounted(() => {
             style="position: relative;" @click="router.push(`/client/incidents/view/${incident.id}`)">
 
             <!-- Sección superior - Detalles de la incidencia -->
-            <div class="px-4 pb-4 pt-2 ">
+            <div class="px-4  pb-4 pt-2 ">
               <!-- Header con nombre y estado -->
-              <div class="flex justify-between items-start mb-2">
+              <div class="mb-2">
                 <div class="flex-1">
                   <h3 class="text-lg font-bold text-gray-900 mb-2">
                     {{ incident.title }} 
                   </h3>
+                </div>
+                <div class="flex items-center text-sm text-gray-700 ">
+                  <!-- <q-icon name="eva-bookmark-outline" class="w-4 h-4 mr-2 text-gray-500" size="1.2rem"/> -->
+                  <div class="font-medium ellipsis " style="width: 90%;">
+                    {{ incidentStore.typeLabels[incident.type] }}
+                  </div>
                 </div>
                 <!-- Estado badge -->
                 <span :class="'bg-' + (incident.status === 1 ? 'warning' : (incident.status === 4 ? 'positive' : 'info'))"
@@ -79,18 +85,23 @@ onMounted(() => {
                 <!-- Detalles de la incidencia -->
                 <div class="flex-1 space-y-2">
                   <!-- Fechas -->
+                   <div class="flex items-center text-sm text-gray-700">
+                    <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                      </path>
+                    </svg>
+                    <span class="font-medium">Reportado: {{ moment(incident.created_at).format('DD MMM YYYY') }}</span>
+                  </div>
                   <div class="flex items-center text-sm text-gray-700">
                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                       </path>
                     </svg>
-                    <span class="font-medium">{{ moment(incident.date).format('DD MMM YYYY') }}</span>
+                    <span class="font-medium">Ocurrio: {{ moment(incident.date).format('DD MMM YYYY') }}</span>
                   </div>
-                  <div class="flex items-center text-sm text-gray-500">
-                    <q-icon name="eva-clock-outline" size="1rem" class="mr-2 text-gray-400" />
-                    <span>Reportado {{ moment(incident.created_at).format('DD MMM YYYY') }}</span>
-                  </div>
+                  
 
                   <!-- Horario -->
                   <div class="flex items-center text-sm text-gray-700">
@@ -103,15 +114,11 @@ onMounted(() => {
                     </span>
                   </div>
                   
-                  <div class="flex items-center text-sm text-gray-700">
-                    <q-icon name="eva-bookmark-outline" class="w-4 h-4 mr-2 text-gray-500" size="1.2rem"/>
-                    <span class="font-medium">
-                      {{ incidentStore.typeLabels[incident.type] }}
-                    </span>
-                  </div>
+                  
                 </div>
               </div>
             </div>
+            
           </div>
         </div>
 
@@ -131,8 +138,8 @@ onMounted(() => {
     </div>
     
     <!-- Botón flotante para reportar incidencia -->
-    <div class="reserve-list-footer px-4 md:flex md:justify-center items-center md:w-full md:px-12"
-      style="min-height: 10%;">
+    <div class="reserve-list-footer px-4 flex justify-center items-center md:w-full md:px-12"
+      style="height: 20%;">
       <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
         style="border-radius: 0.5rem; width: 100%;" @click="goToCreate()">
         <div class="flex items-center py-2">

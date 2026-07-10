@@ -12,14 +12,15 @@ export const useIncidentStore = defineStore('Incidents', {
     ],
     typeLabels: [
       '',
-      'Consulta por duda',
-      'Reclamos',
-      'Averias de infraestructura',
-      'Averias en equipos(Ascensores, caminadoras, butacas)',
-      'Incumplimiento de reglas y normativas',
-      'Fallas generales',
-      'Maltrato por parte de propietario',
-      'Otros'
+      '🔧 Avería de infraestructura',
+      '⚙️ Avería de equipos (gimnasio, ascensores, etc.)',
+      '⚠️ Incumplimiento de normas',
+      '📢 Reclamo',
+      '❓ Consulta',
+      '🏢 Falla general',
+      '👤 Conducta inadecuada de un residente',
+      '🛡️ Incidente con personal del edificio',
+      '📝 Otro',
     ]
   }),
   actions: {

@@ -13,7 +13,7 @@ const form = ref({
   title: '',
   description: '',
   date: moment().format('YYYY-MM-DD'),
-  hour: moment().format('HH:mm'),
+  hour: moment().format('hh:mm A'),
   location: '',
   type: null
 });
@@ -33,7 +33,7 @@ const onSubmit = () => {
   payload.append('title', form.value.title);
   payload.append('description', form.value.description);
   payload.append('date', form.value.date);
-  payload.append('hour', form.value.hour);
+  payload.append('hour', moment(form.value.hour, 'hh:mm A').format('HH:mm'));
   if (form.value.location) {
     payload.append('location', form.value.location);
   }
@@ -60,6 +60,19 @@ const onSubmit = () => {
       loading.value = false;
     });
 }
+
+const limitarHoraFinal = (hr, min, sec) => {
+  const currentHour = moment().hour();
+  const currentMinute = moment().minute();
+  
+  if (hr > currentHour) {
+    return false;
+  }
+  if (hr === currentHour && min !== null && min > currentMinute) {
+    return false;
+  }
+  return true;
+}
 </script>
 
 <template>
@@ -72,12 +85,13 @@ const onSubmit = () => {
       <div class="row w-full">
         <div class="col-md-6 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">
-            Título
+            Asunto
           </div>
           <q-input
             v-model="form.title"
             borderless
             dense
+            placeholder="Ej. Fuga de agua en el piso 10"
             clearable
             class="form__inputsCR mt-2"
             color="primary"
@@ -116,6 +130,7 @@ const onSubmit = () => {
             :max="moment().format('YYYY-MM-DD')"
             borderless
             dense
+            disable
             class="form__inputsCR mt-2"
             color="primary"
             lazy-rules
@@ -129,17 +144,35 @@ const onSubmit = () => {
           </div>
           <q-input
             v-model="form.hour"
-            type="time"
             borderless
             dense
             class="form__inputsCR mt-2"
             color="primary"
             lazy-rules
-            :rules="[val => !!val || 'Por favor selecciona una hora']"
-          />
+            :rules="[
+              val => !!val || 'Por favor selecciona una hora',
+              val => moment(val, 'hh:mm A').format('HH:mm') <= moment().format('HH:mm') || 'La hora no puede ser mayor a la actual'
+            ]"
+          >
+          <template v-slot:append>
+            <q-icon name="eva-clock-outline" class="cursor-pointer">
+              <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                <q-time 
+                  v-model="form.hour" 
+                  mask="hh:mm A"
+                  :options="limitarHoraFinal"
+                >
+                  <div class="row items-center justify-end">
+                    <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                  </div>
+                </q-time>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+          </q-input>
         </div>
 
-        <div class="col-12 my-1 px-2 md:px-12">
+        <div class="col-12 my-1 px-2 md:px-12" v-if="form.type !== 5">
           <div class="text-subtitle2 text-bold text-black">
             Ubicación (Opcional)
           </div>
@@ -150,6 +183,7 @@ const onSubmit = () => {
             clearable
             class="form__inputsCR mt-2"
             color="primary"
+            placeholder="Ej. piso 8, gimnasio, lobby o piscina."
           />
         </div>
 
@@ -175,7 +209,7 @@ const onSubmit = () => {
 
         <div class="col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 mt-3 text-bold text-black">
-            Descripción detallada
+            Descripción
           </div>
           <q-input
             v-model="form.description"
@@ -186,6 +220,7 @@ const onSubmit = () => {
             class="form__inputsCR mt-2"
             color="primary"
             lazy-rules
+            placeholder="Describe lo sucedido con el mayor detalle posible para facilitar la atención de tu reporte."
             :rules="[val => val && val.length > 0 || 'Por favor ingresa una descripción']"
           />
         </div>

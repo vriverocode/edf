@@ -74,7 +74,7 @@ const reloadIncident = () => {
       <!-- Success State -->
       <div v-else-if="incident" class="flex flex-col items-center md:px-28 md:mx-28 pb-8">
         <div class="bg-white rounded-xl border border-gray-300 flex flex-col items-center w-full">
-          <div class="row w-full mb-3 items-end">
+          <div class="row w-full mb-3 items-start">
             <div class="flex flex-col items-start col-md-6 col-6 md:pl-5 pl-3">
               <div class="mb-4 pt-5">
                 <q-icon name="eva-alert-circle-outline" size="4rem" color="primary" />

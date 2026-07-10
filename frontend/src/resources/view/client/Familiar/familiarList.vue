@@ -166,7 +166,7 @@ onMounted(() => {
                             No hay usuarios registrados
                         </div>
                         <div class=" text-grey-6 text-center q-mb-lg">
-                            Aquí podrás agregar familiares, inquilinos y huéspedes temporales autorizados.
+                            Crea cuentas para familiares, inquilinos o huéspedes temporales y permíteles acceder a la aplicación para gestionar sus propias reservas.
                         </div>
                         <q-btn color="primary" unelevated style="border-radius: 0.5rem;"
                             @click="goTo('/client/familiar/add')">

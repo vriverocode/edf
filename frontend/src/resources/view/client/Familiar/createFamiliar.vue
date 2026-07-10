@@ -11,15 +11,12 @@ const userStore = useUserStore()
 const apartmentStore = useApartmentStore()
 const apartmentsOptions = ref([])
 const hasNoApartments = ref(false)
+const hasSingleApartment = ref(false)
 const deptosWithInquilino = ref(new Set())
 const tipoResidentOptions = ref([
     {
         id: '',
         title: 'Selecciona el tipo de usuario'
-    },
-    {
-        id: 'airbnb',
-        title: '🧳 Huésped temporal (Airbnb)'
     },
     {
         id: 'familiar',
@@ -28,7 +25,11 @@ const tipoResidentOptions = ref([
     {
         id: 'inquilino',
         title: '🏠 Inquilino'
-    }
+    },
+    {
+        id: 'airbnb',
+        title: '🧳 Huésped temporal (Airbnb)'
+    },
 ])
 
 const getApartmentsByUser = () => {
@@ -36,9 +37,15 @@ const getApartmentsByUser = () => {
         .then((response) => {
             const apartments = (response.data || []).filter(a => a.type == 1)
             hasNoApartments.value = apartments.length === 0
+            hasSingleApartment.value = apartments.length === 1
 
             if (apartments.length === 0) {
                 apartmentsOptions.value = []
+                return
+            }
+
+            if (apartments.length === 1) {
+                formData.value.apartment = apartments[0]
                 return
             }
 
@@ -46,10 +53,6 @@ const getApartmentsByUser = () => {
                 { id: 0, number: 'Selecciona un departamento', area: null },
                 ...apartments
             ]
-
-            if (apartments.length === 1) {
-                formData.value.apartment = apartments[0]
-            }
         })
         .catch(() => {
             hasNoApartments.value = true
@@ -152,7 +155,7 @@ const createUser = () => {
     // Datos base del residente / cuenta
     payloadForm.append('type', formData.value.type?.id);
     payloadForm.append('name', formData.value.name);
-    payloadForm.append('email', formData.value.email);
+    if (formData.value.email) payloadForm.append('email', formData.value.email);
     payloadForm.append('idApartament', formData.value.idApartament);
 
     if (formData.value.phone) payloadForm.append('phone', formData.value.phone);
@@ -221,13 +224,15 @@ const validatorStep = () => {
             showNotify('negative', 'Nombre es requerido')
             return false
         }
-        if (!formData.value.email) {
-            showNotify('negative', 'correo electronico es requerido')
-            return false
-        }
-        if (!formData.value.password && formData.value.password.length < 8) {
-            showNotify('negative', 'Contraseña es necesaria y debe tener una longitud de 8 caracteres')
-            return false
+        if (!isAirbnb()) {
+            if (!formData.value.password && formData.value.password.length < 8) {
+                showNotify('negative', 'Contraseña es necesaria y debe tener una longitud de 8 caracteres')
+                return false
+            }
+            if (isInquilino() && !formData.value.phone) {
+                showNotify('negative', 'Teléfono es requerido para inquilinos')
+                return false
+            }
         }
     }
     if (step.value == 2) {
@@ -316,6 +321,9 @@ onMounted(() => {
         <div class="text-center text-black text-h5 text-bold md:mt-4 mt-5 mb-3">
             {{ titleOfSection[step] }}
         </div>
+        <div class="text-center text-gray-600 mb-4">
+            Completa la información de la persona que tendrá acceso a la aplicación.
+        </div>
         <q-form @submit="nextStep()">
             <Transition name="horizontal">
                 <div class="row w-full" v-if="step == 0">
@@ -332,15 +340,29 @@ onMounted(() => {
                         <div class="text-subtitle2 text-bold text-black">
                             Departamento
                         </div>
-                        <q-select v-if="!hasNoApartments" borderless dense class="form__inputsCR mt-2"
+                        <q-banner v-if="hasNoApartments" class="rounded-borders q-mt-2 bg-warning">
+                            <template v-slot:avatar>
+                                <q-icon name="eva-home-outline" color="warning" />
+                            </template>
+                            No tienes departamentos asignados. Contacta al administrador.
+                        </q-banner>
+                        <div v-else-if="hasSingleApartment" class="form__inputsCR mt-2 flex items-center justify-between"
+                            style="padding: 0.5rem 2rem; min-height: 36px;">
+                            <div class="text-subtitle1" style="font-weight: 500;">
+                                # {{ formData.apartment.number }}
+                            </div>
+                            <div class="text-positive text-subtitle2">
+                                Tu departamento
+                            </div>
+                        </div>
+                        <q-select v-else borderless dense class="form__inputsCR mt-2"
                             v-model="formData.apartment" option-value="id" option-label="number"
                             :options="apartmentsOptions" behavior="menu">
-
                             <template v-slot:option="scope">
                                 <q-item v-bind="scope.itemProps">
                                     <div class="w-full">
                                         <div class="flex items-center justify-between w-full">
-                                            <div class="text-subtitle1 " style="font-weight: 500;">
+                                            <div class="text-subtitle1" style="font-weight: 500;">
                                                 {{ scope.opt.id != 0 ? '#' : '' }} {{ scope.opt.number }}
                                             </div>
                                             <div v-if="scope.opt.id != 0" class="text-positive text-subtitle2 pl-2">
@@ -355,12 +377,6 @@ onMounted(() => {
                                 </q-item>
                             </template>
                         </q-select>
-                        <q-banner v-else class="rounded-borders q-mt-2 bg-warning">
-                            <template v-slot:avatar>
-                                <q-icon name="eva-home-outline" color="warning" />
-                            </template>
-                            No tienes departamentos asignados. Contacta al administrador.
-                        </q-banner>
                     </div>
 
 
@@ -402,13 +418,12 @@ onMounted(() => {
                         <q-input borderless clearable v-model="formData.username" dense class="form__inputsCR mt-2"
                             color="primary" />
                     </div>
-                    <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12 mt-4">
+                    <div v-if="isFamiliar() || isInquilino()" class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12 mt-4">
                         <div class="text-subtitle2 text-bold text-black">
-                            Correo electrónico
+                            Correo electrónico (opcional)
                         </div>
                         <q-input borderless clearable v-model="formData.email" dense class="form__inputsCR mt-2"
-                            color="primary"
-                            :rules="[val => val && val.length > 0 || 'Correo electrónico es requerido']" />
+                            color="primary" />
                     </div>
                     <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
                         <div class="text-subtitle2 text-bold text-black">
@@ -423,12 +438,13 @@ onMounted(() => {
                             </template>
                         </q-input>
                     </div>
-                    <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
+                    <div v-if="isFamiliar() || isInquilino()" class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
                         <div class="text-subtitle2 text-bold text-black">
-                            Teléfono
+                            Teléfono{{ isInquilino() ? '' : ' (opcional)' }}
                         </div>
-                        <phoneNumberInput v-model="formData.phone" label="Teléfono" placeholder="412-1234567"
-                            class="phoneUser" />
+                        <phoneNumberInput v-model="formData.phone" label="Teléfono" placeholder="930 539 580"
+                            class="phoneUser"
+                            :rules="isInquilino() ? [val => !!val || 'Teléfono es requerido'] : []" />
                     </div>
 
                     <div class="col-12 pb-8 mt-2 md:mt-7 px-2 md:px-12 flex items-center justify-between">

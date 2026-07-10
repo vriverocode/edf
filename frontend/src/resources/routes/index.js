@@ -962,18 +962,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Residente / Airbnb',
-          depth: 3,
-        },
-      },
-      {
-        path: '/client/familiar/list',
-        component: () => import('@/view/client/Familiar/familiarList.vue'),
-        name: 'familiarList',
-        beforeEnter: [auth, role],
-        meta: {
-          title: 'Bienvenido',
-          pagTitle: 'Residente / Airbnb',
+          pagTitle: 'Accesos',
           depth: 3,
         },
       },
@@ -984,7 +973,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Crear residente',
+          pagTitle: 'Nuevo residente',
           depth: 4,
         },
       },

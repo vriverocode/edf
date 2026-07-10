@@ -208,7 +208,8 @@ watch(() => props.dialog, (newValue) => {
         </section>
         <section class="py-5 ">
           <div class="w-full px-4 text-caption">
-            Recuerda: Para publicar, debe estar al día con tus pagos y esperar la validación del administrador.
+            Solo los propietarios al día con sus pagos podrán publicar. 
+            Todas las publicaciones serán revisadas antes de aparecer en la comunidad.
           </div>
           <div class="flex justify-evenly mt-5">
             <q-btn label="Cerrar" unelevated class="q-mx-sm " color="primary" outline
