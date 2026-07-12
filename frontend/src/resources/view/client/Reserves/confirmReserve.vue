@@ -65,22 +65,6 @@ onMounted(() => {
 
 <template>
   <div class=" h-full " style="overflow: hidden; position: relative;">
-    <!-- Fondo decorativo urbano -->
-    <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-100 to-transparent opacity-30">
-      <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-200 to-transparent">
-        <!-- Siluetas de edificios -->
-        <div class="flex items-end justify-between px-8 pb-2">
-          <div class="w-8 h-12 bg-gray-300 rounded-t"></div>
-          <div class="w-6 h-8 bg-gray-300 rounded-t"></div>
-          <div class="w-10 h-16 bg-gray-300 rounded-t"></div>
-          <div class="w-7 h-10 bg-gray-300 rounded-t"></div>
-          <div class="w-5 h-14 bg-gray-300 rounded-t"></div>
-          <div class="w-9 h-12 bg-gray-300 rounded-t"></div>
-          <div class="w-6 h-9 bg-gray-300 rounded-t"></div>
-        </div>
-      </div>
-    </div>
-
     <div class="relative z-10 pt-8 pb-20 px-6">
       <!-- Loading State -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">

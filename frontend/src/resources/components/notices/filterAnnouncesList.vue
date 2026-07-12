@@ -35,7 +35,12 @@ const filters = ref({
   post_by:-1,
   date_from: '',
   date_to: '',
+  only_my_posts: '',
 })
+
+watch(() => props.isOnlyMyPost, (val) => {
+  if (val !== undefined) filters.value.only_my_posts = val
+}, { immediate: true })
 
 const hideModal = () => {
   emit('closeModal')
@@ -63,6 +68,7 @@ const formatFilters = () => {
     post_by:  filters.value.post_by == -1 ? '' : filters.value.post_by,
     date_from: filters.value.date_from,
     date_to: filters.value.date_to,
+    only_my_posts: filters.value.only_my_posts,
   }
 }
 const isAvailableOption = (val) => {
@@ -81,6 +87,7 @@ const resetFilters = () => {
     post_by:-1,
     date_from: '',
     date_to: '',
+    only_my_posts: '',
   }
   categoryOptions.value = [{name:'Selecciona una opción', value: -1}]
 
@@ -170,6 +177,11 @@ watch(() => props.typeSearch, (newValue) => {
               dense borderless />
             </div>
             
+          </div>
+          <div class="row py-4 md:px-5 px-3 pb-2" style="border-top: 1px solid lightgray;" v-if="typeOfSearch == 'announces'">
+            <div class="col-12 flex items-center">
+              <q-toggle v-model="filters.only_my_posts" true-value="active" false-value="" label="Solo mis anuncios" color="primary" />
+            </div>
           </div>
           <div class="row py-4 md:px-5 px-3 pb-5" style="border-top: 1px solid lightgray;" v-if="typeOfSearch == 'announces'">
             <div class="mb-4 text-lg font-medium text-primary col-12">

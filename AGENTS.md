@@ -73,7 +73,8 @@ cd frontend && npm run build   # outputs to frontend/dist/
 - **Backend**: Controllers handle HTTP; business logic belongs in Services or Action classes
 - **Formatting**: Prettier (no semicolons, single quotes, 100 width); PHP via Pint
 - **Indentation**: 4 spaces (`.editorconfig`)
-- **UI stack**: Prefer Quasar components first, then Vant for mobile-specific; Tailwind for layout/spacing. Icons: `eva-icons` and custom icons from `svgrepo.com` (registered in `frontend/src/resources/assets/icons/index.js`)
+- **UI stack**: Prefer Quasar components first, then Vant for mobile-specific; Tailwind for layout/spacing
+- **Icons**: Always use `eva-icons` (prefixed with `eva-`, e.g. `eva-close-outline`, `eva-checkmark-outline`). Never use Material Icons or generic icon names. Custom icons from `svgrepo.com` go in `frontend/src/resources/assets/icons/index.js`
 - **Font**: Figtree (configured in `tailwind.config.js`)
 
 ## Testing

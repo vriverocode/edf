@@ -122,6 +122,17 @@ onMounted(() => {
           <q-btn outline color="primary" :class="activeFilterSearch" icon="eva-funnel-outline" @click="modal = 'filter'" />
         </div>
         <template v-if="visits.length > 0">
+          <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6" style="height:10%">
+            <q-btn color="primary" unelevated class="w-full mt-4r md:mt-0 md:mx-5 createButton"
+              style="border-radius: 0.5rem;" @click="goTo('/client/visit/add')">
+              <div class="flex items-center ">
+                <q-icon name="eva-plus-outline" />
+                <div class="q-pt-xs text-bold pl-1">
+                  Registrar visita
+                </div>
+              </div>
+            </q-btn>
+          </div>
           <div class="pt-0 md:pt-4 pb-8"  style="height:82%; overflow:auto">
             <div class="px-4 md:px-32">
               <q-slide-item v-for="visit in visits" :key="visit.id" @right="() => deleteItem(visit)"
@@ -197,17 +208,7 @@ onMounted(() => {
               </q-slide-item>
             </div>
           </div>
-          <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6" style="height:10%">
-            <q-btn color="primary" unelevated class="w-full mt-4r md:mt-0 md:mx-5 createButton"
-              style="border-radius: 0.5rem;" @click="goTo('/client/visit/add')">
-              <div class="flex items-center ">
-                <q-icon name="eva-plus-outline" />
-                <div class="q-pt-xs text-bold pl-1">
-                  Registrar visita
-                </div>
-              </div>
-            </q-btn>
-          </div>
+          
         </template>
         <template v-else>
           <div class="flex flex-center column empty-results px-4" style="min-height: 60vh;">

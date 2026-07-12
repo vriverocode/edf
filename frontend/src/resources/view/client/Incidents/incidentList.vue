@@ -35,7 +35,19 @@ onMounted(() => {
 
 <template>
   <div class="h-full" style="overflow: hidden;">
-    <div class="" style="height: 80%; overflow: auto;">
+    <div class="reserve-list-footer px-4 flex justify-center items-center md:w-full md:px-12"
+      style="height: 10%;">
+      <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
+        style="border-radius: 0.5rem; width: 100%;" @click="goToCreate()">
+        <div class="flex items-center py-2">
+          <q-icon name="eva-plus-outline" />
+          <div class="q-pt-xs text-bold pl-1">
+            Reportar incidencia
+          </div>
+        </div>
+      </q-btn>
+    </div>
+    <div class="" style="height: 90%; overflow: auto;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />
@@ -138,18 +150,7 @@ onMounted(() => {
     </div>
     
     <!-- Botón flotante para reportar incidencia -->
-    <div class="reserve-list-footer px-4 flex justify-center items-center md:w-full md:px-12"
-      style="height: 20%;">
-      <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
-        style="border-radius: 0.5rem; width: 100%;" @click="goToCreate()">
-        <div class="flex items-center py-2">
-          <q-icon name="eva-plus-outline" />
-          <div class="q-pt-xs text-bold pl-1">
-            Reportar incidencia
-          </div>
-        </div>
-      </q-btn>
-    </div>
+    
   </div>
 </template>
 

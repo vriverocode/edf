@@ -390,7 +390,11 @@ const openRuleModal = (status) => {
     return
   }
   const isCine = selectedComunArea.value.name && selectedComunArea.value.name.toLowerCase().includes('cine');
+  if(!status){
+    formData.value.multa_accept = false
+    formData.value.terms_accept = false
 
+  }
   if (status && isCine && formData.value.typeOfReserve == 1) {
     movieModalShow.value = true;
   } else {
@@ -708,7 +712,7 @@ watch(step,
                               : selectedComunArea.max_time_reserve) }}
                           </div>
                         </div>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 justify-end w-full mt-1">
                           <q-btn outline color="grey-7" rounded no-caps class="backFecha" @click="backButton()">
                             <div class="text-bold text-sm">
                               Volver
@@ -1122,7 +1126,7 @@ watch(step,
               <div class="row py-0 " style="height: 9%;">
                 <div class="col-4 flex flex-center ">
                   <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
-                    @click="rulesModal = false; openRuleModal(true)">
+                    @click="rulesModal = false; openRuleModal(false)">
                     <div class="py-0 md:py-0">
                       Volver
                     </div>

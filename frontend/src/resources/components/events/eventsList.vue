@@ -4,7 +4,7 @@ import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
-import event from '@/assets/img/menu/eventos3.png'
+import eventos from '@/assets/img/menu/eventos3.png'
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -85,8 +85,8 @@ const getPaymentAmount = (booking) => {
         <!-- Contenido principal con imagen y detalles -->
         <div class="flex items-center space-x-4">
           <!-- Imagen del área -->
-          <div class="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
-            <div v-html="iconsApp['events']" />
+          <div class="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <img :src="eventos" class="md:w-auto h-4/5"/>
           </div>
 
           <!-- Detalles de la reserva -->
@@ -133,7 +133,7 @@ const getPaymentAmount = (booking) => {
   <!-- Estado vacío -->
   <div v-else class="flex flex-col items-center justify-center py-20">
       <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
-        <img :src="event  " class="md:w-auto h-3/5"/>
+        <img :src="eventos" class="md:w-auto h-3/5"/>
       </div>
       <h3 class="text-lg font-semibold text-gray-900 mb-2">No hay eventos programados</h3>
       <p class="text-gray-600 text-center mb-6">Aquí encontrarás los próximos eventos y actividades organizados para los residentes del edificio.</p>

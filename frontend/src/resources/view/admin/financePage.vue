@@ -10,7 +10,7 @@ import baccount from '@/assets/img/menu/balance-cuentas.png'
 import account from '@/assets/img/menu/cuentas.png'
 import cuotas from '@/assets/img/menu/cuotas2.png'
 import gastos from '@/assets/img/menu/gastos2.png'
-import visitas from '@/assets/img/menu/visitas.png'
+import pays from '@/assets/img/menu/pagos.svg' 
 
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
@@ -44,6 +44,14 @@ const menu = [
     link: '/admin/expenses/list',
     roles: [1]
   },
+  {
+    title: 'Pagos',
+    icon: pays,
+    link: '/admin/pays/menu',
+    roles: [1]
+  },
+
+  
 
 ];
 const menuByRol = computed(() => {

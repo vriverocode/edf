@@ -131,9 +131,15 @@ const statusOptions = [
 
 <template>
   <div class="h-full" style="overflow: hidden;">
-     <div class="reserve-list-footer px-4 md:flex md:justify-center items-center md:w-full md:px-12"
-      style="min-height: 10%;">
-      <div class="flex items-center w-full gap-2 md:mx-24">
+     <div class="reserve-list-footer row px-4 pt-2 md:flex md:justify-center items-center md:w-full md:px-12"
+      style="height: 17%; overflow:hidden" >
+      <div class="w-full flex justify-end col-12">
+        <q-btn outline color="primary" size="md" @click="filterModal = true" class="filter-btn">
+        <q-icon name="eva-funnel-outline" size="1.4rem" />
+        <q-badge v-if="activeFilterCount > 0" color="primary" floating>{{ activeFilterCount }}</q-badge>
+      </q-btn>
+      </div>
+      <div class="flex items-center w-full gap-2 md:mx-24 pt-4">
         <q-btn color="primary" unelevated class="flex-1 createBookingButton"
           style="border-radius: 0.5rem;" @click="goTo('/client/reserves/form/add')">
           <div class="flex items-center py-2">
@@ -143,13 +149,11 @@ const statusOptions = [
             </div>
           </div>
         </q-btn>
-        <q-btn flat round color="grey-8" size="md" @click="filterModal = true" class="filter-btn">
-          <q-icon name="eva-funnel-outline" size="1.4rem" />
-          <q-badge v-if="activeFilterCount > 0" color="primary" floating>{{ activeFilterCount }}</q-badge>
-        </q-btn>
+        
       </div>
+      
     </div>
-    <div class="" style="height: 90%; overflow: auto;">
+    <div class="" style="height: 83%; overflow: auto;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <!-- <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div> -->
@@ -299,9 +303,9 @@ const statusOptions = [
                           @click="goTo('/client/reserves/extend/' + reserve.id)">
                           <q-item-section>Extender tiempo</q-item-section>
                         </q-item>
-                        <q-item clickable v-close-popup v-if="reserve.status == 3">
+                        <!-- <q-item clickable v-close-popup v-if="reserve.status == 3">
                           <q-item-section>Descarga pase</q-item-section>
-                        </q-item>
+                        </q-item> -->
                         <q-item clickable v-close-popup v-if="reserve.status == 3 && reserve.comun_area?.type == 4"
                           @click="goTo('/client/reserves/guests/' + reserve.id)">
                           <q-item-section>Lista de invitados</q-item-section>
@@ -333,40 +337,53 @@ const statusOptions = [
       </div>
     </div>
     <!-- Filtro modal -->
-    <q-dialog v-model="filterModal" persistent>
-      <q-card style="min-width: 320px; border-radius: 1rem;">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6 text-bold">Filtros</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-card-section class="q-pt-md">
-          <q-list>
-            <q-item tag="label" v-ripple>
-              <q-item-section avatar>
-                <q-checkbox v-model="userFilters.hideCanceled" checked-icon="check" color="primary" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Ocultar canceladas</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item tag="label" v-ripple>
-              <q-item-section avatar>
-                <q-checkbox v-model="userFilters.hidePast" checked-icon="check" color="primary" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Solo próximas (>= hoy)</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
-          <q-select v-model="userFilters.status" :options="statusOptions" label="Estado" emit-value map-options
-            class="q-mt-md" dense outlined />
-          <q-input v-model="userFilters.date_to" label="Hasta fecha" type="date" dense outlined class="q-mt-md" />
-        </q-card-section>
-        <q-card-actions align="right" class="q-px-md q-pb-md">
-          <q-btn flat label="Limpiar" color="grey-7" @click="resetFilters" />
-          <q-btn unelevated label="Aplicar" color="primary" v-close-popup />
-        </q-card-actions>
+    <q-dialog v-model="filterModal" class="filterDialog" persistent backdrop-filter="blur(0.5px)">
+      <q-card class="dialog_document public">
+        <div class="header-sectionModal" style="border-bottom: 1px solid lightgray;">
+          <div class="flex justify-between items-center pr-5 pl-2 py-2">
+            <q-btn round outline icon="eva-arrow-back-outline" color="primary" @click="filterModal = false" />
+            <div class="text-2xl text-primary font-bold pt-1">
+              Filtrar
+            </div>
+          </div>
+        </div>
+        <div class="content-sectionModal">
+          <section class="content__modalSectionRifa md:mt-0 mt-0 py-2">
+            <div class="row py-4 px-5">
+              <div class="mb-3 text-lg font-medium text-primary col-12">
+                Visibilidad
+              </div>
+              <div class="col-12 my-1">
+                <q-checkbox v-model="userFilters.hideCanceled"  color="primary" label="Ocultar canceladas" />
+              </div>
+              <div class="col-12 my-1">
+                <q-checkbox v-model="userFilters.hidePast"  color="primary" label="Solo próximas (Fechas iguales o mayores a hoy)" />
+              </div>
+            </div>
+            <div class="row py-4 px-5" style="border-top: 1px solid lightgray;">
+              <div class="mb-3 text-lg font-medium text-primary col-12">
+                Estado
+              </div>
+              <div class="col-12">
+                <q-select
+                  class="form__inputsFilterBookings"
+                  v-model="userFilters.status"
+                  :options="statusOptions"
+                  option-label="label"
+                  option-value="value"
+                  emit-value map-options
+                  label="Selecciona un estado"
+                  dense borderless />
+              </div>
+            </div>
+          </section>
+          <section class="pb-5">
+            <div class="flex justify-evenly mt-2">
+              <q-btn label="Limpiar" unelevated class="q-mx-sm" color="primary" outline style="border-radius: 0.8rem; padding:0px 2rem!important; font-size: 1rem;" @click="resetFilters()" />
+              <q-btn label="Aplicar" unelevated class="q-mx-sm" color="primary" style="border-radius: 0.8rem; padding:0px 2rem!important; font-size: 1rem;" v-close-popup />
+            </div>
+          </section>
+        </div>
       </q-card>
     </q-dialog>
    
@@ -378,13 +395,6 @@ const statusOptions = [
 </template>
 
 <style scoped lang="scss">
-/* Estilos adicionales si es necesario */
-@media (max-width: 780px) {
-  .reserve-list-footer {
-    // padding-bottom: max(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)), 48px);
-  }
-}
-
 .badgeReserve {
   position: absolute;
   right: 0;
@@ -400,9 +410,7 @@ const statusOptions = [
   border-radius: 0.8rem;
   overflow: visible;
   position: relative;
-  // border: 2px solid rgb(3, 156, 195) ;
   width: 100%;
-  //box-shadow: 0px 0.1rem 1rem 0px rgba(0, 0, 0, 0.205);
   background-repeat: no-repeat;
   background-size: cover;
 
@@ -411,6 +419,51 @@ const statusOptions = [
 
   &:hover {
     transform: scale(1.03);
+  }
+}
+</style>
+
+<style lang="scss">
+.header-sectionModal {
+  height: 8%;
+  overflow: hidden;
+}
+.content-sectionModal {
+  height: 92%;
+  overflow: auto;
+}
+.filterDialog {
+  margin-left: 0%;
+  overflow: hidden;
+  position: relative;
+  & .dialog_document {
+    width: 100%;
+    border-radius: 0rem !important;
+    height: 100%;
+    overflow: hidden;
+  }
+  & .q-dialog__inner--minimized {
+    padding: 0px;
+  }
+}
+.form__inputsFilterBookings {
+  & .q-field__inner {
+    box-shadow: 0px 3px 4px 0px #bfbfbf48;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(223, 223, 223);
+    padding: 0px 1rem;
+  }
+}
+@media (max-width: 780px) {
+  .form__inputsFilterBookings {
+    & .q-field__inner {
+      padding: 0.1rem 1rem;
+    }
+  }
+  .filterDialog {
+    & .dialog_document {
+      max-height: 100% !important;
+    }
   }
 }
 </style>

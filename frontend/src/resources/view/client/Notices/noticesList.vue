@@ -15,7 +15,6 @@ const loading = ref(true);
 const noticeStore = useNoticeStore();
 const panelToShow = ref('notices')
 const modal = ref('')
-const floatTab = ref(false);
 const filters = ref({
   status: 2,
   group: '',
@@ -28,11 +27,6 @@ const filters = ref({
 const selectedAnnounce = ref({})
 const showModal = (modalId) => {
   modal.value = modalId
-}
-
-const getOnlyPost = (status) => {
-  filters.value.only_my_posts = status ? 'active' : ''
-  getNotices()
 }
 
 const getNotices = () => {
@@ -85,14 +79,16 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      <div class="flex justify-end md:pr-5 px-4  mt-2 ">
-        <q-btn
-          outline
-          color="primary"
-          icon="eva-funnel-outline"
-          @click="modal = 'filter'"
-          v-if="panelToShow == 'announces'"
-        />
+      <div class="flex justify-end w-full md:pr-5 px-4 mt-2">
+        <q-btn outline color="primary" icon="eva-funnel-outline" @click="modal = 'filter'" v-if="panelToShow == 'announces'" />
+      </div>
+      <div class="flex items-center w-full gap-2 px-4 md:px-28 pt-2" v-if="panelToShow == 'announces'">
+        <q-btn color="primary" unelevated class="flex-1" style="border-radius: 0.5rem;" @click="showModal('create_announce')">
+          <div class="flex items-center py-2">
+            <q-icon name="eva-plus-outline" />
+            <div class="q-pt-xs text-bold pl-1">Crear anuncio</div>
+          </div>
+        </q-btn>
       </div>
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
@@ -109,22 +105,7 @@ onMounted(() => {
          @openModal="getSelectedAnnounce"
         />
       </div>
-      <div class="createAnnouncesFloat" v-if="panelToShow == 'announces'"  >
-        <q-fab
-          v-model="floatTab"
-          color="primary"
-          size="lg"
-          icon="eva-plus-outline"
-          direction="up"
-          v-if="panelToShow == 'announces'"
-        >
-          <q-fab-action class="announceOption" label-position="right" color="primary" icon="eva-plus-outline" label="Crear anuncio" @click="showModal('create_announce')"/>
-          <q-fab-action class="announceOption" label-position="right" color="secondary" icon="eva-archive-outline" label="Mis anuncios" @click="getOnlyPost(true)"  v-if="filters.only_my_posts == ''"/>
-          <q-fab-action class="announceOption" label-position="right" color="green-6" icon="eva-archive-outline" label="Todos los anuncios" @click="getOnlyPost(false)"  v-else/>
-
-        </q-fab>
-      </div>
-      <createAnnouncesModal :dialog="(modal=='create_announce')" @closeModal="closeModal" @updateList="getOnlyPost(true)"/>
+      <createAnnouncesModal :dialog="(modal=='create_announce')" @closeModal="closeModal" @updateList="getNotices()"/>
       <filterAnnouncesList 
         :dialog="(modal == 'filter')" 
         :typeSearch="panelToShow"
@@ -133,8 +114,8 @@ onMounted(() => {
         @updateList="getNoticesWithFilter"
       />
       <template v-if="Object.values(selectedAnnounce).length > 0 ">
-        <deleteAnnounceModal :dialog="(modal=='delete')" :announce="selectedAnnounce"  @closeModal="closeModal" @updateList="getOnlyPost(filters.only_my_posts)" />
-        <updateAnnounceModal :dialog="(modal=='update')" :announce="selectedAnnounce"  @closeModal="closeModal" @updateList="getOnlyPost(filters.only_my_posts)" />
+        <deleteAnnounceModal :dialog="(modal=='delete')" :announce="selectedAnnounce"  @closeModal="closeModal" @updateList="getNotices()" />
+        <updateAnnounceModal :dialog="(modal=='update')" :announce="selectedAnnounce"  @closeModal="closeModal" @updateList="getNotices()" />
       </template>
     </div>
 
@@ -143,21 +124,6 @@ onMounted(() => {
 </template>
 
 <style  lang="scss">
-.createAnnouncesFloat{
-  & .q-fab__actions {
-    align-items: end;
-  }
-}
-.announceOption{
-  &.q-btn{
-    transform: translateX(10px) translateY(0px)!important;
-  }
-}
-.createAnnouncesFloat{
-  position: fixed;
-  bottom: 3rem;
-  right: 1rem;
-}
 .buttonsContainer{
   border-radius: 15px; 
   width: max-content; 

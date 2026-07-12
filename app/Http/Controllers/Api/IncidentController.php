@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Incident;
 use App\Models\Rol;
+use App\Models\User;
+use App\Notifications\RealtimeNotification;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 
 class IncidentController extends Controller
 {
@@ -65,6 +68,23 @@ class IncidentController extends Controller
         }
 
         $incident->save();
+
+        // Notificar a admins, super-admins y conserjes
+        try {
+            $targetRoles = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR];
+            $users = User::whereIn('rol_id', $targetRoles)->where('status', 1)->get();
+
+            if ($users->isNotEmpty()) {
+                Notification::send($users, new RealtimeNotification(
+                    title: 'Nueva incidencia reportada',
+                    message: $incident->title,
+                    url: '/admin/incidents',
+                    meta: ['incident_id' => $incident->id, 'icon' => 'alert-circle']
+                ));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Error al notificar incidencia: '.$e->getMessage());
+        }
 
         return $this->returnSuccess(200, ['data' => $incident, 'message' => 'Incidencia creada con éxito']);
     }
