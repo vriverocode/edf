@@ -131,14 +131,14 @@ const statusOptions = [
 
 <template>
   <div class="h-full" style="overflow: hidden;">
-     <div class="reserve-list-footer px-4 md:flex md:justify-center items-center md:w-full md:px-12"
-      style="min-height: 10%;">
+     <div class="reserve-list-footer px-4 flex md:justify-center items-center md:w-full md:px-12"
+      style="height: 12%;">
       <div class="flex items-center w-full gap-2 md:mx-24">
         <q-btn color="primary" unelevated class="flex-1 createBookingButton"
           style="border-radius: 0.5rem;" @click="goTo('/client/reserves/form/add')">
-          <div class="flex items-center py-2">
+          <div class="flex items-center py-1">
             <q-icon name="eva-plus-outline" />
-            <div class="q-pt-xs text-bold pl-1">
+            <div class="q-pt-none text-bold pl-1">
               Agregar reserva
             </div>
           </div>
@@ -149,7 +149,7 @@ const statusOptions = [
         </q-btn>
       </div>
     </div>
-    <div class="" style="height: 90%; overflow: auto;">
+    <div class="" style="height: 88%; overflow: auto;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <!-- <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div> -->
@@ -158,7 +158,7 @@ const statusOptions = [
       </div>
 
       <!-- Content -->
-      <div v-else class="px-4 py-6 md:px-28">
+      <div v-else class="px-4 pb-6 md:px-28">
         <!-- Lista de reservas -->
         <div v-if="filteredReserves.length > 0" class="space-y-3 md:px-5">
           <div v-for="reserve in filteredReserves" :key="reserve.id"

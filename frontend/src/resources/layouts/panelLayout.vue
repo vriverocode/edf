@@ -15,6 +15,7 @@ import { useNotificationsStore } from '@/services/store/notifications.store'
 import { useQuasar } from 'quasar'
 import { PushNotificationsService } from '@/services/notifications_push/pushNotifications';
 import { Capacitor } from '@capacitor/core';
+import backButton from '@/assets/img/menu/volver.png'
 
 const isNative = ref(Capacitor.isNativePlatform());
 const router = useRouter()
@@ -168,10 +169,10 @@ watch(
           <transition :name="transitionName2">
             <div class="row w-full backButton items-center md:px-20 md:mx-16 px-2" v-if="showBack()">
               <div class="flex items-center" @click="goBack()">
-                <q-btn color="teal" round outline class="text-backButton flex flex-center" size="0.7rem">
-                  <q-icon name="eva-arrow-back-outline" />
+                <q-btn color="white" flat round outline class="text-backButton flex flex-center" size="0.7rem">
+                  <img :src="backButton" alt="" style="height: 60px; width: 60px;">
                 </q-btn>
-                <div class="ml-2 pt-1 backButton-text">Volver</div>
+                <div class="ml-0 pt-1 backButton-text">Volver</div>
               </div>
             </div>
           </transition>
