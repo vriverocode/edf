@@ -72,6 +72,7 @@ const getInquilinosByUser = () => {
 
 
 const isPwd = ref('true')
+const showPassword = ref(false)
 
 const step = ref(0)
 const loading = ref(false)
@@ -118,7 +119,8 @@ const titleOfSection = [
     'Tipo y asignación',
     'Datos del residente',
     'Registro de Airbnb',
-    'Datos de Airbnb'
+    'Datos de Airbnb',
+    'Credenciales de acceso'
 ]
 const isAirbnb = () => formData.value.type?.id === 'airbnb'
 const isFamiliar = () => formData.value.type?.id === 'familiar'
@@ -178,17 +180,15 @@ const createUser = () => {
         });
     }
 
-    if (isFamiliar()) {
-        payloadForm.append('parentesco', formData.value.parentesco);
-    }
+    // if (isFamiliar()) {
+    //     payloadForm.append('parentesco', formData.value.parentesco);
+    // }
 
     userStore.createResident(payloadForm)
         .then((response) => {
             showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
-            setTimeout(() => {
-                loading.value = false
-                router.go(-1)
-            }, 1000);
+            loading.value = false
+            step.value = 4
         })
         .catch((response) => {
             console.log(response)
@@ -287,6 +287,39 @@ const autogenerateNameAirbnb = (e) => {
         formData.value.username = 'Airbnb' + formData.value.apartment.number.slice(-3) + Math.floor(Math.random() * 10000) + 1;
     }
 }
+const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()'
+    let password = ''
+    for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return password
+}
+
+const generateRandomUsername = () => {
+    const name = formData.value.name || 'user'
+    const sanitized = name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')
+    const suffix = Math.floor(Math.random() * 10000)
+    return sanitized + suffix
+}
+
+const setGeneratedPassword = () => {
+    formData.value.password = generateRandomPassword()
+}
+
+const setGeneratedUsername = () => {
+    formData.value.username = generateRandomUsername()
+}
+
+const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text)
+    showNotify('positive', 'Copiado al portapapeles')
+}
+
+const finish = () => {
+    router.go(-1)
+}
+
 const showNotify = (type, text) => {
     Notify.create({
         color: type,
@@ -346,7 +379,7 @@ onMounted(() => {
                             </template>
                             No tienes departamentos asignados. Contacta al administrador.
                         </q-banner>
-                        <div v-else-if="hasSingleApartment" class="form__inputsCR mt-2 flex items-center justify-between"
+                        <!-- <div v-else-if="hasSingleApartment" class="form__inputsCR mt-2 flex items-center justify-between"
                             style="padding: 0.5rem 2rem; min-height: 36px;">
                             <div class="text-subtitle1" style="font-weight: 500;">
                                 # {{ formData.apartment.number }}
@@ -354,10 +387,10 @@ onMounted(() => {
                             <div class="text-positive text-subtitle2">
                                 Tu departamento
                             </div>
-                        </div>
+                        </div> -->
                         <q-select v-else borderless dense class="form__inputsCR mt-2"
                             v-model="formData.apartment" option-value="id" option-label="number"
-                            :options="apartmentsOptions" behavior="menu">
+                            :options="apartmentsOptions" behavior="menu" :disable="hasSingleApartment" :readonly="hasSingleApartment">
                             <template v-slot:option="scope">
                                 <q-item v-bind="scope.itemProps">
                                     <div class="w-full">
@@ -381,7 +414,7 @@ onMounted(() => {
 
 
                     <!-- Parentesco (solo Familiar) -->
-                    <div v-if="formData.type?.id === 'familiar'" class="col-12 md:my-0 my-1 px-2 md:px-12 mt-5">
+                    <!-- <div v-if="formData.type?.id === 'familiar'" class="col-12 md:my-0 my-1 px-2 md:px-12 mt-5">
                         <div class="text-subtitle2 text-bold text-black">
                             Parentesco
                         </div>
@@ -389,7 +422,7 @@ onMounted(() => {
                             :options="['Padre', 'Madre', 'Hijo', 'Hija', 'Cónyuge', 'Hermano', 'Hermana', 'Abuelo', 'Abuela', 'Nieto', 'Nieta', 'Otro']"
                             placeholder="Ej: Hijo, Madre, Cónyuge...">
                         </q-select>
-                    </div>
+                    </div> -->
 
                     <div class="col-12 my-2 mt-5 px-2 md:px-12 flex justify-end">
                         <q-btn color="primary " style="border-radius: 0.5rem;" type="submit" :loading="loading"
@@ -417,6 +450,11 @@ onMounted(() => {
                         </div>
                         <q-input borderless clearable v-model="formData.username" dense class="form__inputsCR mt-2"
                             color="primary" />
+                        <div class="text-right q-mt-xs">
+                            <span class="cursor-pointer text-primary" style="text-decoration: underline; font-size: 0.85rem;" @click="setGeneratedUsername">
+                                generar
+                            </span>
+                        </div>
                     </div>
                     <div v-if="isFamiliar() || isInquilino()" class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12 mt-4">
                         <div class="text-subtitle2 text-bold text-black">
@@ -437,6 +475,11 @@ onMounted(() => {
                                     @click="isPwd = !isPwd" />
                             </template>
                         </q-input>
+                        <div class="text-right q-mt-xs">
+                            <span class="cursor-pointer text-primary" style="text-decoration: underline; font-size: 0.85rem;" @click="setGeneratedPassword">
+                                generar
+                            </span>
+                        </div>
                     </div>
                     <div v-if="isFamiliar() || isInquilino()" class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
                         <div class="text-subtitle2 text-bold text-black">
@@ -590,6 +633,48 @@ onMounted(() => {
                         <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
                             <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
                                 <div class="px-8 py-1">Registrar</div>
+                            </q-btn>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+            <Transition name="horizontal">
+                <div class="row w-full" v-if="step == 4">
+                    <div class="col-12 px-2 md:px-12">
+                        <div class="text-center q-my-lg">
+                            <q-icon name="eva-checkmark-circle-2-outline" size="64px" color="positive" />
+                        </div>
+                        <div class="text-h6 text-center text-bold q-mb-md">
+                            Registro exitoso
+                        </div>
+                        <div class="text-center text-grey-7 q-mb-lg">
+                            Guarda las siguientes credenciales para que el usuario pueda iniciar sesión.
+                        </div>
+                        <div class="q-pa-md bg-grey-2 rounded-borders q-mb-md">
+                            <div class="row items-center justify-between q-py-sm">
+                                <div>
+                                    <div class="text-caption text-grey-7">Usuario</div>
+                                    <div class="text-body1 text-bold">{{ formData.username }}</div>
+                                </div>
+                                <q-btn flat dense icon="eva-copy-outline" color="primary" @click="copyToClipboard(formData.username)" />
+                            </div>
+                            <q-separator />
+                            <div class="row items-center justify-between q-py-sm">
+                                <div>
+                                    <div class="text-caption text-grey-7">Contraseña</div>
+                                    <div class="text-body1 text-bold">{{ showPassword ? formData.password : '••••••••' }}</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <q-btn flat dense :icon="showPassword ? 'eva-eye-off-outline' : 'eva-eye-outline'" color="grey-7" @click="showPassword = !showPassword" />
+                                    <q-btn flat dense icon="eva-copy-outline" color="primary" @click="copyToClipboard(formData.password)" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-center q-mt-lg">
+                            <q-btn color="primary" style="border-radius: 0.5rem;" @click="finish">
+                                <div class="px-10 py-1">
+                                    Finalizar
+                                </div>
                             </q-btn>
                         </div>
                     </div>

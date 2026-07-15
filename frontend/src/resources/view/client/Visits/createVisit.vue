@@ -48,7 +48,8 @@ const getApartmentsByUser = () => {
   apartmentStore
     .getApartmentByUser()
     .then((response) => {
-      const apartments = response.data || []
+      const allApartments = response.data || []
+      const apartments = allApartments.filter(apt => apt.type == 1)
       hasNoApartments.value = apartments.length === 0
 
       if (apartments.length === 0) {
@@ -117,10 +118,10 @@ const validateData = (apartmentId) => {
     showNotify('negative', 'Ingresa el nombre completo del visitante')
     return false
   }
-  if (!formData.value.dni) {
-    showNotify('negative', 'Ingresa el documento de identidad')
-    return false
-  }
+  // if (!formData.value.dni) {
+  //   showNotify('negative', 'Ingresa el documento de identidad')
+  //   return false
+  // }
   if (!formData.value.type) {
     showNotify('negative', 'Selecciona el tipo de visita')
     return false
@@ -214,7 +215,7 @@ onMounted(() => {
             ]" />
         </div>
 
-        <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
+        <!-- <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">
             Documento de identidad
           </div>
@@ -223,7 +224,7 @@ onMounted(() => {
               (val && val.length > 0) ||
               'El documento de identidad es requerido',
           ]" />
-        </div>
+        </div> -->
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">

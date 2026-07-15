@@ -4,28 +4,29 @@ import { useAuthStore } from '@/services/store/auth.services';
 import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
 import { computed } from 'vue';
-import cuotas from '@/assets/img/menu/cuotas-mantenimiento.png'
-import especial from '@/assets/img/menu/cuotas-especiales.png'
+
+import pagosCuotas from '@/assets/img/menu/pagos.png'
+import pagosReservas from '@/assets/img/menu/historial-pagos.png'
+
 
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
   {
-    title: 'Cuotas de mantenimiento',
-    link: '/admin/quotas/maintenance/list',
-    icon: cuotas,
-    roles: [1],
+    title: 'Pago de cuotas',
+    icon: pagosCuotas,
+    link: '/balances',
   },
-  // {
-  //   title: 'Cuotas especiales',
-  //   icon: especial,
-  //   link: '/admin/accounts',
-  //   roles: [1],
-  // },
-
+  {
+    title: 'Pago de reservas',
+    icon: pagosReservas,
+    link: '/admin/accounts',
+    roles: [1]
+  },
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
+  console.log(rol)
   return menu.filter(item => !item.roles || item.roles.includes(rol))
 })
 const goTo = (url) => {
@@ -35,14 +36,14 @@ const goTo = (url) => {
 <template>
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-2  md:px-28">
-      <div class="col-md-3   col-6 px-7 my-3" v-for="(items, key) in menuByRol" :key="key">
-        <div class="boxItem" @click="goTo(items.link)">
+      <div class="col-md-3   col-6 px-7 my-3" v-for="(item, key) in menuByRol" :key="key">
+        <div class="boxItem" @click="goTo(item.link)">
           <div class="flex justify-center items-center h-full w-full p-1">
-            <img :src="items.icon" class=" md:w-auto h-3/5" />
+            <img :src="item.icon" class="md:w-auto h-3/5" />
           </div>
         </div>
-        <div class="text-center mt-2  text-title-squad  ">
-          {{ items.title }}
+        <div class="text-center mt-2  text-title-squad text-ellipsis ellipsis ">
+          {{ item.title }}
         </div>
       </div>
 

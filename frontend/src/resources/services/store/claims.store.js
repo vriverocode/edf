@@ -14,7 +14,7 @@ export const useClaimsStore = defineStore('Claims', {
         ApiService.get('/api/pays/claims/sequence')
           .then(({ data }) => {
             if (data.code !== 200) throw data
-            resolve(data.data.sequence)
+            resolve(data.data)
           })
           .catch(({ response }) => {
             console.error(response)

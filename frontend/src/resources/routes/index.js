@@ -379,6 +379,30 @@ const routes = [
         },
       },
       {
+        path: '/admin/pays/maintenance',
+        component: () => import('@/view/admin/Pays/payMaintenanceList.vue'),
+        name: 'payMaintenanceList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Pagos de cuotas',
+          roles: ['admin', 'super-admin'],
+          depth: 2,
+        },
+      },
+      {
+        path: '/admin/pays/booking',
+        component: () => import('@/view/admin/Pays/payBookingList.vue'),
+        name: 'payBookingList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Pagos de reservas',
+          roles: ['admin', 'super-admin'],
+          depth: 2,
+        },
+      },
+      {
         path: '/admin/notices',
         component: () => import('@/view/admin/Notices/noticesPage.vue'),
         name: 'noticesPages',

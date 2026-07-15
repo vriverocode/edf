@@ -154,7 +154,9 @@ watch(
 </script>
 
 <template>
-  <div class=" h-full bg-white w-full min-h-screen" style="overflow: hidden;">
+  <div class="" style=" height: 100vh; 
+    width: 100%;
+    overflow: hidden;">
     <div class="panel-layout-root h-full bg-white w-full min-h-screen " :class="panelRootClass" :style="panelRootStyle">
       <template v-if="ready">
         <budgetReminderBanner @offset="onBudgetBannerOffset" />
@@ -176,11 +178,11 @@ watch(
               </div>
             </div>
           </transition>
-          <div class="relative w-full overflow-hidden pt-3"
+          <div class="relative w-full overflow-hidden pt-3 "
             :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }">
             <router-view v-slot="{ Component, route }">
               <transition :name="transitionName">
-                <component :is="Component" :key="route.fullPath" class="inner-page-component" />
+                <component :is="Component" :key="route.fullPath" class="inner-page-component pb-1" />
               </transition>
             </router-view>
             </div>
@@ -204,12 +206,7 @@ watch(
 }
 
 .inner-page-component {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: #ffffff;
+
   /* Fijo para que no se traslapen las vistas */
 
   /* CRUCIAL PARA EL SCROLL */
