@@ -45,13 +45,15 @@ class Incident extends Model
     {
         $typeLabels = [
             '',
-            'Consulta por duda',
-            'Reclamos',
-            'Averias de infraestructura',
-            'Averias en equipos(Ascensores, caminadoras, butacas)',
-            'Incumplimiento de reglas y normativas',
-            'Fallas generales',
-            'Maltrato por parte de propietario',
+            '🔧 Avería de infraestructura',
+            '⚙️ Avería de equipos (gimnasio, ascensores, etc.)',
+            '⚠️ Incumplimiento de normas',
+            '📢 Reclamo',
+            '❓ Consulta',
+            '🏢 Falla general',
+            '👤 Conducta inadecuada de un residente',
+            '🛡️ Incidente con personal del edificio',
+            '📝 Otro',
         ];
 
         return $typeLabels[$this->type];

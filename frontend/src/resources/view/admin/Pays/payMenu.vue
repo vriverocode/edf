@@ -15,12 +15,12 @@ const menu = [
   {
     title: 'Pago de cuotas',
     icon: pagosCuotas,
-    link: '/balances',
+    link: '/admin/pays/maintenance',
   },
   {
     title: 'Pago de reservas',
     icon: pagosReservas,
-    link: '/admin/accounts',
+    link: '/admin/pays/booking',
     roles: [1]
   },
 ];

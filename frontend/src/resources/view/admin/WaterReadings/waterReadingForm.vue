@@ -1,11 +1,12 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { Notify } from 'quasar'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useApartmentStore } from '@/services/store/apartment.store'
 import { useWaterReadingsStore } from '@/services/store/waterReadings.store'
 
 const router = useRouter()
+const route = useRoute()
 const apartmentStore = useApartmentStore()
 const waterReadingsStore = useWaterReadingsStore()
 
@@ -40,14 +41,35 @@ const monthOptions = [
 const now = new Date()
 
 const departamentOptions = ref([])
+const sequential = ref(route.query.sequential === '1')
+const navigatingNext = ref(false)
 
 const formData = ref({
   departament: null,
-  month: monthOptions[now.getMonth()-1],
-  year: now.getFullYear(),
+  month: sequential.value
+    ? monthOptions.find(m => m.value === Number(route.query.month)) || monthOptions[now.getMonth() - 1]
+    : monthOptions[now.getMonth() - 1],
+  year: sequential.value ? Number(route.query.year) || now.getFullYear() : now.getFullYear(),
   previous_reading: '',
   current_reading: '',
   photo: null
+})
+
+const sequentialLabel = computed(() => {
+  if (!sequential.value) return ''
+  return `Modo secuencial — ${departamentOptions.value.findIndex(o => o.value === formData.value.departament?.value) + 1} de ${departamentOptions.value.length}`
+})
+
+const hasNext = computed(() => {
+  if (!sequential.value) return false
+  const idx = departamentOptions.value.findIndex(o => o.value === formData.value.departament?.value)
+  return idx < departamentOptions.value.length - 1
+})
+
+const hasPrev = computed(() => {
+  if (!sequential.value) return false
+  const idx = departamentOptions.value.findIndex(o => o.value === formData.value.departament?.value)
+  return idx > 0
 })
 
 const showNotify = (type, text) => {
@@ -94,6 +116,25 @@ const submit = async () => {
     if (response?.code !== 200) throw response
 
     showNotify('positive', 'Medición registrada con éxito')
+
+    if (sequential.value && hasNext.value) {
+      navigatingNext.value = true
+      const nextIdx = departamentOptions.value.findIndex(o => o.value === formData.value.departament?.value) + 1
+      const nextDepartment = departamentOptions.value[nextIdx]
+      formData.value = {
+        departament: nextDepartment,
+        month: formData.value.month,
+        year: formData.value.year,
+        previous_reading: '',
+        current_reading: '',
+        photo: null
+      }
+      navigatingNext.value = false
+      loading.value = false
+      return
+    } else if (sequential.value) {
+      showNotify('positive', 'Todas las lecturas del período están registradas')
+    }
     router.go(-1)
   } catch (err) {
     showNotify('negative', err?.error || err?.message || 'No se pudo registrar la medición')
@@ -129,8 +170,26 @@ const fileSizeInMB = computed(() => {
   // .toFixed(2) recorta los decimales para que se vea limpio (ej: 1.45)
   return size.toFixed(2);
 });
+const navigateDept = (direction) => {
+  const idx = departamentOptions.value.findIndex(o => o.value === formData.value.departament?.value)
+  const target = direction === 'next' ? idx + 1 : idx - 1
+  if (target < 0 || target >= departamentOptions.value.length) return
+  formData.value = {
+    departament: departamentOptions.value[target],
+    month: formData.value.month,
+    year: formData.value.year,
+    previous_reading: '',
+    current_reading: '',
+    photo: null
+  }
+}
+
 onMounted(() => {
   searchDepartaments('')
+  if (sequential.value && route.query.department_id) {
+    const dept = departamentOptions.value.find(o => o.value === Number(route.query.department_id))
+    if (dept) formData.value.departament = dept
+  }
 })
 
 
@@ -215,9 +274,20 @@ onMounted(() => {
         </div>
 
 
-        <div class="col-12 mb-2 px-2 md:px-12 flex justify-end mt-4">
+        <div v-if="sequential" class="col-12 px-2 md:px-12 q-mt-md">
+          <q-banner class="bg-primary text-white rounded-borders text-center">
+            {{ sequentialLabel }}
+          </q-banner>
+        </div>
+
+        <div class="col-12 mb-2 px-2 md:px-12 flex items-center justify-end mt-4 q-gutter-sm">
+          <q-btn v-if="sequential && hasPrev" flat color="grey-7" @click="navigateDept('prev')"
+            :disable="loading || navigatingNext">
+            <q-icon name="eva-arrow-back-outline" class="q-mr-xs" />
+            Anterior
+          </q-btn>
           <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
-            <div class="px-10 py-1">Guardar</div>
+            <div class="px-10 py-1">{{ sequential && hasNext ? 'Guardar y siguiente' : 'Guardar' }}</div>
           </q-btn>
         </div>
       </div>

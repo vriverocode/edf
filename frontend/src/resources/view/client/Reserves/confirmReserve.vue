@@ -64,7 +64,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class=" h-full " style="overflow: hidden; position: relative;">
+  <div class=" h-full " style="overflow: auto ; position: relative;">
     <div class="relative z-10 pt-8 pb-20 px-6">
       <!-- Loading State -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">

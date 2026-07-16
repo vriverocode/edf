@@ -22,10 +22,10 @@ const iconsOption = [
   { value: 'sauna', name: 'Sauna' },
 ]
 const typeArea = [
-  { value: 1, name: 'Uso gratuito' },
-  { value: 2, name: 'Uso mixto (Compartido y exclusivo)' },
-  { value: 3, name: 'De pago' },
-  { value: 4, name: 'De pago lista de invitados' },
+  { value: 1, name: 'Gratuito (compartido)' },
+  { value: 2, name: 'Gratuito (exclusivo)' },
+  { value: 3, name: 'De pago (compartido)' },
+  { value: 4, name: 'De pago (exclusivo con lista de invitados)' },
 ]
 const severityOptions = [
   { value: 1, name: 'Leve' },
@@ -70,7 +70,7 @@ const formData = ref({
     intervals: [{ from: '08:00', to: '18:00' }] // Un turno por defecto
   })),
   icon: { value: 'default', name: 'Por defecto' },
-  typeArea: { value: 1, name: 'Uso gratuito' },
+  typeArea: { value: 1, name: 'Gratuito (compartido)' },
   rulesList: [
     { title: '', code: '', description: '', type: ruleTypeOptions[0], severity: severityOptions[0], suggest_amount: null }
   ]

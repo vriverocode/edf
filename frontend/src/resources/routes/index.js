@@ -261,7 +261,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Departamentos',
+          pagTitle: 'Unidades',
           depth: 2,
         },
       },
@@ -297,6 +297,18 @@ const routes = [
           title: 'Gestión de Propiedades',
           roles: ['admin'],
           depth: 4,
+        },
+      },
+      {
+        path: '/admin/users/form/update/:id',
+        component: () => import('@/view/admin/Users/updateUser.vue'),
+        name: 'usersUpdate',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Editar Usuario',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
         },
       },
       {
@@ -403,6 +415,30 @@ const routes = [
         },
       },
       {
+        path: '/admin/pays/menu',
+        component: () => import('@/view/admin/Pays/payMenu.vue'),
+        name: 'payMenu',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Pagos',
+          roles: ['admin', 'super-admin'],
+          depth: 2,
+        },
+      },
+      {
+        path: '/admin/pays/user/:id',
+        component: () => import('@/view/admin/Pays/userPayments.vue'),
+        name: 'userPayments',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Pagos del usuario',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/admin/notices',
         component: () => import('@/view/admin/Notices/noticesPage.vue'),
         name: 'noticesPages',
@@ -491,6 +527,18 @@ const routes = [
           pagTitle: 'Gastos mensuales',
           roles: ['admin'],
           depth: 2,
+        },
+      },
+      {
+        path: '/admin/budget/annual',
+        component: () => import('@/view/admin/Budget/annualBudget.vue'),
+        name: 'annualBudget',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Presupuesto anual',
+          roles: ['admin'],
+          depth: 3,
         },
       },
       {
@@ -1142,6 +1190,30 @@ const routes = [
         meta: {
           title: 'Reporte de reservas',
           pagTitle: 'Reporte de reservas',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
+        path: '/admin/reports/expenses',
+        component: () => import('@/view/admin/Reports/reportExpenses.vue'),
+        name: 'reportExpenses',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Reporte de gastos',
+          pagTitle: 'Reporte de gastos',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
+        path: '/admin/reports/delinquents',
+        component: () => import('@/view/admin/Reports/reportDelinquents.vue'),
+        name: 'reportDelinquents',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Reporte de morosos',
+          pagTitle: 'Reporte de morosos',
           roles: ['admin', 'super-admin'],
           depth: 3,
         },

@@ -47,7 +47,8 @@ const updateApartment = () => {
       showNotify('positive', 'Inmobiliario actualizado con éxito')
       setTimeout(() => {
         loading.value = false
-        router.go(-1)
+        const page = route.query.page || ''
+        router.push(`/admin/department/list${page ? `?page=${page}&highlight=${route.params.id}` : ''}`)
       }, 1000)
     })
     .catch(() => {

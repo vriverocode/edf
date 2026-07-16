@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useUserStore } from '@/services/store/users.store';
 import iconsApp from '@/assets/icons/index';
@@ -52,7 +52,20 @@ const getTypeName = (type) => {
   return names[type] || 'Unidad';
 };
 
-onMounted(loadData);
+const totalParticipation = ref(0)
+
+const calculateTotalParticipation = () => {
+  if (!user.value?.units) return 0
+  totalParticipation.value = user.value.units.reduce((sum, u) => {
+    return sum + (Number(u.participation_percentage) || 0)
+  }, 0)
+}
+
+onMounted(() => {
+  loadData()
+})
+
+watch(() => user.value?.units, calculateTotalParticipation, { immediate: true })
 </script>
 
 <template>
@@ -203,6 +216,13 @@ onMounted(loadData);
                 </q-card-section>
               </q-card>
             </q-expansion-item>
+          </div>
+          <div class="pb-2 px-4">
+            <div class="flex justify-between items-center bg-primary text-white q-pa-md rounded-borders"
+              style="border-radius: 0.75rem;">
+              <span class="text-body1 text-bold">Participación total</span>
+              <span class="text-h6 text-bold">{{ totalParticipation.toFixed(4) }}%</span>
+            </div>
           </div>
           <div class="pb-4" style="height: 10%;">
             <div class="flex items-end h-full justify-center">

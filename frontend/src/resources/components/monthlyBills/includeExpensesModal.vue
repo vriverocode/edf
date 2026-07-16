@@ -175,7 +175,7 @@ watch([filterMonth, filterYear], () => {
         <div class="col-6">
           <div class="text-subtitle2 text-black">Mes</div>
           <q-select
-            v-model="filterMonth"
+            :model-value="props.currentMonth"
             :options="monthOptions"
             option-label="name"
             option-value="value"
@@ -185,17 +185,19 @@ watch([filterMonth, filterYear], () => {
             borderless
             class="form__inputsR mt-1"
             color="primary"
+            disable
           />
         </div>
         <div class="col-6">
           <div class="text-subtitle2 text-black">Año</div>
           <q-input
-            v-model.number="filterYear"
+            :model-value="props.currentYear"
             dense
             borderless
             type="number"
             class="form__inputsR mt-1"
             color="primary"
+            disable
           />
         </div>
       </div>

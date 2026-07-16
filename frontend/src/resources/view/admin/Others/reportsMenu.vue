@@ -1,37 +1,29 @@
 <script setup>
-import iconsApp from '@/assets/icons/index';
-import { useUserStore } from '@/services/store/users.store';
-import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import comunArea from '@/assets/img/menu/areas-comunes.png'
 import booking from '@/assets/img/menu/reservas.png'
-
-
-const pendindgsCount = ref([]);
-
-const getPendingCount = () => {
-  useUserStore().getAllPendingsForAdmin()
-    .then((response) => {
-      pendindgsCount.value = response.data
-    })
-    .catch((error) => {
-      console.log(error)
-    })
-}
+import gastos2 from '@/assets/img/menu/gastos2.png'
+import cuotas from '@/assets/img/menu/cuotas2.png'
+import { onMounted } from 'vue';
 const router = useRouter()
 const menu = [
   {
     title: 'Reporte de reservas',
-    icon: comunArea,
+    icon: booking,
     subtitle: 'Reservas con filtros y exportación',
     link: '/admin/reports/bookings',
   },
-  // {
-  //   title: 'Reportes de eventos',
-  //   icon: booking,
-  //   subtitle: 'Informacion de reservas',
-  //   link: '/reserves',
-  // },
+  {
+    title: 'Reporte de gastos',
+    icon: gastos2,
+    subtitle: 'Gastos con filtros y totales por categoría',
+    link: '/admin/reports/expenses',
+  },
+  {
+    title: 'Reporte de morosos',
+    icon: cuotas,
+    subtitle: 'Propietarios con cuotas pendientes',
+    link: '/admin/reports/delinquents',
+  },
 ];
 
 const goTo = (url) => {
@@ -39,7 +31,7 @@ const goTo = (url) => {
 }
 
 onMounted(() => {
-  getPendingCount()
+  // getPendingCount()
 })
 </script>nde
 <template>

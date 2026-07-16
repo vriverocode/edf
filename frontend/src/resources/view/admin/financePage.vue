@@ -50,9 +50,6 @@ const menu = [
     link: '/admin/pays/menu',
     roles: [1]
   },
-
-  
-
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id

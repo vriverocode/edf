@@ -118,12 +118,10 @@ onMounted(() => {
   <div class="h-full">
     <template v-if="ready">
       <div class="h-full" style="overflow: hidden;">
-        <div class="flex column  items-end md:pr-36 px-4 pt-0" style="height:8%;overflow:hidden">
-          <q-btn outline color="primary" :class="activeFilterSearch" icon="eva-funnel-outline" @click="modal = 'filter'" />
-        </div>
-        <template v-if="visits.length > 0">
-          <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6" style="height:10%">
-            <q-btn color="primary" unelevated class="w-full mt-4r md:mt-0 md:mx-5 createButton"
+        <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-12"
+        style="height: 15%; overflow:hidden" >
+        <div class="flex items-center col-10 md:mx-24 pr-2">
+          <q-btn color="primary" unelevated class="w-full mt-4r md:mt-0 md:mx-5 createButton"
               style="border-radius: 0.5rem;" @click="goTo('/client/visit/add')">
               <div class="flex items-center ">
                 <q-icon name="eva-plus-outline" />
@@ -132,8 +130,13 @@ onMounted(() => {
                 </div>
               </div>
             </q-btn>
-          </div>
-          <div class="pt-0 md:pt-4 pb-8"  style="height:82%; overflow:auto">
+        </div>
+        <div class="w-full flex justify-end col-2">
+          <q-btn outline color="primary" :class="activeFilterSearch" icon="eva-funnel-outline" @click="modal = 'filter'" />
+        </div>
+      </div>
+        <template v-if="visits.length > 0">
+          <div class="pt-0 md:pt-4 pb-8"  style="height:85%; overflow:auto">
             <div class="px-4 md:px-32">
               <q-slide-item v-for="visit in visits" :key="visit.id" @right="() => deleteItem(visit)"
                 right-color="red-8" class="my-3 listVisit-container" style="border-radius: 12px!important;">

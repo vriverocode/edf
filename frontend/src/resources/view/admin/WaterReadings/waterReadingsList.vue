@@ -78,6 +78,8 @@ const fetchReadings = async () => {
     readings.value = pagination.data || []
     lastPage.value = pagination.last_page || 1
     availableYears.value = payload.available_years || []
+    totalReadings.value = payload.total_readings || pagination.total || readings.value.length
+    totalDepartments.value = payload.total_departments || 0
 
     ready.value = true
   } catch (err) {
@@ -89,6 +91,14 @@ const fetchReadings = async () => {
 
 const goTo = (url) => router.push(url)
 
+const totalReadings = ref(0)
+const totalDepartments = ref(0)
+
+const progressText = computed(() => {
+  if (totalDepartments.value === 0) return ''
+  return `${totalReadings.value} de ${totalDepartments.value} departamentos registrados`
+})
+
 const onChangeMonth = () => {
   page.value = 1
   fetchReadings()
@@ -97,6 +107,10 @@ const onChangeMonth = () => {
 const onChangeYear = () => {
   page.value = 1
   fetchReadings()
+}
+
+const startSequential = () => {
+  goTo('/admin/water_readings/form/add?sequential=1&month=' + selectedMonth.value + '&year=' + selectedYear.value)
 }
 
 onMounted(() => {
@@ -191,16 +205,28 @@ onMounted(() => {
         </div>
 
         <div v-if="!loading && ready" style="height: 10%;">
-          <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6">
-            <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton" style="border-radius: 0.5rem;"
-              @click="goTo('/admin/water_readings/form/add')">
-              <div class="flex items-center py-1">
-                <q-icon name="eva-plus-outline" />
-                <div class="q-pt-xs text-bold pl-1">
-                  Registrar medición
+          <div class="row items-center q-mt-sm q-mb-xs px-2 md:px-0">
+            <div v-if="progressText" class="col-12 col-md-3 text-caption text-grey-7 q-mb-xs q-mb-md-0">
+              <q-linear-progress :value="totalDepartments > 0 ? totalReadings / totalDepartments : 0" color="primary"
+                size="8px" class="q-mb-xs" style="border-radius: 4px;" />
+              {{ progressText }}
+            </div>
+            <div class="col-12 col-md-9 md:flex md:justify-end md:w-5/6">
+              <q-btn outline color="grey-7" size="sm" class="q-mr-sm"
+                @click="startSequential">
+                <q-icon name="eva-list-outline" class="q-mr-xs" />
+                Registro secuencial
+              </q-btn>
+              <q-btn color="primary" unelevated class="createButton" style="border-radius: 0.5rem;"
+                @click="goTo('/admin/water_readings/form/add')">
+                <div class="flex items-center py-1">
+                  <q-icon name="eva-plus-outline" />
+                  <div class="q-pt-xs text-bold pl-1">
+                    Registrar medición
+                  </div>
                 </div>
-              </div>
-            </q-btn>
+              </q-btn>
+            </div>
           </div>
         </div>
       </div>

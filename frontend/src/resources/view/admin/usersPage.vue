@@ -4,7 +4,7 @@ import { useAuthStore } from '@/services/store/auth.services';
 import bg from '@/assets/img/util/bg3.webp'
 import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
-import departamentos from '@/assets/img/menu/departamentos.png'
+import unidades from '@/assets/img/menu/departamentos.png'
 import usuarios from '@/assets/img/menu/usuarios.png'
 import visitas from '@/assets/img/menu/visitas.png'
 
@@ -19,9 +19,9 @@ const menu = [
     link: '/admin/users/list',
   },
   {
-    title: 'Departamentos',
-    icon: departamentos,
-    subtitle: 'Gestión de departamentos',
+    title: 'Unidades',
+    icon: unidades,
+    subtitle: 'Gestión de unidades',
     link: '/admin/department/list',
   },
   // {

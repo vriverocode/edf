@@ -131,15 +131,9 @@ const statusOptions = [
 
 <template>
   <div class="h-full" style="overflow: hidden;">
-     <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-12"
-      style="height: 20%; overflow:hidden" >
-      <div class="w-full flex justify-end col-12">
-        <q-btn outline color="primary" size="md" @click="filterModal = true" class="filter-btn">
-        <q-icon name="eva-funnel-outline" size="1.4rem" />
-        <q-badge v-if="activeFilterCount > 0" color="primary" floating>{{ activeFilterCount }}</q-badge>
-      </q-btn>
-      </div>
-      <div class="flex items-center w-full gap-2 md:mx-24 pt-4">
+    <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-12"
+      style="height: 15%; overflow:hidden" >
+      <div class="flex items-center col-10 md:mx-24 pr-2">
         <q-btn color="primary" unelevated class="flex-1 createBookingButton"
           style="border-radius: 0.5rem;" @click="goTo('/client/reserves/form/add')">
           <div class="flex items-center py-1">
@@ -149,11 +143,15 @@ const statusOptions = [
             </div>
           </div>
         </q-btn>
-        
       </div>
-      
+      <div class="w-full flex justify-end col-2">
+        <q-btn outline color="primary" size="md" @click="filterModal = true" class="filter-btn">
+        <q-icon name="eva-funnel-outline" size="1.4rem" />
+        <q-badge v-if="activeFilterCount > 0" color="primary" floating>{{ activeFilterCount }}</q-badge>
+      </q-btn>
+      </div>
     </div>
-    <div class="" style="height: 80%; overflow: auto;">
+    <div class="" style="height: 85%; overflow: auto;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <!-- <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div> -->

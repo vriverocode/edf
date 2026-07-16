@@ -348,9 +348,10 @@ const createReserve = () => {
       createPay(response.data.id)
     })
     .catch((response) => {
+      console.log(response)
       setTimeout(() => {
         loading.value = false
-        showNotify('negative', 'Error al realizar reserva')
+        showNotify('negative', response)
 
       }, 2000);
 
@@ -390,7 +391,7 @@ const openRuleModal = (status) => {
     return
   }
   const isCine = selectedComunArea.value.name && selectedComunArea.value.name.toLowerCase().includes('cine');
-  if(!status){
+  if(status){
     formData.value.multa_accept = false
     formData.value.terms_accept = false
 
@@ -648,7 +649,7 @@ watch(step,
         <Transition :name="transitionName">
           <div class="h-full form-step" style="overflow: hidden;" v-if="step > 1">
             <div class=" w-full h-full ">
-              <div class="w-full  pt-4 pb-2 px-4" style="height:15%">
+              <div class="w-full  pt-2 pb-2 px-4" style="height:15%">
                 <div class="text-center text-[#5571b7] font-bold text-lg md:text-xl mb-2 mt-0 " v-if="step > 3">
                   <div class="font-bold text-2xl">PAGAR Y CONFIRMAR</div>
                 </div>
@@ -672,7 +673,7 @@ watch(step,
 
                 </div>
               </div>
-              <div :style="{ height: step >= 4 ? '76%' : '70%' }" style=" overflow: auto;" class="pb-5">
+              <div :style="{ height: step != 3 ? '76%' : '65%' }" style=" overflow: auto;" class="pb-5">
                 <div class="row w-full pt-2">
                   <template v-if="step == 2">
                     <div class="flex flex-center w-full q-px-md">
@@ -689,7 +690,7 @@ watch(step,
                         <div class="flex items-center"><span class="pin-dot bg-negative"></span>Completo</div>
                         <div class="flex items-center"><span class="pin-dot bg-grey"></span>Bloqueado</div>
                       </div>
-                      <div class="w-full px-5">
+                      <div class="w-full px-2">
                         <div class="bg-primary mt-4 py-2 w-full textInfoContainer">
                           <div class="text-white dateInfoTitle text-center">Fecha seleccionada:</div>
                           <div class="text-white dateInfoContent text-center">
@@ -713,11 +714,6 @@ watch(step,
                           </div>
                         </div>
                         <div class="flex gap-2 justify-end w-full mt-1">
-                          <q-btn outline color="grey-7" rounded no-caps class="backFecha" @click="backButton()">
-                            <div class="text-bold text-sm">
-                              Volver
-                            </div>
-                          </q-btn>
                           <q-btn outline color="tealedf" rounded no-caps class="backFecha" @click="backButton()">
                             <div class="text-bold text-sm">
                               Cambiar fecha
@@ -855,7 +851,7 @@ watch(step,
                                   class="mx-auto">
                                 <div v-else class="text-md text-grey-10 ml-1">{{ line.data }}</div>
                               </div>
-                              <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="line.title != 'QR'"
+                              <div v-html="iconsApp.copyIcon" class="cursor-pointer" v-if="line.title == 'CCI' || line.title == 'N\u00b0 de cuenta'"
                                 @click="line.title.includes('Titular') ? copyData(line.data) : formatCopy(line.data)" />
                             </div>
                           </div>
@@ -957,8 +953,8 @@ watch(step,
                   </template>
                 </div>
               </div>
-              <div :style="{ height: step >= 4 ? '9%' : '15%' }" class="buttonSection">
-                <div class="row py-4 ">
+              <div :style="{ height: step != 3 ? '9%' : '20%' }" class="buttonSection">
+                <div class="row pt-2 ">
                   <template v-if="step >= 4">
                     <div class="col-4 flex flex-center ">
                       <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
@@ -976,7 +972,7 @@ watch(step,
                         </div>
                       </q-btn>
                     </div>
-                    <div class="flex flex-center" :class="{ 'col-4': calculateDiffHour && step == 4, 'col-8': !calculateDiffHour, 'col-8': step != 4  }">
+                    <div class="flex flex-center" :class="{ 'col-4': calculateDiffHour && step == 4, 'col-8': !calculateDiffHour || step != 4 }">
                       <q-btn outline color="primary" unelevated no-caps class=""
                         style="width: 95%; border-radius: 3rem;" type="submit" :loading="loading">
                         <div class="py-0 md:py-0" style="font-weight: 500;">
@@ -1011,8 +1007,8 @@ watch(step,
                   </template>
                   <template v-if="step == 3">
                     <div class="col-12 flex flex-center px-5">
-                      <div class="selectedDateBlock flex  items-center justify-between px-4 w-full py-2">
-                        <div>
+                      <div class="selectedDateBlock row  px-4 w-full py-2">
+                        <div class="col-12">
                           <div class="text-dateBlockTitle">Reserva</div>
                           <div class=" text-bold text-dateBlockBottom">
                             {{ formData.date ? moment(formData.date).format('ddd DD') : '-----' }}
@@ -1020,7 +1016,12 @@ watch(step,
                               : '**:** **' }}
                           </div>
                         </div>
-                        <div>
+                        <div class="col-12 flex justify-between w-full mt-1">
+                          <q-btn outline color="grey-7" rounded no-caps class="backFecha" @click="backButton()">
+                            <div class="text-bold text-sm">
+                              Volver
+                            </div>
+                          </q-btn>
                           <q-btn color="primary" unelevated rounded no-caps class="" @click="openRuleModal(true)">
                             <div class="text-bold text-sm">
                               Confirmar

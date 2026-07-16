@@ -59,7 +59,10 @@ export const useReserveStore = defineStore('Reserve', {
             if (response.data.code == 403) {
               reject(response.data);
             }
-            reject(response.data.error);
+            if (response.data.code == 409) {
+              reject('Límite de reservas alcanzado');
+            }
+            reject('Error al realizar reserva');
           });
 
       })
@@ -104,13 +107,14 @@ export const useReserveStore = defineStore('Reserve', {
 
       })
     },
-    async getReservesByArea(area) {
+    async getReservesByArea(area, params = {}) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/bookings/byArea/' + area)
+        const query = this.filterQuery(params);
+        ApiService.get('/api/bookings/byArea/' + area + (query ? `?${query}` : ''))
           .then(({ data }) => {
             if (data.code != 200) throw data;
 
@@ -267,6 +271,8 @@ export const useReserveStore = defineStore('Reserve', {
       try {
         const params = new URLSearchParams();
         if (!filter || typeof filter !== 'object') return '';
+        if (filter.page) params.set('page', String(filter.page));
+        if (filter.per_page) params.set('per_page', String(filter.per_page));
         if (filter.status !== undefined && Number(filter.status) !== 4) params.set('status', String(filter.status));
         if (filter.area_id) params.set('area_id', String(filter.area_id));
         if (filter.date_from) params.set('date_from', String(filter.date_from));

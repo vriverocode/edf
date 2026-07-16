@@ -39,7 +39,7 @@ onMounted(() => {
       style="height: 10%;">
       <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
         style="border-radius: 0.5rem; width: 100%;" @click="goToCreate()">
-        <div class="flex items-center py-2">
+        <div class="flex items-center py-1">
           <q-icon name="eva-plus-outline" />
           <div class="q-pt-xs text-bold pl-1">
             Reportar incidencia

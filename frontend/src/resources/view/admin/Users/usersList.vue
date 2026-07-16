@@ -7,6 +7,7 @@ import deleteUserModal from '@//components/admin/deleteUserModal.vue';
 const userStore = useUserStore()
 const filterRol = ref(2)
 const page = ref(1)
+const lastPage = ref(1)
 const search = ref('')
 const ready = ref(false)
 const modal = ref('')
@@ -24,86 +25,78 @@ const openModal = (user, type) => {
   selectedUser.value = user
   setTimeout(() => {
     modal.value = type
-  }, 50);
+  }, 50)
 }
 
 const getUsers = () => {
-
   ready.value = false;
-
+  page.value = 1
   const data = {
     page: page.value,
+    per_page: 20,
     search: search.value,
     rol: filterRol.value
   }
   userStore.getUsers(data)
     .then((response) => {
       if (response.code !== 200) throw response
-      users.value = response.data;
+      users.value = response.data.data || response.data;
+      lastPage.value = response.data.last_page || 1
       setTimeout(() => {
-        ready.value = true;
-      }, 1000);
+        ready.value = true
+      }, 1000)
     })
-    .catch(() => {
-    })
+    .catch(() => {})
 }
+
 const optionsFilterRol = [
-  {
-    name: 'Admin',
-    value: 1
-  },
-  {
-    name: 'Propietarios',
-    value: 2
-  },
-  {
-    name: 'Inquilinos',
-    value: 3
-  },
-  {
-    name: 'Familiar',
-    value: 4
-  },
-  {
-    name: 'Airbnb',
-    value: 5
-  },
-  {
-    name: 'Trabajadores',
-    value: 6
-  },
-  {
-    name: 'Propietarios parciales',
-    value: 7
-  },
+  { name: 'Admin', value: 1 },
+  { name: 'Propietarios', value: 2 },
+  { name: 'Inquilinos', value: 3 },
+  { name: 'Familiar', value: 4 },
+  { name: 'Airbnb', value: 5 },
+  { name: 'Trabajadores', value: 6 },
+  { name: 'Propietarios parciales', value: 7 },
 ]
+
+const showDepartment = (user) => {
+  return user.rol_id == 2 || user.rol_id == 3 || user.rol_id == 4 || user.rol_id == 5 || user.rol_id == 7
+}
+
+const formatUnits = (user) => {
+  if (user.units && user.units.length > 0) {
+    return user.formatted_units || user.units.map(u => u.number || u.name).join(', ')
+  }
+  return 'Apt. no asignado'
+}
+
 onMounted(() => {
   getUsers()
 })
 </script>
-
 <template>
   <div class="h-full" style="overflow: auto;">
-    <div class="w-full px-4">
-      <q-select
-        v-model="filterRol"
-        :options="optionsFilterRol"
-        option-label="name"
-        option-value="value"
-        emit-value
-        map-options dense borderless color="primary" 
-        class="form_userOptionSelect"
-        @update:model-value="getUsers"
-      />
+    <div class="w-full px-4 flex items-center q-col-gutter-sm">
+      <div class="col">
+        <q-select v-model="filterRol" :options="optionsFilterRol" option-label="name" option-value="value"
+          emit-value map-options dense borderless color="primary"
+          class="form_userOptionSelect" @update:model-value="getUsers" />
+      </div>
+      <div class="col">
+        <q-input v-model="search" dense borderless clearable placeholder="Buscar por nombre o # depto..."
+          class="form_userOptionSelect" @update:model-value="getUsers" debounce="500">
+          <template v-slot:prepend>
+            <q-icon name="eva-search-outline" />
+          </template>
+        </q-input>
+      </div>
     </div>
     <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6">
-      <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton " style="border-radius: 0.5rem;"
+      <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton" style="border-radius: 0.5rem;"
         @click="goTo('/admin/users/form/add')">
         <div class="flex items-center py-1">
           <q-icon name="eva-plus-outline" />
-          <div class="q-pt-xs text-bold pl-1">
-            Crear nuevo usuario
-          </div>
+          <div class="q-pt-xs text-bold pl-1">Crear nuevo usuario</div>
         </div>
       </q-btn>
     </div>
@@ -112,24 +105,24 @@ onMounted(() => {
         <div v-for="user in users" :key="user.id"
           class="md:py-4 py-3 mb-5 userListContainer row items-center">
           <div class="flex items-center pb-3 pt-2 pl-2 md:pl-5 col-12 no-wrap">
-            <div
-              style="height: 2.8rem; width: 2.8rem; background: #b5b5b5; border-radius: 0.5rem; font-size: 2rem; font-weight: bold;"
+            <div style="height: 2.8rem; width: 2.8rem; background: #b5b5b5; border-radius: 0.5rem; font-size: 2rem; font-weight: bold;"
               class="flex flex-center text-white">
               {{ user.name.charAt(0).toUpperCase() }}
             </div>
             <div class="ml-2">
-              <div class="text-subtitle1  text-bold text-black" style="line-height:1.7;">
+              <div class="text-subtitle1 text-bold text-black" style="line-height:1.7;">
                 {{ user.name }}
               </div>
-              <div class="flex items-center wrap " v-if="user.rol_id == 2 || user.rol_id == 7">
+              <div class="flex items-center wrap" v-if="showDepartment(user)">
                 <div class="text-body2 text-grey-6 text-uppercase">
-                  #{{ user.units.length > 0 
-                  ? user.formatted_units 
-                  : 'Apt. no asignado' }}
+                  #{{ formatUnits(user) }}
                 </div>
                 <div class="text-caption text-grey-6 ml-1">
                   ({{ user.rol.name }})
                 </div>
+              </div>
+              <div class="text-body2 text-grey-6" v-else>
+                {{ user.rol.name }}
               </div>
             </div>
           </div>
@@ -151,14 +144,17 @@ onMounted(() => {
               </q-btn>
             </div>
             <div>
-              <q-btn icon="eva-settings-outline" class="mx-1" color="primary" flat size="0.9rem">
+              <q-btn icon="eva-settings-outline" class="mx-1" color="primary" flat size="0.9rem"
+                @click="goTo('/admin/users/form/update/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
                   Editar usuario
                 </q-tooltip>
               </q-btn>
             </div>
             <div>
-              <q-btn icon="eva-credit-card-outline" class="mx-1" color="amber-6" flat size="0.9rem" v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6">
+              <q-btn icon="eva-credit-card-outline" class="mx-1" color="amber-6" flat size="0.9rem"
+                v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6"
+                @click="goTo('/admin/pays/user/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Ver pagos
                 </q-tooltip>
@@ -174,11 +170,14 @@ onMounted(() => {
           </div>
         </div>
       </div>
+      <div v-if="lastPage > 1" class="flex justify-center q-py-md">
+        <q-pagination v-model="page" :max="lastPage" :max-pages="7" boundary-numbers color="primary"
+          @update:model-value="getUsers" />
+      </div>
     </div>
     <div v-if="Object.values(selectedUser).length > 0">
       <deleteUserModal :dialog="(modal == 'delete')" :user="selectedUser" @close-modal="modal = ''" @update-list="getUsers()" />
     </div>
-    
   </div>
 </template>
 <style lang="scss">
@@ -188,11 +187,9 @@ onMounted(() => {
   border-radius: .5rem;
   box-shadow: 0px 2px 6px 0px rgb(199, 199, 199);
 }
-
 .createButton {
   width: auto;
 }
-
 .tabItem {
   opacity: 0.5;
   cursor: pointer;
@@ -201,28 +198,12 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   transition: all 0.2s ease-out;
-
-  &:hover {
-    background: #279edb !important;
-  }
-
-  &.active {
-    opacity: 1;
-  }
-
-  &.leftItem {
-    border-top-left-radius: 0.7rem;
-    border-bottom-left-radius: 0.7rem;
-
-  }
-
-  &.rightItem {
-    border-top-right-radius: 0.7rem;
-    border-bottom-right-radius: 0.7rem;
-
-  }
+  &:hover { background: #279edb !important; }
+  &.active { opacity: 1; }
+  &.leftItem { border-top-left-radius: 0.7rem; border-bottom-left-radius: 0.7rem; }
+  &.rightItem { border-top-right-radius: 0.7rem; border-bottom-right-radius: 0.7rem; }
 }
-.form_userOptionSelect{
+.form_userOptionSelect {
   & .q-field__inner {
     box-shadow: 0px 3px 4px 0px #bfbfbf48;
     border-radius: 0.5rem;
@@ -231,19 +212,7 @@ onMounted(() => {
   }
 }
 @media (max-width: 780px) {
-  .createButton {
-    width: 100%;
-  }
+  .createButton { width: 100%; }
+  .form_userOptionSelect .q-field__inner { padding: 0.1rem 1rem; }
 }
-
-
-
-@media (max-width: 780px) {
-  .form_userOptionSelect{
-    & .q-field__inner {
-      padding: 0.1rem 1rem;
-    }
-  }
-}
-
 </style>

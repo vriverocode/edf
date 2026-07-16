@@ -110,20 +110,15 @@ export const useUserStore = defineStore('User', {
           throw ''
         }
         ApiService.setHeader()
-        ApiService.get(
-          '/api/users?page=' +
-          data.page +
-          '&' +
-          'search=' +
-          data.search +
-          '&' +
-          'rol=' +
-          data.rol +
-          '&'
-        )
+        const params = new URLSearchParams()
+        if (data.page) params.set('page', String(data.page))
+        if (data.per_page) params.set('per_page', String(data.per_page))
+        if (data.search) params.set('search', String(data.search))
+        if (data.rol) params.set('rol', String(data.rol))
+        const qs = params.toString()
+        ApiService.get('/api/users' + (qs ? '?' + qs : ''))
           .then(({ data }) => {
             if (data.code != 200) throw data
-
             resolve(data)
           })
           .catch(({ response }) => {

@@ -1,6 +1,5 @@
 <script setup>
-
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref } from 'vue';
 import { Notify } from 'quasar'
 import { useUserStore } from '@/services/store/users.store';
 import { useApartmentStore } from '@/services/store/apartment.store';
@@ -36,7 +35,6 @@ const rolOptions = ref([
 const getAvailableApartaments = () => {
   apartmentStore.getApartmentsByFind('available')
     .then((response) => {
-      console.log(response)
       apartmentsOptions.value = [
         {
           id: 0,
@@ -46,10 +44,6 @@ const getAvailableApartaments = () => {
       ]
     })
 }
-const props = defineProps({
-  dialog: Boolean,
-  rifa: Object,
-})
 
 const isPwd = ref('true')
 
@@ -71,7 +65,6 @@ const formData = ref({
   },
   idApartament: 0,
   idRol: 1
-
 })
 
 const titleOfSection = [
@@ -79,11 +72,32 @@ const titleOfSection = [
   'Asignación del inmobiliario'
 ]
 
+const requiresApartment = (rolId) => {
+  return rolId == 2 || rolId == 3 || rolId == 7
+}
+
+const nextStep = () => {
+  if (step.value == 0) {
+    const errors = []
+    if (!formData.value.name?.trim()) errors.push('El nombre es requerido')
+    if (!formData.value.username?.trim()) errors.push('El nombre de usuario es requerido')
+    if (!formData.value.password?.trim()) errors.push('La contraseña es requerida')
+    if (errors.length > 0) {
+      showNotify('negative', errors.join('. '))
+      return
+    }
+    step.value++
+  }
+}
 
 const createUser = () => {
-
   if (step.value == 0) {
-    step.value++
+    nextStep()
+    return
+  }
+
+  if (requiresApartment(formData.value.rol_id.id) && formData.value.apartment.id == 0) {
+    showNotify('negative', 'Debes seleccionar un departamento para este tipo de usuario')
     return
   }
 
@@ -91,24 +105,19 @@ const createUser = () => {
   formData.value.idApartament = formData.value.apartment.id
   formData.value.idRol = formData.value.rol_id.id
 
-
   userStore.createUser(formData.value)
-    .then((response) => {
+    .then(() => {
       showNotify('positive', 'Usuario creado con exito')
       setTimeout(() => {
         loading.value = false
         router.go(-1)
-      }, 1000);
+      }, 1000)
     })
     .catch((response) => {
-      console.log(response)
       loading.value = false
-
       showNotify('negative', response)
-
     })
 }
-
 
 const showNotify = (type, text) => {
   Notify.create({
@@ -118,11 +127,9 @@ const showNotify = (type, text) => {
   })
 }
 
-
 onMounted(() => {
   getAvailableApartaments()
 })
-
 </script>
 <template>
   <div class="md:px-20 px-2">
@@ -134,14 +141,14 @@ onMounted(() => {
         <div class="row w-full" v-if="step == 0">
           <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
             <div class="text-subtitle2 text-bold text-black">
-              Nombre completo
+              Nombre completo <span class="text-negative">*</span>
             </div>
             <q-input borderless dense clearable v-model="formData.name" class="form__inputsCR mt-2" color="primary"
               :rules="[val => val && val.length > 0 || 'Nombre es requerido']" />
           </div>
           <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
             <div class="text-subtitle2 text-bold text-black">
-              Nombre de usuario
+              Nombre de usuario <span class="text-negative">*</span>
             </div>
             <q-input borderless dense clearable v-model="formData.username" class="form__inputsCR mt-2" color="primary"
               :rules="[val => val && val.length > 0 || 'Nombre de usuario es requerido']" />
@@ -154,7 +161,7 @@ onMounted(() => {
           </div>
           <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
             <div class="text-subtitle2 text-bold text-black">
-              Contraseña
+              Contraseña <span class="text-negative">*</span>
             </div>
             <q-input borderless dense clearable v-model="formData.password" class="form__inputsCR mt-2" color="primary"
               :type="isPwd ? 'password' : 'text'" :rules="[val => val && val.length > 0 || 'Contraseña es requerida']">
@@ -163,7 +170,6 @@ onMounted(() => {
                   @click="isPwd = !isPwd" />
               </template>
             </q-input>
-
           </div>
           <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
             <div class="text-subtitle2 text-bold text-black">
@@ -172,34 +178,30 @@ onMounted(() => {
             <phoneNumberInput v-model="formData.phone" label="Tu Teléfono" placeholder="997 123 456"
               class="phoneUser" />
           </div>
-
           <div class="col-12 my-2 px-2 md:px-12 pb-8 flex justify-end">
-            <q-btn color="primary " style="border-radius: 0.5rem;" type="submit" :loading="loading">
+            <q-btn color="primary " style="border-radius: 0.5rem;" type="button" :loading="loading" @click="nextStep">
               <div class="px-10 py-1">
                 Siguiente
               </div>
             </q-btn>
           </div>
-
         </div>
       </Transition>
       <Transition name="horizontal">
         <div class="row w-full" v-if="step == 1">
           <div class="col-md-6 md:my-0 col-12 my-1 mb-4 px-2 md:px-12">
             <div class="text-subtitle2 text-bold text-black">
-              Tipo de usuario
+              Tipo de usuario <span class="text-negative">*</span>
             </div>
             <q-select borderless class="form__inputsCR mt-2" v-model="formData.rol_id" option-value="id"
-              option-label="title" :options="rolOptions" behavior="menu" dense>
-            </q-select>
+              option-label="title" :options="rolOptions" behavior="menu" dense />
           </div>
-          <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12" v-if="formData.rol_id.id != 6 && formData.rol_id.id != 0">
+          <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12" v-if="requiresApartment(formData.rol_id.id)">
             <div class="text-subtitle2 text-bold text-black">
-              Selecciona el departamento
+              Selecciona el departamento <span class="text-negative">*</span>
             </div>
             <q-select borderless class="form__inputsCR mt-2" v-model="formData.apartment" option-value="id"
               option-label="number" :options="apartmentsOptions" behavior="menu" dense>
-
               <template v-slot:option="scope">
                 <q-item v-bind="scope.itemProps">
                   <div class="w-full">
@@ -219,24 +221,18 @@ onMounted(() => {
               </template>
             </q-select>
           </div>
-
           <div class="col-12 mb-2 mt-5 px-2 md:px-12 flex items-center justify-between">
             <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
               <q-btn color="grey-9 " style="border-radius: 0.5rem;" @click="step--">
-                <div class="px-8 py-1 ">
-                  Volver
-                </div>
+                <div class="px-8 py-1 ">Volver</div>
               </q-btn>
             </div>
             <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
               <q-btn color="primary " style="border-radius: 0.5rem;" type="submit" :loading="loading">
-                <div class="px-8 py-1 ">
-                  Siguiente
-                </div>
+                <div class="px-8 py-1">Siguiente</div>
               </q-btn>
             </div>
           </div>
-
         </div>
       </Transition>
     </q-form>
@@ -246,7 +242,6 @@ onMounted(() => {
 .phoneUser.form__inputsSelect .prefixInput .q-field__inner {
   border: 0px solid rgb(223, 223, 223);
 }
-
 .form__inputsCR {
   & .q-field__inner {
     box-shadow: 0px 3px 5px 0px #bfbfbfa3;
@@ -255,13 +250,9 @@ onMounted(() => {
     padding: 0px 2rem;
   }
 }
-
 @media (max-width: 780px) {
-  .form__inputsCR {
-    & .q-field__inner {
-
-      padding: 0px 1rem;
-    }
+  .form__inputsCR .q-field__inner {
+    padding: 0px 1rem;
   }
 }
 </style>

@@ -84,10 +84,10 @@ const iconsOption = [
 ];
 
 const typeArea = [
-  { value: 1, name: 'Uso gratuito' },
-  { value: 2, name: 'Uso mixto (Compartido y exclusivo)' },
-  { value: 3, name: 'De pago' },
-  { value: 4, name: 'De pago lista de invitados' },
+  { value: 1, name: 'Gratuito (compartido)' },
+  { value: 2, name: 'Gratuito (exclusivo)' },
+  { value: 3, name: 'De pago (compartido)' },
+  { value: 4, name: 'De pago (exclusivo con lista de invitados)' },
 ];
 
 const dayNotAvailable = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];

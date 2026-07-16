@@ -34,6 +34,44 @@ const formatMaskedMoney = (value, decimals = 2) => {
 }
 
 const now = new Date()
+const previousBill = ref(null)
+const loadingPrev = ref(false)
+
+const previousMonth = computed(() => {
+  const m = formData.value.month?.value - 1
+  const y = m === 0 ? formData.value.year - 1 : formData.value.year
+  return { month: m === 0 ? 12 : m, year: y }
+})
+
+const loadPreviousMonthData = async () => {
+  if (!formData.value.month?.value) return
+  loadingPrev.value = true
+  try {
+    const response = await monthlyBillsStore.getMonthlyBills({
+      month: previousMonth.value.month,
+      year: previousMonth.value.year,
+      per_page: 1
+    })
+    if (response?.code === 200) {
+      const list = response.data?.data || []
+      previousBill.value = list.length > 0 ? list[0] : null
+    }
+  } catch (e) {
+    previousBill.value = null
+  } finally {
+    loadingPrev.value = false
+  }
+}
+
+const progressPercent = computed(() => {
+  const total = parseMaskedMoney(formData.value.total_maintenance_budget) || 0
+  if (total === 0) return 0
+  const spent = previousSelectedTotal.value
+  return Math.min(100, Math.round((spent / total) * 100))
+})
+
+watch(() => formData.value.month, loadPreviousMonthData)
+
 const monthOptions = [
   { value: 1, name: 'Enero' },
   { value: 2, name: 'Febrero' },
@@ -103,12 +141,27 @@ const submit = async () => {
     const totalMaintenanceBudget = parseMaskedMoney(formData.value.total_maintenance_budget)
     const totalWaterBillAmount = parseMaskedMoney(formData.value.total_water_bill_amount)
     const waterPricePerM3 = parseMaskedMoney(formData.value.water_price_per_m3)
+
+    const waterConsumption = formData.value.total_water_consumption_m3 === null || formData.value.total_water_consumption_m3 === '' ? null : parseMaskedMoney(formData.value.total_water_consumption_m3)
+    if (previousBill.value?.total_water_consumption_m3 && waterConsumption) {
+      const prev = Number(previousBill.value.total_water_consumption_m3)
+      if (prev > 0) {
+        const diff = Math.abs(waterConsumption - prev) / prev
+        if (diff > 0.5) {
+          const proceed = window.confirm(
+            `El consumo actual (${waterConsumption} m³) difiere en más del 50% del período anterior (${prev} m³). ¿Deseas continuar?`
+          )
+          if (!proceed) return
+        }
+      }
+    }
+
     const payload = {
       month: formData.value.month?.value,
       year: Number(formData.value.year),
       total_maintenance_budget: totalMaintenanceBudget,
       total_water_bill_amount: totalWaterBillAmount,
-      total_water_consumption_m3: formData.value.total_water_consumption_m3 === null || formData.value.total_water_consumption_m3 === '' ? null : Number(formData.value.total_water_consumption_m3),
+      total_water_consumption_m3: formData.value.total_water_consumption_m3 === null || formData.value.total_water_consumption_m3 === '' ? null : parseMaskedMoney(formData.value.total_water_consumption_m3),
       water_price_per_m3: waterPricePerM3
     }
 
@@ -194,6 +247,29 @@ const submit = async () => {
             </div>
           </div>
         </div>
+        <div v-if="previousBill" class="col-12 mt-2 px-2 md:px-12">
+          <q-banner class="bg-grey-2 rounded-borders">
+            <template v-slot:avatar>
+              <q-icon name="eva-info-outline" color="grey-7" />
+            </template>
+            <div class="text-caption text-grey-7">
+              Consumo período anterior: <strong>{{ previousBill.total_water_consumption_m3 || '—' }} m³</strong>
+              ({{ monthOptions[previousBill.month - 1]?.name }} {{ previousBill.year }})
+            </div>
+          </q-banner>
+        </div>
+        <div v-if="progressPercent > 0" class="col-12 mt-2 px-2 md:px-12">
+          <div class="text-subtitle2 text-black q-mb-xs">Avance del presupuesto</div>
+          <q-linear-progress :value="progressPercent / 100" color="primary" class="q-mt-xs" size="24px"
+            style="border-radius: 4px;">
+            <div class="absolute-full flex flex-center text-white text-bold text-body2">
+              {{ progressPercent }}%
+            </div>
+          </q-linear-progress>
+          <div class="text-caption text-grey-6 q-mt-xs">
+            S/. {{ formatMaskedMoney(previousSelectedTotal) }} de S/. {{ formatMaskedMoney(parseMaskedMoney(formData.value.total_maintenance_budget) || 0) }}
+          </div>
+        </div>
         <div class="col-md-6 col-12 mt-4 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Monto total recibo de agua (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
@@ -202,8 +278,8 @@ const submit = async () => {
 
         <div class="col-md-6 col-12 mt-4 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Consumo total de agua (m³)</div>
-          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" mask="###.###.###,####"
-            reverse-fill-mask inputmode="decimal" v-model.number="formData.total_water_consumption_m3" />
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" mask="#.##0,####"
+            reverse-fill-mask inputmode="decimal" v-model="formData.total_water_consumption_m3" />
         </div>
 
         <div class="col-12 mt-2 px-2 md:px-12">

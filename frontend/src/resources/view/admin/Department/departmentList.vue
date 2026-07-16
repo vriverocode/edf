@@ -1,12 +1,14 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { Notify } from 'quasar';
 import iconsApp from '@/assets/icons/index'
 import { useApartmentStore } from '@/services/store/apartment.store';
+import { useWaterReadingsStore } from '@/services/store/waterReadings.store';
 import initialWaterReadingModal from '@/components/admin/initialWaterReadingModal.vue'
 
 const apartmentStore = useApartmentStore()
+const waterReadingsStore = useWaterReadingsStore()
 
 const page = ref(1)
 const search = ref('')
@@ -14,6 +16,8 @@ const filter = ref(0)
 const lastPage = ref(1)
 const ready = ref(false)
 const router = useRouter()
+const route = useRoute()
+const highlightId = ref(null)
 
 const goTo = (url) => {
   router.push(url)
@@ -25,6 +29,14 @@ const changeOwnerModal = ref(false)
 const selectedApartment = ref(null)
 const selectedOwner = ref(null)
 const modalLoading = ref(false)
+const ownerSearch = ref('')
+
+const filteredOwners = computed(() => {
+  const q = ownerSearch.value.toLowerCase()
+  return ownersWithoutApartment.value.filter(o =>
+    o.name?.toLowerCase().includes(q)
+  )
+})
 const unitType = ref(1)
 const unitTypesOptions = [
   { label: 'Departamentos', value: 1 },
@@ -34,6 +46,26 @@ const unitTypesOptions = [
 
 const initialReadingDialog = ref(false)
 const selectedApartmentForReading = ref(null)
+const departmentsWithReading = ref([])
+
+const getDepartmentsWithReading = async () => {
+  const now = new Date()
+  try {
+    const response = await waterReadingsStore.getWaterReadings({
+      month: now.getMonth() + 1,
+      year: now.getFullYear(),
+      per_page: 999
+    })
+    if (response?.code === 200) {
+      const list = response.data?.pagination?.data || response.data?.data || []
+      departmentsWithReading.value = list.map(r => r.apartment_id || r.departament_id)
+    }
+  } catch {
+    departmentsWithReading.value = []
+  }
+}
+
+const hasReading = (apartmentId) => departmentsWithReading.value.includes(apartmentId)
 
 const openInitialReadingModal = (apartment) => {
   selectedApartmentForReading.value = apartment
@@ -60,6 +92,7 @@ const getApartment = () => {
 const openChangeOwnerModal = async (apartment) => {
   selectedApartment.value = apartment
   selectedOwner.value = null
+  ownerSearch.value = ''
   changeOwnerModal.value = true
   modalLoading.value = true
   try {
@@ -114,12 +147,30 @@ const goToOwnerInfo = (apartmentId) => {
   router.push('/admin/department/owner-info/' + apartmentId)
 }
 
+const editApartment = (apartment) => {
+  router.push(`/admin/apartments/edit/${apartment.id}?page=${page.value}&from=list`)
+}
+
+const removeHighlight = () => {
+  setTimeout(() => { highlightId.value = null }, 3000)
+}
+
 watch(unitType, () => {
   page.value = 1;
   getApartment();
 })
 
-onMounted(() => { getApartment() })
+const refreshData = () => {
+  getApartment()
+  getDepartmentsWithReading()
+}
+
+onMounted(() => {
+  if (route.query.page) page.value = Number(route.query.page)
+  if (route.query.highlight) highlightId.value = Number(route.query.highlight)
+  refreshData()
+  if (highlightId.value) removeHighlight()
+})
 </script>
 
 <template>
@@ -141,7 +192,8 @@ onMounted(() => { getApartment() })
     </div>
     <div class="mt-5 md:mt-8 px-2 md:px-28  pb-5" style="overflow: auto;" v-if="ready">
       <template v-if="apartments.length > 0">
-        <div class="px-2 pt-3 mt-4  apartamentContainer relative" style="" v-for="apartment in apartments"
+        <div class="px-2 pt-3 mt-4  apartamentContainer relative"
+          :class="{ 'highlight-animate': highlightId === apartment.id }" v-for="apartment in apartments"
           :key="apartment.id">
           <div class="flex items-center w-full pb-3">
             <div class="imgItem__container w">
@@ -151,9 +203,16 @@ onMounted(() => { getApartment() })
               <div class=" text-bold  text-black"
                 style="font-weight: bold; font-size: 1.3rem; text-transform: uppercase;">
                 #{{ apartment.number }}
+                <q-icon v-if="hasReading(apartment.id)" name="eva-checkmark-circle-2" color="positive" size="sm"
+                  class="q-ml-xs">
+                  <q-tooltip>Lectura de agua registrada este período</q-tooltip>
+                </q-icon>
               </div>
               <div class="mt-1 ellipsis w-full" style="font-weight: 500; font-size: 0.89rem;">
                 Ubicación: {{ apartment.address }}
+              </div>
+              <div class="mt-1" style="font-weight: 500; font-size: 0.89rem; color: #555;">
+                Propietario: {{ apartment.owner?.name || apartment.user?.name || 'Sin asignar' }}
               </div>
               <template v-if="apartment.type == 1">
                 <div class="mt-1" style="font-weight: 500; font-size: 0.89rem;">
@@ -180,7 +239,7 @@ onMounted(() => { getApartment() })
             </div>
             <div>
               <q-btn icon="eva-settings-outline" class="mx-1" flat color="primary" round size="0.85rem"
-                @click="goTo('/admin/apartments/edit/' + apartment.id)" />
+                @click="editApartment(apartment)" />
             </div>
             <div>
               <q-btn icon="eva-trash-2-outline" class="mx-1" flat color="negative" round size="0.85rem" />
@@ -214,9 +273,12 @@ onMounted(() => { getApartment() })
           <div class="text-subtitle2 q-mb-sm" v-if="selectedApartment" style="text-transform: uppercase;">
             Unidad #{{ selectedApartment.number }}
           </div>
-          <q-select dense borderless v-model="selectedOwner" :options="ownersWithoutApartment" option-label="name"
+          <q-input dense borderless v-model="ownerSearch" placeholder="Buscar propietario..."
+            class="form__inputsTypeDepart q-mb-sm" color="primary" clearable />
+          <q-select dense borderless v-model="selectedOwner" :options="filteredOwners" option-label="name"
             option-value="id" emit-value map-options class="form__inputsTypeDepart" :loading="modalLoading"
-            :disable="modalLoading" no-option-label="No hay propietarios sin departamento" />
+            :disable="modalLoading" use-input input-debounce="0" @filter="(val, update) => update()"
+            no-option-label="No hay propietarios sin departamento" />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cancelar" color="grey-7" v-close-popup :disable="modalLoading" />
@@ -303,6 +365,17 @@ onMounted(() => { getApartment() })
     border-bottom-right-radius: 0.7rem;
 
   }
+}
+
+@keyframes highlightPulse {
+  0% { box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(25, 118, 210, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(25, 118, 210, 0); }
+}
+
+.highlight-animate {
+  animation: highlightPulse 1.5s ease-out;
+  border: 2px solid var(--q-primary) !important;
 }
 
 @media (max-width: 780px) {

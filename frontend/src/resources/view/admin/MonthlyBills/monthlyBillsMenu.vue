@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router';
 import { computed } from 'vue';
 import presupuesto from '@/assets/img/menu/presupuestos2.png'
 import medicion from '@/assets/img/menu/medicion-agua.png'
+import annualBudget from '@/assets/img/menu/presupuesto.png'
 
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
@@ -20,6 +21,12 @@ const menu = [
     title: 'Medición de agua',
     icon: medicion,
     link: '/admin/monthly_bills/water_read',
+    roles: [1]
+  },
+  {
+    title: 'Presupuesto anual',
+    icon: annualBudget,
+    link: '/admin/budget/annual',
     roles: [1]
   },
 

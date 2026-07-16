@@ -15,29 +15,20 @@ const menu = [
   {
     title: 'Saldos pendientes',
     icon: saldos,
-    placeholder: true,
+    link: '/admin/quotas/maintenance/list',
   },
   {
     title: 'Gastos comunes',
     icon: bills,
-    placeholder: true,
+    link: '/admin/expenses/list',
   },
 
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
-  console.log(rol)
   return menu.filter(item => !item.roles || item.roles.includes(rol))
 })
 const goTo = (item) => {
-  if (item.placeholder) {
-    Notify.create({
-      color: 'info',
-      message: 'Próximamente disponible',
-      timeout: 2000,
-    })
-    return
-  }
   if (item.link) router.push(item.link)
 }
 </script>

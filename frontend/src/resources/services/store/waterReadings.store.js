@@ -3,6 +3,20 @@ import ApiService from '@/services/axios'
 
 export const useWaterReadingsStore = defineStore('WaterReadings', {
   actions: {
+    async getNextPendingDepartment(month, year, currentDepartmentId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.get(`/api/water-readings/next-pending?month=${month}&year=${year}&after=${currentDepartmentId}`)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener siguiente unidad pendiente')
+          })
+      })
+    },
     async getWaterReadings(filters) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
