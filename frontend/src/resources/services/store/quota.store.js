@@ -318,6 +318,21 @@ export const useQuotaStore = defineStore('Quota', {
           });
       })
     },
+    async generateMonthlyQuotas(month, year) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.post('/api/quotas/generate?month=' + month + '&year=' + year)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al generar cuotas')
+          })
+      })
+    },
+
     filterQuery(filter) {
       try {
         const params = new URLSearchParams();

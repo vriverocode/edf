@@ -58,6 +58,10 @@ class Pay extends Model
     {
         return $this->hasOne(Transaction::class);
     }
+    public function refunds()
+    {
+        return $this->hasMany(Refund::class);
+    }
 
     /**
      * IDs de cuotas de este pago.
@@ -94,10 +98,12 @@ class Pay extends Model
     public function getStatusLabelAttribute()
     {
         $status = [
-            'Cancelada',
+            'Cancelado',
             'Pendiente de aprob.',
             'Exitoso',
             'Rechazado',
+            'Reembolsado parcialmente',
+            'Reembolsado',
         ];
 
         return $status[$this->status] ?? '—';

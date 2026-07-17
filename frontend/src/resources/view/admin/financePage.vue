@@ -45,6 +45,12 @@ const menu = [
     roles: [1]
   },
   {
+    title: 'Proveedores',
+    icon: gastos,
+    link: '/admin/providers/list',
+    roles: [1]
+  },
+  {
     title: 'Pagos',
     icon: pays,
     link: '/admin/pays/menu',

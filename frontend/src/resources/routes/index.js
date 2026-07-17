@@ -143,13 +143,13 @@ const routes = [
       {
         path: '/admin/financial-accounts/add',
         component: () => import('@/view/admin/FinancialAccounts/createFinancialAccount.vue'),
-        name: 'financialAccountsCreate',
+        name: 'createFinancialAccount',
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Nueva cuenta financiera',
-          roles: ['admin', 'super-admin'],
-          depth: 2,
+          roles: ['admin'],
+          depth: 3,
         },
       },
       {
@@ -586,7 +586,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Editar gasto mensual',
           roles: ['admin'],
-          depth: 5,
+          depth: 4,
         },
       },
       {
@@ -598,7 +598,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Medición de agua',
           roles: ['admin'],
-          depth: 4,
+          depth: 2,
         },
       },
       {
@@ -626,7 +626,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Registrar gasto',
           roles: ['admin'],
-          depth: 4,
+          depth: 3,
         },
       },
       {
@@ -638,7 +638,19 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Editar gasto',
           roles: ['admin'],
-          depth: 4,
+          depth: 3,
+        },
+      },
+      {
+        path: '/admin/providers/list',
+        component: () => import('@/view/admin/Expenses/providerList.vue'),
+        name: 'providerList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Proveedores',
+          roles: ['admin'],
+          depth: 3,
         },
       },
       {
@@ -650,7 +662,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Registrar medición',
           roles: ['admin'],
-          depth: 5,
+          depth: 3,
         },
       },
       {
@@ -662,7 +674,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Detalle medición de agua',
           roles: ['admin'],
-          depth: 5,
+          depth: 3,
         },
       },
       {
@@ -674,7 +686,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Editar medición',
           roles: ['admin'],
-          depth: 5,
+          depth: 3,
         },
       },
       {
@@ -698,7 +710,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Cuotas de mantenimiento',
           roles: ['admin'],
-          depth: 1,
+          depth: 2,
         },
       },
       {

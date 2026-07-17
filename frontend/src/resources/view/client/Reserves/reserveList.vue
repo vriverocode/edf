@@ -131,12 +131,12 @@ const statusOptions = [
 
 <template>
   <div class="h-full" style="overflow: hidden;">
-    <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-12"
+    <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-24"
       style="height: 15%; overflow:hidden" >
-      <div class="flex items-center col-10 md:mx-24 pr-2">
+      <div class="flex items-center col-10  col-md-11 pr-2 md:pl-8">
         <q-btn color="primary" unelevated class="flex-1 createBookingButton"
           style="border-radius: 0.5rem;" @click="goTo('/client/reserves/form/add')">
-          <div class="flex items-center py-1">
+          <div class="flex items-center py-1 md:py-2">
             <q-icon name="eva-plus-outline" />
             <div class="q-pt-none text-bold pl-1">
               Agregar reserva
@@ -144,7 +144,7 @@ const statusOptions = [
           </div>
         </q-btn>
       </div>
-      <div class="w-full flex justify-end col-2">
+      <div class="w-full flex justify-end col-2 col-md-1 md:pr-8">
         <q-btn outline color="primary" size="md" @click="filterModal = true" class="filter-btn">
         <q-icon name="eva-funnel-outline" size="1.4rem" />
         <q-badge v-if="activeFilterCount > 0" color="primary" floating>{{ activeFilterCount }}</q-badge>

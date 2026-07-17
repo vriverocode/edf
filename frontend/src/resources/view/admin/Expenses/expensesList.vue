@@ -3,12 +3,16 @@ import { computed, onMounted, ref } from 'vue'
 import { Notify } from 'quasar'
 import { useRouter } from 'vue-router'
 import { useExpenseStore } from '@/services/store/expense.store'
+import { useProviderStore } from '@/services/store/provider.store'
+import { useServiceCategoryStore } from '@/services/store/serviceCategory.store'
 import moment from 'moment'
 import iconsApp from '@/assets/icons/index'
 import gastos from '@/assets/img/menu/gastos2.png'
 
 const router = useRouter()
 const expenseStore = useExpenseStore()
+const providerStore = useProviderStore()
+const serviceCategoryStore = useServiceCategoryStore()
 
 const loading = ref(false)
 const ready = ref(false)
@@ -17,11 +21,18 @@ const page = ref(1)
 const lastPage = ref(1)
 const expenses = ref([])
 
+const providerOptions = ref([])
+const categoryOptions = ref([])
+
 const now = new Date()
 const filter = ref({
   month: null,
   year: now.getFullYear(),
-  status: null
+  status: null,
+  provider_id: null,
+  category_id: null,
+  date_from: null,
+  date_to: null
 })
 
 const monthOptions = [
@@ -50,11 +61,17 @@ const statusOptions = [
 const draftFilter = ref({
   month: null,
   year: now.getFullYear(),
-  status: null
+  status: null,
+  provider_id: null,
+  category_id: null,
+  date_from: null,
+  date_to: null
 })
 
 const hasActiveFilter = computed(() => {
-  return !!(filter.value.month || filter.value.status || filter.value.year !== now.getFullYear())
+  return !!(filter.value.month || filter.value.status || filter.value.year !== now.getFullYear()
+    || filter.value.provider_id || filter.value.category_id
+    || filter.value.date_from || filter.value.date_to)
 })
 
 const showNotify = (type, text) => {
@@ -98,7 +115,11 @@ const fetchExpenses = async () => {
       per_page: 12,
       month: filter.value.month || undefined,
       year: filter.value.year || undefined,
-      status: filter.value.status || undefined
+      status: filter.value.status || undefined,
+      provider_id: filter.value.provider_id || undefined,
+      category_id: filter.value.category_id || undefined,
+      date_from: filter.value.date_from || undefined,
+      date_to: filter.value.date_to || undefined
     })
     if (response?.code !== 200) throw response
 
@@ -127,14 +148,37 @@ const applyFilter = () => {
 }
 
 const clearFilters = () => {
-  filter.value = { month: null, year: now.getFullYear(), status: null }
+  filter.value = { month: null, year: now.getFullYear(), status: null, provider_id: null, category_id: null, date_from: null, date_to: null }
   page.value = 1
   fetchExpenses()
 }
 
 const goTo = (url) => router.push(url)
 
+const openAttachment = (url) => {
+  if (url) window.open(url, '_blank')
+}
+
+const loadFilterOptions = async () => {
+  try {
+    const [provRes, catRes] = await Promise.all([
+      providerStore.getProviders({ per_page: 100 }),
+      serviceCategoryStore.getServiceCategories()
+    ])
+    if (provRes?.code === 200) {
+      const list = provRes.data?.pagination?.data || provRes.data || []
+      providerOptions.value = list.map(p => ({ label: p.name, value: p.id }))
+    }
+    if (catRes?.code === 200 && Array.isArray(catRes.data)) {
+      categoryOptions.value = catRes.data.map(c => ({ label: c.name, value: c.id }))
+    }
+  } catch {
+    // silencio
+  }
+}
+
 onMounted(() => {
+  loadFilterOptions()
   fetchExpenses()
 })
 </script>
@@ -180,14 +224,18 @@ onMounted(() => {
                       {{ formatMoney(expense.amount) }}
                     </div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <span
-                      :class="statusClass(expense.status)"
-                      class="inline-block px-3 py-1 text-xs font-bold text-white rounded-full"
-                    >
-                      {{ expense.status_label }}
-                    </span>
-                    <div class="cursor-pointer">
+                    <div class="flex items-center gap-2">
+                      <q-btn v-if="expense.attachment_url" flat dense round color="primary" icon="eva-attach-outline" size="sm"
+                        @click.stop="openAttachment(expense.attachment_url)">
+                        <q-tooltip>Ver comprobante</q-tooltip>
+                      </q-btn>
+                      <span
+                        :class="statusClass(expense.status)"
+                        class="inline-block px-3 py-1 text-xs font-bold text-white rounded-full"
+                      >
+                        {{ expense.status_label }}
+                      </span>
+                      <div class="cursor-pointer">
                       <div v-html="iconsApp.optionsBook" />
                       <q-menu>
                         <q-list style="min-width: 150px">
@@ -273,7 +321,7 @@ onMounted(() => {
     <q-dialog v-model="showFilterDialog" persistent>
       <q-card style="min-width: 320px; max-width: 90vw;">
         <q-card-section class="text-h6">Filtrar gastos</q-card-section>
-        <q-card-section class="q-pt-none">
+        <q-card-section class="q-pt-none" style="max-height: 60vh; overflow-y: auto;">
           <div class="text-subtitle2 text-black mb-1">Mes</div>
           <q-select
             dense
@@ -298,7 +346,7 @@ onMounted(() => {
           <q-select
             dense
             borderless
-            class="form__inputsR"
+            class="form__inputsR mb-3"
             v-model="draftFilter.status"
             :options="statusOptions"
             option-label="name"
@@ -306,6 +354,42 @@ onMounted(() => {
             emit-value
             map-options
           />
+          <div class="text-subtitle2 text-black mb-1">Proveedor</div>
+          <q-select
+            dense
+            borderless
+            clearable
+            class="form__inputsR mb-3"
+            v-model="draftFilter.provider_id"
+            :options="providerOptions"
+            option-label="label"
+            option-value="value"
+            emit-value
+            map-options
+          />
+          <div class="text-subtitle2 text-black mb-1">Categoría</div>
+          <q-select
+            dense
+            borderless
+            clearable
+            class="form__inputsR mb-3"
+            v-model="draftFilter.category_id"
+            :options="categoryOptions"
+            option-label="label"
+            option-value="value"
+            emit-value
+            map-options
+          />
+          <div class="row q-col-gutter-sm">
+            <div class="col-6">
+              <div class="text-subtitle2 text-black mb-1">Desde</div>
+              <q-input dense borderless class="form__inputsR" type="date" v-model="draftFilter.date_from" />
+            </div>
+            <div class="col-6">
+              <div class="text-subtitle2 text-black mb-1">Hasta</div>
+              <q-input dense borderless class="form__inputsR" type="date" v-model="draftFilter.date_to" />
+            </div>
+          </div>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" color="grey" @click="showFilterDialog = false" />

@@ -119,6 +119,10 @@ export const useExpenseStore = defineStore('Expenses', {
         if (filter.month) params.set('month', String(filter.month))
         if (filter.year) params.set('year', String(filter.year))
         if (filter.status) params.set('status', String(filter.status))
+        if (filter.provider_id) params.set('provider_id', String(filter.provider_id))
+        if (filter.category_id) params.set('category_id', String(filter.category_id))
+        if (filter.date_from) params.set('date_from', String(filter.date_from))
+        if (filter.date_to) params.set('date_to', String(filter.date_to))
         return params.toString()
       } catch (e) {
         return ''

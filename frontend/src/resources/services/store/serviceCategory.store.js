@@ -32,5 +32,35 @@ export const useServiceCategoryStore = defineStore('ServiceCategories', {
           })
       })
     },
+
+    async updateServiceCategory(id, payload) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.post('/api/service-categories/u/' + id, payload)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al actualizar categoría')
+          })
+      })
+    },
+
+    async deleteServiceCategory(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.delete('/api/service-categories/d/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al eliminar categoría')
+          })
+      })
+    },
   },
 })

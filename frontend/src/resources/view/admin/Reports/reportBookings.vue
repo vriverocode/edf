@@ -17,7 +17,9 @@
           </template>
         </q-input>
       </div>
-      <div class="col-auto q-gutter-x-sm">
+      <div class="col-auto items-center q-gutter-x-sm">
+        <q-checkbox :model-value="filters.include_cancelled" label="Incluir canceladas"
+          @update:model-value="val => { filters.include_cancelled = val; loadData(); loadMetrics() }" />
         <q-btn
           :color="hasActiveFilter ? 'primary' : 'grey-7'"
           outline
@@ -197,6 +199,7 @@ const filters = ref({
   date_to: null,
   sort_by: 'created_at',
   sort_dir: 'desc',
+  include_cancelled: false,
 })
 
 const columns = [
@@ -226,6 +229,7 @@ const hasActiveFilter = computed(() => {
     || filters.value.area_id !== null
     || filters.value.date_from !== null
     || filters.value.date_to !== null
+    || filters.value.include_cancelled
 })
 
 const activeFilterCount = computed(() => {
@@ -234,6 +238,7 @@ const activeFilterCount = computed(() => {
   if (filters.value.area_id !== null) count++
   if (filters.value.date_from !== null) count++
   if (filters.value.date_to !== null) count++
+  if (filters.value.include_cancelled) count++
   return count
 })
 
@@ -281,6 +286,7 @@ async function loadData() {
       date_to: filters.value.date_to,
       sort_by: filters.value.sort_by,
       sort_dir: filters.value.sort_dir,
+      include_cancelled: filters.value.include_cancelled,
       per_page: pagination.value.rowsPerPage,
       page: pagination.value.page,
     }

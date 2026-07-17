@@ -1,6 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useNoticeStore } from '@//services/store/notice.store';
+import { useApartmentStore } from '@/services/store/apartment.store';
+import { useUserStore } from '@/services/store/users.store';
 import { Notify } from 'quasar';
 
 const emit = defineEmits(['closeModal', 'updateList'])
@@ -8,6 +10,8 @@ const props = defineProps({
   dialog: Boolean,
 })
 const noticeStore = useNoticeStore();
+const apartmentStore = useApartmentStore()
+const userStore = useUserStore()
 
 const loading = ref(false)
 const dialog = ref(props.dialog)
@@ -19,6 +23,40 @@ const formData = ref({
   imagen:[],
 })
 
+const segmentType = ref('all')
+const segmentIds = ref([])
+const deptOptions = ref([])
+const userOptions = ref([])
+const towerInput = ref('')
+const floorInput = ref('')
+
+const segmentOptions = [
+  { value: 'all', label: 'Todos los residentes' },
+  { value: 'tower', label: 'Por torre' },
+  { value: 'floor', label: 'Por piso' },
+  { value: 'department', label: 'Por departamento' },
+  { value: 'user', label: 'Por usuario' },
+]
+
+const loadDeptOptions = async () => {
+  try {
+    const res = await apartmentStore.getPaginationApartment({ page: 1, search: '', filter: 0, type: 0, per_page: 999 })
+    const list = res?.data?.data || []
+    deptOptions.value = list.map(d => ({ label: `#${d.number} — ${d.address || ''}`, value: d.id }))
+  } catch {
+    deptOptions.value = []
+  }
+}
+
+const loadUserOptions = async () => {
+  try {
+    const res = await userStore.getUsers({ rol: 2, per_page: 999 })
+    const list = res?.data?.data || res?.data || []
+    userOptions.value = list.map(u => ({ label: `${u.name} — ${u.email}`, value: u.id }))
+  } catch {
+    userOptions.value = []
+  }
+}
 
 const hideModal = () => {
   emit('closeModal')
@@ -37,6 +75,10 @@ const cleanForm = () => {
     category: 0,
     imagen:[],
   }
+  segmentType.value = 'all'
+  segmentIds.value = []
+  towerInput.value = ''
+  floorInput.value = ''
 }
 const createAnnounce = () => {
   loading.value = true
@@ -48,6 +90,17 @@ const createAnnounce = () => {
   dataForm.append('group', formData.value.group)
   dataForm.append('category', formData.value.category)
   dataForm.append('type', NOTICE_TYPE)
+  dataForm.append('segment_type', segmentType.value)
+
+  if (segmentType.value === 'tower') {
+    segmentIds.value = towerInput.value.split(',').map(s => s.trim()).filter(Boolean)
+  } else if (segmentType.value === 'floor') {
+    segmentIds.value = floorInput.value.split(',').map(s => s.trim()).filter(Boolean)
+  }
+
+  segmentIds.value.forEach((id) => {
+    dataForm.append('segment_ids[]', String(id))
+  })
 
   formData.value.imagen.forEach((file) => {
     dataForm.append('img[]', file);
@@ -66,6 +119,16 @@ const createAnnounce = () => {
     loading.value = false
   })
 }
+
+const getSegmentLabel = (type) => segmentOptions.find(o => o.value === type)?.label || 'Todos'
+
+watch(() => props.dialog, (newValue) => {
+  dialog.value = newValue
+  if (newValue) {
+    loadDeptOptions()
+    loadUserOptions()
+  }
+})
 
 const showNotify = (type, text) => {
   Notify.create({
@@ -156,6 +219,34 @@ watch(() => props.dialog, (newValue) => {
                 </div>
               </template>
               </q-file>
+            </div>
+            <div class="col-12 mt-3 px-2 md:px-12">
+              <div class="text-subtitle2 text-black">Segmentación</div>
+              <q-select dense borderless v-model="segmentType" :options="segmentOptions"
+                option-label="label" option-value="value" emit-value map-options
+                class="form__inputsR mt-1" color="primary" />
+            </div>
+            <div v-if="segmentType === 'tower'" class="col-md-6 col-12 mt-2 px-2 md:px-12">
+              <div class="text-subtitle2 text-black">Torres (separadas por coma)</div>
+              <q-input dense borderless v-model="towerInput" placeholder="Ej: A, B, C"
+                class="form__inputsR mt-1" color="primary" />
+            </div>
+            <div v-if="segmentType === 'floor'" class="col-md-6 col-12 mt-2 px-2 md:px-12">
+              <div class="text-subtitle2 text-black">Pisos (separados por coma)</div>
+              <q-input dense borderless v-model="floorInput" placeholder="Ej: 1, 2, 3"
+                class="form__inputsR mt-1" color="primary" />
+            </div>
+            <div v-if="segmentType === 'department'" class="col-md-6 col-12 mt-2 px-2 md:px-12">
+              <div class="text-subtitle2 text-black">Departamentos</div>
+              <q-select dense borderless v-model="segmentIds" :options="deptOptions"
+                option-label="label" option-value="value" emit-value map-options multiple
+                class="form__inputsR mt-1" color="primary" />
+            </div>
+            <div v-if="segmentType === 'user'" class="col-md-6 col-12 mt-2 px-2 md:px-12">
+              <div class="text-subtitle2 text-black">Usuarios</div>
+              <q-select dense borderless v-model="segmentIds" :options="userOptions"
+                option-label="label" option-value="value" emit-value map-options multiple use-chips
+                class="form__inputsR mt-1" color="primary" />
             </div>
           </div>
         </section>

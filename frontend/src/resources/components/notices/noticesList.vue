@@ -26,6 +26,14 @@ const goTo = (id) => {
   router.push(`/client/notice/view/${id}`);
 }
 
+const segmentLabel = (notice) => {
+  if (!notice.segment_type || notice.segment_type === 'all') return ''
+  const labels = { tower: 'Torre', floor: 'Piso', department: 'Depto', user: 'Usuario' }
+  const label = labels[notice.segment_type] || notice.segment_type
+  const ids = Array.isArray(notice.segment_ids) ? notice.segment_ids : []
+  return `${label}: ${ids.join(', ')}`
+}
+
 </script>
 <template>
   <div v-if="notices.length > 0" class="space-y-5 md:px-5" style="cursor:pointer">
@@ -36,6 +44,9 @@ const goTo = (id) => {
         </div>
         <div>
           <div class="notice__item--title">{{notice.title}}</div>
+          <div v-if="segmentLabel(notice)" class="text-caption text-primary q-my-xs">
+            {{ segmentLabel(notice) }}
+          </div>
           <div class="notice__item--description text-stone-400 my-1">
             {{ notice.description.substring(0,94) }}...
           </div>

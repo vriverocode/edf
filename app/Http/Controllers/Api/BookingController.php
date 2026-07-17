@@ -2,21 +2,23 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Booking;
-use App\Models\ComunArea;
-use App\Models\ComunAreaSchedule;
-use App\Models\Event;
-use App\Models\PeoplesXDepartaments;
+use Exception;
+use Carbon\Carbon;
 use App\Models\Rol;
 use App\Models\User;
+use App\Models\Event;
+use App\Models\Booking;
+use App\Models\ComunArea;
+use Illuminate\Http\Request;
+use App\Services\RefundService;
+use App\Models\ComunAreaSchedule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Models\PeoplesXDepartaments;
+use Illuminate\Support\Facades\Validator;
 use App\Notifications\RealtimeNotification;
 use App\Services\BookingPendingPayNotifier;
-use Carbon\Carbon;
-use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class BookingController extends Controller
@@ -197,22 +199,36 @@ class BookingController extends Controller
         return $this->returnSuccess(200, 'ok');
     }
 
-    public function cancelBooking(Request $request, $id)
+    public function cancelBooking(Request $request, $id, RefundService $refundService)
     {
 
-        $booking = Booking::find($id);
+        $booking = Booking::with('pay')->find($id);
         if (! $booking) {
             return $this->returnFail(400, 'Reserva no encontrada');
         }
         if (! $this->verifyBookingOwnership($booking)) {
             return $this->returnFail(403, 'No autorizado');
         }
-        $booking->update([
-            'status' => 0,
-            'motive' => $request->motive,
 
-        ]);
-        $this->sendNotification($booking);
+        DB::beginTransaction();
+
+        try {
+            $booking->update([
+                'status' => 0,
+                'motive' => $request->motive,
+            ]);
+
+            $amountToRefund = $booking->amount;
+            if ($booking->pay != null && $amountToRefund > 0) {
+                $refundService->processRefund($booking->id, $amountToRefund, $request->motive ?? 'Cancelación de reserva');
+            }
+            DB::commit();
+            $this->sendNotification($booking);
+            return $this->returnSuccess(200, 'ok');
+        } catch (Exception $e) {
+            DB::rollBack();
+            return $this->returnFail(500, 'Error al procesar la cancelación: ' . $e->getMessage());
+        }
 
         return $this->returnSuccess(200, 'ok');
     }

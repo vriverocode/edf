@@ -125,7 +125,7 @@ class PayController extends Controller
             'consolidated_ids' => $quotaIdsForPay,
             'amount' => $request->amount,
             'reference' => $request->reference ?? '000000',
-            'pay_id' => $prefixPayId[$request->pay_method].($request->booking_id ?? 'Q').'-'.rand(1000, 9999),
+            'pay_id' => $prefixPayId[$request->pay_method] . ($request->booking_id ?? 'Q') . '-' . rand(1000, 9999),
             'pay_date' => $request->pay_date ? date('Y-m-d', strtotime($request->pay_date)) : date('Y-m-d'),
             'type' => $request->type,
             'pay_method' => $request->pay_method,
@@ -477,7 +477,7 @@ class PayController extends Controller
 
         $pay->status == 0
             ? $this->cancelBooking($pay->booking_id)
-            : $this->approveBooking($pay->booking_id);
+            : $this->approveBooking($pay);
 
         $this->sendReserveNotification($pay);
 
@@ -493,12 +493,13 @@ class PayController extends Controller
         ]);
     }
 
-    private function approveBooking($booking)
+    private function approveBooking($pay)
     {
         $APPROVE_VALUE = 3;
-        $booking = Booking::find($booking);
+        $booking = Booking::find($pay->booking_id);
         $booking->update([
             'status' => $APPROVE_VALUE,
+            'pay_id' => $pay->id,
         ]);
     }
 

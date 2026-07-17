@@ -2,14 +2,18 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMonthlyBillsStore } from '@/services/store/monthlyBills.store'
+import { useQuotaStore } from '@/services/store/quota.store'
+import { Notify } from 'quasar'
 import moment from 'moment'
 
 const route = useRoute()
 const router = useRouter()
 const monthlyBillsStore = useMonthlyBillsStore()
+const quotaStore = useQuotaStore()
 
 const bill = ref(null)
 const loading = ref(false)
+const generating = ref(false)
 const error = ref(null)
 
 const billId = computed(() => route.params.id || route.query.id)
@@ -51,6 +55,19 @@ const reload = () => {
 
 const goToList = () => router.push('/admin/monthly_bills/list')
 const goToEdit = () => router.push('/admin/monthly_bills/edit/' + billId.value)
+
+const generateQuotas = async () => {
+  generating.value = true
+  try {
+    const res = await quotaStore.generateMonthlyQuotas(bill.value.month, bill.value.year)
+    if (res?.code !== 200) throw res
+    Notify.create({ color: 'positive', message: 'Cuotas generadas correctamente', timeout: 2500 })
+  } catch (err) {
+    Notify.create({ color: 'negative', message: err?.error || err?.message || 'Error al generar cuotas', timeout: 3000 })
+  } finally {
+    generating.value = false
+  }
+}
 
 onMounted(() => {
   if (billId.value) {
@@ -96,7 +113,10 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            <div class="col-md-4 col-5 text-right md:pr-5 pr-3 pt-5">
+            <div class="col-md-4 col-5 text-right md:pr-5 pr-3 pt-5 q-gutter-x-sm">
+              <q-btn color="positive" class="rounded-lg" unelevated :loading="generating" @click="generateQuotas">
+                Generar cuotas
+              </q-btn>
               <q-btn color="primary" class="rounded-lg" outline @click="goToEdit">
                 Editar
               </q-btn>

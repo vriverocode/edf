@@ -83,6 +83,7 @@ export const useReportStore = defineStore('Report', {
         if (!filter || typeof filter !== 'object') return ''
         if (filter.search) params.set('search', String(filter.search))
         if (filter.status !== undefined && Number(filter.status) !== 4) params.set('status', String(filter.status))
+        if (filter.include_cancelled) params.set('include_cancelled', '1')
         if (filter.area_id) params.set('area_id', String(filter.area_id))
         if (filter.date_from) params.set('date_from', String(filter.date_from))
         if (filter.date_to) params.set('date_to', String(filter.date_to))

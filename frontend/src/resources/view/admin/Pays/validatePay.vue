@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import iconsApp from '@/assets/icons/index'
 import { usePayStore } from '@/services/store/pay.store'
+import { useReserveStore } from '@/services/store/reserve.store'
 import { useTransactionCategoryStore } from '@/services/store/transactionCategory.store'
 import moment from 'moment'
 import voucherModal from '@/components/pay/voucherModal.vue'
@@ -14,8 +15,53 @@ import ApiService from '@/services/axios'
 const route = useRoute()
 const router = useRouter()
 const payStore = usePayStore()
+const reserveStore = useReserveStore()
 const transactionCategoryStore = useTransactionCategoryStore()
 const dialog = ref('')
+
+const refundList = ref([])
+const loadingRefunds = ref(false)
+
+const loadRefundableBookings = async () => {
+  loadingRefunds.value = true
+  try {
+    const res = await reserveStore.getReservesByUser({ status: 0, per_page: 999 })
+    if (res?.code === 200) {
+      const data = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+      refundList.value = data.filter(r => r.amount > 0 && r.pay?.status === 2)
+    }
+  } catch {
+    refundList.value = []
+  } finally {
+    loadingRefunds.value = false
+  }
+}
+
+const registerRefund = async (booking) => {
+  Dialog.create({
+    title: 'Registrar devolución',
+    message: `¿Confirmas la devolución de S/. ${booking.amount} de la reserva #${booking.booking_number} a ${booking.user?.name}?`,
+    cancel: true,
+    persistent: true,
+    ok: { label: 'Devolver', color: 'primary' },
+  }).onOk(async () => {
+    try {
+      await ApiService.post('/api/pays/refund', {
+        booking_id: booking.id,
+        pay_id: booking.pay.id,
+        amount: booking.amount,
+      })
+      showNotify('positive', 'Devolución registrada correctamente')
+      loadRefundableBookings()
+    } catch (e) {
+      showNotify('negative', e?.response?.data?.error || 'Error al registrar devolución')
+    }
+  })
+}
+
+onMounted(() => {
+  loadRefundableBookings()
+})
 
 const pay = ref(null)
 const loading = ref(false)
@@ -358,6 +404,25 @@ const showModal = () => {
               Ver comprobante (voucher)
             </div>
             <span class="ml-2" v-html="iconsApp.voucher"></span>
+          </div>
+        </div>
+
+        <!-- Refund section -->
+        <div v-if="refundList.length > 0" class="q-mt-md">
+          <div class="text-subtitle1 text-bold text-black q-mb-sm">Devoluciones pendientes</div>
+          <div v-for="b in refundList" :key="b.id"
+            class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden q-mb-sm q-pa-md">
+            <div class="flex justify-between items-center">
+              <div>
+                <div class="text-body2 text-bold">#{{ b.booking_number }} — {{ b.comun_area?.name }}</div>
+                <div class="text-caption text-grey-7">{{ b.user?.name }} — S/. {{ b.amount }}</div>
+              </div>
+              <q-btn color="orange" unelevated size="sm" style="border-radius: 0.5rem;"
+                @click="registerRefund(b)">
+                <q-icon name="eva-undo-outline" class="q-mr-xs" />
+                Devolver
+              </q-btn>
+            </div>
           </div>
         </div>
 
