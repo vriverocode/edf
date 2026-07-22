@@ -46,6 +46,8 @@ class MaintenanceController extends Controller
 
         try {
             $dateFormatted = date('Y-m-d', strtotime($request->date));
+            $timeFrom = $request->time_from;
+            $timeTo = $request->time_to;
             $durationText = $request->duration;
 
             $maintenance = Maintenance::create([
@@ -53,8 +55,8 @@ class MaintenanceController extends Controller
                 'description' => htmlspecialchars($request->motive),
                 'comun_area_id' => $area->id,
                 'date' => $dateFormatted,
-                'time_from' => '08:00',
-                'time_to' => '20:00',
+                'time_from' => $timeFrom,
+                'time_to' => $timeTo,
                 'status' => 1,
             ]);
 
@@ -69,6 +71,7 @@ class MaintenanceController extends Controller
 
             $descriptionNotice = $request->motive
                 ."\nFecha: ".date('d/m/Y', strtotime($dateFormatted))
+                ."\nHorario: ".$timeFrom.' - '.$timeTo
                 ."\nDuración: ".$durationText;
 
             Notice::create([
@@ -85,6 +88,8 @@ class MaintenanceController extends Controller
             $bookingsToCancel = Booking::where('comun_area_id', $area->id)
                 ->where('date', $dateFormatted)
                 ->where('status', '>', 0)
+                ->where('time_from', '<', $timeTo)
+                ->where('time_to', '>', $timeFrom)
                 ->get();
 
             foreach ($bookingsToCancel as $booking) {
@@ -166,6 +171,8 @@ class MaintenanceController extends Controller
         $rules = [
             'comun_area_id' => ['required', 'integer', 'exists:comun_areas,id'],
             'date' => ['required', 'date'],
+            'time_from' => ['required', 'date_format:H:i'],
+            'time_to' => ['required', 'date_format:H:i', 'after:time_from'],
             'duration' => ['required', 'string'],
             'motive' => ['required', 'string', 'max:500'],
         ];
@@ -175,6 +182,11 @@ class MaintenanceController extends Controller
             'comun_area_id.exists' => 'El área común no es válida.',
             'date.required' => 'La fecha es requerida.',
             'date.date' => 'La fecha no es válida.',
+            'time_from.required' => 'La hora de inicio es requerida.',
+            'time_from.date_format' => 'La hora de inicio debe tener formato HH:MM.',
+            'time_to.required' => 'La hora de fin es requerida.',
+            'time_to.date_format' => 'La hora de fin debe tener formato HH:MM.',
+            'time_to.after' => 'La hora de fin debe ser posterior a la de inicio.',
             'duration.required' => 'La duración es requerida.',
             'duration.string' => 'La duración no es válida.',
             'motive.required' => 'El motivo es requerido.',
@@ -183,5 +195,23 @@ class MaintenanceController extends Controller
         $validator = Validator::make($inputs, $rules, $messages)->errors();
 
         return $validator->all();
+    }
+
+    public function getByArea(int $areaId, Request $request)
+    {
+        $date = $request->query('date');
+
+        $query = Maintenance::where('comun_area_id', $areaId)
+            ->where('status', 1);
+
+        if ($date) {
+            $query->where('date', date('Y-m-d', strtotime($date)));
+        }
+
+        $maintenances = $query->orderBy('date', 'desc')
+            ->orderBy('time_from', 'asc')
+            ->get(['id', 'title', 'description', 'date', 'time_from', 'time_to', 'status', 'photo']);
+
+        return $this->returnSuccess(200, $maintenances);
     }
 }

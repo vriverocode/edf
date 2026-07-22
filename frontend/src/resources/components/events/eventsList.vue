@@ -49,10 +49,10 @@ const getPaymentAmount = (booking) => {
       class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5" style="position: relative;">
 
       <!-- Sección superior - Detalles de la reserva -->
-      <div class="md:px-6 md:pt-4 pb-2 px-3 pt-2  border-gray-300" @click="goTo('/client/events/view/' + event.id)">
+      <div class="md:px-6 md:pt-4 pb-2 px-3 pt-2  border-gray-300">
         <!-- Header con nombre y estado -->
         <div class="flex justify-between items-center mb-1">
-          <div class="ellipsis" style="width: 90%;" >
+          <div class="ellipsis" style="width: 90%;"   @click="goTo('/client/events/view/' + event.id)">
             <h3 class="text-lg font-bold text-gray-900 mb-1 cursor-pointer">
               {{ event.title || 'Evento' }}
             </h3>
@@ -83,7 +83,7 @@ const getPaymentAmount = (booking) => {
         </div>
 
         <!-- Contenido principal con imagen y detalles -->
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-4"  @click="goTo('/client/events/view/' + event.id)">
           <!-- Imagen del área -->
           <div class="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
             <img :src="eventos" class="md:w-auto h-4/5"/>

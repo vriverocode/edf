@@ -68,7 +68,7 @@ onMounted(() => {
       <!-- Content -->
       <div v-else class="px-4 py-6 md:px-28">
         <!-- Lista de pagos -->
-        <div v-if="pays.length > 0" class="space-y-3 md:px-5">
+        <div v-if="pays.length > 0" class="md:px-5 pb-5">
           <div v-for="pay in pays" :key="pay.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 cursor-pointer"
             style="position: relative;" @click="goToDetail(pay.id)">
@@ -121,19 +121,19 @@ onMounted(() => {
               </div>
             </div>
           </div>
+          <div v-if="pagination.lastPage > 1" class="flex justify-center mt-8">
+            <q-pagination
+              v-model="pagination.page"
+              :max="pagination.lastPage"
+              :max-pages="6"
+              boundary-numbers
+              direction-links
+              @update:model-value="onPageChange"
+            />
+          </div>
         </div>
 
         <!-- Paginación -->
-        <div v-if="pagination.lastPage > 1" class="flex justify-center mt-4">
-          <q-pagination
-            v-model="pagination.page"
-            :max="pagination.lastPage"
-            :max-pages="6"
-            boundary-numbers
-            direction-links
-            @update:model-value="onPageChange"
-          />
-        </div>
 
         <!-- Estado vacío -->
         <div v-else class="flex flex-col items-center justify-center py-20">

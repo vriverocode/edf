@@ -28,9 +28,9 @@ const openModal = (user, type) => {
   }, 50)
 }
 
-const getUsers = () => {
+const getUsers = (resetPage = false) => {
   ready.value = false;
-  page.value = 1
+  if (resetPage) page.value = 1
   const data = {
     page: page.value,
     per_page: 20,
@@ -80,11 +80,11 @@ onMounted(() => {
       <div class="col">
         <q-select v-model="filterRol" :options="optionsFilterRol" option-label="name" option-value="value"
           emit-value map-options dense borderless color="primary"
-          class="form_userOptionSelect" @update:model-value="getUsers" />
+          class="form_userOptionSelect" @update:model-value="getUsers(true)" />
       </div>
       <div class="col">
         <q-input v-model="search" dense borderless clearable placeholder="Buscar por nombre o # depto..."
-          class="form_userOptionSelect" @update:model-value="getUsers" debounce="500">
+          class="form_userOptionSelect" @update:model-value="getUsers(true)" debounce="500">
           <template v-slot:prepend>
             <q-icon name="eva-search-outline" />
           </template>

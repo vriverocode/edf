@@ -68,6 +68,37 @@ class UserController extends Controller
         return $this->returnSuccess(200, 'ok');
     }
 
+    public function update(Request $request, $id)
+    {
+        $user = User::find($id);
+        if (! $user) {
+            return $this->returnFail(404, 'Usuario no encontrado');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => ['nullable', 'string', 'max:255'],
+            'username' => ['nullable', 'string', 'max:255', 'unique:users,username,'.$id],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$id],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'password' => ['nullable', 'string', 'min:6'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $data = $request->only(['name', 'username', 'email', 'phone']);
+        $data = array_filter($data, fn ($v) => $v !== null && $v !== '');
+
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $user->update($data);
+
+        return $this->returnSuccess(200, 'ok');
+    }
+
     /**
      * Crea usuarios temporales (Airbnb) o habitantes/familiares del propietario.
      *
@@ -123,7 +154,7 @@ class UserController extends Controller
             }
 
             // Preparación de credenciales
-            $username = $request->username ?? Str::lower(Str::random(8)) . '_' . time();
+            $username = $request->username ?? Str::lower(Str::random(8)).'_'.time();
             $password = $request->password ?? Str::password(12);
             $activeTime = $isAirbnb ? strtotime($request->active_time) : null;
             $dateEnd = $isAirbnb ? strtotime($request->end_time) : null;
@@ -204,9 +235,9 @@ class UserController extends Controller
             ]);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error en storeResidentUser: ' . $e->getMessage());
+            Log::error('Error en storeResidentUser: '.$e->getMessage());
 
-            return $this->returnFail(500, 'No se pudo completar el registro: ' . $e->getMessage());
+            return $this->returnFail(500, 'No se pudo completar el registro: '.$e->getMessage());
         }
     }
 
@@ -223,7 +254,7 @@ class UserController extends Controller
         $relativePath = "/public/images/airbnb/guest/{$imageName}";
 
         // Ruta física absoluta en el servidor donde se moverá
-        $destinationPath = public_path() . '/images/airbnb/guest/';
+        $destinationPath = public_path().'/images/airbnb/guest/';
 
         // Movemos el archivo a la carpeta pública
         $photoFile->move($destinationPath, $relativePath);
@@ -309,12 +340,31 @@ class UserController extends Controller
 
     public function getOwners(Request $request)
     {
+        $query = User::with(['units', 'rol']);
 
-        $owners = User::with(['units', 'rol'])
-            ->where('rol_id', $request->rol)
-            ->orderBy('name', 'asc')
-            // ->where('id', '!=', $request->user()->id)
-            ->get();
+        if ($request->filled('rol')) {
+            $query->where('rol_id', $request->integer('rol'));
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhereHas('units', fn ($u) => $u->where('number', 'like', "%{$search}%"));
+            });
+        }
+
+        $query->orderBy('name', 'asc');
+
+        if ($request->boolean('paginate', true)) {
+            $perPage = $request->integer('per_page', 15);
+            $owners = $query->paginate($perPage);
+        } else {
+            $owners = $query->get();
+        }
 
         return $this->returnSuccess(200, $owners);
     }
@@ -465,7 +515,7 @@ class UserController extends Controller
 
             return $this->returnSuccess(200, 'Configuración completada exitosamente.');
         } catch (Exception $e) {
-            Log::error('Error en completeFirstTime: ' . $e->getMessage());
+            Log::error('Error en completeFirstTime: '.$e->getMessage());
 
             return $this->returnFail(500, 'Error al actualizar los datos.');
         }
@@ -492,7 +542,7 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email,' . $id],
+            'email' => ['required', 'email', 'unique:users,email,'.$id],
             'phone' => ['nullable', 'string'],
             // 'parentesco' => ['nullable', 'string'],
             'password' => ['nullable', 'string', 'min:8'],
@@ -524,7 +574,7 @@ class UserController extends Controller
 
             return $this->returnSuccess(200, 'Usuario actualizado con éxito.');
         } catch (Exception $e) {
-            Log::error('Error en updateResident: ' . $e->getMessage());
+            Log::error('Error en updateResident: '.$e->getMessage());
 
             return $this->returnFail(500, 'Error al actualizar el usuario.');
         }

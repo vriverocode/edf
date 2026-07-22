@@ -31,6 +31,8 @@ const area = ref(null)
 const formData = ref({
   motive: '',
   date: '',
+  start_time: '',
+  end_time: '',
   duration_value: null,
   duration_type: 'horas',
   photo: null,
@@ -73,6 +75,18 @@ const submit = () => {
     showNotify('negative', 'Ingresa la duración')
     return
   }
+  if (!formData.value.start_time) {
+    showNotify('negative', 'Selecciona la hora de inicio')
+    return
+  }
+  if (!formData.value.end_time) {
+    showNotify('negative', 'Selecciona la hora de fin')
+    return
+  }
+  if (formData.value.start_time >= formData.value.end_time) {
+    showNotify('negative', 'La hora de fin debe ser posterior a la de inicio')
+    return
+  }
 
   loading.value = true
 
@@ -82,6 +96,8 @@ const submit = () => {
   payload.append('comun_area_id', route.params.id)
   payload.append('motive', formData.value.motive)
   payload.append('date', formData.value.date)
+  payload.append('time_from', formData.value.start_time)
+  payload.append('time_to', formData.value.end_time)
   payload.append('duration', durationText)
   if (formData.value.photo) {
     payload.append('photo', formData.value.photo)
@@ -176,6 +192,46 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- Hora inicio -->
+        <div class="col-md-3 col-12 mt-1 px-2 md:px-12">
+          <div class="text-subtitle2 text-black">Hora de inicio</div>
+          <q-input v-model="formData.start_time" dense borderless mask="time"
+            class="form__inputsR mt-1" color="primary" placeholder="HH:MM"
+            :rules="[val => !!val || 'Requerida']">
+            <template v-slot:append>
+              <q-icon name="eva-clock-outline" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-time v-model="formData.start_time" format24h color="primary">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                    </div>
+                  </q-time>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
+        </div>
+
+        <!-- Hora fin -->
+        <div class="col-md-3 col-12 mt-1 px-2 md:px-12">
+          <div class="text-subtitle2 text-black">Hora de fin</div>
+          <q-input v-model="formData.end_time" dense borderless mask="time"
+            class="form__inputsR mt-1" color="primary" placeholder="HH:MM"
+            :rules="[val => !!val || 'Requerida']">
+            <template v-slot:append>
+              <q-icon name="eva-clock-outline" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-time v-model="formData.end_time" format24h color="primary">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                    </div>
+                  </q-time>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
+        </div>
+
         <!-- Foto -->
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Foto (opcional)</div>
@@ -223,7 +279,7 @@ onMounted(() => {
         </div>
 
         <!-- Resumen -->
-        <div class="col-12 mt-3 px-2 md:px-12" v-if="formData.date && formData.duration_value">
+        <div class="col-12 mt-3 px-2 md:px-12" v-if="formData.date && formData.duration_value && formData.start_time && formData.end_time">
           <div class="selectedDateBlock px-4 py-3">
             <div class="text-subtitle2 text-black mb-2">Resumen</div>
             <div class="flex justify-between items-center mb-1">
@@ -235,11 +291,15 @@ onMounted(() => {
               <span class="text-bold">{{ moment(formData.date).format('DD/MM/YYYY') }}</span>
             </div>
             <div class="flex justify-between items-center mb-1 ">
+              <span class="text-grey-7">Horario</span>
+              <span class="text-bold">{{ formData.start_time }} - {{ formData.end_time }}</span>
+            </div>
+            <div class="flex justify-between items-center mb-1 ">
               <span class="text-grey-7">Duración</span>
               <span class="text-bold">{{ formData.duration_value }} {{ formData.duration_type }}</span>
             </div>
             <div class="text-caption text-grey-6 mt-2">
-              Se cancelarán automáticamente las reservas del día en esta área.
+              Se cancelarán automáticamente las reservas en este horario.
             </div>
           </div>
         </div>

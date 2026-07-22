@@ -24,6 +24,10 @@ class ReportController extends Controller
         $query = Booking::with(['user', 'departament', 'comunArea', 'pay'])
             ->filter($filters);
 
+        if (! $filters['include_cancelled']) {
+            $query->where('status', '>', 0);
+        }
+
         if ($filters['search']) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
@@ -141,6 +145,7 @@ class ReportController extends Controller
             'sort_by' => ['nullable', 'string', 'in:created_at,date,status,amount'],
             'sort_dir' => ['nullable', 'string', 'in:asc,desc'],
             'per_page' => ['nullable', 'integer', 'min:10', 'max:100'],
+            'include_cancelled' => ['nullable', 'boolean'],
         ]);
 
         return array_merge([
@@ -151,6 +156,7 @@ class ReportController extends Controller
             'date_to' => null,
             'sort_by' => 'created_at',
             'sort_dir' => 'desc',
+            'include_cancelled' => false,
         ], $validFilters);
     }
 }

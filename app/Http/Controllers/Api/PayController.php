@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\FinancialAccount;
 use App\Models\Pay;
 use App\Models\Quota;
+use App\Models\Refund;
 use App\Models\Rol;
 use App\Models\Sequence;
 use App\Models\Transaction;
@@ -125,7 +126,7 @@ class PayController extends Controller
             'consolidated_ids' => $quotaIdsForPay,
             'amount' => $request->amount,
             'reference' => $request->reference ?? '000000',
-            'pay_id' => $prefixPayId[$request->pay_method] . ($request->booking_id ?? 'Q') . '-' . rand(1000, 9999),
+            'pay_id' => $prefixPayId[$request->pay_method].($request->booking_id ?? 'Q').'-'.rand(1000, 9999),
             'pay_date' => $request->pay_date ? date('Y-m-d', strtotime($request->pay_date)) : date('Y-m-d'),
             'type' => $request->type,
             'pay_method' => $request->pay_method,
@@ -305,12 +306,72 @@ class PayController extends Controller
             return $this->returnFail(500, ['messageType' => 'negative', 'message' => $e->getMessage()]);
         }
     }
+
+    public function refund(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'booking_id' => ['required', 'integer', 'exists:bookings,id'],
+            'pay_id' => ['required', 'integer', 'exists:pays,id'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        DB::beginTransaction();
+        try {
+            $pay = Pay::with('booking')->lockForUpdate()->find($request->pay_id);
+
+            if (! $pay || (int) $pay->status !== 2) {
+                DB::rollBack();
+
+                return $this->returnFail(409, 'El pago no está en estado aprobado o no existe.');
+            }
+
+            Refund::create([
+                'booking_id' => $request->booking_id,
+                'pay_id' => $request->pay_id,
+                'amount' => $request->amount,
+                'reason' => $request->reason ?? 'Devolución por cancelación de reserva',
+                'status' => 'completed',
+            ]);
+
+            $pay->update(['status' => 4]);
+
+            DB::commit();
+
+            try {
+                $user = User::find($pay->user_id);
+                if ($user) {
+                    $user->notify(new RealtimeNotification(
+                        title: 'Devolución procesada',
+                        message: 'Se procesó la devolución de S/ '.number_format((float) $request->amount, 2).' por la reserva #'.($pay->booking->booking_number ?? ''),
+                        url: '/client/reserves/view/'.$pay->booking_id,
+                        meta: ['booking_id' => $pay->booking_id, 'icon' => 'eva-undo-outline']
+                    ));
+                }
+            } catch (\Throwable $e) {
+                Log::error('Error al notificar devolución: '.$e->getMessage());
+            }
+
+            return $this->returnSuccess(200, ['message' => 'Devolución registrada correctamente.']);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error($e);
+
+            return $this->returnFail(500, 'Error al procesar la devolución: '.$e->getMessage());
+        }
+    }
+
     public function getClaimSequence(Request $request)
     {
         $sequence = Sequence::where('name', 'claims')->first();
 
         return $this->returnSuccess(200, $sequence->value);
     }
+
     private function normalizedConsolidatedIdsFromPayRequest(Request $request): ?array
     {
         $raw = $request->input('consolidated_ids');
@@ -375,7 +436,7 @@ class PayController extends Controller
                         'user_id' => $request->user()->id,
                         'amount' => $request->amount,
                         'reference' => $culqiData['id'], // ID de transacción de Culqi
-                        'pay_id' => 'CULQI-' . $request->comun_area_id . '-' . rand(100, 999),
+                        'pay_id' => 'CULQI-'.$request->comun_area_id.'-'.rand(100, 999),
                         'pay_date' => date('Y-m-d'),
                         'type' => 2, // Tipo Pago de Reserva
                         'pay_method' => 3, // Online
@@ -404,7 +465,7 @@ class PayController extends Controller
         // $vaucherPath = $this->uploadVaucher($request, $request, 2);
         try {
             $rawSequence = intval($request->sequence);
-            $formattedSequence = '0' . str_pad($rawSequence, 5, '0', STR_PAD_LEFT);
+            $formattedSequence = '0'.str_pad($rawSequence, 5, '0', STR_PAD_LEFT);
             $claimData = [
                 'sequence' => $formattedSequence,
                 'fullname' => $request->fullname,
@@ -550,7 +611,7 @@ class PayController extends Controller
             $fileName = trim(str_replace(' ', '_', $id));
             $extension = $vaucher->file('vaucher')->extension();
             $path = "/public/images/{$folder}/{$rand}_{$fileName}.{$extension}";
-            $vaucherPath = public_path() . "/images/{$folder}/";
+            $vaucherPath = public_path()."/images/{$folder}/";
             $vaucher->file('vaucher')->move($vaucherPath, $path);
         }
         if ($type == 1) {
@@ -618,32 +679,32 @@ class PayController extends Controller
             ? [
                 [
                     'title' => 'Pago realizado',
-                    'message' => 'Tu pago por las cuotas del mes de ' . $pay->quotas[0]->month_label
-                    . ' fue realizado, el personal de administración lo validará en breve.',
-                    'url' => '/client/quota/details/month/' . $pay->quotas[0]->month,
+                    'message' => 'Tu pago por las cuotas del mes de '.$pay->quotas[0]->month_label
+                    .' fue realizado, el personal de administración lo validará en breve.',
+                    'url' => '/client/quota/details/month/'.$pay->quotas[0]->month,
                     'meta' => ['quota_id' => $pay->id],
                 ],
                 [
                     'title' => 'Pago realizado',
-                    'message' => 'Se ha realizado el pago por las cuotas del mes de ' . $pay->quotas[0]->month_label
-                    . ', Por favor validar',
-                    'url' => '/admin/pay/validate/' . $pay->id,
+                    'message' => 'Se ha realizado el pago por las cuotas del mes de '.$pay->quotas[0]->month_label
+                    .', Por favor validar',
+                    'url' => '/admin/pay/validate/'.$pay->id,
                     'meta' => ['quota_id' => $pay->id],
                 ],
             ]
             : [
                 [
                     'title' => 'Pago de reserva realizado',
-                    'message' => 'Tu pago por la reserva #' . $pay->booking->booking_number
-                        . ' fue realizado, el personal de administración lo validará en breve.',
-                    'url' => '/client/reserves/view/' . $pay->id,
+                    'message' => 'Tu pago por la reserva #'.$pay->booking->booking_number
+                        .' fue realizado, el personal de administración lo validará en breve.',
+                    'url' => '/client/reserves/view/'.$pay->id,
                     'meta' => ['booking_id' => $pay->id],
                 ],
                 [
                     'title' => 'Pago de reserva realizado',
-                    'message' => 'Se ha realizado el pago por la reserva #' . $pay->booking->booking_number
-                        . ' Por favor validar.',
-                    'url' => '/admin/pay/validate/' . $pay->id,
+                    'message' => 'Se ha realizado el pago por la reserva #'.$pay->booking->booking_number
+                        .' Por favor validar.',
+                    'url' => '/admin/pay/validate/'.$pay->id,
                     'meta' => ['booking_id' => $pay->id],
                 ],
             ];
@@ -664,8 +725,8 @@ class PayController extends Controller
         $data = $pay->status == 0
             ? [
                 'title' => 'Pago de reserva rechazado',
-                'message' => 'Tu pago por la reserva #' . $pay->booking->booking_number . ' fue rechazado.',
-                'url' => '/client/reserves/view/' . $pay->id,
+                'message' => 'Tu pago por la reserva #'.$pay->booking->booking_number.' fue rechazado.',
+                'url' => '/client/reserves/view/'.$pay->id,
                 'meta' => [
                     'booking_id' => $pay->id,
                     'icon' => $pay->status_icon,
@@ -674,8 +735,8 @@ class PayController extends Controller
 
             : [
                 'title' => 'Pago de reserva aceptado',
-                'message' => 'Tu pago por la reserva #' . $pay->booking->booking_number . ' fue aprobada.',
-                'url' => '/client/reserves/view/' . $pay->id,
+                'message' => 'Tu pago por la reserva #'.$pay->booking->booking_number.' fue aprobada.',
+                'url' => '/client/reserves/view/'.$pay->id,
                 'meta' => [
                     'booking_id' => $pay->id,
                     'icon' => $pay->status_icon,
@@ -703,8 +764,8 @@ class PayController extends Controller
         try {
             $users['client']->notify(new RealtimeNotification(
                 title: 'Reserva creada',
-                message: 'Tu reserva #' . $booking->booking_number . ' fue creada.',
-                url: '/client/reserves/view/' . $booking->id,
+                message: 'Tu reserva #'.$booking->booking_number.' fue creada.',
+                url: '/client/reserves/view/'.$booking->id,
                 meta: [
                     'booking_id' => $booking->id,
                     'icon' => $booking->icon_status,
@@ -714,7 +775,7 @@ class PayController extends Controller
             if ($users['admin']) {
                 $users['admin']->notify(new RealtimeNotification(
                     title: 'Nueva reserva',
-                    message: 'Se creó la reserva #' . $booking->booking_number . '.',
+                    message: 'Se creó la reserva #'.$booking->booking_number.'.',
                     url: '/admin/reserves',
                     meta: [
                         'booking_id' => $booking->id,

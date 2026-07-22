@@ -66,6 +66,20 @@ class Expense extends Model
             })
             ->when(isset($filters['status']) && $filters['status'] !== null && $filters['status'] !== '', function ($q) use ($filters) {
                 $q->where('status', $filters['status']);
+            })
+            ->when($filters['provider_id'] ?? null, function ($q, $providerId) {
+                $q->where('provider_id', $providerId);
+            })
+            ->when($filters['category_id'] ?? null, function ($q, $categoryId) {
+                $q->whereHas('provider', function ($q) use ($categoryId) {
+                    $q->where('service_category_id', $categoryId);
+                });
+            })
+            ->when($filters['date_from'] ?? null, function ($q, $dateFrom) {
+                $q->whereDate('issue_date', '>=', $dateFrom);
+            })
+            ->when($filters['date_to'] ?? null, function ($q, $dateTo) {
+                $q->whereDate('issue_date', '<=', $dateTo);
             });
     }
 }

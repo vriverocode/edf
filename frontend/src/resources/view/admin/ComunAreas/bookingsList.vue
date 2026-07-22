@@ -1,5 +1,6 @@
 <script setup>
 import { useReserveStore } from '@/services/store/reserve.store';
+import { useMaintenanceStore } from '@/services/store/maintenance.store'
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/services/store/users.store';
@@ -13,8 +14,10 @@ moment.locale('es', {
 })
 
 const reserveStore = useReserveStore()
+const maintenanceStore = useMaintenanceStore()
 const userStore = useUserStore()
 const reserves = ref([])
+const maintenances = ref([])
 const readyPage = ref(false)
 const router = useRouter()
 const route = useRoute()
@@ -127,6 +130,19 @@ const getDepartmentNumber = (booking) => {
   return booking.department?.number || booking.user?.units?.[0]?.number || '—'
 }
 
+const loadMaintenances = async () => {
+  try {
+    const res = await maintenanceStore.getMaintenanceByArea(route.params.id, '')
+    maintenances.value = Array.isArray(res) ? res : []
+  } catch {
+    maintenances.value = []
+  }
+}
+
+const hasMaintenanceOnDate = (date) => {
+  return maintenances.value.some(m => m.date === date)
+}
+
 const onChangeFilter = () => {
   page.value = 1
   getReservesByArea()
@@ -134,28 +150,29 @@ const onChangeFilter = () => {
 
 onMounted(() => {
   getReservesByArea()
+  loadMaintenances()
 })
 
 </script>
 <template>
   <div class="h-full">
-    <div class="px-4 py-3 md:px-28 flex items-center q-col-gutter-sm" style="height: 10%;">
+    <div class="px-4 py-3 md:px-28 flex items-center q-col-gutter-sm" style="height: 17%;">
       <div class="row items-center w-full">
-        <div class="col-4 col-md-2 pr-2">
+        <div class="col-6 col-md-2 pr-2">
           <q-select dense borderless class="form__inputsR" v-model="selectedMonth" :options="monthOptions"
             option-label="name" option-value="value" emit-value map-options @update:model-value="onChangeFilter" />
         </div>
-        <div class="col-4 col-md-2 pr-2">
+        <div class="col-6 col-md-2 pr-2">
           <q-input dense borderless class="form__inputsR" type="number" v-model.number="selectedYear"
             @update:model-value="onChangeFilter" />
         </div>
-        <div class="col-4 col-md-3">
+        <div class="col-6 col-md-3 pt-2 md:pt-0">
           <q-checkbox v-model="showCancelled" label="Mostrar canceladas" @update:model-value="onChangeFilter" />
         </div>
       </div>
     </div>
 
-    <div class="" style="height: 80%; overflow: auto;">
+    <div class="" style="height: 73%; overflow: auto;">
 
       <!-- Loading State -->
       <div v-if="!readyPage" class="flex justify-center items-center py-20">
@@ -164,12 +181,27 @@ onMounted(() => {
 
       <!-- Content -->
       <div v-else class="px-4 md:px-28">
+        <!-- Maintenance Banner -->
+        <div v-if="maintenances.length > 0" class="q-mb-md">
+          <q-banner class="bg-orange-2 text-orange-9 rounded-lg" inline-actions>
+            <template v-slot:avatar>
+              <q-icon name="eva-alert-triangle-outline" color="orange" size="md" />
+            </template>
+            <span class="text-weight-medium">Mantenimiento programado</span>
+            <div class="text-caption">
+              <span v-for="(m, i) in maintenances" :key="m.id">
+                {{ moment(m.date).format('DD/MM') }} {{ m.time_from }}-{{ m.time_to }}<span v-if="i < maintenances.length - 1">, </span>
+              </span>
+            </div>
+          </q-banner>
+        </div>
         <div v-if="reserves.length > 0" class="space-y-3 md:px-5">
           <div v-for="reserve in reserves" :key="reserve.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
-            style="position: relative;">
+            style="position: relative;"
+            :class="{ 'border-orange-4': hasMaintenanceOnDate(reserve.date) }">
 
-            <div class="px-4 pb-4 pt-2 border-b border-dashed border-gray-300">
+            <div class="pb-4 pt-2 border-b border-dashed border-gray-300">
               <div class="flex justify-between items-start mb-2">
                 <span :class="'bg-' + reserve.status_color"
                   class="inline-block px-3 py-2 text-xs font-bold text-white badgeReserve">
@@ -177,9 +209,16 @@ onMounted(() => {
                 </span>
               </div>
 
-              <div class="flex items-center space-x-4">
-                <div class="flex-1 space-y-2">
-                  <div class="flex items-center text-sm text-gray-700">
+              <div>
+                <div class="flex px-3 col-6 items-center text-sm text-gray-700 pb-1" style="border-bottom: 1px solid lightgrey;">
+                    <svg class="text-gray-500" style="transform: translateX(-3px); margin-right:1px" width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M10.5 6H9.5C9.22386 6 9 6.22386 9 6.5V7.5C9 7.77614 9.22386 8 9.5 8H10.5C10.7761 8 11 7.77614 11 7.5V6.5C11 6.22386 10.7761 6 10.5 6Z" fill="#4f4f4f"></path> <path d="M14.5 6H13.5C13.2239 6 13 6.22386 13 6.5V7.5C13 7.77614 13.2239 8 13.5 8H14.5C14.7761 8 15 7.77614 15 7.5V6.5C15 6.22386 14.7761 6 14.5 6Z" fill="#4f4f4f"></path> <path d="M10.5 9.5H9.5C9.22386 9.5 9 9.72386 9 10V11C9 11.2761 9.22386 11.5 9.5 11.5H10.5C10.7761 11.5 11 11.2761 11 11V10C11 9.72386 10.7761 9.5 10.5 9.5Z" fill="#4f4f4f"></path> <path d="M14.5 9.5H13.5C13.2239 9.5 13 9.72386 13 10V11C13 11.2761 13.2239 11.5 13.5 11.5H14.5C14.7761 11.5 15 11.2761 15 11V10C15 9.72386 14.7761 9.5 14.5 9.5Z" fill="#4f4f4f"></path> <path d="M10.5 13H9.5C9.22386 13 9 13.2239 9 13.5V14.5C9 14.7761 9.22386 15 9.5 15H10.5C10.7761 15 11 14.7761 11 14.5V13.5C11 13.2239 10.7761 13 10.5 13Z" fill="#4f4f4f"></path> <path d="M14.5 13H13.5C13.2239 13 13 13.2239 13 13.5V14.5C13 14.7761 13.2239 15 13.5 15H14.5C14.7761 15 15 14.7761 15 14.5V13.5C15 13.2239 14.7761 13 14.5 13Z" fill="#4f4f4f"></path> <path d="M18.25 19.25H17.75V4C17.7474 3.80189 17.6676 3.61263 17.5275 3.47253C17.3874 3.33244 17.1981 3.25259 17 3.25H7C6.80189 3.25259 6.61263 3.33244 6.47253 3.47253C6.33244 3.61263 6.25259 3.80189 6.25 4V19.25H5.75C5.55109 19.25 5.36032 19.329 5.21967 19.4697C5.07902 19.6103 5 19.8011 5 20C5 20.1989 5.07902 20.3897 5.21967 20.5303C5.36032 20.671 5.55109 20.75 5.75 20.75H18.25C18.4489 20.75 18.6397 20.671 18.7803 20.5303C18.921 20.3897 19 20.1989 19 20C19 19.8011 18.921 19.6103 18.7803 19.4697C18.6397 19.329 18.4489 19.25 18.25 19.25ZM16.25 19.25H11V17C11 16.8674 10.9473 16.7402 10.8536 16.6464C10.7598 16.5527 10.6326 16.5 10.5 16.5H9.5C9.36739 16.5 9.24021 16.5527 9.14645 16.6464C9.05268 16.7402 9 16.8674 9 17V19.25H7.75V4.75H16.25V19.25Z" fill="#4f4f4f"></path> </g></svg>
+                    <div class="text-h6 font-bold">Dpto: {{ getDepartmentNumber(reserve) }}</div>
+                  </div>
+              </div>
+              <div class="flex items-center space-x-4 px-4 ">
+                <div class="row pt-4">
+                  
+                  <div class="flex col-6 items-center text-sm text-gray-700">
                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
@@ -187,8 +226,7 @@ onMounted(() => {
                     </svg>
                     <span class="font-medium">{{ moment(reserve.date).format('DD MMM YYYY') }}</span>
                   </div>
-
-                  <div class="flex items-center text-sm text-gray-700">
+                  <div class="flex col-6 items-center text-sm text-gray-700">
                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -197,13 +235,7 @@ onMounted(() => {
                       {{ formatTime(reserve.time_from) }} - {{ formatTime(reserve.time_to) }}
                     </span>
                   </div>
-
-                  <div class="flex items-center text-sm text-gray-700">
-                    <q-icon name="eva-home-outline" size="sm" class="q-mr-xs" />
-                    <span class="font-medium">Dpto: {{ getDepartmentNumber(reserve) }}</span>
-                  </div>
-
-                  <div class="flex items-center text-sm text-gray-700">
+                  <div class="flex col-12 items-center text-sm text-gray-700 pt-2">
                     <div v-html="iconsApp.moneyIcon" />
                     <span class="font-medium">
                       {{ getPaymentAmount(reserve) }} -
@@ -272,10 +304,10 @@ onMounted(() => {
       </div>
     </div>
     <!-- Botón crear reserva -->
-    <div class="px-4 pb-12 md:pb-8 md:flex md:justify-center items-center md:w-full md:px-12" style="height: 10%;">
+    <div class="px-4 pb-12 pt-3 md:pb-8 md:flex md:justify-center items-center md:w-full md:px-12" style="height: 10%;">
       <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
         style="border-radius: 0.5rem;" @click="openCreateReserve">
-        <div class="flex items-center py-2">
+        <div class="flex items-center py-1">
           <q-icon name="eva-plus-outline" />
           <div class="q-pt-xs text-bold pl-1">Agregar reserva</div>
         </div>
@@ -302,7 +334,7 @@ onMounted(() => {
     </q-card>
   </q-dialog>
 </template>
-<style scoped>
+<style >
 .badgeReserve {
   position: absolute;
   right: 0;

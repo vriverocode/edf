@@ -88,6 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/complete-first-time', [UserController::class, 'completeFirstTime']);
         Route::delete('/d/{id}', [UserController::class, 'destroy'])->middleware('throttle:write');
         Route::put('/resident/{id}', [UserController::class, 'updateResident'])->middleware('throttle:write');
+        Route::put('/{id}', [UserController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/assign-property', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');
     });
@@ -191,6 +192,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Admin only
         Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/validate/{id}', [PayController::class, 'validatePayment'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/refund', [PayController::class, 'refund'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Notifications ────────────────────────────────────────
@@ -259,6 +261,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('maintenances')->name('maintenance.')->middleware('role_not:trabajador')->group(function () {
         // Read
         Route::get('/', [MaintenanceController::class, 'index']);
+        Route::get('/by-area/{id}', [MaintenanceController::class, 'getByArea']);
         // Write - admin only
         Route::post('/', [MaintenanceController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
     });
@@ -321,6 +324,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [ServiceCategoryController::class, 'index']);
         // Write - admin only
         Route::post('/', [ServiceCategoryController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/u/{id}', [ServiceCategoryController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::delete('/d/{id}', [ServiceCategoryController::class, 'destroy'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Financial Accounts ───────────────────────────────────
@@ -336,9 +341,14 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ── Providers ────────────────────────────────────────────
-    Route::prefix('providers')->name('providers.')->group(function () {
-        // Write - admin only
-        Route::post('/', [ProviderController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
+    Route::prefix('providers')->name('providers.')->middleware('role:admin,super-admin')->group(function () {
+        // Read
+        Route::get('/', [ProviderController::class, 'index']);
+        Route::get('/byId/{id}', [ProviderController::class, 'show']);
+        // Write
+        Route::post('/', [ProviderController::class, 'store'])->middleware('throttle:write');
+        Route::post('/u/{id}', [ProviderController::class, 'update'])->middleware('throttle:write');
+        Route::delete('/d/{id}', [ProviderController::class, 'destroy'])->middleware('throttle:write');
     });
 
     // ── Incidents ────────────────────────────────────────────

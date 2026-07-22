@@ -57,26 +57,50 @@ const availableByRol = (roles) => {
 
 
 <style lang="scss">
+@keyframes gooeyEffect {
+  0%   { scale: 1 1;    translate: 0 0; }
+  30%  { scale: 0.7 1;  translate: 6px 0; }
+  60%  { scale: 1.1 1;  translate: -2px 0; }
+  100% { scale: 1 1;    translate: 0 0; }
+}
+
 .userNavbar {
 
   padding-top: 0px !important;
 
   & .q-tab__indicator {
-    bottom: 97% !important;
-    background: #02205d;
+    top: 0 !important;
+    bottom: auto !important;
+    background: #50bae4;
     height: 3px;
   }
 
   & .q-tab--active {
-    background: rgba(2, 32, 93, 0.06);
+    position: relative;
+    background: transparent;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: #2270b8;
+      border-radius: inherit;
+      animation: gooeyEffect 250ms ease 1;
+      z-index: 0;
+    }
 
     & span {
-      color: #02205d !important;
+      color: #ffffff !important;
       font-weight: 700;
     }
 
     & path {
-      stroke: #02205d !important;
+      stroke: #ffffff !important;
+      fill: #ffffff !important;
+    }
+
+    & .sharpcorners_een {
+      fill: #ffffff !important;
     }
   }
 }

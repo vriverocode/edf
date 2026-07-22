@@ -56,7 +56,12 @@ class MonthlyBillsController extends Controller
             return $this->returnFail(404, 'Presupuesto mensual no encontrado');
         }
 
-        return $this->returnSuccess(200, $monthlyBill);
+        $totalExpenses = (float) Expense::where('monthly_bill_id', $monthlyBill->id)->sum('amount');
+
+        $data = $monthlyBill->toArray();
+        $data['total_expenses'] = $totalExpenses;
+
+        return $this->returnSuccess(200, $data);
     }
 
     /**

@@ -22,9 +22,14 @@ class BookingsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMap
 
     public function query(): Builder
     {
-        return Booking::with(['user', 'departament', 'comunArea', 'pay'])
-            ->filter($this->filters)
-            ->orderBy('created_at', 'desc');
+        $query = Booking::with(['user', 'departament', 'comunArea', 'pay'])
+            ->filter($this->filters);
+
+        if (! ($this->filters['include_cancelled'] ?? false)) {
+            $query->where('status', '>', 0);
+        }
+
+        return $query->orderBy('created_at', 'desc');
     }
 
     public function headings(): array

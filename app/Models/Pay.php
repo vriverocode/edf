@@ -58,6 +58,7 @@ class Pay extends Model
     {
         return $this->hasOne(Transaction::class);
     }
+
     public function refunds()
     {
         return $this->hasMany(Refund::class);

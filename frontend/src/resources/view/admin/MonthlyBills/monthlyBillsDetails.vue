@@ -53,6 +53,14 @@ const reload = () => {
   if (billId.value) getBillById(billId.value)
 }
 
+const progressPercent = computed(() => {
+  if (!bill.value?.total_maintenance_budget) return 0
+  const total = Number(bill.value.total_maintenance_budget)
+  const spent = Number(bill.value.total_expenses || 0)
+  if (total === 0) return 0
+  return Math.min(100, Math.round((spent / total) * 100))
+})
+
 const goToList = () => router.push('/admin/monthly_bills/list')
 const goToEdit = () => router.push('/admin/monthly_bills/edit/' + billId.value)
 
@@ -128,6 +136,17 @@ onMounted(() => {
               <div class="flex justify-between items-center pb-2" style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Presupuesto mantenimiento</span>
                 <span class="text-gray-900 font-semibold">S/. {{ bill.total_maintenance_budget }}</span>
+              </div>
+              <div v-if="bill.total_expenses > 0" class="q-mt-sm q-mb-md">
+                <div class="flex justify-between items-center q-mb-xs">
+                  <span class="text-caption text-grey-7">Gastado: S/. {{ Number(bill.total_expenses).toFixed(2) }}</span>
+                  <span class="text-caption text-grey-7">{{ progressPercent }}%</span>
+                </div>
+                <q-linear-progress :value="progressPercent / 100" color="primary" size="20px" style="border-radius: 4px;">
+                  <div class="absolute-full flex flex-center text-white text-bold text-caption">
+                    {{ progressPercent }}%
+                  </div>
+                </q-linear-progress>
               </div>
 
               <div class="flex justify-between items-center pb-2" style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">

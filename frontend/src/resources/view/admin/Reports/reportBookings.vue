@@ -101,64 +101,66 @@
     <div class="text-grey-9 my-3 text-title-squad text-bold">
       Listado de reservas
     </div>
-    <q-table
-      flat
-      bordered
-      :rows="rows"
-      :columns="columns"
-      :loading="loading"
-      :pagination="pagination"
-      :visible-columns="visibleColumns"
-      row-key="id"
-      @request="onRequest"
-      virtual-scroll
-      :virtual-scroll-item-size="48"
-      :virtual-scroll-sticky-size-start="48"
-      class="rounded-borders"
-    >
-      <template #loading>
-        <q-inner-loading showing color="primary">
-          <q-spinner-dots size="50px" color="primary" />
-        </q-inner-loading>
-      </template>
-
-      <template #no-data>
-        <div class="text-center q-pa-lg w-full">
-          <q-icon name="eva-inbox-outline" size="48px" color="grey-4" />
-          <div class="text-grey-6 q-mt-sm">No se encontraron reservas</div>
-        </div>
-      </template>
-
-      <template #body-cell-status="props">
-        <td>
-          <q-badge :color="props.row.status_color" class="q-px-sm q-py-xs">
-            {{ props.row.status_label }}
-          </q-badge>
-        </td>
-      </template>
-
-      <template #body-cell-amount="props">
-        <td class="text-right text-weight-medium">
-          S/ {{ Number(props.row.amount).toFixed(2) }}
-        </td>
-      </template>
-
-      <template #body-cell-date="props">
-        <td class="text-no-wrap">{{ props.row.date }}</td>
-      </template>
-
-      <template #body-cell-time="props">
-        <td class="text-no-wrap">{{ props.row.time_from }} - {{ props.row.time_to }}</td>
-      </template>
-
-      <template #body-cell-pay_status="props">
-        <td>
-          <q-badge :color="payStatusColor(props.row.pay)" class="q-px-sm q-py-xs">
-            {{ payStatusLabel(props.row.pay) }}
-          </q-badge>
-        </td>
-      </template>
-    </q-table>
+    <div class="pb-12">
+      <q-table
+        flat
+        bordered
+        :rows="rows"
+        :columns="columns"
+        :loading="loading"
+        :pagination="pagination"
+        :visible-columns="visibleColumns"
+        row-key="id"
+        @request="onRequest"
+        virtual-scroll
+        :virtual-scroll-item-size="48"
+        :virtual-scroll-sticky-size-start="48"
+        class="rounded-borders"
+      >
+        <template #loading>
+          <q-inner-loading showing color="primary">
+            <q-spinner-dots size="50px" color="primary" />
+          </q-inner-loading>
+        </template>
+  
+        <template #no-data>
+          <div class="text-center q-pa-lg w-full">
+            <q-icon name="eva-inbox-outline" size="48px" color="grey-4" />
+            <div class="text-grey-6 q-mt-sm">No se encontraron reservas</div>
+          </div>
+        </template>
+  
+        <template #body-cell-status="props">
+          <td>
+            <q-badge :color="props.row.status_color" class="q-px-sm q-py-xs">
+              {{ props.row.status_label }}
+            </q-badge>
+          </td>
+        </template>
+  
+        <template #body-cell-amount="props">
+          <td class="text-right text-weight-medium">
+            S/ {{ Number(props.row.amount).toFixed(2) }}
+          </td>
+        </template>
+  
+        <template #body-cell-date="props">
+          <td class="text-no-wrap">{{ props.row.date }}</td>
+        </template>
+  
+        <template #body-cell-time="props">
+          <td class="text-no-wrap">{{ props.row.time_from }} - {{ props.row.time_to }}</td>
+        </template>
+  
+        <template #body-cell-pay_status="props">
+          <td>
+            <q-badge :color="payStatusColor(props.row.pay)" class="q-px-sm q-py-xs">
+              {{ payStatusLabel(props.row.pay) }}
+            </q-badge>
+          </td>
+        </template>
+      </q-table>
+    </div>
 
     <ReportFilterModal
       :dialog="showFilter"

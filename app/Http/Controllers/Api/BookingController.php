@@ -2,23 +2,24 @@
 
 namespace App\Http\Controllers\Api;
 
-use Exception;
-use Carbon\Carbon;
-use App\Models\Rol;
-use App\Models\User;
-use App\Models\Event;
+use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ComunArea;
-use Illuminate\Http\Request;
-use App\Services\RefundService;
 use App\Models\ComunAreaSchedule;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
+use App\Models\Event;
+use App\Models\Maintenance;
 use App\Models\PeoplesXDepartaments;
-use Illuminate\Support\Facades\Validator;
+use App\Models\Rol;
+use App\Models\User;
 use App\Notifications\RealtimeNotification;
 use App\Services\BookingPendingPayNotifier;
+use App\Services\RefundService;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class BookingController extends Controller
@@ -79,7 +80,7 @@ class BookingController extends Controller
                 'user_id' => $user->id,
                 'departament_id' => $departament_id,
                 'comun_area_id' => $request->comun_area,
-                'booking_number' => $request->user()->id . '00' . rand(1000, 9999),
+                'booking_number' => $request->user()->id.'00'.rand(1000, 9999),
                 'date' => date('Y-m-d', strtotime($request->date)),
                 'time_from' => $request->time_from,
                 'time_to' => $request->time_to,
@@ -113,7 +114,9 @@ class BookingController extends Controller
         }
         $this->applyFilter($bookings, $request);
 
-        return $this->returnSuccess(200, $bookings->get());
+        $perPage = $request->integer('per_page', 10);
+
+        return $this->returnSuccess(200, $bookings->paginate($perPage));
     }
 
     public function getBookingById($id)
@@ -129,12 +132,27 @@ class BookingController extends Controller
         return $this->returnSuccess(200, $booking);
     }
 
-    public function getBookingByAreaId($areaId)
+    public function getBookingByAreaId(Request $request, $areaId)
     {
+        $bookings = Booking::with('pay.payMethod', 'user')->where('comun_area_id', $areaId);
 
-        $bookings = Booking::with('pay.payMethod', 'user')->where('comun_area_id', $areaId)->orderBy('created_at', 'desc');
+        if ($request->filled('date_from')) {
+            $bookings->whereDate('date', '>=', $request->get('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $bookings->whereDate('date', '<=', $request->get('date_to'));
+        }
+        if ($request->filled('status')) {
+            $bookings->where('status', $request->integer('status'));
+        } else {
+            $bookings->where('status', '>', 0);
+        }
 
-        return $this->returnSuccess(200, $bookings->get());
+        $bookings->orderBy('date', 'desc')->orderBy('time_from', 'asc');
+
+        $perPage = $request->integer('per_page', 10);
+
+        return $this->returnSuccess(200, $bookings->paginate($perPage));
     }
 
     private function applyFilter($query, Request $request)
@@ -143,6 +161,8 @@ class BookingController extends Controller
         $FREE_AMOUNT = 0;
         if ($request->filled('status') && intval($request->status) !== $VIEW_ALL_STATUS) {
             $query->where('status', intval($request->status));
+        } else {
+            $query->where('status', '>', 0);
         }
         if ($request->filled('area_id')) {
             $query->where('comun_area_id', intval($request->area_id));
@@ -224,10 +244,12 @@ class BookingController extends Controller
             }
             DB::commit();
             $this->sendNotification($booking);
+
             return $this->returnSuccess(200, 'ok');
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->returnFail(500, 'Error al procesar la cancelación: ' . $e->getMessage());
+
+            return $this->returnFail(500, 'Error al procesar la cancelación: '.$e->getMessage());
         }
 
         return $this->returnSuccess(200, 'ok');
@@ -280,6 +302,11 @@ class BookingController extends Controller
             ->where('status', '>', 0)
             ->get();
 
+        $maintenancesInDay = Maintenance::where('comun_area_id', $idArea)
+            ->where('date', $dateStr)
+            ->where('status', 1)
+            ->get(['time_from', 'time_to']);
+
         $intervalSize = $request->reserve_type == 2 ? $area->max_time_reserve_exclusive : $area->max_time_reserve;
 
         $blocks = [
@@ -331,8 +358,27 @@ class BookingController extends Controller
             }
         }
 
+        // Marcar como ocupados los intervalos que coincidan con mantenimiento
+        foreach ($blocks as $category => $intervals) {
+            foreach ($intervals as $i => $interval) {
+                $iStart = Carbon::parse($interval['time_from']);
+                $iEnd = Carbon::parse($interval['time_to']);
+                foreach ($maintenancesInDay as $m) {
+                    $mStart = Carbon::parse($m->time_from);
+                    $mEnd = Carbon::parse($m->time_to);
+                    if ($iStart->lessThan($mEnd) && $iEnd->greaterThan($mStart)) {
+                        $blocks[$category][$i]['available'] = 0;
+                        $blocks[$category][$i]['occupancy'] = $blocks[$category][$i]['capacity'];
+                        $blocks[$category][$i]['status'] = 'Ocupado';
+                        break;
+                    }
+                }
+            }
+        }
+
         return $this->returnSuccess(200, [
             'blocks' => $blocks,
+            'maintenances' => $maintenancesInDay,
         ]);
     }
 
@@ -546,13 +592,13 @@ class BookingController extends Controller
             'user_id' => $originalBooking->user_id,
             'departament_id' => $originalBooking->departament_id,
             'comun_area_id' => $originalBooking->comun_area_id,
-            'booking_number' => $originalBooking->user_id . '00' . rand(1000, 9999),
+            'booking_number' => $originalBooking->user_id.'00'.rand(1000, 9999),
             'date' => $originalBooking->date,
             'time_from' => $validated['time_from'],
             'time_to' => $validated['time_to'],
             'amount' => $amount,
             'type' => 4,
-            'note' => 'Extensión de reserva #' . $originalBooking->booking_number,
+            'note' => 'Extensión de reserva #'.$originalBooking->booking_number,
             'status' => $newStatus,
             'is_exclusive' => $originalBooking->is_exclusive,
         ]);
@@ -630,6 +676,17 @@ class BookingController extends Controller
 
         $capacity = $area->max_cupo ?? 100;
 
+        $hasMaintenance = Maintenance::where('comun_area_id', $comunAreaId)
+            ->where('date', $date)
+            ->where('status', 1)
+            ->where('time_from', '<', $timeTo)
+            ->where('time_to', '>', $timeFrom)
+            ->exists();
+
+        if ($hasMaintenance) {
+            return false;
+        }
+
         $bookingsInSlot = Booking::where('comun_area_id', $comunAreaId)
             ->where('date', $date)
             ->where('status', '>', 0)
@@ -672,8 +729,8 @@ class BookingController extends Controller
         try {
             $users['client']->notify(new RealtimeNotification(
                 title: 'Reserva creada',
-                message: 'Tu reserva #' . $booking->booking_number . ' fue creada.',
-                url: '/client/reserves/view/' . $booking->id,
+                message: 'Tu reserva #'.$booking->booking_number.' fue creada.',
+                url: '/client/reserves/view/'.$booking->id,
                 meta: [
                     'booking_id' => $booking->id,
                     'icon' => $booking->icon_status,
@@ -683,8 +740,8 @@ class BookingController extends Controller
             if ($users['admin']) {
                 $users['admin']->notify(new RealtimeNotification(
                     title: 'Nueva reserva',
-                    message: 'Se creó la reserva #' . $booking->booking_number . '.',
-                    url: '/client/reserves/view/' . $booking->id,
+                    message: 'Se creó la reserva #'.$booking->booking_number.'.',
+                    url: '/client/reserves/view/'.$booking->id,
                     meta: [
                         'booking_id' => $booking->id,
                         'icon' => $booking->icon_status,
@@ -692,7 +749,7 @@ class BookingController extends Controller
                 ));
             }
         } catch (Exception $e) {
-            Log::error('Fallo al enviar notificación de reserva: ' . $e->getMessage());
+            Log::error('Fallo al enviar notificación de reserva: '.$e->getMessage());
         }
     }
 
@@ -706,8 +763,8 @@ class BookingController extends Controller
         try {
             $users['client']->notify(new RealtimeNotification(
                 title: 'Reserva cancelada',
-                message: 'Tu reserva #' . $booking->booking_number . ' fue cancelada.',
-                url: '/client/reserves/view/' . $booking->id,
+                message: 'Tu reserva #'.$booking->booking_number.' fue cancelada.',
+                url: '/client/reserves/view/'.$booking->id,
                 meta: [
                     'booking_id' => $booking->id,
                     'icon' => $booking->icon_status,
@@ -717,7 +774,7 @@ class BookingController extends Controller
             if ($users['admin']) {
                 $users['admin']->notify(new RealtimeNotification(
                     title: 'Reserva cancelada',
-                    message: 'Se canceló la reserva #' . $booking->booking_number . '.',
+                    message: 'Se canceló la reserva #'.$booking->booking_number.'.',
                     url: '/admin/reserves',
                     meta: [
                         'booking_id' => $booking->id,
@@ -726,7 +783,7 @@ class BookingController extends Controller
                 ));
             }
         } catch (Exception $e) {
-            Log::error('Fallo al enviar notificación de reserva: ' . $e->getMessage());
+            Log::error('Fallo al enviar notificación de reserva: '.$e->getMessage());
         }
     }
 
@@ -738,8 +795,8 @@ class BookingController extends Controller
         if ($isCine && $booking->type == 1) {
             // Creamos el evento y lo atamos a la reserva recién creada
             $event = Event::create([
-                'title' => 'Cine: ' . $booking->note, // El nombre de la película
-                'description' => 'Proyección compartida en el área de Cine para el día ' . date('d/m/Y', strtotime($booking->date)) . '. ¡Todos los residentes están invitados! ',
+                'title' => 'Cine: '.$booking->note, // El nombre de la película
+                'description' => 'Proyección compartida en el área de Cine para el día '.date('d/m/Y', strtotime($booking->date)).'. ¡Todos los residentes están invitados! ',
                 'date' => date('Y-m-d', strtotime($booking->date)),
                 'time_from' => $booking->time_from,
                 'time_to' => $booking->time_to,
@@ -750,6 +807,7 @@ class BookingController extends Controller
             // Notificamos a los usuarios sobre el nuevo evento
             $this->sendEventCreatedNotification($event, $booking->user_id);
         }
+
         return $area;
     }
 
@@ -764,8 +822,8 @@ class BookingController extends Controller
 
         $dataNotificaction = [
             'title' => 'Nuevo evento programado',
-            'message' => $event->title . ', fue programado. Entra y confirma tu asistencia.',
-            'url' => '/client/events/view/' . $event->id,
+            'message' => $event->title.', fue programado. Entra y confirma tu asistencia.',
+            'url' => '/client/events/view/'.$event->id,
             'meta' => ['event_id' => $event->id],
         ];
 
@@ -779,7 +837,7 @@ class BookingController extends Controller
                 ));
             }
         } catch (Exception $e) {
-            Log::error('Fallo al enviar notificación de evento automático: ' . $e->getMessage());
+            Log::error('Fallo al enviar notificación de evento automático: '.$e->getMessage());
         }
     }
 
@@ -790,7 +848,7 @@ class BookingController extends Controller
             ->where('date', $booking->date)
             ->where('user_id', $booking->user_id)
             ->where('status', '>', 0)
-            ->where('note', 'like', '%' . $booking->booking_number . '%')
+            ->where('note', 'like', '%'.$booking->booking_number.'%')
             ->exists();
     }
 }

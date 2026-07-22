@@ -5,7 +5,7 @@ import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
 import { computed } from 'vue';
 
-import pagosCuotas from '@/assets/img/menu/pagos.png'
+import pagosCuotas from '@/assets/img/menu/cuotas2.png'
 import pagosReservas from '@/assets/img/menu/historial-pagos.png'
 
 

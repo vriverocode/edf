@@ -10,6 +10,7 @@ use App\Notifications\RealtimeNotification;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 class IncidentController extends Controller
@@ -83,7 +84,7 @@ class IncidentController extends Controller
                 ));
             }
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Error al notificar incidencia: '.$e->getMessage());
+            Log::error('Error al notificar incidencia: '.$e->getMessage());
         }
 
         return $this->returnSuccess(200, ['data' => $incident, 'message' => 'Incidencia creada con éxito']);

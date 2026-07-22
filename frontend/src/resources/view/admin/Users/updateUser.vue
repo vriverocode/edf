@@ -40,7 +40,9 @@ const loadUserData = () => {
 
 const submit = () => {
   loading.value = true
-  userStore.createUser({ ...formData.value, id: route.params.id })
+  const payload = { ...formData.value }
+  if (!payload.password?.trim()) delete payload.password
+  userStore.updateUser(route.params.id, payload)
     .then(() => {
       showNotify('positive', 'Usuario actualizado correctamente')
       setTimeout(() => router.push('/admin/users/list'), 1000)
@@ -95,7 +97,7 @@ onMounted(loadUserData)
           </div>
           <q-input borderless dense clearable v-model="formData.password" class="form__inputsCR mt-2" color="primary"
             type="password"
-            :rules="[val => val && val.length > 0 || 'Contraseña es requerida']" />
+            :rules="[]" />
         </div>
         <div class="col-md-6 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">

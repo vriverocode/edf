@@ -142,7 +142,8 @@ const submit = async () => {
     const totalWaterBillAmount = parseMaskedMoney(formData.value.total_water_bill_amount)
     const waterPricePerM3 = parseMaskedMoney(formData.value.water_price_per_m3)
 
-    const waterConsumption = formData.value.total_water_consumption_m3 === null || formData.value.total_water_consumption_m3 === '' ? null : parseMaskedMoney(formData.value.total_water_consumption_m3)
+    const rawConsumption = formData.value.total_water_consumption_m3
+    const waterConsumption = (rawConsumption === null || rawConsumption === '' || rawConsumption === 0) ? null : Number(rawConsumption)
     if (previousBill.value?.total_water_consumption_m3 && waterConsumption) {
       const prev = Number(previousBill.value.total_water_consumption_m3)
       if (prev > 0) {
@@ -161,7 +162,7 @@ const submit = async () => {
       year: Number(formData.value.year),
       total_maintenance_budget: totalMaintenanceBudget,
       total_water_bill_amount: totalWaterBillAmount,
-      total_water_consumption_m3: formData.value.total_water_consumption_m3 === null || formData.value.total_water_consumption_m3 === '' ? null : parseMaskedMoney(formData.value.total_water_consumption_m3),
+      total_water_consumption_m3: waterConsumption,
       water_price_per_m3: waterPricePerM3
     }
 
@@ -278,8 +279,8 @@ const submit = async () => {
 
         <div class="col-md-6 col-12 mt-4 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Consumo total de agua (m³)</div>
-          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" mask="#.##0,####"
-            reverse-fill-mask inputmode="decimal" v-model="formData.total_water_consumption_m3" />
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number" step="0.001"
+            v-model.number="formData.total_water_consumption_m3" />
         </div>
 
         <div class="col-12 mt-2 px-2 md:px-12">

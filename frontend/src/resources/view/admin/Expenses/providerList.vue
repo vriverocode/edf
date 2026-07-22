@@ -9,6 +9,7 @@ const providerStore = useProviderStore()
 const serviceCategoryStore = useServiceCategoryStore()
 
 const loading = ref(false)
+const ready = ref(false)
 const providers = ref([])
 const page = ref(1)
 const lastPage = ref(1)
@@ -22,8 +23,20 @@ const editLoading = ref(false)
 const categoryOptions = ref([])
 
 const createDialog = ref(false)
+const serviceCategoryList = ref([])
 
 const notify = (type, msg) => Notify.create({ color: type, message: msg, timeout: 2200 })
+
+const loadServiceCategories = async () => {
+  try {
+    const res = await serviceCategoryStore.getServiceCategories()
+    if (res?.code === 200 && Array.isArray(res.data)) {
+      serviceCategoryList.value = res.data
+    }
+  } catch {
+    serviceCategoryList.value = []
+  }
+}
 
 const loadProviders = async () => {
   loading.value = true
@@ -37,10 +50,11 @@ const loadProviders = async () => {
     notify('negative', err?.error || err?.message || 'Error al cargar proveedores')
   } finally {
     loading.value = false
+    setTimeout(() => { ready.value = true }, 100)
   }
 }
 
-const onSearchInput = (val) => {
+const onSearchInput = () => {
   clearTimeout(searchTimeout.value)
   searchTimeout.value = setTimeout(() => {
     page.value = 1
@@ -116,60 +130,112 @@ const onProviderCreated = (created) => {
 
 onMounted(() => {
   loadProviders()
+  loadServiceCategories()
 })
 </script>
 
 <template>
-  <div class="q-pa-md">
-    <div class="text-h5 text-bold q-mb-md">Proveedores</div>
-
-    <div class="row items-center q-mb-md q-gutter-x-sm">
-      <q-input
-        v-model="search"
-        dense outlined placeholder="Buscar proveedor..."
-        class="col"
-        style="max-width: 360px"
-        @update:model-value="onSearchInput"
-      >
-        <template #prepend><q-icon name="eva-search-outline" /></template>
-      </q-input>
-      <q-space />
-      <q-btn color="primary" unelevated icon="eva-plus-outline" label="Nuevo proveedor" @click="createDialog = true" />
+  <div class="h-full" style="overflow: hidden;">
+    <!-- Header: 15% -->
+    <div class="px-4 md:px-28 flex items-center" style="height: 15%;">
+      <div class="row items-center w-full q-col-gutter-sm">
+        <div class="col-12 col-md-6">
+          <q-input v-model="search" dense borderless clearable placeholder="Buscar proveedor..."
+            class="form__inputsR" @update:model-value="onSearchInput">
+            <template v-slot:prepend>
+              <q-icon name="eva-search-outline" />
+            </template>
+          </q-input>
+        </div>
+        <div class="col-12 col-md-6">
+          <q-btn color="primary" class="w-full" unelevated icon="eva-plus-outline" @click="createDialog = true">
+            <div class="flex items-center py-1 q-ml-xs">
+              <span class="text-bold">Nuevo proveedor</span>
+            </div>
+          </q-btn>
+        </div>
+      </div>
     </div>
 
-    <q-table
-      :rows="providers"
-      :columns="[
-        { name: 'name', label: 'Nombre', field: 'name', align: 'left' },
-        { name: 'tax_id', label: 'RUC', field: 'tax_id', align: 'left' },
-        { name: 'category', label: 'Categoría', field: r => r.service_category?.name || '—', align: 'left' },
-        { name: 'phone', label: 'Teléfono', field: r => r.phone || '—', align: 'left' },
-        { name: 'email', label: 'Email', field: r => r.email || '—', align: 'left' },
-        { name: 'actions', label: 'Acciones', field: '', align: 'center' }
-      ]"
-      row-key="id"
-      :loading="loading"
-      :pagination="{ rowsPerPage: 0 }"
-      flat bordered
-      hide-pagination
-    >
-      <template #body-cell-actions="{ row }">
-        <q-td>
-          <q-btn flat dense round color="primary" icon="eva-edit-outline" @click="openEdit(row)">
-            <q-tooltip>Editar</q-tooltip>
-          </q-btn>
-          <q-btn flat dense round color="negative" icon="eva-trash-2-outline" @click="confirmDelete(row)">
-            <q-tooltip>Eliminar</q-tooltip>
-          </q-btn>
-        </q-td>
-      </template>
-    </q-table>
+    <!-- Content: 85% with scroll -->
+    <div style="height: 85%; overflow: auto;">
 
-    <div v-if="lastPage > 1" class="flex justify-center q-mt-md">
-      <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="5"
-        @update:model-value="loadProviders" />
+      <!-- Loading -->
+      <div v-if="!ready" class="flex justify-center items-center py-20">
+        <q-spinner-dots color="primary" size="7rem" />
+      </div>
+
+      <!-- Content -->
+      <div v-else class="px-4 md:px-28">
+        <div v-if="providers.length > 0" class="space-y-3 md:px-5">
+          <div v-for="provider in providers" :key="provider.id"
+            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
+            style="position: relative;">
+
+            <div class="pb-4 pt-2 border-b border-dashed border-gray-300">
+              <div class="flex justify-between items-start mb-2 px-4">
+                <div class="flex-1">
+                  <h3 class="text-lg font-bold text-gray-900 mb-0">
+                    {{ provider.name }}
+                  </h3>
+                  <div class="text-caption text-grey-7 mt-1">
+                    RUC: {{ provider.tax_id }}
+                  </div>
+                </div>
+                <span class="inline-block px-3 py-2 text-xs font-bold text-white"
+                  :class="provider.status == 1 ? 'bg-positive' : 'bg-grey-5'"
+                  style="border-bottom-left-radius: 0.5rem;">
+                  {{ provider.status == 1 ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+
+              <div class="px-4 text-sm text-gray-700">
+                <div class="mb-1">
+                  <strong>Categoría:</strong> {{ provider.category?.name || '—' }}
+                </div>
+                <div class="mb-1">
+                  <strong>Contacto:</strong> {{ provider.contact_name || '—' }}
+                </div>
+                <div class="flex gap-4">
+                  <div v-if="provider.phone"><strong>Tel:</strong> {{ provider.phone }}</div>
+                  <div v-if="provider.email"><strong>Email:</strong> {{ provider.email }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="py-2 px-4 bg-gray-50">
+              <div class="flex justify-end items-center gap-1">
+                <q-btn flat dense round color="primary" icon="eva-edit-outline" size="sm"
+                  @click="openEdit(provider)">
+                  <q-tooltip>Editar</q-tooltip>
+                </q-btn>
+                <q-btn flat dense round color="negative" icon="eva-trash-2-outline" size="sm"
+                  @click="confirmDelete(provider)">
+                  <q-tooltip>Eliminar</q-tooltip>
+                </q-btn>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="lastPage > 1" class="flex justify-center q-mt-md q-mb-lg">
+            <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="5"
+              @update:model-value="loadProviders" />
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div v-else class="flex flex-col items-center justify-center py-20">
+          <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+            <q-icon name="eva-people-outline" color="primary" size="42px" />
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">No hay proveedores registrados</h3>
+          <p class="text-gray-600 text-center mb-6">Agrega un proveedor para comenzar a registrar gastos.</p>
+        </div>
+      </div>
     </div>
 
+    <!-- Edit Dialog -->
     <q-dialog v-model="editDialog" @hide="editingProvider = null">
       <q-card style="min-width: min(400px, 92vw);" class="q-pa-md">
         <div class="text-h6 q-mb-sm">Editar proveedor</div>
@@ -208,9 +274,10 @@ onMounted(() => {
 
     <createProviderModal
       :dialog="createDialog"
-      :service-categories="[]"
+      :service-categories="serviceCategoryList"
       @close-modal="createDialog = false"
       @created="onProviderCreated"
+      @category-created="loadServiceCategories"
     />
   </div>
 </template>

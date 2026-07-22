@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { inject, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import iconsApp from '@/assets/icons/index'
 import { useComunAreaStore } from '@/services/store/comunArea.store';
@@ -14,7 +14,7 @@ const lastPage = ref(1)
 const ready = ref(false)
 const router = useRouter()
 const dialog = ref(false)
-
+const materialIcons = inject('materialIcons')
 const goTo = (url) => {
   router.push(url)
 }
@@ -111,7 +111,7 @@ onMounted(() => {
                 </q-btn>
               </div>
               <div class="position-relative relative">
-                <q-btn icon="eva-checkmark-circle-outline" class="mx-1 " flat color="yellow-9" round size="0.85rem"
+                <q-btn :icon="materialIcons.outlinedFactCheck" class="mx-1" flat color="yellow-9" round size="0.85rem"
                   @click="goTo('/admin/comun-area/bookings/' + comunArea.id + '/list')">
                   <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                     :class="'bg-black text-body2 px-2'">

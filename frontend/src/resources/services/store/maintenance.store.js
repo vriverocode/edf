@@ -21,26 +21,44 @@ export const useMaintenanceStore = defineStore('Maintenance', {
       })
     },
 
-    async createMaintenance(formData) {
-      return await new Promise((resolve, reject) => {
-        if (!ApiService.getToken()) {
-          throw '';
+        async createMaintenance(formData) {
+            return await new Promise((resolve, reject) => {
+                if (!ApiService.getToken()) {
+                    throw '';
+                }
+                ApiService.setHeader();
+                // Mandamos el objeto nativo o FormData según corresponda
+                ApiService.post('/api/maintenances', formData)
+                    .then(({ data }) => {
+                        if (data.code !== 200) throw data;
+                        resolve(data);
+                    })
+                    .catch(({ response }) => {
+                        console.error(response);
+                        if (response?.data?.code === 403) {
+                            reject(response.data);
+                        }
+                        reject(response?.data?.error || 'Error al programar el mantenimiento');
+                    });
+            })
+        },
+
+        async getMaintenanceByArea(areaId, date) {
+            return await new Promise((resolve, reject) => {
+                if (!ApiService.getToken()) {
+                    throw '';
+                }
+                ApiService.setHeader();
+                ApiService.get(`/api/maintenances/by-area/${areaId}?date=${date}`)
+                    .then(({ data }) => {
+                        if (data.code !== 200) throw data;
+                        resolve(data.data);
+                    })
+                    .catch(({ response }) => {
+                        console.error(response);
+                        reject(response?.data?.error || 'Error al consultar mantenimientos');
+                    });
+            })
         }
-        ApiService.setHeader();
-        // Mandamos el objeto nativo o FormData según corresponda
-        ApiService.post('/api/maintenances', formData)
-          .then(({ data }) => {
-            if (data.code !== 200) throw data;
-            resolve(data);
-          })
-          .catch(({ response }) => {
-            console.error(response);
-            if (response?.data?.code === 403) {
-              reject(response.data);
-            }
-            reject(response?.data?.error || 'Error al programar el mantenimiento');
-          });
-      })
     }
-  }
 })
