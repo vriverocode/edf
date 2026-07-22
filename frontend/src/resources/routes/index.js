@@ -399,7 +399,7 @@ const routes = [
           title: 'PACIFIK',
           pagTitle: 'Pagos de cuotas',
           roles: ['admin', 'super-admin'],
-          depth: 2,
+          depth: 3,
         },
       },
       {
@@ -411,7 +411,7 @@ const routes = [
           title: 'PACIFIK',
           pagTitle: 'Pagos de reservas',
           roles: ['admin', 'super-admin'],
-          depth: 2,
+          depth: 3,
         },
       },
       {
@@ -598,7 +598,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Medición de agua',
           roles: ['admin'],
-          depth: 2,
+          depth: 4,
         },
       },
       {

@@ -150,7 +150,7 @@ watch(dialogVisible, (open) => {
   </q-dialog>
 </template>
 
-<style lang="scss" scoped>
+<style lang="scss" >
 .form__inputsR {
   & :deep(.q-field__inner) {
     box-shadow: 0px 3px 4px 0px #bfbfbf48;
