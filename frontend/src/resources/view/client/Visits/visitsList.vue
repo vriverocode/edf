@@ -19,6 +19,8 @@ const filters = ref({
   search: '',
   status: [],
   departament_id: '',
+  date_from: '',
+  date_to: '',
 })
 const modal = ref('')
 const confirmDeleteModal = ref(false)
@@ -27,17 +29,29 @@ const loadingDelete = ref(false)
 const activeFilterSearch = ref('')
 const statusOptions = ref([])
 const apartmentOptions = ref([])
+const page = ref(1)
+const lastPage = ref(1)
+const total = ref(0)
+const perPage = ref(15)
 
 const goTo = (url) => {
   router.push(url)
 }
 
-const getVisits = () => {
+const getVisits = (newPage = 1) => {
   ready.value = false
-  visitStore.getVisitsByUser(filters.value)
+  page.value = newPage
+  const params = {
+    ...filters.value,
+    page: page.value,
+    per_page: perPage.value,
+  }
+  visitStore.getVisitsByUser(params)
     .then((response) => {
       if (response.code !== 200) throw response
-      visits.value = response.data
+      visits.value = response.data.data
+      lastPage.value = response.data.last_page
+      total.value = response.data.total
       setTimeout(() => {
         ready.value = true
       }, 800)
@@ -50,13 +64,15 @@ const getVisits = () => {
 const isUsingFilter = () => {
   const hasStatus = Array.isArray(filters.value.status) && filters.value.status.length > 0
   const hasApartment = !!filters.value.departament_id
-  activeFilterSearch.value = filters.value.search || hasStatus || hasApartment ? 'active-filter' : ''
+  const hasDateFrom = !!filters.value.date_from
+  const hasDateTo = !!filters.value.date_to
+  activeFilterSearch.value = filters.value.search || hasStatus || hasApartment || hasDateFrom || hasDateTo ? 'active-filter' : ''
 }
 
 const getVisitsWithFilter = (newFilter) => {
   filters.value = { ...filters.value, ...newFilter }
   isUsingFilter()
-  getVisits()
+  getVisits(1)
 }
 
 const loadFilterOptions = () => {
@@ -118,12 +134,12 @@ onMounted(() => {
   <div class="h-full">
     <template v-if="ready">
       <div class="h-full" style="overflow: hidden;">
-        <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-12"
-        style="height: 15%; overflow:hidden" >
-        <div class="flex items-center col-10 md:mx-24 pr-2">
-          <q-btn color="primary" unelevated class="w-full mt-4r md:mt-0 md:mx-5 createButton"
+        <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-28"
+        style="height: 13%; overflow:hidden" >
+        <div class="flex items-center col-10 col-md-11 pr-2 md:px-4">
+          <q-btn color="primary" unelevated class="w-full mt-0 md:mt-0 createButton"
               style="border-radius: 0.5rem;" @click="goTo('/client/visit/add')">
-              <div class="flex items-center ">
+              <div class="flex items-center  py-1">
                 <q-icon name="eva-plus-outline" />
                 <div class="q-pt-xs text-bold pl-1">
                   Registrar visita
@@ -131,12 +147,12 @@ onMounted(() => {
               </div>
             </q-btn>
         </div>
-        <div class="w-full flex justify-end col-2">
+        <div class="w-full flex justify-end col-2 col-md-1 md:px-12">
           <q-btn outline color="primary" :class="activeFilterSearch" icon="eva-funnel-outline" @click="modal = 'filter'" />
         </div>
       </div>
         <template v-if="visits.length > 0">
-          <div class="pt-0 md:pt-4 pb-8"  style="height:85%; overflow:auto">
+          <div class="pt-0 md:pt-4 pb-8"  style="height:87%; overflow:auto">
             <div class="px-4 md:px-32">
               <q-slide-item v-for="visit in visits" :key="visit.id" @right="() => deleteItem(visit)"
                 right-color="red-8" class="my-3 listVisit-container" style="border-radius: 12px!important;">
@@ -209,6 +225,10 @@ onMounted(() => {
                   
                 </div>
               </q-slide-item>
+            </div>
+            <div v-if="lastPage > 1" class="flex justify-center py-4 px-4">
+              <q-pagination v-model="page" :max="lastPage" :max-pages="4" :boundary-numbers="false"
+                color="primary" @update:model-value="(p) => getVisits(p)" />
             </div>
           </div>
           
@@ -320,7 +340,7 @@ onMounted(() => {
 }
 
 .createButton {
-  width: auto;
+  //width: auto;
   height: 50px;
 }
 

@@ -83,7 +83,11 @@ const isShowablePage = () => {
   return (['reservePayConfirm'].includes(route.name))
 }
 const showNavbar = () => {
-  return ['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)
+  return [
+    'dashboardAdmin', 'financePage', 'usersAdmin',
+    'apartmentOption', 'paymentMenu', 'balanceAdmin', 'reportsAdmin',
+    'accountsPage', 'MonthlyBillsMenu', 'quotasPaysMenu', 'payMenu'
+  ].includes(route.name)
 }
 const showBack = () => {
   return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'payConfirm', 'reserveConfirm'].includes(route.name))
@@ -187,8 +191,7 @@ watch(
             </router-view>
             </div>
         </section>
-        <navbarAdmin v-if="['dashboardAdmin', 'financePage', 'usersAdmin'].includes(route.name)"
-          @logoutModal="showModal = 'logout'" />
+        <navbarAdmin v-if="showNavbar()" @logoutModal="showModal = 'logout'" />
         <infoNewSideBar />
         <logoutModal :dialog="(showModal == 'logout')" @closeModal="showModal = ''" />
         <firstTimeSetupModal :dialog="showFirstTimeModal" />

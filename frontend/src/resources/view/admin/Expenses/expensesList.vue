@@ -8,6 +8,7 @@ import { useServiceCategoryStore } from '@/services/store/serviceCategory.store'
 import moment from 'moment'
 import iconsApp from '@/assets/icons/index'
 import gastos from '@/assets/img/menu/gastos2.png'
+import expenseFilterModal from '@/components/expenses/expenseFilterModal.vue'
 
 const router = useRouter()
 const expenseStore = useExpenseStore()
@@ -57,16 +58,6 @@ const statusOptions = [
   { value: 2, name: 'Aprobado para pago' },
   { value: 3, name: 'Pagado' }
 ]
-
-const draftFilter = ref({
-  month: null,
-  year: now.getFullYear(),
-  status: null,
-  provider_id: null,
-  category_id: null,
-  date_from: null,
-  date_to: null
-})
 
 const hasActiveFilter = computed(() => {
   return !!(filter.value.month || filter.value.status || filter.value.year !== now.getFullYear()
@@ -136,12 +127,11 @@ const fetchExpenses = async () => {
 }
 
 const openFilter = () => {
-  draftFilter.value = { ...filter.value }
   showFilterDialog.value = true
 }
 
-const applyFilter = () => {
-  filter.value = { ...draftFilter.value }
+const applyFilter = (newFilter) => {
+  filter.value = { ...newFilter }
   page.value = 1
   showFilterDialog.value = false
   fetchExpenses()
@@ -187,20 +177,38 @@ onMounted(() => {
   <div class="h-full" style="overflow: hidden;">
     <div style="height: 100%; overflow: hidden;">
       <div class="px-2 pb-6 pt-0 md:px-28 h-full">
-        <div class="flex justify-end md:pr-5 pr-1 items-center" style="height: 7%;">
-          <q-btn outline color="primary" icon="eva-funnel-outline" @click="openFilter" />
-          <q-btn
-            v-if="hasActiveFilter"
-            class="ml-2"
-            outline
-            color="grey-7"
-            icon="eva-close-outline"
-            @click="clearFilters"
-          >
-            <q-tooltip class="bg-primary text-white text-body2" :offset="[10, 10]">
-              Limpiar filtros
-            </q-tooltip>
-          </q-btn>
+        <div class="row md:pr-5 pr-1 " style="height: 17%;">
+          <div class="col-12 col-md-2 flex justify-end items-center">
+            <q-btn outline color="primary" icon="eva-funnel-outline" @click="openFilter">
+              <q-badge v-if="hasActiveFilter" floating color="yellow" rounded style="width: 10px; height: 10px; min-width: 10px;" />
+            </q-btn>
+            <q-btn
+              v-if="hasActiveFilter"
+              class="ml-2"
+              outline
+              color="grey-7"
+              icon="eva-close-outline"
+              @click="clearFilters"
+            >
+              <q-tooltip class="bg-primary text-white text-body2" :offset="[10, 10]">
+                Limpiar filtros
+              </q-tooltip>
+            </q-btn>
+          </div>
+          <div class="col-12 col-md-10 flex flex-center">
+            <q-btn
+              color="primary"
+              unelevated
+              class="w-full  createButton"
+              style="border-radius: 0.5rem;"
+              @click="goTo('/admin/expenses/form/add')"
+            >
+              <div class="flex items-center py-1">
+                <q-icon name="eva-plus-outline" />
+                <div class="q-pt-xs text-bold pl-1">Registrar gasto</div>
+              </div>
+            </q-btn>
+          </div>
         </div>
 
         <div v-if="loading && !ready" class="flex justify-center items-center py-20" style="height: 93%;">
@@ -299,110 +307,26 @@ onMounted(() => {
           </template>
         </div>
 
-        <div v-if="!loading && ready" style="height: 10%;">
-          <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6">
-            <q-btn
-              color="primary"
-              unelevated
-              class="w-full mt-5 md:mx-5 createButton"
-              style="border-radius: 0.5rem;"
-              @click="goTo('/admin/expenses/form/add')"
-            >
-              <div class="flex items-center py-1">
-                <q-icon name="eva-plus-outline" />
-                <div class="q-pt-xs text-bold pl-1">Registrar gasto</div>
-              </div>
-            </q-btn>
-          </div>
-        </div>
       </div>
     </div>
 
-    <q-dialog v-model="showFilterDialog" persistent>
-      <q-card style="min-width: 320px; max-width: 90vw;">
-        <q-card-section class="text-h6">Filtrar gastos</q-card-section>
-        <q-card-section class="q-pt-none" style="max-height: 60vh; overflow-y: auto;">
-          <div class="text-subtitle2 text-black mb-1">Mes</div>
-          <q-select
-            dense
-            borderless
-            class="form__inputsR mb-3"
-            v-model="draftFilter.month"
-            :options="monthOptions"
-            option-label="name"
-            option-value="value"
-            emit-value
-            map-options
-          />
-          <div class="text-subtitle2 text-black mb-1">Año</div>
-          <q-input
-            dense
-            borderless
-            class="form__inputsR mb-3"
-            type="number"
-            v-model.number="draftFilter.year"
-          />
-          <div class="text-subtitle2 text-black mb-1">Estado</div>
-          <q-select
-            dense
-            borderless
-            class="form__inputsR mb-3"
-            v-model="draftFilter.status"
-            :options="statusOptions"
-            option-label="name"
-            option-value="value"
-            emit-value
-            map-options
-          />
-          <div class="text-subtitle2 text-black mb-1">Proveedor</div>
-          <q-select
-            dense
-            borderless
-            clearable
-            class="form__inputsR mb-3"
-            v-model="draftFilter.provider_id"
-            :options="providerOptions"
-            option-label="label"
-            option-value="value"
-            emit-value
-            map-options
-          />
-          <div class="text-subtitle2 text-black mb-1">Categoría</div>
-          <q-select
-            dense
-            borderless
-            clearable
-            class="form__inputsR mb-3"
-            v-model="draftFilter.category_id"
-            :options="categoryOptions"
-            option-label="label"
-            option-value="value"
-            emit-value
-            map-options
-          />
-          <div class="row q-col-gutter-sm">
-            <div class="col-6">
-              <div class="text-subtitle2 text-black mb-1">Desde</div>
-              <q-input dense borderless class="form__inputsR" type="date" v-model="draftFilter.date_from" />
-            </div>
-            <div class="col-6">
-              <div class="text-subtitle2 text-black mb-1">Hasta</div>
-              <q-input dense borderless class="form__inputsR" type="date" v-model="draftFilter.date_to" />
-            </div>
-          </div>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey" @click="showFilterDialog = false" />
-          <q-btn flat label="Aplicar" color="primary" @click="applyFilter" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <expenseFilterModal
+      :dialog="showFilterDialog"
+      :current-filters="filter"
+      :month-options="monthOptions"
+      :status-options="statusOptions"
+      :provider-options="providerOptions"
+      :category-options="categoryOptions"
+      @closeModal="showFilterDialog = false"
+      @applyFilter="applyFilter"
+    />
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style lang="scss" >
 .expenses__container {
   border: 2px solid lightgray;
   border-radius: 1rem;
 }
+
 </style>

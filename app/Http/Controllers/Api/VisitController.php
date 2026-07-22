@@ -10,6 +10,7 @@ use App\Models\Rol;
 use App\Models\User;
 use App\Models\Visit;
 use App\Notifications\RealtimeNotification;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -25,17 +26,27 @@ class VisitController extends Controller
         $search = trim((string) $request->query('search', ''));
         $statusFilters = $this->parseStatusFilters($request->query('status', []));
         $departamentId = $request->query('departament_id');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+        $perPage = (int) ($request->query('per_page') ?: 15);
         $ownedIds = $user->apartaments()->pluck('id');
         $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
         $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
 
         $visitsQuery = Visit::with('departament')
             ->whereIn('departament_id', $apartmentIds)
+            ->where('date', '>=', Carbon::today()->toDateString())
             ->when($departamentId, function ($query) use ($departamentId) {
                 $query->where('departament_id', (int) $departamentId);
             })
             ->when(count($statusFilters) > 0, function ($query) use ($statusFilters) {
                 $query->whereIn('status', $statusFilters);
+            })
+            ->when($dateFrom !== null && $dateFrom !== '', function ($query) use ($dateFrom) {
+                $query->where('date', '>=', $dateFrom);
+            })
+            ->when($dateTo !== null && $dateTo !== '', function ($query) use ($dateTo) {
+                $query->where('date', '<=', $dateTo);
             })
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -47,28 +58,36 @@ class VisitController extends Controller
                         });
                 });
             })
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('date', 'asc')
+            ->orderBy('hour', 'asc')
+            ->orderBy('created_at', 'desc');
 
-        $visits = $visitsQuery
-            ->map(function ($visit) {
-                return [
-                    'id' => $visit->id,
-                    'fullname' => $visit->fullname,
-                    'dni' => $visit->dni,
-                    'type' => $visit->type,
-                    'type_label' => $visit->type_label,
-                    'description' => $visit->description,
-                    'date' => $visit->date,
-                    'hour' => $visit->hour,
-                    'departament' => $visit->departament,
-                    'created_at' => $visit->created_at,
-                    'status_label' => $visit->status_label,
-                    'status_color' => $visit->status_color,
-                ];
-            });
+        $paginator = $visitsQuery->paginate($perPage);
 
-        return $this->returnSuccess(200, $visits);
+        $visits = $paginator->map(function ($visit) {
+            return [
+                'id' => $visit->id,
+                'fullname' => $visit->fullname,
+                'dni' => $visit->dni,
+                'type' => $visit->type,
+                'type_label' => $visit->type_label,
+                'description' => $visit->description,
+                'date' => $visit->date,
+                'hour' => $visit->hour,
+                'departament' => $visit->departament,
+                'created_at' => $visit->created_at,
+                'status_label' => $visit->status_label,
+                'status_color' => $visit->status_color,
+            ];
+        });
+
+        return $this->returnSuccess(200, [
+            'data' => $visits,
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'total' => $paginator->total(),
+            'per_page' => $paginator->perPage(),
+        ]);
     }
 
     public function storeVisit(Request $request)

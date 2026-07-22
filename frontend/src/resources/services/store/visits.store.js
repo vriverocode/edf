@@ -7,6 +7,10 @@ export const useVisitStore = defineStore('Visit', {
       const queryParams = new URLSearchParams()
       if (filters.search) queryParams.append('search', filters.search)
       if (filters.departament_id) queryParams.append('departament_id', filters.departament_id)
+      if (filters.page) queryParams.append('page', filters.page)
+      if (filters.per_page) queryParams.append('per_page', filters.per_page)
+      if (filters.date_from) queryParams.append('date_from', filters.date_from)
+      if (filters.date_to) queryParams.append('date_to', filters.date_to)
       if (Array.isArray(filters.status) && filters.status.length > 0) {
         filters.status.forEach((status) => queryParams.append('status[]', status))
       }
