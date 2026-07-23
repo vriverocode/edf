@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -141,5 +142,12 @@ class User extends Authenticatable
     public function airbnbDepartment()
     {
         return $this->hasOne(PeoplesXDepartaments::class, 'user_id', 'id')->where('type', 5); // 5 corresponds to Rol::AIRBNB
+    }
+
+    public function availableComunAreas(): BelongsToMany
+    {
+        return $this->belongsToMany(ComunArea::class, 'user_comun_areas')
+            ->withPivot('created_by')
+            ->withTimestamps();
     }
 }

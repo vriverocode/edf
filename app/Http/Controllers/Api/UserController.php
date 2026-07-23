@@ -471,9 +471,30 @@ class UserController extends Controller
         }
     }
 
-    public function setAvailableComunAreaToReserve(?PeoplesXDepartaments $people = null)
+    public function setAvailableComunAreaToReserve(Request $request, $id)
     {
-        // TODO: Implementar lógica para habilitar áreas comunes a reservar para el usuario
+        $user = User::find($id);
+        if (! $user) {
+            return $this->returnFail(404, 'Usuario no encontrado');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'comun_area_ids' => ['required', 'array'],
+            'comun_area_ids.*' => ['integer', 'exists:comun_areas,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        try {
+            $areaIds = collect($request->comun_area_ids)->filter()->values()->all();
+            $user->availableComunAreas()->sync($areaIds, ['created_by' => $request->user()->id]);
+        } catch (Exception $e) {
+            return $this->returnFail(500, $e->getMessage());
+        }
+
+        return $this->returnSuccess(200, 'Áreas comunes actualizadas');
     }
 
     /**
