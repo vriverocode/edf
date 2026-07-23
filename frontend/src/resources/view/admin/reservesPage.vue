@@ -166,7 +166,7 @@ onMounted(() => {
         </div>
 
         <!-- Filters row -->
-        <div class="flex justify-between items-center q-mb-sm">
+        <div class="flex justify-between items-center q-mb-sm md:px-6">
           <div class="flex q-gutter-xs py-1">
             <q-btn dense outline no-caps class="mx-1 px-2" size="md"
               :class="{ 'text-primary text-bold': activeAmountFilter === '' }"
@@ -178,7 +178,7 @@ onMounted(() => {
               :class="{ 'text-primary text-bold': activeAmountFilter === 'paid' }"
               @click="setAmountFilter('paid')">De pago</q-btn>
           </div>
-          <q-btn outline color="primary" icon="eva-funnel-outline" size="sm"
+          <q-btn outline color="primary" icon="eva-funnel-outline" size="md"
             @click="dialog = 'filter'" />
         </div>
 
@@ -190,7 +190,7 @@ onMounted(() => {
             style="position: relative;">
 
             <!-- Sección superior -->
-            <div class="px-0 pb-4 pt-2 border-b border-dashed border-gray-300">
+            <div class="px-0 pb-4 pt-2 border-b border-dashed border-gray-300 cursor-pointer" @click="goTo('/client/reserves/view/'+reserve.id)">
               <div class="flex justify-between items-start mb-2 px-4">
                 <div class="flex-1">
                   <h3 class="text-lg font-bold text-gray-900 mb-0">

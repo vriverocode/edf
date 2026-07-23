@@ -121,9 +121,7 @@ const showNotify = (type, text) => {
     timeout: 2000
   })
 }
-const noDisponible = () => {
-  showNotify('terciary', 'No disponible')
-}
+
 onMounted(() => {
   loadFilterOptions()
   getVisits()

@@ -1119,10 +1119,6 @@ const routes = [
 
       //----------security----
       {
-        path: '/security/airbnb/list',
-        component: () => import('@/view/security/Visits/airbnbList.vue'),
-        name: 'airbnbsSecurityList',
-        beforeEnter: [auth, role],
         path: '/security/visit/list',
         component: () => import('@/view/security/Visits/visitsSecurityList.vue'),
         name: 'visitsSecurityList',

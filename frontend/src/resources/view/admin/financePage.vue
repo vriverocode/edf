@@ -59,7 +59,6 @@ const menu = [
 ];
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
-  console.log(rol)
   return menu.filter(item => !item.roles || item.roles.includes(rol))
 })
 const goTo = (url) => {

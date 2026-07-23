@@ -177,8 +177,8 @@ onMounted(() => {
   <div class="h-full" style="overflow: hidden;">
     <div style="height: 100%; overflow: hidden;">
       <div class="px-2 pb-6 pt-0 md:px-28 h-full">
-        <div class="row md:pr-5 pr-1 " style="height: 17%;">
-          <div class="col-12 col-md-2 flex justify-end items-center">
+        <div class="row md:pr-5 pr-1 justify-end " style="height: 17%;">
+          <div class="col-12 col-md-3 md:px-4  flex justify-end items-center ">
             <q-btn outline color="primary" icon="eva-funnel-outline" @click="openFilter">
               <q-badge v-if="hasActiveFilter" floating color="yellow" rounded style="width: 10px; height: 10px; min-width: 10px;" />
             </q-btn>
@@ -195,7 +195,7 @@ onMounted(() => {
               </q-tooltip>
             </q-btn>
           </div>
-          <div class="col-12 col-md-10 flex flex-center">
+          <div class="col-12 col-md-4 flex flex-center">
             <q-btn
               color="primary"
               unelevated
@@ -232,7 +232,7 @@ onMounted(() => {
                       {{ formatMoney(expense.amount) }}
                     </div>
                   </div>
-                    <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2">
                       <q-btn v-if="expense.attachment_url" flat dense round color="primary" icon="eva-attach-outline" size="sm"
                         @click.stop="openAttachment(expense.attachment_url)">
                         <q-tooltip>Ver comprobante</q-tooltip>
@@ -260,19 +260,19 @@ onMounted(() => {
                   <div class="col-12 col-md-6 text-sm text-gray-700 mt-1">
                     Tipo: <span class="font-medium">{{ expense.expense_type_label }}</span>
                   </div>
-                  <div v-if="expense.invoice_number" class="col-6 text-sm text-gray-700 mt-2">
+                  <div v-if="expense.invoice_number" class="col-6 text-sm text-gray-700 md:mt-0 mt-2">
                     Factura N°: <span class="font-medium">{{ expense.invoice_number }}</span>
                   </div>
-                  <div class="col-6 col-md-6 text-sm text-gray-700 mt-1 text-end">
+                  <div class="col-6 col-md-6 text-sm text-gray-700 mt-2  md:text-start text-end">
                     Presupuesto: <span class="font-medium">{{ monthlyBillLabel(expense.monthly_bill) }}</span>
                   </div>
                   <div class="col-6 text-sm text-gray-700 mt-2">
                     Emisión: <span class="font-medium">{{ formatDate(expense.issue_date) }}</span>
                   </div>
-                  <div class="col-6 text-sm text-gray-700 mt-2 text-right">
+                  <div class="col-6 text-sm text-gray-700 mt-2 md:text-start text-end">
                     Vence: <span class="font-medium">{{ formatDate(expense.due_date) }}</span>
                   </div>
-                  <div class="col-12 text-sm text-gray-700 mt-2 line-clamp-2">
+                  <div class="col-12 col-md-6 text-sm text-gray-700 mt-2 line-clamp-2">
                     <b>Descripción:</b>
                     {{ expense.description }}
                   </div>
