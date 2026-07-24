@@ -273,7 +273,7 @@ export const useReserveStore = defineStore('Reserve', {
         if (!filter || typeof filter !== 'object') return '';
         if (filter.page) params.set('page', String(filter.page));
         if (filter.per_page) params.set('per_page', String(filter.per_page));
-        if (filter.status !== undefined && Number(filter.status) !== 4) params.set('status', String(filter.status));
+        if (filter.status !== undefined && filter.status !== '') params.set('status', String(filter.status));
         if (filter.area_id) params.set('area_id', String(filter.area_id));
         if (filter.date_from) params.set('date_from', String(filter.date_from));
         if (filter.date_to) params.set('date_to', String(filter.date_to));

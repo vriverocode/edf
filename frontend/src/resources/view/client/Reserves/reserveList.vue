@@ -13,13 +13,20 @@ moment.locale('es', {
   ),
 })
 
-const reserves = ref([]);
-const loading = ref(false);
 const reserveStore = useReserveStore();
 const router = useRouter();
+
+const reserves = ref([]);
+const loading = ref(false);
 const dialog = ref('');
 const selectedReserve = ref({})
 const filterModal = ref(false)
+
+const page = ref(1)
+const lastPage = ref(1)
+const perPage = ref(10)
+
+const activeQuickFilter = ref('upcoming')
 
 const userFilters = ref({
   hideCanceled: true,
@@ -38,36 +45,102 @@ const activeFilterCount = computed(() => {
   return count
 })
 
-const filteredReserves = computed(() => {
-  let list = reserves.value
-  if (userFilters.value.hideCanceled) {
-    list = list.filter(r => r.status != 0)
+const getApiParams = () => {
+  const params = {
+    page: page.value,
+    per_page: perPage.value,
   }
+
+  if (userFilters.value.status !== '') {
+    params.status = String(userFilters.value.status)
+  } else if (!userFilters.value.hideCanceled) {
+    params.status = '4'
+  }
+
   if (userFilters.value.hidePast) {
-    list = list.filter(r => r.date >= moment().format('YYYY-MM-DD'))
+    params.date_from = moment().format('YYYY-MM-DD')
   }
-  if (userFilters.value.status && userFilters.value.status !== '') {
-    list = list.filter(r => r.status == userFilters.value.status)
-  }
+
   if (userFilters.value.date_to) {
-    list = list.filter(r => r.date <= userFilters.value.date_to)
+    params.date_to = userFilters.value.date_to
   }
-  return list
-})
+
+  return params
+}
 
 const getReserves = () => {
-  loading.value = true;
-  reserveStore.getReservesByUser()
+  loading.value = true
+  reserveStore.getReservesByUser(getApiParams())
     .then((response) => {
-      if (response.code !== 200) throw response;
-      reserves.value = response.data;
+      if (response.code !== 200) throw response
+      const payload = response.data
+      if (Array.isArray(payload)) {
+        reserves.value = payload
+        lastPage.value = 1
+      } else {
+        reserves.value = payload.data || []
+        lastPage.value = payload.last_page || 1
+      }
     })
-    .catch((response) => {
-      console.log(response);
+    .catch(() => {
+      reserves.value = []
     })
     .finally(() => {
-      loading.value = false;
-    });
+      loading.value = false
+    })
+}
+
+const setQuickFilter = (filter) => {
+  activeQuickFilter.value = filter
+  switch (filter) {
+    case 'all':
+      userFilters.value = {
+        hideCanceled: false,
+        hidePast: false,
+        status: '4',
+        date_from: '',
+        date_to: '',
+      }
+      break
+    case 'upcoming':
+      userFilters.value = {
+        hideCanceled: true,
+        hidePast: true,
+        status: '',
+        date_from: moment().format('YYYY-MM-DD'),
+        date_to: '',
+      }
+      break
+    case 'pending':
+      userFilters.value = {
+        hideCanceled: true,
+        hidePast: false,
+        status: '1,2',
+        date_from: '',
+        date_to: '',
+      }
+      break
+    case 'success':
+      userFilters.value = {
+        hideCanceled: true,
+        hidePast: false,
+        status: '3',
+        date_from: '',
+        date_to: '',
+      }
+      break
+    case 'cancelled':
+      userFilters.value = {
+        hideCanceled: false,
+        hidePast: false,
+        status: '0',
+        date_from: '',
+        date_to: '',
+      }
+      break
+  }
+  page.value = 1
+  getReserves()
 }
 
 const resetFilters = () => {
@@ -78,6 +151,9 @@ const resetFilters = () => {
     date_from: moment().format('YYYY-MM-DD'),
     date_to: '',
   }
+  activeQuickFilter.value = 'upcoming'
+  page.value = 1
+  getReserves()
 }
 
 const goTo = (url) => {
@@ -144,12 +220,7 @@ const statusOptions = [
           </div>
         </q-btn>
       </div>
-      <div class="w-full flex justify-end col-2 col-md-1 md:pr-8">
-        <q-btn outline color="primary" size="md" @click="filterModal = true" class="filter-btn">
-        <q-icon name="eva-funnel-outline" size="1.4rem" />
-        <q-badge v-if="activeFilterCount > 0" color="primary" floating>{{ activeFilterCount }}</q-badge>
-      </q-btn>
-      </div>
+      <div class="w-full flex justify-end col-2 col-md-1 md:pr-8"></div>
     </div>
     <div class="" style="height: 85%; overflow: auto;">
       <!-- Loading State -->
@@ -161,9 +232,34 @@ const statusOptions = [
 
       <!-- Content -->
       <div v-else class="px-4 pb-6 md:px-28">
+        <!-- Quick filters -->
+        <div class="flex justify-between items-center q-mb-sm md:px-5">
+          <div class="flex q-gutter-xs py-1" style="overflow-x: auto; white-space: nowrap;">
+            <q-btn dense outline no-caps class="px-2" size="sm"
+              :class="{ 'text-primary text-bold': activeQuickFilter === 'all' }"
+              @click="setQuickFilter('all')">Todas</q-btn>
+            <q-btn dense outline no-caps class="px-2" size="sm"
+              :class="{ 'text-primary text-bold': activeQuickFilter === 'upcoming' }"
+              @click="setQuickFilter('upcoming')">Próximas</q-btn>
+            <q-btn dense outline no-caps class="px-2" size="sm"
+              :class="{ 'text-primary text-bold': activeQuickFilter === 'pending' }"
+              @click="setQuickFilter('pending')">Pendientes</q-btn>
+            <q-btn dense outline no-caps class="px-2" size="sm"
+              :class="{ 'text-primary text-bold': activeQuickFilter === 'success' }"
+              @click="setQuickFilter('success')">Exitosas</q-btn>
+            <q-btn dense outline no-caps class="px-2" size="sm"
+              :class="{ 'text-primary text-bold': activeQuickFilter === 'cancelled' }"
+              @click="setQuickFilter('cancelled')">Canceladas</q-btn>
+          </div>
+          <q-btn outline color="primary" size="sm" @click="filterModal = true" class="filter-btn">
+            <q-icon name="eva-funnel-outline" size="1.2rem" />
+            <q-badge v-if="activeFilterCount > 0" color="primary" floating>{{ activeFilterCount }}</q-badge>
+          </q-btn>
+        </div>
+
         <!-- Lista de reservas -->
-        <div v-if="filteredReserves.length > 0" class="space-y-3 md:px-5">
-          <div v-for="reserve in filteredReserves" :key="reserve.id"
+        <div v-if="reserves.length > 0" class="space-y-3 md:px-5">
+          <div v-for="reserve in reserves" :key="reserve.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
             style="position: relative;">
 
@@ -316,6 +412,12 @@ const statusOptions = [
               </div>
             </div>
           </div>
+
+          <!-- Paginación -->
+          <div v-if="lastPage > 1" class="flex justify-center mt-4">
+            <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
+              @update:model-value="getReserves()" />
+          </div>
         </div>
 
         <!-- Estado vacío -->
@@ -378,7 +480,7 @@ const statusOptions = [
           <section class="pb-5">
             <div class="flex justify-evenly mt-2">
               <q-btn label="Limpiar" unelevated class="q-mx-sm" color="primary" outline style="border-radius: 0.8rem; padding:0px 2rem!important; font-size: 1rem;" @click="resetFilters()" />
-              <q-btn label="Aplicar" unelevated class="q-mx-sm" color="primary" style="border-radius: 0.8rem; padding:0px 2rem!important; font-size: 1rem;" v-close-popup />
+              <q-btn label="Aplicar" unelevated class="q-mx-sm" color="primary" style="border-radius: 0.8rem; padding:0px 2rem!important; font-size: 1rem;" @click="page = 1; getReserves()" v-close-popup />
             </div>
           </section>
         </div>

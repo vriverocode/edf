@@ -159,8 +159,14 @@ class BookingController extends Controller
     {
         $VIEW_ALL_STATUS = 4;
         $FREE_AMOUNT = 0;
-        if ($request->filled('status') && intval($request->status) !== $VIEW_ALL_STATUS) {
-            $query->where('status', intval($request->status));
+        if ($request->filled('status')) {
+            $statusParam = $request->get('status');
+            if ($statusParam == $VIEW_ALL_STATUS) {
+                // Status 4 = todos (incluye cancelados)
+            } else {
+                $statuses = array_map('intval', explode(',', $statusParam));
+                $query->whereIn('status', $statuses);
+            }
         } else {
             $query->where('status', '>', 0);
         }
