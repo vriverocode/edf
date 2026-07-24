@@ -4,11 +4,13 @@ import { Notify } from 'quasar'
 import { useUserStore } from '@/services/store/users.store';
 import { useApartmentStore } from '@/services/store/apartment.store';
 import phoneNumberInput from '@/components/layout/phoneNumberInput.vue';
+import userAvailableAreasStep from '@/components/admin/userAvailableAreasStep.vue';
 import { useRouter } from 'vue-router';
 const router = useRouter()
 const userStore = useUserStore()
 const apartmentStore = useApartmentStore()
 const apartmentsOptions = ref([])
+const selectedAreas = ref([])
 const rolOptions = ref([
   {
     id: 0,
@@ -69,7 +71,8 @@ const formData = ref({
 
 const titleOfSection = [
   'Datos del usuario',
-  'Asignación del inmobiliario'
+  'Asignación del inmobiliario',
+  'Áreas comunes disponibles'
 ]
 
 const requiresApartment = (rolId) => {
@@ -87,31 +90,50 @@ const nextStep = () => {
       return
     }
     step.value++
+    return
+  }
+
+  if (step.value == 1) {
+    if (requiresApartment(formData.value.rol_id.id) && formData.value.apartment.id == 0) {
+      showNotify('negative', 'Debes seleccionar un departamento para este tipo de usuario')
+      return
+    }
+    step.value++
+    return
   }
 }
 
 const createUser = () => {
-  if (step.value == 0) {
-    nextStep()
-    return
-  }
-
-  if (requiresApartment(formData.value.rol_id.id) && formData.value.apartment.id == 0) {
-    showNotify('negative', 'Debes seleccionar un departamento para este tipo de usuario')
-    return
-  }
-
   loading.value = true
   formData.value.idApartament = formData.value.apartment.id
   formData.value.idRol = formData.value.rol_id.id
 
   userStore.createUser(formData.value)
-    .then(() => {
-      showNotify('positive', 'Usuario creado con exito')
-      setTimeout(() => {
-        loading.value = false
-        router.go(-1)
-      }, 1000)
+    .then((response) => {
+      const userId = response.data?.id
+      if (selectedAreas.value.length > 0 && userId) {
+        userStore.setAvailableComunaAreas(userId, selectedAreas.value)
+          .then(() => {
+            showNotify('positive', 'Usuario creado con exito')
+            setTimeout(() => {
+              loading.value = false
+              router.go(-1)
+            }, 1000)
+          })
+          .catch(() => {
+            showNotify('positive', 'Usuario creado con exito')
+            setTimeout(() => {
+              loading.value = false
+              router.go(-1)
+            }, 1000)
+          })
+      } else {
+        showNotify('positive', 'Usuario creado con exito')
+        setTimeout(() => {
+          loading.value = false
+          router.go(-1)
+        }, 1000)
+      }
     })
     .catch((response) => {
       loading.value = false
@@ -229,13 +251,30 @@ onMounted(() => {
             </div>
             <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
               <q-btn color="primary " style="border-radius: 0.5rem;" type="submit" :loading="loading">
-                <div class="px-8 py-1">Siguiente</div>
+                <div class="px-8 py-1">Crear usuario</div>
               </q-btn>
             </div>
           </div>
         </div>
       </Transition>
     </q-form>
+    <Transition name="horizontal">
+      <div class="row w-full" v-if="step == 2">
+        <userAvailableAreasStep v-model="selectedAreas" />
+        <div class="col-12 mb-2 mt-5 px-2 md:px-12 flex items-center justify-between">
+          <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
+            <q-btn color="grey-9 " style="border-radius: 0.5rem;" @click="step--">
+              <div class="px-8 py-1 ">Volver</div>
+            </q-btn>
+          </div>
+          <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
+            <q-btn color="primary " style="border-radius: 0.5rem;" @click="createUser" :loading="loading">
+              <div class="px-8 py-1">Crear usuario</div>
+            </q-btn>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 <style lang="scss">

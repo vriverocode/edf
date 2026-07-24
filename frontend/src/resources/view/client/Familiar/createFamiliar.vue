@@ -5,6 +5,7 @@ import { Notify } from 'quasar'
 import { useUserStore } from '@/services/store/users.store';
 import { useApartmentStore } from '@/services/store/apartment.store';
 import phoneNumberInput from '@/components/layout/phoneNumberInput.vue';
+import userAvailableAreasStep from '@/components/admin/userAvailableAreasStep.vue';
 import { useRouter } from 'vue-router';
 const router = useRouter()
 const userStore = useUserStore()
@@ -13,6 +14,7 @@ const apartmentsOptions = ref([])
 const hasNoApartments = ref(false)
 const hasSingleApartment = ref(false)
 const deptosWithInquilino = ref(new Set())
+const selectedAreas = ref([])
 const tipoResidentOptions = ref([
     {
         id: '',
@@ -120,6 +122,7 @@ const titleOfSection = [
     'Datos del residente',
     'Registro de Airbnb',
     'Datos de Airbnb',
+    'Áreas comunes disponibles',
     'Credenciales de acceso'
 ]
 const isAirbnb = () => formData.value.type?.id === 'airbnb'
@@ -142,6 +145,10 @@ const nextStep = () => {
         return
     }
     if (step.value == 3) {
+        step.value++
+        return
+    }
+    if (step.value == 4) {
         createUser()
         return
     }
@@ -186,9 +193,24 @@ const createUser = () => {
 
     userStore.createResident(payloadForm)
         .then((response) => {
-            showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
-            loading.value = false
-            step.value = 4
+            const userId = response?.data?.id
+            if (isAirbnb() && selectedAreas.value.length > 0 && userId) {
+                userStore.setAvailableComunaAreas(userId, selectedAreas.value)
+                    .then(() => {
+                        showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
+                        loading.value = false
+                        step.value = 5
+                    })
+                    .catch(() => {
+                        showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
+                        loading.value = false
+                        step.value = 5
+                    })
+            } else {
+                showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
+                loading.value = false
+                step.value = 5
+            }
         })
         .catch((response) => {
             console.log(response)
@@ -632,7 +654,7 @@ onMounted(() => {
                         </div>
                         <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
                             <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
-                                <div class="px-8 py-1">Registrar</div>
+                                <div class="px-8 py-1">Siguiente</div>
                             </q-btn>
                         </div>
                     </div>
@@ -640,6 +662,23 @@ onMounted(() => {
             </Transition>
             <Transition name="horizontal">
                 <div class="row w-full" v-if="step == 4">
+                    <userAvailableAreasStep v-model="selectedAreas" />
+                    <div class="col-12 pb-8 mt-6 px-2 md:px-12 flex items-center justify-between">
+                        <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
+                            <q-btn color="grey-9" style="border-radius: 0.5rem;" @click="step--">
+                                <div class="px-8 py-1">Volver</div>
+                            </q-btn>
+                        </div>
+                        <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
+                            <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
+                                <div class="px-8 py-1">Registrar</div>
+                            </q-btn>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+            <Transition name="horizontal">
+                <div class="row w-full" v-if="step == 5">
                     <div class="col-12 px-2 md:px-12">
                         <div class="text-center q-my-lg">
                             <q-icon name="eva-checkmark-circle-2-outline" size="64px" color="positive" />

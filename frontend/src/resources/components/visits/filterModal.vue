@@ -7,7 +7,7 @@ const props = defineProps({
   dialog: Boolean,
   currentFilters: {
     type: Object,
-    default: () => ({ search: '', status: [], departament_id: '' }),
+    default: () => ({ search: '', status: [], departament_id: '', date_from: '', date_to: '' }),
   },
   title: {
     type: String,
@@ -32,6 +32,8 @@ const filters = ref({
   search: '',
   status: [],
   departament_id: '',
+  date_from: '',
+  date_to: '',
 })
 
 const syncFilters = () => {
@@ -39,6 +41,8 @@ const syncFilters = () => {
     search: props.currentFilters?.search || '',
     status: props.currentFilters?.status || [],
     departament_id: props.currentFilters?.departament_id || '',
+    date_from: props.currentFilters?.date_from || '',
+    date_to: props.currentFilters?.date_to || '',
   }
 }
 
@@ -47,7 +51,7 @@ const hideModal = () => {
 }
 
 const resetFilters = () => {
-  filters.value = { search: '', status: [], departament_id: '' }
+  filters.value = { search: '', status: [], departament_id: '', date_from: '', date_to: '' }
 }
 
 const updateList = () => {
@@ -109,6 +113,19 @@ watch(
             <div class="col-12">
               <q-option-group v-model="filters.status" class="group__status" :options="statusOptions" type="checkbox"
                 color="primary" dense />
+            </div>
+          </div>
+          <div class="row py-4 px-5" style="border-top: 1px solid lightgray;">
+            <div class="mb-3 text-lg font-medium text-primary col-12">
+              Rango de fechas de llegada
+            </div>
+            <div class="col-12 col-md-6 pb-2">
+              <q-input class="form__inputsFilterBookings" v-model="filters.date_from" dense borderless clearable
+                label="Fecha desde" type="date" />
+            </div>
+            <div class="col-12 col-md-6 pb-2">
+              <q-input class="form__inputsFilterBookings" v-model="filters.date_to" dense borderless clearable
+                label="Fecha hasta" type="date" />
             </div>
           </div>
 

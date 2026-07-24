@@ -216,6 +216,23 @@ export const useUserStore = defineStore('User', {
           })
       })
     },
+    async setAvailableComunaAreas(userId, comunAreaIds) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.post('/api/users/' + userId + '/available-areas', { comun_area_ids: comunAreaIds })
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.log(response)
+            reject(response?.data?.error || 'Error al actualizar áreas comunes')
+          })
+      })
+    },
     async getResidentBookings(userId) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {

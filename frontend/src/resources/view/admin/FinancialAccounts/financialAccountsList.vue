@@ -61,7 +61,20 @@ onMounted(() => {
       </div>
 
       <div style="height: 100%;" v-else>
-        <div class="px-4 pb-6 pt-3 md:px-28" style="height: 90%; overflow: auto;">
+        <div class="row px-5 md:px-28" style="height: 8%;">
+          <div class="col-12 flex justify-end">
+            <q-btn color="primary" unelevated class="w-full  md:mt-0 md:mx-5 createButton"
+              style="border-radius: 0.5rem; height: max-content;" @click="goTo('/admin/financial-accounts/add')">
+              <div class="flex items-center py-1">
+                <q-icon name="eva-plus-outline" />
+                <div class="q-pt-xs text-bold pl-1">
+                  Agregar cuenta
+                </div>
+              </div>
+            </q-btn>
+          </div>
+        </div>
+        <div class="px-4 pb-6 pt-3 md:px-28" style="height: 92%; overflow: auto;">
           <div v-if="accounts.length > 0" class="space-y-3 pt-3 md:px-5">
             <div v-for="account in accounts" :key="account.id"
               class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
@@ -118,19 +131,7 @@ onMounted(() => {
             <p class="text-gray-600 text-center mb-6">Agrega una cuenta para comenzar a llevar control financiero.</p>
           </div>
         </div>
-        <div class="row px-5 md:px-28" style="height: 10%;">
-          <div class="col-12">
-            <q-btn color="primary" unelevated class="w-full mt-4r md:mt-0 md:mx-5 createButton"
-              style="border-radius: 0.5rem;" @click="goTo('/admin/financial-accounts/add')">
-              <div class="flex items-center ">
-                <q-icon name="eva-plus-outline" />
-                <div class="q-pt-xs text-bold pl-1">
-                  Agregar cuenta
-                </div>
-              </div>
-            </q-btn>
-          </div>
-        </div>
+        
       </div>
     </div>
   </div>

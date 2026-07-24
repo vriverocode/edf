@@ -64,7 +64,7 @@ onMounted(() => {
 </script>
 <template>
   <div class="h-full" style="overflow: hidden;">
-    <div class="" style="height: 100%; overflow: auto;">
+    <div class="" style="height: 100%; overflow: hidden;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <!-- <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div> -->
@@ -72,18 +72,19 @@ onMounted(() => {
       </div>
 
       <!-- Content -->
-      <div v-else class="px-4 pb-6 pt-3 md:px-28">
-        <div class="flex justify-end md:pr-5 pr-1">
+      <div v-else class="px-4 pb-6 pt-3 md:px-28" style="height: 100%;">
+        <div class="flex justify-end md:pr-5 pr-1 w-full" style="height: 8%;">
           <q-btn
-            outline
             color="primary"
             icon="eva-plus-outline"
+            class="w-full"
+            style="height: max-content;"
             label="Agregar"
             @click="goTo('/admin/account-data/add')"
           />
         </div>
         <!-- Lista de reservas -->
-        <div v-if="payMethods.length > 0" class="space-y-3 pt-3 md:px-5">
+        <div v-if="payMethods.length > 0" class="space-y-3 pt-3 md:px-5" style="height: 92%; overflow: auto;">
           <div v-for="payMethod in payMethods" :key="payMethod.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5" style="position: relative;">
 

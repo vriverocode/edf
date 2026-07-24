@@ -17,7 +17,8 @@ return new class extends Migration
             $table->foreignId('pay_id')->constrained();
             $table->decimal('amount', 10, 2);
             $table->string('reason');
-            $table->string('status')->default('completed');
+            $table->string('type');
+            $table->string('status')->default(1);
             $table->timestamps();
             $table->softDeletes();
         });

@@ -67,6 +67,11 @@ class BookingController extends Controller
                 return $this->returnFail(403, 'No tienes permisos para crear reservas en este departamento');
             }
 
+            $allowedAreas = $user->availableComunAreas()->pluck('comun_area_id')->toArray();
+            if (! empty($allowedAreas) && ! in_array((int) $request->comun_area, $allowedAreas)) {
+                return $this->returnFail(403, 'No tienes permiso para reservar esta área común');
+            }
+
             $date = date('Y-m-d', strtotime($request->date));
             if ($this->hasActiveBookingForDay($user->id, $request->comun_area, $date)) {
                 return $this->returnFail(409, 'Ya tienes una reserva activa para esta área en el día seleccionado. Cancela la reserva existente para poder crear una nueva.');

@@ -86,6 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/byPropietario', [UserController::class, 'store'])->middleware('throttle:sensitive');
         Route::post('/temporary-or-resident', [UserController::class, 'storeResidentUser'])->middleware('throttle:sensitive');
         Route::post('/complete-first-time', [UserController::class, 'completeFirstTime']);
+        Route::post('/{user}/available-areas', [UserController::class, 'setAvailableComunAreaToReserve'])->middleware('role:admin,super-admin');
         Route::delete('/d/{id}', [UserController::class, 'destroy'])->middleware('throttle:write');
         Route::put('/resident/{id}', [UserController::class, 'updateResident'])->middleware('throttle:write');
         Route::put('/{id}', [UserController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
