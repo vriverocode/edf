@@ -150,4 +150,9 @@ class User extends Authenticatable
             ->withPivot('created_by')
             ->withTimestamps();
     }
+
+    public function bankAccounts()
+    {
+        return $this->hasMany(BankAccount::class);
+    }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\BillInvoiceController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ComunAreaController;
@@ -350,6 +351,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [ProviderController::class, 'store'])->middleware('throttle:write');
         Route::post('/u/{id}', [ProviderController::class, 'update'])->middleware('throttle:write');
         Route::delete('/d/{id}', [ProviderController::class, 'destroy'])->middleware('throttle:write');
+    });
+
+    // ── Bank Accounts ────────────────────────────────────────
+    Route::prefix('bank-accounts')->name('bankAccounts.')->group(function () {
+        Route::get('/', [BankAccountController::class, 'index']);
+        Route::get('/{id}', [BankAccountController::class, 'show']);
+        Route::post('/', [BankAccountController::class, 'store'])->middleware('throttle:write');
+        Route::put('/{id}', [BankAccountController::class, 'update'])->middleware('throttle:write');
+        Route::delete('/{id}', [BankAccountController::class, 'destroy'])->middleware('throttle:write');
     });
 
     // ── Incidents ────────────────────────────────────────────
