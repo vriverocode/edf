@@ -1,138 +1,209 @@
 <script setup>
-import { storeToRefs } from 'pinia';
-import { useAuthStore } from '@/services/store/auth.services';
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from '@/services/store/auth.services'
 import iconsApp from '@/assets/icons/index'
-import { Capacitor } from '@capacitor/core';
-import { ref } from 'vue'
+import { Capacitor } from '@capacitor/core'
 
-const isNative = ref(Capacitor.isNativePlatform());
+const router = useRouter()
+const route = useRoute()
+const isNative = ref(Capacitor.isNativePlatform())
 const emit = defineEmits(['logoutModal'])
 const { user } = storeToRefs(useAuthStore())
+const hoveredIndex = ref(-1)
+const clickingIndex = ref(-1)
+
 const logout = () => {
   emit('logoutModal')
 }
-const availableByRol = (roles) => {
-  // user.rol
-  if(roles.lenght >= 0) {
-    return true
+
+const items = [
+  { label: 'Inicio', icon: iconsApp.home3, route: '/dashboard' },
+  { label: 'Usuarios', icon: iconsApp.user3, route: '/admin/users', roles: ['admin'] },
+  { label: 'Finanzas', icon: iconsApp.finance2, route: '/admin/finance', roles: ['admin', 'propietario'] },
+  { label: 'Salir', icon: iconsApp.exit2, action: logout },
+]
+
+const visibleItems = computed(() => {
+  return items.filter(item => {
+    if (!item.roles) return true
+    return item.roles.includes(user.value?.rol?.name?.toLowerCase())
+  })
+})
+
+const activeIndex = computed(() => {
+  const path = route.path
+  return visibleItems.value.findIndex(item => item.route && path === item.route)
+})
+
+const blobIndex = computed(() => {
+  if (hoveredIndex.value !== -1) return hoveredIndex.value
+  if (activeIndex.value !== -1) return activeIndex.value
+  return 0
+})
+
+const blobPositionStyle = computed(() => {
+  const count = visibleItems.value.length
+  return {
+    width: `${100 / count}%`,
+    transform: `translateX(${blobIndex.value * 100}%) translateY(-50%)`,
   }
-  return roles.includes(user.value.rol.name.toLowerCase())
-};
+})
 
+const handleClick = (item, index) => {
+  if (item.action) {
+    item.action()
+    return
+  }
+  if (route.path !== item.route) {
+    clickingIndex.value = index
+    setTimeout(() => { clickingIndex.value = -1 }, 300)
+    router.push(item.route)
+  }
+}
 </script>
+
 <template>
-  <div class="bottom-tab " :class="{ 'spaceBarBottom': isNative, 'total-h': !isNative }">
-    <q-tabs no-caps right-icon="-" active-color="terciary" align="justify"
-      class="bg-white text-dark shadow-0  q-py-md-xs q-px-md-lg flex q-py-xs userNavbar">
-      <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" :to="'/dashboard'" exact>
-        <div class="flex flex-center column">
-          <div v-html="iconsApp.home3" />
-          <span class="q-mt-xs text-dark text-subtitle2">Inicio</span>
-        </div>
-      </q-route-tab>
-      <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" v-if="availableByRol(['admin'])" :to="'/admin/users'" exact>
-        <div class="flex flex-center column">
-          <div v-html="iconsApp.user3" />
-          <span class="q-mt-xs text-dark text-subtitle2">Usuarios</span>
-        </div>
-      </q-route-tab>
-      <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" :to="'/admin/finance'" v-if="availableByRol(['admin', 'propietario'])" exact>
-        <div class="flex flex-center column">
-          <div v-html="iconsApp.finance2" />
-          <span class="q-mt-xs text-dark text-subtitle2">Finanzas</span>
-        </div>
-      </q-route-tab>
-      <q-route-tab class="q-px-xs-sm q-pt-sm q-px-md-lg" @click="logout()" >
-        <div class="flex flex-center column">
-          <div v-html="iconsApp.exit2" />
-          <!-- <q-icon name="eva-log-out-outline" size="31px" color="grey-6" /> -->
-          <span class="q-mt-xs text-dark text-subtitle2 ">Salir</span>
-        </div>
-      </q-route-tab>
-
-
-    </q-tabs>
-  </div>
+  <nav class="bottom-tab" :class="{ 'spaceBarBottom': isNative, 'total-h': !isNative }">
+    <div class="bottom-tab-inner">
+      <div class="navbar__blob-track" :style="blobPositionStyle">
+        <div class="navbar__blob" :class="{ 'navbar__blob--gooey': clickingIndex !== -1 }" />
+      </div>
+      <ul class="navbar__menu">
+        <li
+          v-for="(item, index) in visibleItems"
+          :key="item.label"
+          class="navbar__item"
+          :class="{ 'navbar__item--active': blobIndex === index }"
+          @mouseenter="hoveredIndex = index"
+          @mouseleave="hoveredIndex = -1"
+          @click="handleClick(item, index)"
+        >
+          <a class="navbar__link">
+            <div class="navbar__icon" v-html="item.icon" />
+            <span class="navbar__label">{{ item.label }}</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
 </template>
 
-
 <style lang="scss">
+
+$borderRadius: 8px;
+$timing: 350ms;
+
 @keyframes gooeyEffect {
-  0%   { scale: 1 1;    translate: 0 0; }
-  30%  { scale: 0.7 1;  translate: 6px 0; }
-  60%  { scale: 1.1 1;  translate: -2px 0; }
-  100% { scale: 1 1;    translate: 0 0; }
+  0% {
+    transform: scaleX(1) scaleY(1);
+  }
+  50% {
+    transform: scaleX(0.5) scaleY(1.5);
+  }
+  100% {
+    transform: scaleX(1) scaleY(1);
+  }
 }
 
-.userNavbar {
-
-  padding-top: 0px !important;
-
-  & .q-tab__indicator {
-    top: 0 !important;
-    bottom: auto !important;
-    background: #50bae4;
-    height: 3px;
-  }
-
-  & .q-tab--active {
-    position: relative;
-    background: transparent;
-
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: #2270b8;
-      border-radius: inherit;
-      animation: gooeyEffect 250ms ease 1;
-      z-index: 0;
-    }
-
-    & span {
-      color: #ffffff !important;
-      font-weight: 700;
-    }
-
-    & path {
+.navbar__item--active {
+  .navbar__icon {
+    svg path {
       stroke: #ffffff !important;
       fill: #ffffff !important;
     }
-
-    & .sharpcorners_een {
+    .sharpcorners_een {
       fill: #ffffff !important;
     }
   }
-}
-
-.q-tab__label {
-  font-size: 0.72rem !important;
+  .navbar__label {
+    color: #ffffff !important;
+    font-weight: 700;
+  }
 }
 </style>
-<style lang="scss" scoped>
-.notificationBadge1 {
-  height: 15px;
-  width: 15px;
-  background: red;
-  position: absolute;
-  border-radius: 50%;
-  left: 65%;
-  bottom: 55%;
-}
 
-.w-100 {
-  width: 100% !important;
-}
+<style lang="scss" scoped>
+
+$text: #6a778e;
+$borderRadius: 8px;
+$timing: 350ms;
 
 .bottom-tab {
-  /* Safe area: evita solapamiento con barra de navegación (3 botones o gestos) */
-  border-top: 1.5px solid $grey-5;
+  border-top: 1.5px solid #e0e0e0;
   width: 100%;
-  
   z-index: 2;
+  background: #ffffff;
 }
-.spaceBarBottom {
 
+.bottom-tab-inner {
+  position: relative;
+}
+
+.navbar__menu {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar__item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  padding: 6px 0;
+}
+
+.navbar__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.navbar__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.navbar__label {
+  font-size: 0.7rem;
+  color: $text;
+  transition: color $timing ease;
+  line-height: 1.2;
+}
+
+.navbar__blob-track {
+  position: absolute;
+  top: 50%;
+  height: 90%;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  transition: transform $timing cubic-bezier(1, 0.2, 0.1, 1.2);
+}
+
+.navbar__blob {
+  width: 100%;
+  height: 100%;
+  background: $primary;
+  border-radius: $borderRadius;
+
+  &.navbar__blob--gooey {
+    animation: gooeyEffect $timing ease 1;
+  }
+}
+
+.spaceBarBottom {
   height: 10%;
 }
 
@@ -144,7 +215,7 @@ const availableByRol = (roles) => {
 @media screen and (max-width: 820px) {
   .bottom-tab {
     width: 100%;
-    left: 0%;
+    left: 0;
   }
 }
 </style>
