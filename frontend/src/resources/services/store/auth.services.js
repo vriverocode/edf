@@ -127,13 +127,13 @@ export const useAuthStore = defineStore('auth', {
               this.setAuth(data)
               resolve(data);
             }).catch(( response ) => {
-              console.log(response)
+              console.error(response)
               reject('Error al obtener usuario');
             });
         
       })
       .catch(( response ) => {
-        console.log(response)
+        console.error(response)
         return ('Error al obtener usuario');
       });
     },
@@ -152,9 +152,25 @@ export const useAuthStore = defineStore('auth', {
         }
       })
       .catch(( response ) => {
-        console.log(response)
+        console.error(response)
         resolve('Error al cerrar sesión');
       });
+    },
+    async updateProfile(data) {
+      return await new Promise((resolve, reject) => {
+        ApiService.setHeader()
+        ApiService.put('/api/profile', data)
+          .then(async ({ data }) => {
+            if (data.code !== 200) {
+              throw data
+            }
+            await this.currentUser()
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response)
+          })
+      })
     },
     async forgotPassword(email) {
       return await new Promise((resolve, reject) => {

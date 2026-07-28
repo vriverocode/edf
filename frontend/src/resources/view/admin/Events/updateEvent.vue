@@ -90,7 +90,7 @@ const createEvent = () => {
 
   eventStore.updateEvent(dataEventForm, event.value.id)
     .then((response) => {
-      console.log(response)
+      console.error(response)
       showNotify('positive', 'Evento editado con exito')
       setTimeout(() => {
         loading.value = false
@@ -99,7 +99,7 @@ const createEvent = () => {
 
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
       setTimeout(() => {
         loading.value = false
         showNotify('negative', 'Error al editar evento')
@@ -127,7 +127,7 @@ const getEventToUpdate = () => {
     }, 1000)
   })
   .catch((response) => {
-    console.log(response)
+    console.error(response)
   })
 }
 onMounted(() => {

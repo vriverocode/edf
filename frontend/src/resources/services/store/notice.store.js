@@ -68,7 +68,7 @@ export const useNoticeStore = defineStore('Notices', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -86,7 +86,7 @@ export const useNoticeStore = defineStore('Notices', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data);
             }
@@ -108,7 +108,7 @@ export const useNoticeStore = defineStore('Notices', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -126,7 +126,7 @@ export const useNoticeStore = defineStore('Notices', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data);
             }
@@ -148,7 +148,7 @@ export const useNoticeStore = defineStore('Notices', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -165,7 +165,7 @@ export const useNoticeStore = defineStore('Notices', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -182,7 +182,7 @@ export const useNoticeStore = defineStore('Notices', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -199,7 +199,7 @@ export const useNoticeStore = defineStore('Notices', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -216,7 +216,7 @@ export const useNoticeStore = defineStore('Notices', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })

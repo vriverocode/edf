@@ -9,11 +9,11 @@ export const PushNotificationsService = {
   async init() {
     // Solo ejecutar en el celular, no en el navegador web
     if (!Capacitor.isNativePlatform()) {
-      console.log('No estamos en nativo, saltando push notifications.')
+      console.error('No estamos en nativo, saltando push notifications.')
       return
     }
 
-    console.log('Inicializando Push Notifications...')
+    console.error('Inicializando Push Notifications...')
 
     // 1. Pedir Permiso (Crítico para Android 13+)
     const result = await FirebaseMessaging.requestPermissions()
@@ -24,12 +24,12 @@ export const PushNotificationsService = {
 
       // 3. Obtener el Token FCM
       const { token } = await FirebaseMessaging.getToken()
-      console.log('Mi Token FCM es:', token)
+      console.error('Mi Token FCM es:', token)
 
       // 4. Enviar al Backend Laravel
       await this.sendTokenToBackend(token)
     } else {
-      console.log('Permiso de notificaciones denegado :(')
+      console.error('Permiso de notificaciones denegado :(')
     }
   },
 
@@ -39,11 +39,11 @@ export const PushNotificationsService = {
       axios.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem(
         'access_token'
       )}`
-      console.log(localStorage.getItem('access_token'))
+      console.error(localStorage.getItem('access_token'))
       await axios.post(API_URL, {
         token: token,
       })
-      console.log('Token enviado a Laravel exitosamente')
+      console.error('Token enviado a Laravel exitosamente')
     } catch (error) {
       console.error('Error enviando token a Laravel:', error)
     }
@@ -52,12 +52,12 @@ export const PushNotificationsService = {
   async addListeners() {
     // Cuando llega la notificación y la app está ABIERTA
     await FirebaseMessaging.addListener('notificationReceived', (event) => {
-      console.log('Notificación recibida en primer plano:', event.notification)
+      console.error('Notificación recibida en primer plano:', event.notification)
     })
 
     // Cuando el usuario TOCA la notificación
     await FirebaseMessaging.addListener('notificationActionPerformed', (event) => {
-      console.log('Click en notificación:', event.notification)
+      console.error('Click en notificación:', event.notification)
 
       // Lógica de redirección (Deep Linking)
       const data = event.notification.data

@@ -15,7 +15,7 @@ export const useMonthlyBillsStore = defineStore('MonthlyBills', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response?.data?.code == 403) {
               reject(response.data)
               return
@@ -39,7 +39,7 @@ export const useMonthlyBillsStore = defineStore('MonthlyBills', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al cargar presupuestos mensuales')
           })
       })
@@ -60,7 +60,7 @@ export const useMonthlyBillsStore = defineStore('MonthlyBills', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al verificar el presupuesto mensual')
           })
       })
@@ -78,7 +78,7 @@ export const useMonthlyBillsStore = defineStore('MonthlyBills', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al cargar el presupuesto mensual')
           })
       })
@@ -96,7 +96,7 @@ export const useMonthlyBillsStore = defineStore('MonthlyBills', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response?.data?.code == 403) {
               reject(response.data)
               return

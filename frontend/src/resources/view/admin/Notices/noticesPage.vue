@@ -40,7 +40,7 @@ const getNotices = () => {
       announces.value = response.data.announces;
     })
     .catch((response) => {
-      console.log(response);
+      console.error(response);
     })
     .finally(() => {
       loading.value = false;

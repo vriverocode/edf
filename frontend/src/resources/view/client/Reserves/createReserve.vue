@@ -27,6 +27,7 @@ const myLocale = {
   format24h: true,
   pluralDay: 'dias'
 }
+const showBankAccountModal = ref(false)
 const typeModalShow = ref(false)
 const movieModalShow = ref(false)
 const rulesModal = ref(false)
@@ -132,6 +133,15 @@ const nextStep = () => {
   }
   if (step.value == 1) {
       typeModalShow.value = false;
+
+      const necesitaPago = formData.value.typeOfReserve > 1
+        || selectedComunArea.value.price > 0
+        || selectedComunArea.value.warranty_price > 0
+
+      if (necesitaPago && !authStore.user.bankAccounts?.length) {
+        showBankAccountModal.value = true
+        return
+      }
   }
 
   if (step.value == 3 && formData.value.typeOfReserve == 1 && !selectedComunArea.value.warranty_price) {
@@ -197,7 +207,7 @@ const getComunsArea = () => {
       }, 100)
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
       showNotify('negative', 'Error al obtener areas comunes')
     })
 }
@@ -217,7 +227,7 @@ const getPayMethod = () => {
       payMethods.value = response.data
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
     })
 }
 const validateStepForm = () => {
@@ -336,7 +346,7 @@ const createReserve = () => {
         : ''
 
       if (!response.data.toPay) {
-        console.log('por aqui no son los pagados')
+        console.error('por aqui no son los pagados')
         setTimeout(() => {
           loading.value = false
           router.push('/client/reserves/confirm-reserve/' + response.data.id)
@@ -348,7 +358,7 @@ const createReserve = () => {
       createPay(response.data.id)
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
       setTimeout(() => {
         loading.value = false
         showNotify('negative', response)
@@ -1286,6 +1296,24 @@ watch(step,
       <div id="textToPasteData" />
       <conditionPayLaterModal :dialog="isPayLaterModalOpen" @closeModal="showPayLaterModal(false)"
         @confirmPayLater="handlePayLaterConfirm" />
+
+      <q-dialog v-model="showBankAccountModal" persistent>
+        <q-card style="min-width: 340px">
+          <q-card-section class="text-center q-pt-lg">
+            <q-icon name="eva-credit-card-outline" size="48px" color="warning" />
+            <h4 class="text-h6 text-bold q-mt-md q-mb-sm">Cuenta bancaria requerida</h4>
+            <p class="text-body2 text-grey-8 q-px-md">
+              Para realizar reservas con costo o garantía necesitas tener una
+              cuenta bancaria registrada para recibir reembolsos.
+            </p>
+          </q-card-section>
+          <q-card-actions align="center" class="q-pb-lg q-gutter-md">
+            <q-btn flat label="Cancelar" color="grey" v-close-popup />
+            <q-btn unelevated label="Crear cuenta" color="primary"
+              @click="router.push('/client/account-bank/add')" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
 
       <ruleDetailsModal v-model="ruleDetailsModalVisible" :rule="selectedRule" />
     </div>

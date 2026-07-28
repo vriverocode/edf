@@ -213,7 +213,7 @@ const createUser = () => {
             }
         })
         .catch((response) => {
-            console.log(response)
+            console.error(response)
             loading.value = false
             showNotify('negative', response?.message || response)
         })

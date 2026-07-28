@@ -133,7 +133,7 @@ const submit = () => {
   }
 
   loading.value = true
-  console.log(formData.value.month)
+  console.error(formData.value.month)
   const payload = new FormData()
   payload.append('departament_id', String(props.apartment?.id || ''))
   payload.append('month', String(formData.value.month?.value || ''))

@@ -8,15 +8,18 @@ class BankAccount extends Model
 {
     protected $fillable = [
         'user_id',
-        'type',
-        'entity',
-        'account_number',
-        'cci',
-        'holder_name',
-        'yape_phone',
-        'yape_name',
-        'is_default',
+        'name',
+        'status',
+        'data',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'data' => 'array',
+            'status' => 'boolean',
+        ];
+    }
 
     public function user()
     {

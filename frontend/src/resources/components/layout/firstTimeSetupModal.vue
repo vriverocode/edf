@@ -61,7 +61,7 @@ const submit = async () => {
     await authStore.currentUser()
     emit('completed')
   } catch (error) {
-    console.log(error)
+    console.error(error)
     const msg = typeof error === 'string' ? error : 'Ocurrió un error, intente nuevamente'
     $q.notify({ color: 'negative', message: msg, position: 'bottom' })
   } finally {

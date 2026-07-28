@@ -109,7 +109,7 @@ const updateNotice = () => {
     updateList()
   })
   .catch((response) => {
-    console.log(response)
+    console.error(response)
     showNotify('negative', 'Error al publicar anuncio')
   })
   .finally(() => {

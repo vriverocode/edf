@@ -11,14 +11,9 @@ return new class extends Migration
         Schema::create('bank_accounts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('type'); // 'bank' or 'yape'
-            $table->string('entity')->nullable(); // bank name
-            $table->string('account_number')->nullable();
-            $table->string('cci')->nullable();
-            $table->string('holder_name')->nullable();
-            $table->string('yape_phone')->nullable();
-            $table->string('yape_name')->nullable();
-            $table->boolean('is_default')->default(false);
+            $table->string('name');
+            $table->boolean('status')->default(true);
+            $table->longText('data');
             $table->timestamps();
         });
     }

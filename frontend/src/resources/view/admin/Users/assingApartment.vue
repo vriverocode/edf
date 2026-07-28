@@ -12,7 +12,7 @@ import { useRoute, useRouter } from 'vue-router';
   const getAvailableApartaments = () => {
     apartmentStore.getApartmentsByFind('available')
     .then((response) => {
-      console.log(response)
+      console.error(response)
 
 
       apartmentsOptions.value = [
@@ -50,7 +50,7 @@ import { useRoute, useRouter } from 'vue-router';
       }, 1000);
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
       loading.value = false
 
       showNotify('negative', response)

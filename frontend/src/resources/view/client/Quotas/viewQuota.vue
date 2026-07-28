@@ -37,7 +37,7 @@ const getQuotaById = async (id) => {
 // Función para descargar recibo
 const downloadReceipt = () => {
   // Aquí puedes implementar la lógica para descargar el recibo
-  console.log('Descargando recibo para la reserva:', quota.value?.id)
+  console.error('Descargando recibo para la reserva:', quota.value?.id)
   // Por ejemplo, generar un PDF o abrir una nueva ventana con el recibo
 }
 

@@ -64,7 +64,7 @@ onMounted(() => {
 
     })
     .catch(() => {
-      console.log('ups')
+      console.error('ups')
       storage.deleteItem("access_token");
       router.push('/login')
     })
@@ -86,7 +86,7 @@ const showNavbar = () => {
   return [
     'dashboardAdmin', 'financePage', 'usersAdmin',
     'apartmentOption', 'paymentMenu', 'balanceAdmin', 'reportsAdmin',
-    'accountsPage', 'MonthlyBillsMenu', 'quotasPaysMenu', 'payMenu'
+    'accountsPage', 'MonthlyBillsMenu', 'quotasPaysMenu', 'payMenu', 'ProfileMenu'
   ].includes(route.name)
 }
 const showBack = () => {
@@ -127,7 +127,7 @@ watch(() => notificationsStore.lastIncoming, (notif) => {
 
     })
     .catch(() => {
-      console.log('ups')
+      console.error('ups')
       storage.deleteItem("access_token");
       router.push('/login')
     })

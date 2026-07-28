@@ -52,7 +52,7 @@ const getUserOptions = () => {
     userOptions.value = [...userOptions.value, ...response.data]
   })
   .catch((response) => {
-    console.log(response)
+    console.error(response)
   })
 }
 const updateList = () => {

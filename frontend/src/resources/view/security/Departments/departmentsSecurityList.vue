@@ -22,7 +22,7 @@ const getApartment = () => {
       ready.value = true;
     })
     .catch((e) => {
-      console.log(e);
+      console.error(e);
       ready.value = true;
     });
 }

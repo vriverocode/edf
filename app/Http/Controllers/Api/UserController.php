@@ -543,6 +543,51 @@ class UserController extends Controller
     }
 
     /**
+     * Actualiza los datos de contacto del usuario autenticado (email, teléfono, contraseña).
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'phone' => ['required', 'string', 'min:7'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ], [
+            'email.required' => 'El correo electrónico es requerido.',
+            'email.email' => 'Ingrese un correo electrónico válido.',
+            'email.unique' => 'Este correo electrónico ya está en uso.',
+            'phone.required' => 'El número de teléfono es requerido.',
+            'phone.min' => 'El número de teléfono debe tener al menos 7 dígitos.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        try {
+            $data = [
+                'email' => $request->email,
+                'phone' => $request->phone,
+            ];
+
+            if ($request->filled('password')) {
+                $data['password'] = Hash::make($request->password);
+            }
+
+            $user->update($data);
+
+            return $this->returnSuccess(200, 'Datos actualizados correctamente.');
+        } catch (Exception $e) {
+            Log::error('Error en updateProfile: '.$e->getMessage());
+
+            return $this->returnFail(500, 'Error al actualizar los datos.');
+        }
+    }
+
+    /**
      * Actualiza los datos de un residente/familiar/airbnb creado por el propietario autenticado.
      */
     public function updateResident(Request $request, int $id)

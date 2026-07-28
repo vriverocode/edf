@@ -22,7 +22,7 @@ export default async function role(to, from, next) {
 
   // 4. Comprobamos si el rol tiene permiso para entrar a la ruta
   if (to.meta.roles && !to.meta.roles.includes(userRole.toLowerCase())) {
-    console.log(`Rol detectado: ${userRole}`)
+    console.error(`Rol detectado: ${userRole}`)
     console.warn(`Acceso denegado: El rol ${userRole} no tiene permisos.`)
 
     // Redirigimos a la ruta por defecto

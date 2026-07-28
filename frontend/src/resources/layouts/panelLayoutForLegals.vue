@@ -53,7 +53,7 @@ onMounted(() => {
 
     })
     .catch(() => {
-      console.log('ups')
+      console.error('ups')
       storage.deleteItem("access_token");
     //   router.push('/login')
     })
@@ -112,7 +112,7 @@ watch(() => notificationsStore.lastIncoming, (notif) => {
 
     })
     .catch(() => {
-      console.log('ups')
+      console.error('ups')
       storage.deleteItem("access_token");
       router.push('/login')
     })

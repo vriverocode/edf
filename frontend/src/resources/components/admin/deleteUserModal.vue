@@ -27,7 +27,7 @@ const deleteUser = () => {
       updateList()
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
       showNotify('negative', 'Error al borrar usuario')
     })
     .finally(() => {

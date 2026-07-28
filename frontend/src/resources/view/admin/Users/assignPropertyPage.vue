@@ -21,7 +21,7 @@ const modalRef = ref(null);
 const expanded = ref(false)
 
 const addNewUnit = (id) => {
-  console.log('Pick apartment:' + id)
+  console.error('Pick apartment:' + id)
   // Abrir el modal correctamente usando la referencia
   if (modalRef.value) {
     modalRef.value.openModal();

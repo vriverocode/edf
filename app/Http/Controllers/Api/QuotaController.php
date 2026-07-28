@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Departament;
 use App\Models\MonthlyBills;
 use App\Models\Pay;
 use App\Models\Quota;
 use App\Models\Rol;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class QuotaController extends Controller
 {
@@ -30,7 +33,7 @@ class QuotaController extends Controller
 
     private function ensureAdmin(Request $request): ?JsonResponse
     {
-        if ($request->user()->rol_id !== Rol::ADMIN) {
+        if (! in_array($request->user()->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return $this->returnFail(403, ['message' => 'No autorizado']);
         }
 
@@ -180,7 +183,112 @@ class QuotaController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        if ($denied = $this->ensureAdmin($request)) {
+            return $denied;
+        }
+
+        $validator = Validator::make($request->all(), [
+            'departament_id' => ['required', 'integer', 'exists:departaments,id'],
+            'month' => ['required', 'integer', 'between:1,12'],
+            'due_date' => ['required', 'date'],
+            'maintenance_amount' => ['nullable', 'numeric', 'min:0'],
+            'water_amount' => ['nullable', 'numeric', 'min:0'],
+            'amount' => ['required', 'numeric', 'min:0'],
+            'type' => ['nullable', 'integer', 'in:1,2'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'status' => ['nullable', 'integer', 'in:0,1,2,3'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $quota = Quota::create([
+            'departament_id' => $request->departament_id,
+            'month' => $request->month,
+            'due_date' => $request->due_date,
+            'maintenance_amount' => $request->maintenance_amount ?? 0,
+            'water_amount' => $request->water_amount ?? 0,
+            'amount' => $request->amount,
+            'type' => $request->type ?? 1,
+            'description' => $request->description,
+            'status' => $request->status ?? 1,
+        ]);
+
+        return $this->returnSuccess(200, $quota->load(['departament.owner']));
+    }
+
+    /**
+     * Generate quotas for all departments for a given month/year.
+     */
+    public function generate(Request $request)
+    {
+        if ($denied = $this->ensureAdmin($request)) {
+            return $denied;
+        }
+
+        $validator = Validator::make($request->all(), [
+            'month' => ['required', 'integer', 'between:1,12'],
+            'year' => ['required', 'integer', 'min:2000'],
+            'maintenance_amount' => ['nullable', 'numeric', 'min:0'],
+            'water_amount' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $month = (int) $request->month;
+        $year = (int) $request->year;
+
+        $existingCount = Quota::where('month', $month)
+            ->whereYear('due_date', $year)
+            ->count();
+
+        if ($existingCount > 0) {
+            return $this->returnFail(409, "Ya existen {$existingCount} cuotas generadas para {$month}/{$year}. Elimínalas primero si deseas regenerarlas.");
+        }
+
+        $departaments = Departament::with('owner')->get();
+        if ($departaments->isEmpty()) {
+            return $this->returnFail(400, 'No hay departamentos registrados');
+        }
+
+        $created = 0;
+        $dueDate = Carbon::create($year, $month, 10)->format('Y-m-d');
+
+        foreach ($departaments as $departament) {
+            $participation = (float) ($departament->participation_percentage ?? 100);
+            $maintenanceAmount = $request->maintenance_amount
+                ? round(($request->maintenance_amount * $participation) / 100, 2)
+                : 0;
+            $waterAmount = $request->water_amount ?? 0;
+            $totalAmount = $maintenanceAmount + $waterAmount;
+
+            if ($totalAmount <= 0) {
+                continue;
+            }
+
+            Quota::create([
+                'departament_id' => $departament->id,
+                'month' => $month,
+                'due_date' => $dueDate,
+                'maintenance_amount' => $maintenanceAmount,
+                'water_amount' => $waterAmount,
+                'amount' => $totalAmount,
+                'type' => 1,
+                'status' => 1,
+            ]);
+
+            $created++;
+        }
+
+        return $this->returnSuccess(200, [
+            'created' => $created,
+            'month' => $month,
+            'year' => $year,
+            'message' => "{$created} cuotas generadas para {$month}/{$year}",
+        ]);
     }
 
     /**
@@ -278,7 +386,36 @@ class QuotaController extends Controller
      */
     public function update(Request $request, Quota $quota)
     {
-        //
+        if ($denied = $this->ensureAdmin($request)) {
+            return $denied;
+        }
+
+        $validator = Validator::make($request->all(), [
+            'departament_id' => ['nullable', 'integer', 'exists:departaments,id'],
+            'month' => ['nullable', 'integer', 'between:1,12'],
+            'due_date' => ['nullable', 'date'],
+            'maintenance_amount' => ['nullable', 'numeric', 'min:0'],
+            'water_amount' => ['nullable', 'numeric', 'min:0'],
+            'amount' => ['nullable', 'numeric', 'min:0'],
+            'type' => ['nullable', 'integer', 'in:1,2'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'status' => ['nullable', 'integer', 'in:0,1,2,3'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $data = $request->only([
+            'departament_id', 'month', 'due_date',
+            'maintenance_amount', 'water_amount', 'amount',
+            'type', 'description', 'status',
+        ]);
+        $data = array_filter($data, fn ($v) => $v !== null && $v !== '');
+
+        $quota->update($data);
+
+        return $this->returnSuccess(200, $quota->fresh()->load(['departament.owner']));
     }
 
     /**
@@ -286,6 +423,17 @@ class QuotaController extends Controller
      */
     public function destroy(Quota $quota)
     {
-        //
+        $user = request()->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+
+        try {
+            $quota->delete();
+
+            return $this->returnSuccess(200, 'Cuota eliminada correctamente');
+        } catch (Exception $e) {
+            return $this->returnFail(500, 'Error al eliminar la cuota');
+        }
     }
 }

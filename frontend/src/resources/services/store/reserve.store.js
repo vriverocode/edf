@@ -17,7 +17,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -37,7 +37,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -55,7 +55,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data);
             }
@@ -81,7 +81,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error)
           })
 
@@ -101,7 +101,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -120,7 +120,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -139,7 +139,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data);
             }
@@ -161,7 +161,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -179,7 +179,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -196,7 +196,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -213,7 +213,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -229,7 +229,7 @@ export const useReserveStore = defineStore('Reserve', {
             if (data.code != 200) throw data;
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al obtener horarios de extensión');
           });
       })
@@ -245,7 +245,7 @@ export const useReserveStore = defineStore('Reserve', {
             if (data.code != 200) throw data;
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al crear extensión');
           });
       })
@@ -262,7 +262,7 @@ export const useReserveStore = defineStore('Reserve', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })

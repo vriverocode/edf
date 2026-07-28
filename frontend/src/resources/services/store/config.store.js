@@ -33,7 +33,7 @@ export const useConfigStore = defineStore('config', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error comprobando actualizaciones')
           })
       })

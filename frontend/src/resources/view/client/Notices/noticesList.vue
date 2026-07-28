@@ -39,7 +39,7 @@ const getNotices = () => {
 
     })
     .catch((response) => {
-      console.log(response);
+      console.error(response);
     })
     .finally(() => {
       loading.value = false;

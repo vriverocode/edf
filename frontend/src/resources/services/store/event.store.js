@@ -17,7 +17,7 @@ export const useEventStore = defineStore('Event', {
           
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           reject(response.data.error);
         });
         
@@ -35,7 +35,7 @@ export const useEventStore = defineStore('Event', {
           
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           if(response.data.code == 403){
             reject(response.data);
           }
@@ -57,7 +57,7 @@ export const useEventStore = defineStore('Event', {
   
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           reject(response.data.error);
         });
         
@@ -77,7 +77,7 @@ export const useEventStore = defineStore('Event', {
   
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           reject(response.data.error);
         });
         
@@ -95,7 +95,7 @@ export const useEventStore = defineStore('Event', {
   
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           reject(response.data.error);
         });
         
@@ -114,7 +114,7 @@ export const useEventStore = defineStore('Event', {
           
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           if(response.data.code == 403){
             reject(response.data);
           }
@@ -136,7 +136,7 @@ export const useEventStore = defineStore('Event', {
           
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           reject(response.data.error);
         });
       })
@@ -154,7 +154,7 @@ export const useEventStore = defineStore('Event', {
           
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           reject(response.data.error);
         });
       })
@@ -171,7 +171,7 @@ export const useEventStore = defineStore('Event', {
           
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           reject(response.data.error);
         });
       })
@@ -188,7 +188,7 @@ export const useEventStore = defineStore('Event', {
           
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           reject(response.data.error);
         });
       })
@@ -205,7 +205,7 @@ export const useEventStore = defineStore('Event', {
           
           resolve(data);
         }).catch(( {response}) => {
-          console.log(response)
+          console.error(response)
           reject(response.data.error);
         });
       })

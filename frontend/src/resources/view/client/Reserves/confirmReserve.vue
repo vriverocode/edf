@@ -32,7 +32,7 @@ const initVisualLoader = () => {
 }
 
 const downloadReceipt = () => {
-  console.log('Descargando recibo para la reserva:', booking.value?.id)
+  console.error('Descargando recibo para la reserva:', booking.value?.id)
 }
 
 const goToReserveList = () => {

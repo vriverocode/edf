@@ -35,7 +35,7 @@ export const useIncidentStore = defineStore('Incidents', {
           .then(({ data }) => {
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al obtener incidencias');
           });
       })
@@ -51,7 +51,7 @@ export const useIncidentStore = defineStore('Incidents', {
           .then(({ data }) => {
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al obtener la incidencia');
           });
       })
@@ -67,7 +67,7 @@ export const useIncidentStore = defineStore('Incidents', {
           .then(({ data }) => {
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al crear la incidencia');
           });
       })

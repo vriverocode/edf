@@ -30,7 +30,7 @@ const getPayMethod = () =>{
 
     })
     .catch((response) => {
-      console.log(response);
+      console.error(response);
     })
     .finally(() => {
       loading.value = false;
@@ -50,7 +50,7 @@ const showDialog = (e) => {
 
 const selectPaymethod = (id) => {
   selectedPayMethod.value = payMethods.value.find(payMethod => payMethod.id == id)
-  console.log(selectedPayMethod.value)
+  console.error(selectedPayMethod.value)
 }
 const getDialogData = (e) => {
   return e.target.closest('.q-item').dataset

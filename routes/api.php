@@ -52,7 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Auth / User profile ──────────────────────────────────
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'units' => function ($query) {
+        $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'bankAccounts', 'units' => function ($query) {
             $query->withCount('pendingQuotas')->withSum('pendingQuotas', 'amount');
         }, 'departmentsInquilino' => function ($query) {
             $query->with(['departament' => function ($q) {
@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $userData;
     });
     Route::middleware('auth:sanctum')->post('/token-movile', [UserController::class, 'saveTokenMovile']);
+    Route::put('/profile', [UserController::class, 'updateProfile'])->middleware('throttle:write');
 
     // ── Users ────────────────────────────────────────────────
     Route::prefix('users')->name('user.')->middleware('role_not:trabajador')->group(function () {
@@ -215,7 +216,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [QuotaController::class, 'show']);
         Route::get('/client-water-detail/{id}', [QuotaController::class, 'clientWaterDetail']);
         Route::get('/client-maintenance-detail/{id}', [QuotaController::class, 'clientMaintenanceDetail']);
-        // Admin only
+        // Write - Admin only
+        Route::post('/', [QuotaController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/generate', [QuotaController::class, 'generate'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::put('/{quota}', [QuotaController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::delete('/{quota}', [QuotaController::class, 'destroy'])->middleware('role:admin,super-admin', 'throttle:write');
+        // Admin only - reports
         Route::get('/admin/monthly-summary', [QuotaController::class, 'adminMonthlySummary'])->middleware('role:admin,super-admin');
         Route::get('/admin/by-month/{month}', [QuotaController::class, 'adminGroupedByOwnerForMonth'])->middleware('role:admin,super-admin');
     });

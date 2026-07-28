@@ -73,8 +73,8 @@ class BookingController extends Controller
             }
 
             $date = date('Y-m-d', strtotime($request->date));
-            if ($this->hasActiveBookingForDay($user->id, $request->comun_area, $date)) {
-                return $this->returnFail(409, 'Ya tienes una reserva activa para esta área en el día seleccionado. Cancela la reserva existente para poder crear una nueva.');
+            if ($this->hasOverlappingBookingForUser($user->id, $request->comun_area, $date, $request->time_from, $request->time_to)) {
+                return $this->returnFail(409, 'Ya tienes una reserva activa que se superpone con el horario seleccionado. Cancela la reserva existente para poder crear una nueva.');
             }
 
             if (! $this->hasAvailableSlots($request->comun_area, $date, $request->time_from, $request->time_to, $request->exclusive)) {
@@ -669,13 +669,25 @@ class BookingController extends Controller
         return $booking->user_id === $user->id || $user->rol_id === Rol::ADMIN;
     }
 
-    private function hasActiveBookingForDay(int $userId, int $comunAreaId, string $date): bool
+    private function hasOverlappingBookingForUser(int $userId, int $comunAreaId, string $date, string $timeFrom, string $timeTo): bool
     {
-        return Booking::where('user_id', $userId)
-            ->where('comun_area_id', $comunAreaId)
+        $bookings = Booking::where('user_id', $userId)
             ->where('date', $date)
             ->where('status', '>', 0)
-            ->exists();
+            ->where('time_from', '<', $timeTo)
+            ->where('time_to', '>', $timeFrom)
+            ->get();
+
+        foreach ($bookings as $booking) {
+            if ((int) $booking->comun_area_id === $comunAreaId) {
+                return true;
+            }
+            if ($booking->is_exclusive) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function hasAvailableSlots(int $comunAreaId, string $date, string $timeFrom, string $timeTo, int $isExclusive): bool

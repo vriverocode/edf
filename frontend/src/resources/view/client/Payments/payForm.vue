@@ -193,7 +193,7 @@ const getBookingById = () => {
       ready.value = true
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
       ready.value = true
     })
 }
@@ -204,7 +204,7 @@ const getQuotaById = () => {
       ready.value = true
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
       ready.value = true
     })
 }
@@ -270,7 +270,7 @@ const formatAllToCopy = () => {
       }
     });
   } catch (error) {
-    console.log('Error al copiar la data')
+    console.error('Error al copiar la data')
   }
   copyData(dataFormatted.trim())
 }

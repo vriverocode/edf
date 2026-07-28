@@ -24,7 +24,7 @@ const getMonths = () => {
       months.value = response.data;
     })
     .catch((err) => {
-      console.log(err);
+      console.error(err);
     })
     .finally(() => {
       loading.value = false;

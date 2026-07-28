@@ -28,7 +28,7 @@ const deleteAnnounce = () => {
     updateList()
   })
   .catch((response) => {
-    console.log(response)
+    console.error(response)
     showNotify('negative', 'Error al borrar anuncio')
   })
   .finally(() => {

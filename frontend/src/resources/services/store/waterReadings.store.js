@@ -31,7 +31,7 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al cargar mediciones de agua')
           })
       })
@@ -49,7 +49,7 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al cargar la medición')
           })
       })
@@ -67,7 +67,7 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al registrar medición de agua')
           })
       })
@@ -85,7 +85,7 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al actualizar medición de agua')
           })
       })
@@ -103,7 +103,7 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al obtener la última medición')
           })
       })

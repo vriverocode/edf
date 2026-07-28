@@ -22,6 +22,8 @@ const items = [
   { label: 'Inicio', icon: iconsApp.home3, route: '/dashboard' },
   { label: 'Usuarios', icon: iconsApp.user3, route: '/admin/users', roles: ['admin'] },
   { label: 'Finanzas', icon: iconsApp.finance2, route: '/admin/finance', roles: ['admin', 'propietario'] },
+  { label: 'Perfil', icon: iconsApp.user3, route: '/profile/menu', roles: ['propietario'] },
+
   { label: 'Salir', icon: iconsApp.exit2, action: logout },
 ]
 

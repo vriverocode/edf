@@ -31,7 +31,7 @@ export const useVisitStore = defineStore('Visit', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response?.data?.code == 403) {
               reject(response.data)
             }
@@ -52,7 +52,7 @@ export const useVisitStore = defineStore('Visit', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response?.data?.code == 403) {
               reject(response.data)
             }
@@ -74,7 +74,7 @@ export const useVisitStore = defineStore('Visit', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data)
             }
@@ -96,7 +96,7 @@ export const useVisitStore = defineStore('Visit', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response?.data?.code == 403) {
               reject(response.data)
             }
@@ -118,7 +118,7 @@ export const useVisitStore = defineStore('Visit', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response?.data?.code == 403) {
               reject(response.data)
             }
@@ -180,7 +180,7 @@ export const useVisitStore = defineStore('Visit', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response?.data?.code == 403) {
               reject(response.data)
             }
@@ -200,7 +200,7 @@ export const useVisitStore = defineStore('Visit', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al eliminar visita')
           })
       })

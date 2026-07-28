@@ -57,14 +57,14 @@ const setAssist = (type) => {
   }
   eventStore.setAssitByData(eventData.value.id, data)
   .then((response) => {
-    console.log(response)
+    console.error(response)
     eventData.value.assits = response.data.assits
     eventData.value.not_assits = response.data.not_assits
 
     yetAssist()
   })
   .catch((response) => {
-    console.log(response)
+    console.error(response)
   })
   .finally(() => {
     loadingButton.value = false;
@@ -75,8 +75,8 @@ const yetAssist = () => {
  let assits = JSON.parse(eventData.value.assits ?? '[]')
  let notAssits = JSON.parse(eventData.value.not_assits ?? '[]')
 
- console.log(assits)
- console.log(notAssits)
+ console.error(assits)
+ console.error(notAssits)
  
   if(assits.includes(user.value.id) || notAssits.includes(user.value.id)){
     confirmAssits.value = false 

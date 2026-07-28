@@ -17,7 +17,7 @@ export const useReportStore = defineStore('Report', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al cargar reporte')
           })
       })
@@ -37,7 +37,7 @@ export const useReportStore = defineStore('Report', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al cargar métricas')
           })
       })
@@ -71,7 +71,7 @@ export const useReportStore = defineStore('Report', {
             resolve(true)
           })
           .catch((err) => {
-            console.log(err)
+            console.error(err)
             reject('Error al descargar el archivo')
           })
       })

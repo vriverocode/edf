@@ -66,7 +66,7 @@ const getComunAreaById = () => {
       formatedData(response);
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
     })
 }
 
@@ -179,7 +179,7 @@ const formatedData = (response) => {
     comunArea.value.has_extension = !!data.has_extension;
 
   } catch (error) {
-    console.log(error);
+    console.error(error);
     showNotify('negative', 'Error procesando los datos del área');
     loading.value = false;
   }

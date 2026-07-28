@@ -19,7 +19,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -81,7 +81,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data);
             }
@@ -103,7 +103,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -123,7 +123,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -150,7 +150,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -168,7 +168,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -186,7 +186,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al obtener detalle de medicion de agua');
           });
       })
@@ -203,7 +203,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al obtener detalle de mantenimiento');
           });
       })
@@ -220,7 +220,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
 
@@ -239,7 +239,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data);
             }
@@ -261,7 +261,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -279,7 +279,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -296,7 +296,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })
@@ -313,7 +313,7 @@ export const useQuotaStore = defineStore('Quota', {
 
             resolve(data);
           }).catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error);
           });
       })

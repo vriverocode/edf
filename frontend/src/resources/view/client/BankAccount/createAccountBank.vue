@@ -1,52 +1,79 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Notify } from 'quasar'
+import { useQuasar } from 'quasar'
 import { useBankAccountStore } from '@/services/store/bankAccount.store'
 import AccountFormFields from '@/components/bankAccount/accountFormFields.vue'
 
 const router = useRouter()
+const $q = useQuasar()
 const store = useBankAccountStore()
 const loading = ref(false)
 
 const form = ref({
-  type: 'bank',
-  entity: '',
-  account_number: '',
-  cci: '',
-  holder_name: '',
-  yape_phone: '',
-  yape_name: '',
+  name: '',
+  data: {
+    type: 'bank',
+    entity: '',
+    account_number: '',
+    cci: '',
+    holder_name: '',
+    yape_phone: '',
+    yape_name: '',
+  },
 })
 
-const onSubmit = async () => {
+const onSubmit = () => {
   loading.value = true
-  try {
-    const res = await store.createAccount(form.value)
-    if (res.code !== 200) throw res
-    Notify.create({ color: 'positive', message: 'Cuenta agregada con éxito', timeout: 2000 })
-    router.go(-1)
-  } catch (e) {
-    Notify.create({ color: 'negative', message: e?.error || 'Error al crear cuenta', timeout: 2000 })
-  } finally {
-    loading.value = false
+
+  const payload = {
+    name: form.value.name,
+    data: JSON.stringify(form.value.data),
   }
+
+  store
+    .createAccount(payload)
+    .then((res) => {
+      if (res.code !== 200) throw res
+      $q.notify({ type: 'positive', message: 'Cuenta agregada con éxito' })
+      router.go(-1)
+    })
+    .catch((e) => {
+      $q.notify({ type: 'negative', message: e?.error || 'Error al crear cuenta' })
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 </script>
 
 <template>
-  <q-page class="q-pa-md">
-    <q-card class="q-mx-auto" style="max-width: 600px">
-      <q-card-section>
-        <div class="text-h6">Nueva cuenta bancaria</div>
-      </q-card-section>
-      <q-card-section>
+  <div class="md:px-20 px-2">
+    <div class="text-center text-black text-h5 text-bold md:mt-4 mt-5 mb-3">
+      Nueva Cuenta Bancaria
+    </div>
+
+    <q-form @submit="onSubmit">
+      <div class="row w-full">
         <AccountFormFields v-model="form" />
-      </q-card-section>
-      <q-card-actions align="around" class="q-pa-md">
-        <q-btn label="Cancelar" color="primary" outline @click="router.go(-1)" />
-        <q-btn label="Guardar" color="primary" :loading="loading" @click="onSubmit" />
-      </q-card-actions>
-    </q-card>
-  </q-page>
+
+        <div class="col-12 pb-8 mt-6 px-2 md:px-12 flex items-center justify-between">
+          <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
+            <q-btn color="grey-9" style="border-radius: 0.5rem;" @click="router.go(-1)">
+              <div class="px-8 py-1">
+                Volver
+              </div>
+            </q-btn>
+          </div>
+          <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
+            <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
+              <div class="px-8 py-1">
+                Guardar
+              </div>
+            </q-btn>
+          </div>
+        </div>
+      </div>
+    </q-form>
+  </div>
 </template>

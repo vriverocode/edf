@@ -79,7 +79,7 @@ const showDialog = (e) => {
   const dialogData = getDialogData(e)
   selectBill(dialogData.bills)
 
-  console.log(selectedBill.value)
+  console.error(selectedBill.value)
   // setTimeout(() => {
   //   dialog.value = dialogData.dialog;
   // }, 500);

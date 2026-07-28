@@ -113,7 +113,7 @@ const createEvent = () => {
 
   eventStore.createEvent(dataEventForm)
     .then((response) => {
-      console.log(response)
+      console.error(response)
       showNotify('positive', 'Evento registrado con exito')
       setTimeout(() => {
         loading.value = false
@@ -122,7 +122,7 @@ const createEvent = () => {
 
     })
     .catch((response) => {
-      console.log(response)
+      console.error(response)
       setTimeout(() => {
         loading.value = false
         showNotify('negative', 'Error al registrar Evento')

@@ -30,7 +30,7 @@ const getApartaments = () => {
 }
 const expanded = ref(false)
 const showPick = (id) => {
-  console.log('Pick apartment:' + id)
+  console.error('Pick apartment:' + id)
 }
 const internalNumber = (number) => {
   let splitNumber = number.split("-")

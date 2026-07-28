@@ -19,28 +19,22 @@ class BankAccountController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'type' => 'required|in:bank,yape',
-            'entity' => 'required_if:type,bank|string|max:255',
-            'account_number' => 'required_if:type,bank|string|max:50',
-            'cci' => 'nullable|string|max:50',
-            'holder_name' => 'required_if:type,bank|string|max:255',
-            'yape_phone' => 'required_if:type,yape|string|max:20',
-            'yape_name' => 'required_if:type,yape|string|max:255',
+            'name' => 'required|string|max:255',
+            'data' => 'required|json',
         ]);
 
         if ($validator->fails()) {
             return $this->returnFail(422, $validator->errors()->first());
         }
 
-        $data = $request->only([
-            'type', 'entity', 'account_number', 'cci',
-            'holder_name', 'yape_phone', 'yape_name',
-        ]);
-        $data['user_id'] = $request->user()->id;
+        $data = [
+            'user_id' => $request->user()->id,
+            'name' => $request->name,
+            'data' => $request->data,
+        ];
 
-        if ($request->boolean('is_default')) {
-            BankAccount::where('user_id', $request->user()->id)->update(['is_default' => false]);
-            $data['is_default'] = true;
+        if ($request->has('status')) {
+            $data['status'] = $request->boolean('status');
         }
 
         $account = BankAccount::create($data);
@@ -60,27 +54,21 @@ class BankAccountController extends Controller
         $account = BankAccount::where('user_id', $request->user()->id)->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'type' => 'required|in:bank,yape',
-            'entity' => 'required_if:type,bank|string|max:255',
-            'account_number' => 'required_if:type,bank|string|max:50',
-            'cci' => 'nullable|string|max:50',
-            'holder_name' => 'required_if:type,bank|string|max:255',
-            'yape_phone' => 'required_if:type,yape|string|max:20',
-            'yape_name' => 'required_if:type,yape|string|max:255',
+            'name' => 'required|string|max:255',
+            'data' => 'required|json',
         ]);
 
         if ($validator->fails()) {
             return $this->returnFail(422, $validator->errors()->first());
         }
 
-        $data = $request->only([
-            'type', 'entity', 'account_number', 'cci',
-            'holder_name', 'yape_phone', 'yape_name',
-        ]);
+        $data = [
+            'name' => $request->name,
+            'data' => $request->data,
+        ];
 
-        if ($request->boolean('is_default')) {
-            BankAccount::where('user_id', $request->user()->id)->update(['is_default' => false]);
-            $data['is_default'] = true;
+        if ($request->has('status')) {
+            $data['status'] = $request->boolean('status');
         }
 
         $account->update($data);

@@ -15,7 +15,7 @@ export const usePayMethodStore = defineStore('PayMehtod', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response?.data?.code == 403) {
               reject(response.data)
             }
@@ -36,7 +36,7 @@ export const usePayMethodStore = defineStore('PayMehtod', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data)
             }

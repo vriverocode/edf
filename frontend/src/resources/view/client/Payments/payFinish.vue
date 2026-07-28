@@ -35,7 +35,7 @@ const getPayById = async (id) => {
 
 // Función para descargar recibo
 const downloadReceipt = () => {
-  console.log('Descargando recibo para la reserva:', pay.value?.id)
+  console.error('Descargando recibo para la reserva:', pay.value?.id)
 }
 
 // Función para ir al inicio

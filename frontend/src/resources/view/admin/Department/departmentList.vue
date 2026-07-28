@@ -133,7 +133,7 @@ const assignNewOwner = async () => {
     changeOwnerModal.value = false
     getApartment()
   } catch (error) {
-    console.log(error)
+    console.error(error)
     Notify.create({
       type: 'negative',
       message: typeof error === 'string' ? error : 'No se pudo asignar el propietario'

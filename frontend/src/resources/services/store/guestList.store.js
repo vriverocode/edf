@@ -15,7 +15,7 @@ export const useGuestListStore = defineStore('GuestList', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al obtener invitados')
           })
       })
@@ -32,7 +32,7 @@ export const useGuestListStore = defineStore('GuestList', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al agregar invitado')
           })
       })
@@ -49,7 +49,7 @@ export const useGuestListStore = defineStore('GuestList', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al actualizar invitado')
           })
       })
@@ -66,7 +66,7 @@ export const useGuestListStore = defineStore('GuestList', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al eliminar invitado')
           })
       })

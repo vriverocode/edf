@@ -25,7 +25,7 @@ const getNoticesById = () => {
     noticesViews.value = JSON.parse(notice.value.views)
   })
   .catch((response) => {
-    console.log(response)
+    console.error(response)
   })
   .finally(() => {
     ready.value = true
@@ -56,7 +56,7 @@ const setStatusAnnounce = (status) => {
     }, 1000);
   })
   .catch((data) => {
-    console.log(data)
+    console.error(data)
   })
   .finally(() => loading.value = false)
 }

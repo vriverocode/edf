@@ -16,7 +16,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data)
             }
@@ -37,7 +37,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data)
             }
@@ -58,7 +58,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data)
             }
@@ -79,7 +79,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data)
             }
@@ -99,7 +99,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error)
           })
       })
@@ -122,7 +122,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error)
           })
       })
@@ -137,7 +137,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al actualizar usuario')
           })
       })
@@ -155,7 +155,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al eliminar usuario')
           })
       })
@@ -173,7 +173,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response.data.error)
           })
       })
@@ -191,7 +191,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             if (response.data.code == 403) {
               reject(response.data)
             }
@@ -211,7 +211,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al actualizar usuario')
           })
       })
@@ -228,7 +228,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al actualizar áreas comunes')
           })
       })
@@ -245,7 +245,7 @@ export const useUserStore = defineStore('User', {
             resolve(data)
           })
           .catch(({ response }) => {
-            console.log(response)
+            console.error(response)
             reject(response?.data?.error || 'Error al obtener reservas')
           })
       })

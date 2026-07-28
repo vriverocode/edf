@@ -117,6 +117,18 @@ const routes = [
         },
       },
       {
+        path: '/profile/menu',
+        component: () => import('@/view/client/Profile/profileMenu.vue'),
+        name: 'ProfileMenu',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Perfil',
+          roles: ['propietario'],
+          depth: 2,
+        },
+      },
+      {
         path: '/admin/account-bank',
         component: () => import('@/view/admin/BankAccount/accountBankList.vue'),
         name: 'bankAccountPage',
@@ -1116,6 +1128,42 @@ const routes = [
           depth: 4,
         },
       },
+      {
+        path: '/client/account-bank',
+        component: () => import('@/view/client/BankAccount/accountBankList.vue'),
+        name: 'clientBankAccountList',
+        beforeEnter: [auth],
+        meta: {
+          title: 'Mis cuentas bancarias',
+          pagTitle: 'Mis cuentas bancarias',
+          roles: ['admin', 'super-admin', 'propietario', 'inquilino', 'familiar'],
+          depth: 4,
+        },
+      },
+      {
+        path: '/client/account-bank/add',
+        component: () => import('@/view/client/BankAccount/createAccountBank.vue'),
+        name: 'clientBankAccountAdd',
+        beforeEnter: [auth],
+        meta: {
+          title: 'Agregar cuenta bancaria',
+          pagTitle: 'Agregar cuenta bancaria',
+          roles: ['admin', 'super-admin', 'propietario', 'inquilino', 'familiar'],
+          depth: 4,
+        },
+      },
+      {
+        path: '/client/account-bank/update/:id',
+        component: () => import('@/view/client/BankAccount/updateAccountBank.vue'),
+        name: 'clientBankAccountUpdate',
+        beforeEnter: [auth],
+        meta: {
+          title: 'Editar cuenta bancaria',
+          pagTitle: 'Editar cuenta bancaria',
+          roles: ['admin', 'super-admin', 'propietario', 'inquilino', 'familiar'],
+          depth: 4,
+        },
+      },
 
       //----------security----
       {
@@ -1223,6 +1271,18 @@ const routes = [
           title: 'Reporte de morosos',
           pagTitle: 'Reporte de morosos',
           roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
+        path: '/client/profile/edit',
+        component: () => import('@/view/client/Profile/editProfile.vue'),
+        name: 'editProfile',
+        beforeEnter: [auth],
+        meta: {
+          title: 'Editar Perfil',
+          pagTitle: 'Editar Perfil',
+          roles: ['admin', 'super-admin', 'propietario', 'inquilino', 'familiar', 'trabajador'],
           depth: 3,
         },
       }

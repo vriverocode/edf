@@ -16,7 +16,7 @@ const load = async (page = 1) => {
     await notifications.fetch({ page, per_page: 15 })
     await notifications.fetchUnreadCount()
 
-    console.log(notifications.items)
+    console.error(notifications.items)
   } finally {
     loading.value = false
     ready.value = true

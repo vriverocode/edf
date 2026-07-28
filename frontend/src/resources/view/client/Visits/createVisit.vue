@@ -92,7 +92,7 @@ const handleSubmit = () => {
 
   visitStore.storeVisit(payload)
     .then((response) => {
-      console.log(response)
+      console.error(response)
       showNotify('positive', 'Visita completada')
       setTimeout(() => {
         loading.value = false

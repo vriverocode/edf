@@ -82,7 +82,7 @@ const getQuotas = () => {
       quotas.value = response.data;
     })
     .catch((response) => {
-      console.log(response);
+      console.error(response);
     })
     .finally(() => {
       loading.value = false;

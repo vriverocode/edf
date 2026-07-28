@@ -1,24 +1,28 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Notify } from 'quasar'
+import { useQuasar } from 'quasar'
 import { useBankAccountStore } from '@/services/store/bankAccount.store'
 import AccountFormFields from '@/components/bankAccount/accountFormFields.vue'
 
 const router = useRouter()
 const route = useRoute()
+const $q = useQuasar()
 const store = useBankAccountStore()
 const loading = ref(false)
 const fetching = ref(true)
 
 const form = ref({
-  type: 'bank',
-  entity: '',
-  account_number: '',
-  cci: '',
-  holder_name: '',
-  yape_phone: '',
-  yape_name: '',
+  name: '',
+  data: {
+    type: 'bank',
+    entity: '',
+    account_number: '',
+    cci: '',
+    holder_name: '',
+    yape_phone: '',
+    yape_name: '',
+  },
 })
 
 onMounted(async () => {
@@ -27,55 +31,80 @@ onMounted(async () => {
     if (res.code !== 200) throw res
     const acct = res.data
     form.value = {
-      type: acct.type || 'bank',
-      entity: acct.entity || '',
-      account_number: acct.account_number || '',
-      cci: acct.cci || '',
-      holder_name: acct.holder_name || '',
-      yape_phone: acct.yape_phone || '',
-      yape_name: acct.yape_name || '',
+      name: acct.name || '',
+      data: {
+        type: acct.data?.type || 'bank',
+        entity: acct.data?.entity || '',
+        account_number: acct.data?.account_number || '',
+        cci: acct.data?.cci || '',
+        holder_name: acct.data?.holder_name || '',
+        yape_phone: acct.data?.yape_phone || '',
+        yape_name: acct.data?.yape_name || '',
+      },
     }
   } catch (e) {
-    Notify.create({ color: 'negative', message: 'Error al cargar cuenta', timeout: 2000 })
+    $q.notify({ type: 'negative', message: 'Error al cargar cuenta' })
     router.go(-1)
   } finally {
     fetching.value = false
   }
 })
 
-const onSubmit = async () => {
+const onSubmit = () => {
   loading.value = true
-  try {
-    const res = await store.updateAccount(route.params.id, form.value)
-    if (res.code !== 200) throw res
-    Notify.create({ color: 'positive', message: 'Cuenta actualizada con éxito', timeout: 2000 })
-    router.go(-1)
-  } catch (e) {
-    Notify.create({ color: 'negative', message: e?.error || 'Error al actualizar cuenta', timeout: 2000 })
-  } finally {
-    loading.value = false
+
+  const payload = {
+    name: form.value.name,
+    data: JSON.stringify(form.value.data),
   }
+
+  store
+    .updateAccount(route.params.id, payload)
+    .then((res) => {
+      if (res.code !== 200) throw res
+      $q.notify({ type: 'positive', message: 'Cuenta actualizada con éxito' })
+      router.go(-1)
+    })
+    .catch((e) => {
+      $q.notify({ type: 'negative', message: e?.error || 'Error al actualizar cuenta' })
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 </script>
 
 <template>
-  <q-page class="q-pa-md">
-    <q-card class="q-mx-auto" style="max-width: 600px">
-      <q-card-section>
-        <div class="text-h6">Editar cuenta bancaria</div>
-      </q-card-section>
-      <q-card-section v-if="fetching" class="flex flex-center">
-        <q-spinner color="primary" size="40px" />
-      </q-card-section>
-      <template v-else>
-        <q-card-section>
-          <AccountFormFields v-model="form" />
-        </q-card-section>
-        <q-card-actions align="around" class="q-pa-md">
-          <q-btn label="Cancelar" color="primary" outline @click="router.go(-1)" />
-          <q-btn label="Guardar" color="primary" :loading="loading" @click="onSubmit" />
-        </q-card-actions>
-      </template>
-    </q-card>
-  </q-page>
+  <div class="md:px-20 px-2">
+    <div class="text-center text-black text-h5 text-bold md:mt-4 mt-5 mb-3">
+      Editar Cuenta Bancaria
+    </div>
+
+    <div v-if="fetching" class="flex justify-center items-center py-20">
+      <q-spinner-dots color="primary" size="7rem" />
+    </div>
+
+      <q-form v-else @submit="onSubmit">
+      <div class="row w-full">
+        <AccountFormFields v-model="form" />
+
+        <div class="col-12 pb-8 mt-6 px-2 md:px-12 flex items-center justify-between">
+          <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
+            <q-btn color="grey-9" style="border-radius: 0.5rem;" @click="router.go(-1)">
+              <div class="px-8 py-1">
+                Volver
+              </div>
+            </q-btn>
+          </div>
+          <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
+            <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
+              <div class="px-8 py-1">
+                Guardar
+              </div>
+            </q-btn>
+          </div>
+        </div>
+      </div>
+    </q-form>
+  </div>
 </template>
