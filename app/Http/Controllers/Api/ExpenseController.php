@@ -33,7 +33,7 @@ class ExpenseController extends Controller
         $perPage = $validated['per_page'] ?? 12;
 
         $paginator = Expense::query()
-            ->with(['provider:id,name', 'monthlyBill:id,month,year'])
+            ->with(['provider:id,name', 'serviceCategory:id,name', 'monthlyBill:id,month,year'])
             ->filter($validated)
             ->orderBy('issue_date', 'desc')
             ->paginate($perPage);
@@ -98,7 +98,7 @@ class ExpenseController extends Controller
     public function show(int $id)
     {
         $expense = Expense::query()
-            ->with(['provider:id,name', 'monthlyBill:id,month,year'])
+            ->with(['provider:id,name', 'serviceCategory:id,name', 'monthlyBill:id,month,year'])
             ->find($id);
 
         if (! $expense) {
@@ -123,7 +123,7 @@ class ExpenseController extends Controller
         $validated['status'] = $validated['status'] ?? 1;
         $expense = Expense::create($validated);
 
-        return $this->returnSuccess(200, $expense->load(['provider:id,name', 'monthlyBill:id,month,year']));
+        return $this->returnSuccess(200, $expense->load(['provider:id,name', 'serviceCategory:id,name', 'monthlyBill:id,month,year']));
     }
 
     public function update(Request $request, int $id)
@@ -145,7 +145,7 @@ class ExpenseController extends Controller
 
         $expense->update($validated);
 
-        return $this->returnSuccess(200, $expense->load(['provider:id,name', 'monthlyBill:id,month,year']));
+        return $this->returnSuccess(200, $expense->load(['provider:id,name', 'serviceCategory:id,name', 'monthlyBill:id,month,year']));
     }
 
     private function validateExpense(Request $request, bool $isUpdate = false, ?Expense $expense = null): array
@@ -160,6 +160,7 @@ class ExpenseController extends Controller
 
         $validated = $request->validate([
             'provider_id' => ['required', 'integer', 'exists:providers,id'],
+            'service_category_id' => ['nullable', 'integer', 'exists:service_categories,id'],
             'monthly_bill_id' => ['nullable', 'integer', 'exists:monthly_bills,id'],
             'invoice_number' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],

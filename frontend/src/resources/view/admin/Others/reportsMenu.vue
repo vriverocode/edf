@@ -24,6 +24,12 @@ const menu = [
     subtitle: 'Propietarios con cuotas pendientes',
     link: '/admin/reports/delinquents',
   },
+  {
+    title: 'Pagos mensuales',
+    icon: cuotas,
+    subtitle: 'Matriz de pagos por unidad y mes',
+    link: '/admin/reports/monthly-pays',
+  },
 ];
 
 const goTo = (url) => {
@@ -48,7 +54,7 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        <div class="text-center mt-2  text-title-squad text-ellipsis ellipsis ">
+        <div class="text-center mt-2  text-title-squad text-ellipsis ellipsis w-full">
           {{ item.title }}
         </div>
       </div>

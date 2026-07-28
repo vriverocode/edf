@@ -39,7 +39,7 @@ const totalByCategory = computed(() => {
 const fetchExpenses = async () => {
   loading.value = true
   try {
-    const params = { ...filter.value, per_page: 999 }
+    const params = { ...filter.value, per_page: 100 }
     const response = await expenseStore.getExpenses(params)
     if (response?.code === 200) {
       expenses.value = response.data?.data || []
@@ -66,26 +66,26 @@ const formatMoney = (v) => `S/. ${(Number(v) || 0).toFixed(2)}`
 onMounted(() => { loadFormOptions(); fetchExpenses() })
 </script>
 <template>
-  <div class="md:px-20 px-2 pb-10 h-full" style="overflow: auto;">
+  <div class="md:px-36 px-2 pb-10 h-full" style="overflow: auto;">
     <div class="text-center text-black text-h5 text-bold my-2">Reporte de gastos</div>
     <div class="row q-mb-md q-col-gutter-xs">
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-3 md:px-5">
         <q-select v-model="filter.month" :options="monthOptions" option-label="name" option-value="value"
-          emit-value map-options dense borderless class="form__inputsR" label="Mes" clearable
+          emit-value map-options dense borderless class="form__inputsRccc" label="Mes" clearable
           @update:model-value="fetchExpenses" />
       </div>
-      <div class="col-6 col-md-3">
-        <q-input v-model.number="filter.year" type="number" dense borderless class="form__inputsR" label="Año"
+      <div class="col-6 col-md-3 md:px-5">
+        <q-input v-model.number="filter.year" type="number" dense borderless class="form__inputsRccc" label="Año"
           @update:model-value="fetchExpenses" />
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-3 md:px-5">
         <q-select v-model="filter.provider_id" :options="providers" option-label="name" option-value="id"
-          emit-value map-options dense borderless class="form__inputsR" label="Proveedor" clearable
+          emit-value map-options dense borderless class="form__inputsRccc" label="Proveedor" clearable
           @update:model-value="fetchExpenses" />
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-3 md:px-5">
         <q-select v-model="filter.category_id" :options="categories" option-label="name" option-value="id"
-          emit-value map-options dense borderless class="form__inputsR" label="Categoría" clearable
+          emit-value map-options dense borderless class="form__inputsRccc" label="Categoría" clearable
           @update:model-value="fetchExpenses" />
       </div>
     </div>
@@ -119,9 +119,9 @@ onMounted(() => { loadFormOptions(); fetchExpenses() })
     </div>
   </div>
 </template>
-<style scoped>
+<style >
 .rounded-borders { border-radius: 0.5rem; }
-.form__inputsR .q-field__inner {
+.form__inputsRccc .q-field__inner {
   box-shadow: 0px 3px 4px 0px #bfbfbf48;
   border-radius: 0.5rem;
   border: 1px solid rgb(223, 223, 223);

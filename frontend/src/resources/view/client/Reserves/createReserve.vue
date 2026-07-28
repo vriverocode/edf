@@ -201,7 +201,12 @@ const getComunsArea = () => {
   comunAreaStore.getAllComunAreas()
     .then((response) => {
       if (response.code !== 200) throw response
-      comunAreas.value = response.data
+      const allowedIds = (authStore.user.available_comun_areas || []).map(a => a.id)
+      if (allowedIds.length > 0) {
+        comunAreas.value = response.data.filter(area => allowedIds.includes(area.id))
+      } else {
+        comunAreas.value = response.data
+      }
       setTimeout(() => {
         ready.value = true
       }, 100)

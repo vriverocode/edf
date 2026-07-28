@@ -34,8 +34,25 @@ const getPayById = async (id) => {
 }
 
 // Función para descargar recibo
-const downloadReceipt = () => {
-  console.error('Descargando recibo para la reserva:', pay.value?.id)
+const downloadReceipt = async () => {
+  const payId = pay.value?.id
+  if (!payId) return
+  const token = localStorage.getItem('access_token')
+  try {
+    const res = await fetch('/api/pays/receipt/' + payId, {
+      headers: { Authorization: 'Bearer ' + token }
+    })
+    if (!res.ok) return
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'recibo-pago-' + (pay.value?.pay_id || payId) + '.pdf'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error('Error al descargar recibo:', e)
+  }
 }
 
 // Función para ir al inicio
@@ -179,7 +196,7 @@ const reloadBooking = () => {
         <!-- Botones de acción -->
         <div class="w-full max-w-sm space-y-0">
           <!-- Botón de descargar recibo -->
-          <!-- <button @click="downloadReceipt"
+          <button @click="downloadReceipt"
             class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -187,7 +204,7 @@ const reloadBooking = () => {
               </path>
             </svg>
             <span>Descargar Recibo</span>
-          </button> -->
+          </button>
 
           <!-- Enlace de volver al inicio -->
           <div class="text-center ">

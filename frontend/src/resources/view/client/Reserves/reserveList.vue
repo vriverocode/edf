@@ -397,9 +397,6 @@ const statusOptions = [
                           @click="goTo('/client/reserves/extend/' + reserve.id)">
                           <q-item-section>Extender tiempo</q-item-section>
                         </q-item>
-                        <!-- <q-item clickable v-close-popup v-if="reserve.status == 3">
-                          <q-item-section>Descarga pase</q-item-section>
-                        </q-item> -->
                         <q-item clickable v-close-popup v-if="reserve.status == 3 && reserve.comun_area?.type == 4"
                           @click="goTo('/client/reserves/guests/' + reserve.id)">
                           <q-item-section>Lista de invitados</q-item-section>

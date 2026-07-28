@@ -53,15 +53,15 @@ const formatMoney = (v) => `S/. ${(Number(v) || 0).toFixed(2)}`
 onMounted(fetchDelinquents)
 </script>
 <template>
-  <div class="md:px-20 px-2 pb-10 h-full" style="overflow: auto;">
-    <div class="text-center text-black text-h5 text-bold my-2">Reporte de morosos</div>
-    <div class="row q-mb-md justify-center q-col-gutter-sm">
+  <div class="md:px-36 px-2 pb-10 h-full" style="overflow: auto;">
+    <div class="text-center text-black text-h5 text-bold my-2 pb-4">Reporte de morosos</div>
+    <div class="row q-mb-md justify-start q-col-gutter-sm">
       <div class="col-6 col-md-3">
         <q-select v-model="selectedMonth" :options="monthOptions" option-label="name" option-value="value"
-          emit-value map-options dense borderless class="form__inputsR" @update:model-value="fetchDelinquents" />
+          emit-value map-options dense borderless class="form__inputsRss" @update:model-value="fetchDelinquents" />
       </div>
       <div class="col-6 col-md-3">
-        <q-input v-model.number="selectedYear" type="number" dense borderless class="form__inputsR"
+        <q-input v-model.number="selectedYear" type="number" dense borderless class="form__inputsRss"
           @update:model-value="fetchDelinquents" />
       </div>
     </div>
@@ -85,9 +85,9 @@ onMounted(fetchDelinquents)
     </div>
   </div>
 </template>
-<style scoped>
+<style >
 .rounded-borders { border-radius: 0.5rem; }
-.form__inputsR .q-field__inner {
+.form__inputsRss .q-field__inner {
   box-shadow: 0px 3px 4px 0px #bfbfbf48;
   border-radius: 0.5rem;
   border: 1px solid rgb(223, 223, 223);

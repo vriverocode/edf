@@ -32,7 +32,7 @@ const fetchData = async () => {
     if (response?.code === 200) {
       monthlyData.value = response.data?.data || []
     }
-    const expResponse = await expenseStore.getExpenses({ year: selectedYear.value, per_page: 999 })
+    const expResponse = await expenseStore.getExpenses({ year: selectedYear.value, per_page: 100 })
     if (expResponse?.code === 200) {
       const expenses = expResponse.data?.data || []
       expenseTotal.value = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)

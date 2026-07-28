@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Api;
 use App\Exports\BookingsExport;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Departament;
+use App\Models\Quota;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -131,6 +133,111 @@ class ReportController extends Controller
             'exitosas' => $exitosas,
             'top_areas' => $topAreas,
             'top_dias' => $topDias,
+        ]);
+    }
+
+    public function monthlyPayments(Request $request): JsonResponse
+    {
+        $year = (int) ($request->query('year', now()->year));
+        if ($year < 2000) {
+            return $this->returnFail(422, ['message' => 'Año inválido']);
+        }
+
+        $departments = Departament::with([
+            'owner:id,name',
+            'peoples.user:id,name',
+        ])->where(function ($q) {
+            $q->whereNotNull('user_id')
+                ->orWhereHas('peoples');
+        })->orderBy('type')->orderBy('number')->get();
+
+        $quotas = Quota::whereYear('due_date', $year)
+            ->whereIn('departament_id', $departments->pluck('id'))
+            ->get(['id', 'departament_id', 'month', 'amount', 'maintenance_amount', 'water_amount', 'status', 'due_date']);
+
+        $quotasByDept = $quotas->groupBy('departament_id');
+
+        $months = [
+            1 => ['label' => 'Ene', 'name' => 'Enero'],
+            2 => ['label' => 'Feb', 'name' => 'Febrero'],
+            3 => ['label' => 'Mar', 'name' => 'Marzo'],
+            4 => ['label' => 'Abr', 'name' => 'Abril'],
+            5 => ['label' => 'May', 'name' => 'Mayo'],
+            6 => ['label' => 'Jun', 'name' => 'Junio'],
+            7 => ['label' => 'Jul', 'name' => 'Julio'],
+            8 => ['label' => 'Ago', 'name' => 'Agosto'],
+            9 => ['label' => 'Sep', 'name' => 'Septiembre'],
+            10 => ['label' => 'Oct', 'name' => 'Octubre'],
+            11 => ['label' => 'Nov', 'name' => 'Noviembre'],
+            12 => ['label' => 'Dic', 'name' => 'Diciembre'],
+        ];
+
+        $data = $departments->map(function ($dept) use ($quotasByDept, $months) {
+            $deptQuotas = $quotasByDept->get($dept->id, collect());
+            $deptQuotasByMonth = $deptQuotas->keyBy('month');
+
+            $responsible = $dept->owner?->name;
+            if (! $responsible) {
+                $tenant = $dept->peoples->first();
+                $responsible = $tenant?->user?->name;
+            }
+
+            $monthData = [];
+            foreach ($months as $monthNum => $monthInfo) {
+                $quota = $deptQuotasByMonth->get($monthNum);
+                $monthData[$monthNum] = $quota ? [
+                    'quota_id' => $quota->id,
+                    'amount' => (float) $quota->amount,
+                    'maintenance_amount' => (float) $quota->maintenance_amount,
+                    'water_amount' => (float) $quota->water_amount,
+                    'status' => (int) $quota->status,
+                ] : null;
+            }
+
+            return [
+                'departament_id' => $dept->id,
+                'number' => $dept->number,
+                'block' => $dept->block,
+                'type' => $dept->type,
+                'type_label' => $dept->type_label,
+                'responsible' => $responsible ?? '—',
+                'months' => $monthData,
+            ];
+        });
+
+        $totals = [];
+        foreach ($months as $monthNum => $monthInfo) {
+            $amount = 0;
+            $paid = 0;
+            $pending = 0;
+            $overdue = 0;
+            foreach ($data as $row) {
+                $m = $row['months'][$monthNum];
+                if (! $m) {
+                    continue;
+                }
+                $amount += $m['amount'];
+                if ($m['status'] === 3) {
+                    $paid += $m['amount'];
+                } elseif ($m['status'] === 4) {
+                    $overdue += $m['amount'];
+                } else {
+                    $pending += $m['amount'];
+                }
+            }
+            $totals[$monthNum] = [
+                'amount' => round($amount, 2),
+                'paid' => round($paid, 2),
+                'pending' => round($pending, 2),
+                'overdue' => round($overdue, 2),
+            ];
+        }
+
+        return $this->returnSuccess(200, [
+            'year' => $year,
+            'months' => $months,
+            'departments' => $data,
+            'totals' => $totals,
         ]);
     }
 

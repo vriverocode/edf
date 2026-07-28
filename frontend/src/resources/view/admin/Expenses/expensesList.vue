@@ -228,6 +228,9 @@ onMounted(() => {
                     <div class="text-lg font-bold text-gray-900 mb-0">
                       {{ expense.provider?.name || 'Proveedor' }}
                     </div>
+                    <div v-if="expense.service_category?.name" class="text-xs text-primary font-medium">
+                      {{ expense.service_category.name }}
+                    </div>
                     <div class="text-sm text-gray-600">
                       {{ formatMoney(expense.amount) }}
                     </div>

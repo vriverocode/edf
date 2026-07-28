@@ -1,10 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { Notify, Dialog } from 'quasar'
+import { Notify } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { useExpenseStore } from '@/services/store/expense.store'
 import createProviderModal from '@/components/finance/createProviderModal.vue'
-import { useServiceCategoryStore } from '@/services/store/serviceCategory.store'
+import createServiceCategoryModal from '@/components/finance/createServiceCategoryModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,12 +17,7 @@ const expenseForm = ref(null)
 const providers = ref([])
 const serviceCategories = ref([])
 const createProviderDialog = ref(false)
-const manageCategoryDialog = ref(false)
-const categoryList = ref([])
-const categoryLoading = ref(false)
-const editingCategory = ref(null)
-const editCategoryForm = ref({ name: '' })
-const editCategoryLoading = ref(false)
+const createCategoryDialog = ref(false)
 
 const isEdit = computed(() => !!route.params.id)
 const expenseId = computed(() => route.params.id)
@@ -57,6 +52,7 @@ const ALLOWED_INVOICE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf']
 
 const formData = ref({
   provider: null,
+  service_category: null,
   invoice_number: '',
   amount: '',
   issue_date: '',
@@ -151,65 +147,7 @@ const onServiceCategoryCreated = (created) => {
       a.name.localeCompare(b.name, 'es')
     )
   }
-}
-
-const categoryStore = useServiceCategoryStore()
-
-const loadCategories = async () => {
-  categoryLoading.value = true
-  try {
-    const res = await categoryStore.getServiceCategories()
-    if (res?.code === 200 && Array.isArray(res.data)) {
-      categoryList.value = res.data
-    }
-  } catch {
-    categoryList.value = []
-  } finally {
-    categoryLoading.value = false
-  }
-}
-
-const openEditCategory = (cat) => {
-  editingCategory.value = cat
-  editCategoryForm.value = { name: cat.name || '' }
-}
-
-const saveEditCategory = async () => {
-  if (!editCategoryForm.value.name?.trim()) {
-    showNotify('warning', 'El nombre es requerido')
-    return
-  }
-  editCategoryLoading.value = true
-  try {
-    const res = await categoryStore.updateServiceCategory(editingCategory.value.id, { name: editCategoryForm.value.name.trim(), status: 1 })
-    if (res?.code !== 200) throw res
-    showNotify('positive', 'Categoría actualizada')
-    editingCategory.value = null
-    loadCategories()
-  } catch (err) {
-    showNotify('negative', err?.error || err?.message || 'Error al actualizar')
-  } finally {
-    editCategoryLoading.value = false
-  }
-}
-
-const confirmDeleteCategory = (cat) => {
-  Dialog.create({
-    title: 'Eliminar categoría',
-    message: `¿Eliminar <b>${cat.name}</b>?`,
-    html: true,
-    cancel: true,
-    ok: { color: 'negative', label: 'Eliminar' }
-  }).onOk(async () => {
-    try {
-      const res = await categoryStore.deleteServiceCategory(cat.id)
-      if (res?.code !== 200) throw res
-      showNotify('positive', 'Categoría eliminada')
-      loadCategories()
-    } catch (err) {
-      showNotify('negative', err?.error || err?.message || 'Error al eliminar')
-    }
-  })
+  formData.value.service_category = serviceCategories.value.find((c) => c.id === created.id) || created
 }
 
 const loadExpense = async () => {
@@ -220,6 +158,7 @@ const loadExpense = async () => {
 
   formData.value = {
     provider: providers.value.find((p) => p.id === expense.provider_id) || null,
+    service_category: serviceCategories.value.find((c) => c.id === expense.service_category_id) || null,
     invoice_number: expense.invoice_number || '',
     amount: formatMaskedMoney(expense.amount),
     issue_date: expense.issue_date ? expense.issue_date.substring(0, 10) : '',
@@ -235,6 +174,9 @@ const loadExpense = async () => {
 const buildPayload = () => {
   const payload = new FormData()
   payload.append('provider_id', String(formData.value.provider?.id ?? ''))
+  if (formData.value.service_category?.id) {
+    payload.append('service_category_id', String(formData.value.service_category.id))
+  }
   if (formData.value.invoice_number) {
     payload.append('invoice_number', formData.value.invoice_number)
   }
@@ -497,58 +439,28 @@ onMounted(async () => {
         </div>
 
         <div class="col-12 mt-3 px-2 md:px-12">
-          <q-btn flat color="primary" icon="eva-settings-outline" @click="loadCategories(); manageCategoryDialog = true">
-            Gestionar categorías de servicio
-          </q-btn>
+          <div class="row q-col-gutter-sm items-center">
+            <div class="col">
+              <div class="text-subtitle2 text-black">Categoría de servicio</div>
+              <q-select
+                dense
+                borderless
+                class="form__inputsR mt-1"
+                v-model="formData.service_category"
+                :options="serviceCategories"
+                option-label="name"
+                clearable
+              />
+            </div>
+            <div class="col-auto">
+              <q-btn flat dense round color="primary" type="button" @click="createCategoryDialog = true">
+                <q-icon name="eva-plus-outline" />
+                <q-tooltip>Nueva categoría</q-tooltip>
+              </q-btn>
+            </div>
+          </div>
         </div>
       </div>
-
-      <!-- Category Management Modal -->
-      <q-dialog v-model="manageCategoryDialog" persistent>
-        <q-card style="min-width: min(420px, 92vw); max-width: 500px;" class="q-pa-md">
-          <div class="text-h6 q-mb-sm">Categorías de servicio</div>
-
-          <div v-if="categoryLoading" class="flex justify-center q-py-md">
-            <q-spinner-dots color="primary" size="2rem" />
-          </div>
-
-          <div v-else-if="categoryList.length === 0" class="text-grey-6 text-center q-py-md">
-            No hay categorías registradas
-          </div>
-
-          <q-list v-else separator>
-            <q-item v-for="cat in categoryList" :key="cat.id">
-              <q-item-section>
-                <template v-if="editingCategory?.id === cat.id">
-                  <q-input v-model="editCategoryForm.name" dense borderless autofocus
-                    class="form__inputsR" @keyup.enter="saveEditCategory" />
-                </template>
-                <template v-else>
-                  <q-item-label>{{ cat.name }}</q-item-label>
-                </template>
-              </q-item-section>
-              <q-item-section side>
-                <template v-if="editingCategory?.id === cat.id">
-                  <q-btn flat dense round color="positive" icon="eva-checkmark-outline"
-                    :loading="editCategoryLoading" @click="saveEditCategory" />
-                  <q-btn flat dense round color="grey" icon="eva-close-outline"
-                    @click="editingCategory = null" />
-                </template>
-                <template v-else>
-                  <q-btn flat dense round color="primary" icon="eva-edit-outline"
-                    @click="openEditCategory(cat)" />
-                  <q-btn flat dense round color="negative" icon="eva-trash-2-outline"
-                    @click="confirmDeleteCategory(cat)" />
-                </template>
-              </q-item-section>
-            </q-item>
-          </q-list>
-
-          <div class="row justify-end q-gutter-sm q-mt-md">
-            <q-btn flat label="Cerrar" color="grey" no-caps @click="manageCategoryDialog = false" />
-          </div>
-        </q-card>
-      </q-dialog>
 
       <div class="col-12 mb-2 px-2 md:px-12 flex justify-end mt-4 gap-2">
         <q-btn
@@ -583,6 +495,12 @@ onMounted(async () => {
       @close-modal="createProviderDialog = false"
       @created="onProviderCreated"
       @category-created="onServiceCategoryCreated"
+    />
+
+    <createServiceCategoryModal
+      :dialog="createCategoryDialog"
+      @close-modal="createCategoryDialog = false"
+      @created="onServiceCategoryCreated"
     />
   </div>
 </template>

@@ -52,7 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Auth / User profile ──────────────────────────────────
     Route::get('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'bankAccounts', 'units' => function ($query) {
+        $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'bankAccounts', 'availableComunAreas', 'units' => function ($query) {
             $query->withCount('pendingQuotas')->withSum('pendingQuotas', 'amount');
         }, 'departmentsInquilino' => function ($query) {
             $query->with(['departament' => function ($q) {
@@ -196,6 +196,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/validate/{id}', [PayController::class, 'validatePayment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/refund', [PayController::class, 'refund'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::get('/receipt/{payId}', [PayController::class, 'downloadBookingReceipt']);
     });
 
     // ── Notifications ────────────────────────────────────────
@@ -317,6 +318,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/test/list-paid', [BillInvoiceController::class, 'listPaidQuotas']);
         Route::post('/test/send/{quotaId}', [BillInvoiceController::class, 'testSend']);
     });
+    Route::get('/bill-invoices/client-download/{quotaId}', [BillInvoiceController::class, 'clientDownloadPdf'])->middleware('auth:sanctum', 'role_not:trabajador');
 
     // ── Transaction Categories ───────────────────────────────
     Route::prefix('transaction-categories')->name('transactionCategories.')->middleware('role_not:trabajador')->group(function () {
@@ -393,5 +395,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/bookings', [ReportController::class, 'bookings']);
         Route::get('/bookings/export', [ReportController::class, 'exportBookings']);
         Route::get('/bookings/metrics', [ReportController::class, 'bookingsMetrics']);
+        Route::get('/monthly-payments', [ReportController::class, 'monthlyPayments']);
     });
 });

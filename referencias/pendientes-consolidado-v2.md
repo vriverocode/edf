@@ -2,7 +2,7 @@
 
 > Consolidado actualizado con todas las tareas pendientes, renumeradas y priorizadas.
 > Incluye: pendientes del proyecto original + hallazgos de auditoría del código.
-> **Fecha:** 2026-07-23
+> **Fecha:** 2026-07-28
 
 ---
 
@@ -102,19 +102,19 @@
 ## ⚪ Prioridad Baja (4 ítems)
 
 ### #14 — Dead code: función noDisponible()
-- **Estado:** 🔧 Ya hay código (código muerto)
+- **Estado:** ✅ Completado
 - **Archivo:** `frontend/src/resources/view/client/Visits/visitsList.vue:124-126`
 - **Problema:** Función nunca llamada, remanente de botón de editar eliminado
 - **Acción:** Eliminar función + comentario `<!-- Edit removed -->`
 
 ### #15 — Menú "Descarga pase" comentado
-- **Estado:** 🔧 Ya hay código (comentado)
+- **Estado:** ✅ Completado
 - **Archivo:** `frontend/src/resources/view/client/Reserves/reserveList.vue:304-306`
 - **Problema:** Item de menú comentado, posiblemente para implementar después
 - **Acción:** Decidir si implementar o eliminar completamente
 
 ### #16 — downloadReceipt() stubs sin implementar
-- **Estado:** 🔨 Iniciado parcial
+- **Estado:** ✅ Completado
 - **Archivos:** `confirmReserve.vue:34`, `viewReserve.vue:37`, `viewQuota.vue:37`, `payFinish.vue:36`
 - **Problema:** 4 funciones con solo `console.log`, botones comentados en templates
 - **Acción:** Implementar lógica de descarga de recibo o eliminar la funcionalidad
@@ -131,18 +131,16 @@
 
 | Estado | Cantidad | Ítems |
 |--------|----------|-------|
-| ✅ Completado | 8 | #1, #2, #3, #5, #6, #7, #8, #9 |
+| ✅ Completado | 11 | #1, #2, #3, #5, #6, #7, #8, #9, #14, #15, #16 |
 | ✅ Ya estaba implementado | 1 | #11 |
 | 🔨 Todo por hacer | 4 | #4, #10, #12, #13 |
-| 🔧 Ya hay código | 2 | #14, #15 |
-| 🔨 Iniciado parcial | 1 | #16 |
 | Postergado | 1 | #17 |
 
 ## Sugerencia de orden de ejecución
 
 1. ~~**Sprint 1 (quick wins):** #1, #2, #3 — Bugs críticos y mejoras con código existente~~ ✅
-2. ~~**Sprint 2 (limpieza):** #7, #14, #15, #16 — Reducir deuda técnica~~ ✅ (parcial: #14-#16 pendientes)
+2. ~~**Sprint 2 (limpieza):** #7, #14, #15, #16 — Reducir deuda técnica~~ ✅
 3. ~~**Sprint 3 (funcionalidad):** #4, #5, #6 — Backend completo de cuotas y validación~~ ✅ (parcial: #4 pendiente)
 4. ~~**Sprint 4 (áreas comunes):** #10, #11 — Turnos horarios + bloqueo mantenimiento~~ ✅ (#11 ya implementado)
 5. ~~**Sprint 5 (UX):** #8, #9, #12, #13 — Validación data real, reservas pago, flujo Volver~~ ✅ (parcial: #12-#13 pendientes)
-6. **Pendientes:** #4, #10, #12, #13, #14, #15, #16, #17
+6. **Pendientes:** #4, #10, #12, #13, #17

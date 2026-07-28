@@ -92,6 +92,50 @@ class BillInvoiceController extends Controller
         return $pdf->download($filename);
     }
 
+    public function clientDownloadPdf(Request $request, int $quotaId)
+    {
+        $user = request()->user();
+
+        $quota = Quota::with([
+            'departament.owner',
+            'waterReading',
+            'pays' => function ($query) {
+                $query->where('status', 2)
+                    ->where('type', 1)
+                    ->orderByDesc('pay_date');
+            },
+        ])->find($quotaId);
+
+        if (! $quota) {
+            return $this->returnFail(404, 'Cuota no encontrada');
+        }
+
+        if ((int) $quota->status !== 3) {
+            return $this->returnFail(403, 'El recibo solo está disponible para cuotas pagadas');
+        }
+
+        $isAdmin = in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]);
+        $isOwner = $quota->departament->user_id === $user->id;
+        $isTenant = $quota->peoples_x_departments_id && $quota->responsiblePivot?->user_id === $user->id;
+
+        if (! $isAdmin && ! $isOwner && ! $isTenant) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
+        $invoiceData = $this->billInvoiceService->buildInvoiceData($quota);
+
+        $pdf = Pdf::loadView('bills.invoice', $invoiceData)
+            ->setPaper('letter')
+            ->setOption('isRemoteEnabled', true);
+
+        $filename = 'recibo-'.
+            $invoiceData['departament']->number.
+            '-'.strtolower($invoiceData['monthLabel']).
+            '-'.$invoiceData['year'].'.pdf';
+
+        return $pdf->download($filename);
+    }
+
     public function previewPdf(Request $request, int $quotaId)
     {
         $user = request()->user();

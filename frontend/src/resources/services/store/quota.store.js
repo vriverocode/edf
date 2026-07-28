@@ -249,6 +249,20 @@ export const useQuotaStore = defineStore('Quota', {
       })
 
     },
+    async getMonthlyPaymentsReport(year) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.get('/api/reports/monthly-payments?year=' + year)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al cargar reporte de pagos mensuales')
+          })
+      })
+    },
     async getAvailableQuotaInDayByArea(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {

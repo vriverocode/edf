@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Notifications\RealtimeNotification;
 use App\Services\BillInvoiceService;
 use App\Services\BookingPendingPayNotifier;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -92,6 +93,44 @@ class PayController extends Controller
         }
 
         return $this->returnSuccess(200, $pays->get());
+    }
+
+    public function downloadBookingReceipt(Request $request, int $payId)
+    {
+        $pay = Pay::with([
+            'booking.comunArea',
+            'booking.departament',
+            'user',
+            'payMethod',
+        ])->find($payId);
+
+        if (! $pay) {
+            return $this->returnFail(404, 'Pago no encontrado');
+        }
+
+        $user = request()->user();
+        $isAdmin = in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]);
+        $isOwner = $pay->user_id === $user->id;
+        if (! $isAdmin && ! $isOwner) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+
+        if ((int) $pay->status !== 2) {
+            return $this->returnFail(403, 'El recibo solo está disponible para pagos exitosos');
+        }
+
+        $booking = $pay->booking;
+        $pdf = Pdf::loadView('bills.booking-receipt', [
+            'pay' => $pay,
+            'booking' => $booking,
+            'user' => $pay->user,
+            'payMethod' => $pay->payMethod,
+            'date' => $pay->pay_date ? Carbon::parse($pay->pay_date)->format('d/m/Y') : '—',
+        ])->setPaper('letter')->setOption('isRemoteEnabled', true);
+
+        $filename = 'recibo-reserva-'.($booking->booking_number ?? $pay->id).'.pdf';
+
+        return $pdf->download($filename);
     }
 
     public function storePay(Request $request)
@@ -256,7 +295,7 @@ class PayController extends Controller
                 // Enviar recibos por correo después de aprobar el pago
                 $this->billInvoiceService->sendBillInvoicesForPay($pay);
             } elseif ((int) $pay->type === 2 && $pay->booking_id) {
-                $this->approveBooking($pay->booking_id);
+                $this->approveBooking($pay);
             }
 
             $financialAccountId = (int) $request->financial_account_id;
@@ -703,7 +742,7 @@ class PayController extends Controller
                 [
                     'title' => 'Pago de reserva realizado',
                     'message' => 'Se ha realizado el pago por la reserva #'.$pay->booking->booking_number
-                        .' Por favor validar.',
+                    .' Por favor validar.',
                     'url' => '/admin/pay/validate/'.$pay->id,
                     'meta' => ['booking_id' => $pay->id],
                 ],

@@ -205,7 +205,6 @@ onMounted(() => {
                             Ver detalles
                           </q-tooltip>
                         </q-btn>
-                        <!-- Edit removed -- not yet implemented -->
                         <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.9rem"
                           @click="deleteItem(visit)">
                           <q-tooltip transition-show="flip-right" transition-hide="flip-left"

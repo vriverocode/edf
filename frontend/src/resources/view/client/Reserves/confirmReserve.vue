@@ -31,8 +31,25 @@ const initVisualLoader = () => {
   error.value = null
 }
 
-const downloadReceipt = () => {
-  console.error('Descargando recibo para la reserva:', booking.value?.id)
+const downloadReceipt = async () => {
+  const payId = booking.value?.pay?.id
+  if (!payId) return
+  const token = localStorage.getItem('access_token')
+  try {
+    const res = await fetch('/api/pays/receipt/' + payId, {
+      headers: { Authorization: 'Bearer ' + token }
+    })
+    if (!res.ok) return
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'recibo-reserva-' + (booking.value?.booking_number || payId) + '.pdf'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error('Error al descargar recibo:', e)
+  }
 }
 
 const goToReserveList = () => {
@@ -179,7 +196,7 @@ onMounted(() => {
         <!-- Botones de acción -->
         <div class="w-full max-w-sm space-y-4">
           <!-- Botón de descargar recibo -->
-          <!-- <button @click="downloadReceipt"
+          <button @click="downloadReceipt" v-if="booking.pay"
             class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -187,7 +204,7 @@ onMounted(() => {
               </path>
             </svg>
             <span>Descargar Recibo</span>
-          </button> -->
+          </button>
 
           <!-- Enlace de volver al inicio -->
           <div class="text-center">

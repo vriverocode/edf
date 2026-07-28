@@ -1275,6 +1275,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/reports/monthly-pays',
+        component: () => import('@/view/admin/Reports/reportMonthlyPays.vue'),
+        name: 'reportMonthlyPays',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Pagos mensuales por unidad',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/client/profile/edit',
         component: () => import('@/view/client/Profile/editProfile.vue'),
         name: 'editProfile',
