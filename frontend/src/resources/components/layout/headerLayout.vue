@@ -13,7 +13,7 @@ const { user } = storeToRefs(useAuthStore())
 const notificationsStore = useNotificationsStore()
 const emitter = inject('emitter')
 const pagTitle = ref(route.meta.pagTitle)
-const homePagesNameToHeader = ['dashboardAdmin', 'financePage', 'usersAdmin']
+const homePagesNameToHeader = ['dashboardAdmin', 'financePage', 'usersAdmin', 'ProfileMenu']
 const isHomePage = ref(homePagesNameToHeader.includes(route.name))
 const ifOwner = ref(user.value.rol.name.toLowerCase() == 'propietario')
 const reserveAreaActive = ref(false)
