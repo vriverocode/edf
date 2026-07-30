@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router';
 import booking from '@/assets/img/menu/reservas.png'
 import gastos2 from '@/assets/img/menu/gastos2.png'
 import cuotas from '@/assets/img/menu/cuotas2.png'
+import morosos from '@/assets/img/menu/morosos.png'
 import { onMounted } from 'vue';
 const router = useRouter()
 const menu = [
@@ -20,7 +21,7 @@ const menu = [
   },
   {
     title: 'Reporte de morosos',
-    icon: cuotas,
+    icon: morosos,
     subtitle: 'Propietarios con cuotas pendientes',
     link: '/admin/reports/delinquents',
   },

@@ -136,12 +136,25 @@ onMounted(() => {
               <div class="space-y-2 pt-3">
                 <!-- Monto -->
                 <div class="flex items-center text-sm text-gray-700">
-                  <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                    </path>
+                  <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Círculo exterior -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <!-- Símbolo S/ con trazo y peso extra para mayor grosor -->
+                    <text 
+                      x="50%" y="50%" 
+                      dy=".35em" 
+                      text-anchor="middle" 
+                      font-family="sans-serif" 
+                      font-size="10" 
+                      font-weight="900" 
+                      fill="currentColor" 
+                      stroke="currentColor" 
+                      stroke-width="1.2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"
+                    >S/</text>
                   </svg>
-                  <span class="font-medium">S/. {{ pay.amount.toFixed(2) }}</span>
+                  <span class="font-medium">{{ pay.amount.toFixed(2) }}</span>
                 </div>
 
                 <!-- Fecha de pago -->

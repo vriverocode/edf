@@ -11,7 +11,7 @@ import account from '@/assets/img/menu/cuentas.png'
 import cuotas from '@/assets/img/menu/cuotas2.png'
 import gastos from '@/assets/img/menu/gastos2.png'
 import pays from '@/assets/img/menu/pagos.svg' 
-
+import worker from '@/assets/img/menu/worker.png'
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
@@ -46,7 +46,7 @@ const menu = [
   },
   {
     title: 'Proveedores',
-    icon: gastos,
+    icon: worker,
     link: '/admin/providers/list',
     roles: [1]
   },

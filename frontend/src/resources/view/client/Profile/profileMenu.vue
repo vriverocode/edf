@@ -20,7 +20,10 @@ const menu = [
     },
 
 ];
-
+const menuByRol = computed(() => {
+  const rol = user.value?.rol_id
+  return menu.filter(item => !item.roles || item.roles.includes(rol))
+})
 const goTo = (url) => {
   router.push(url)
 }
@@ -32,7 +35,7 @@ onMounted(() => {
 <template>
   <div class="h-full w-full px-2">
     <div class="row md:pt-10 pt-2  md:px-28">
-      <div class="col-md-3  col-6 px-7 my-3" v-for="(item, key) in menu" :key="key">
+      <div class="col-md-3   col-6 px-7 my-3" v-for="(item, key) in menuByRol" :key="key">
         <div class="boxItem" @click="goTo(item.link)">
           <div class="flex justify-center items-center h-full w-full p-1">
             <div class="flex justify-center items-center h-full w-full p-1">

@@ -114,7 +114,7 @@ class Pay extends Model
     {
         $payMethod = [
             '',
-            'Pago de quota',
+            'Pago de Cuota',
             'Pago de Reserva',
         ];
 

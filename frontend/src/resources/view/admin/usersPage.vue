@@ -8,7 +8,6 @@ import unidades from '@/assets/img/menu/departamentos.png'
 import usuarios from '@/assets/img/menu/usuarios.png'
 import visitas from '@/assets/img/menu/visitas.png'
 
-
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
@@ -39,7 +38,7 @@ const goTo = (url) => {
 </script>
 <template>
   <div class="h-full w-full px-2">
-    <div class="row md:pt-10 pt-5  md:px-16">
+    <div class="row md:pt-10 pt-2  md:px-28">
       <div class="col-md-3 md:px- col-6 px-7 my-3" v-for="(item, key) in menu" :key="key" @click="goTo(item.link)">
         <div class="boxItem ">
           <div class="flex justify-center items-center h-full w-full p-1">
