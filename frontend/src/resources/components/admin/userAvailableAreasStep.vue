@@ -26,6 +26,12 @@ const loadAreas = async () => {
     if (data.code === 200) {
       areas.value = data.data || []
     }
+    if (props.userId) {
+      const { data: userData } = await ApiService.get('/api/users/byId/' + props.userId)
+      const current = userData?.data?.available_comun_areas || []
+      selectedAreas.value = current.map((a) => a.id)
+      emit('update:modelValue', [...selectedAreas.value])
+    }
   } catch {
     areas.value = []
   } finally {

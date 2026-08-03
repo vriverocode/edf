@@ -2,11 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBankAccountStore } from '@/services/store/bankAccount.store'
+import { useAuthStore } from '@/services/store/auth.services'
 import { useQuasar } from 'quasar'
 
 const router = useRouter()
 const $q = useQuasar()
 const bankStore = useBankAccountStore()
+const authStore = useAuthStore()
 
 const accounts = ref([])
 const loading = ref(false)
@@ -44,7 +46,8 @@ const confirmDelete = (item) => {
   }).onOk(() => {
     bankStore
       .deleteAccount(item.id)
-      .then(() => {
+      .then(async () => {
+        await authStore.currentUser()
         $q.notify({ type: 'positive', message: 'Cuenta eliminada correctamente' })
         fetchAccounts()
       })

@@ -3,12 +3,14 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useBankAccountStore } from '@/services/store/bankAccount.store'
+import { useAuthStore } from '@/services/store/auth.services'
 import AccountFormFields from '@/components/bankAccount/accountFormFields.vue'
 
 const router = useRouter()
 const route = useRoute()
 const $q = useQuasar()
 const store = useBankAccountStore()
+const authStore = useAuthStore()
 const loading = ref(false)
 const fetching = ref(true)
 
@@ -60,8 +62,9 @@ const onSubmit = () => {
 
   store
     .updateAccount(route.params.id, payload)
-    .then((res) => {
+    .then(async (res) => {
       if (res.code !== 200) throw res
+      await authStore.currentUser()
       $q.notify({ type: 'positive', message: 'Cuenta actualizada con éxito' })
       router.go(-1)
     })

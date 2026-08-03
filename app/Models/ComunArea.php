@@ -29,10 +29,15 @@ class ComunArea extends Model
         'has_extension',
         'max_time_extension',
         'extension_price',
+        'status',
+    ];
+
+    protected $casts = [
+        'status' => 'boolean',
     ];
 
     // Agregamos 'type_label' a la lista de appends
-    public $appends = ['pay_label', 'format_rules', 'type_label', 'type_label_large', 'type_color'];
+    public $appends = ['pay_label', 'format_rules', 'type_label', 'type_label_large', 'type_color', 'status_label', 'status_color'];
 
     public function getPayLabelAttribute()
     {
@@ -79,6 +84,16 @@ class ComunArea extends Model
             4 => 'primary',
             default => 'No definido',
         };
+    }
+
+    public function getStatusLabelAttribute()
+    {
+        return $this->status ? 'Habilitada' : 'Deshabilitada';
+    }
+
+    public function getStatusColorAttribute()
+    {
+        return $this->status ? 'positive' : 'negative';
     }
 
     public function bookings()

@@ -241,6 +241,26 @@ class ComunAreaController extends Controller
         return $this->returnSuccess(200, 'ok');
     }
 
+    public function toggleAreaStatus($id)
+    {
+        $user = request()->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+        $area = ComunArea::find($id);
+        if (! $area) {
+            return $this->returnFail(400, 'Area común no encontrada');
+        }
+        $area->update(['status' => ! $area->status]);
+
+        return $this->returnSuccess(200, [
+            'id' => $area->id,
+            'status' => $area->status,
+            'status_label' => $area->status_label,
+            'status_color' => $area->status_color,
+        ]);
+    }
+
     private function validateFieldsFromInput($inputs)
     {
         $rules = [

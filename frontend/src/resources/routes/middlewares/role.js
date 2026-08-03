@@ -25,8 +25,15 @@ export default async function role(to, from, next) {
     console.error(`Rol detectado: ${userRole}`)
     console.warn(`Acceso denegado: El rol ${userRole} no tiene permisos.`)
 
-    // Redirigimos a la ruta por defecto
-    return next({ name: 'dashboardAdmin' })
+    // Redirigimos según el rol: el trabajador va a su módulo de seguridad
+    const fallback = userRole.toLowerCase() === 'trabajador' ? '/security/reserves/list' : '/dashboard'
+
+    // Previene bucle infinito si el fallback vuelve a caer en este middleware
+    if (to.fullPath === fallback) {
+      return next()
+    }
+
+    return next(fallback)
   }
 
   // 5. Si todo está en orden, permitimos la navegación

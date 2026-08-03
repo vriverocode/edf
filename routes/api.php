@@ -88,7 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/byPropietario', [UserController::class, 'store'])->middleware('throttle:sensitive');
         Route::post('/temporary-or-resident', [UserController::class, 'storeResidentUser'])->middleware('throttle:sensitive');
         Route::post('/complete-first-time', [UserController::class, 'completeFirstTime']);
-        Route::post('/{user}/available-areas', [UserController::class, 'setAvailableComunAreaToReserve'])->middleware('role:admin,super-admin');
+        Route::post('/{user}/available-areas', [UserController::class, 'setAvailableComunAreaToReserve'])->middleware('role:admin,super-admin,propietario');
         Route::delete('/d/{id}', [UserController::class, 'destroy'])->middleware('throttle:write');
         Route::put('/resident/{id}', [UserController::class, 'updateResident'])->middleware('throttle:write');
         Route::put('/{id}', [UserController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
@@ -119,6 +119,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [ComunAreaController::class, 'storeArea'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/u/{id}', [ComunAreaController::class, 'updateArea'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/d/{id}', [ComunAreaController::class, 'deleteArea'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/toggle-status/{id}', [ComunAreaController::class, 'toggleAreaStatus'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Rules ────────────────────────────────────────────────
@@ -158,6 +159,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Admin only
         Route::get('/pendings', [BookingController::class, 'getPendings'])->middleware('role:admin,super-admin');
     });
+
+    // Read-only: accesible para el trabajador (detalles de reserva en el módulo de seguridad)
+    Route::get('/bookings/byId/{id}', [BookingController::class, 'getBookingById']);
 
     // ── Guest Lists ──────────────────────────────────────────
     Route::prefix('bookings/{id}/guests')->name('booking.guests.')->middleware('role_not:trabajador')->group(function () {
@@ -247,6 +251,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/airbnb/filter-options', [VisitController::class, 'getAirbnbFilterOptionsForSecurity']);
         Route::get('/bookings', [BookingController::class, 'getBookingsForSecurity']);
         Route::post('/bookings/cancel-maintenance/{id}', [BookingController::class, 'cancelBookingForMaintenance']);
+        Route::post('/bookings/complete/{id}', [BookingController::class, 'completeBooking']);
         Route::get('/departments/inhabited', [DepartamentController::class, 'getInhabitedDepartments']);
         Route::get('/departments/{id}/residents', [DepartamentController::class, 'getDepartmentResidents']);
     });

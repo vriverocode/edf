@@ -107,7 +107,7 @@ const submit = () => {
     .then(() => {
       showNotify('positive', 'Mantenimiento programado con éxito')
       setTimeout(() => {
-        router.push('/admin/comun-area/list')
+        router.push('/admin/maintenances')
       }, 1000)
     })
     .catch((err) => {
@@ -146,9 +146,7 @@ onMounted(() => {
 
 <template>
   <div class="md:px-20 px-2 h-full" style="overflow: auto;">
-    <div class="text-center text-black text-h5 text-bold my-2">
-      Programar Mantenimiento
-    </div>
+
     <div class="text-center text-grey-9 text-h6 mb-4" v-if="area">
       {{ area.name }}
     </div>

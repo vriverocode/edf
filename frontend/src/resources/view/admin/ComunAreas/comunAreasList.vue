@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import iconsApp from '@/assets/icons/index'
 import { useComunAreaStore } from '@/services/store/comunArea.store';
 import deleteAreaModal from '@/components/comunAreas/deleteAreaModal.vue';
+import toggleAreaStatusModal from '@/components/comunAreas/toggleAreaStatusModal.vue';
 
 const comunAreaStore = useComunAreaStore()
 
@@ -21,6 +22,8 @@ const goTo = (url) => {
 
 const comunAreas = ref([])
 const selectedArea = ref({})
+const statusModalArea = ref({})
+const statusDialog = ref(false)
 const getComunArea = () => {
   ready.value = false;
 
@@ -51,6 +54,13 @@ const selectArea = (id) => {
 }
 const hiddenModal = () => {
   dialog.value = false
+}
+const selectStatusArea = (id) => {
+  statusModalArea.value = comunAreas.value.find((area) => area.id == id)
+  statusDialog.value = true
+}
+const hideStatusModal = () => {
+  statusDialog.value = false
 }
 const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
@@ -102,7 +112,17 @@ onMounted(() => {
             </div>
             <div class="flex w-full justify-end py-1" style="border-top: 1px solid lightgrey;">
               <div class="position-relative relative">
-                <q-btn icon="eva-tool-outline" class="mx-1 iconInverted" flat color="primary" round size="0.85rem"
+                <q-btn icon="eva-power-outline" class="mx-1" flat round size="0.85rem"
+                  :color="comunArea.status ? 'positive' : 'negative'"
+                  @click="selectStatusArea(comunArea.id)">
+                  <q-tooltip transition-show="flip-right" transition-hide="flip-left"
+                    :class="'bg-black text-body2 px-2'">
+                    {{ comunArea.status ? 'Deshabilitar área' : 'Habilitar área' }}
+                  </q-tooltip>
+                </q-btn>
+              </div>
+              <div class="position-relative relative">
+                <q-btn icon="eva-settings-2-outline" class="mx-1" flat color="teal" round size="0.85rem"
                   @click="goTo('/admin/comun-area/maintenance/' + comunArea.id + '/create')">
                   <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                     :class="'bg-black text-body2 px-2'">
@@ -144,8 +164,9 @@ onMounted(() => {
 
             </div>
             <!-- <div class="itemBadge px-8 py-1" :class="{'bg-positive':!apartment.owner, 'bg-negative':apartment.owner}"> -->
-            <div class="itemBadge md:px-7 px-4 py-1 bg-positive">
-              Disponible
+            <div class="itemBadge md:px-7 px-4 py-1 "
+              :class="{ 'bg-positive': comunArea.status, 'bg-negative': !comunArea.status }">
+              {{ comunArea.status ? 'Disponible' : 'No disponible' }}
             </div>
           </div>
           <div class="flex justify-center mt-4">
@@ -172,15 +193,13 @@ onMounted(() => {
       <deleteAreaModal :comunArea="selectedArea" :dialog="dialog" @closeModal="hiddenModal()"
         @updateList="hiddenModal(); getComunArea()" />
     </template>
+    <template v-if="Object.values(statusModalArea).length > 0">
+      <toggleAreaStatusModal :comunArea="statusModalArea" :dialog="statusDialog" @closeModal="hideStatusModal()"
+        @updateList="hideStatusModal(); getComunArea()" />
+    </template>
   </div>
 </template>
 <style lang="scss">
-
-.iconInverted {
-  & svg {
-    transform: rotateY(180deg);
-  }
-}
 
 .countReserve-badge {
   background: red;

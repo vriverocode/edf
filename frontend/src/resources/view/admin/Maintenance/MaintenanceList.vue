@@ -34,7 +34,7 @@ const getStatusColor = (status) => {
 };
 
 const goToCreate = () => {
-  router.push('/admin/maintenances/create'); // Ajusta tu ruta según el router corporativo
+  router.push('/admin/comun-area/list');
 };
 
 onMounted(() => {
@@ -69,7 +69,7 @@ onMounted(() => {
                 </div>
                 <div v-if="item.comun_area" class="mt-2">
                   <q-chip dense color="teal-1" text-color="teal-9" icon="eva-building-outline" size="sm" class="text-bold">
-                    Área: {{ item.comun_area.name }} (Bloqueada)s
+                    Área: {{ item.comun_area.name }} (Bloqueada)
                   </q-chip>
                 </div>
               </div>
@@ -81,7 +81,7 @@ onMounted(() => {
                   class="text-bold px-3"
                   dense
                 >
-                  {{ maintenanceStore.status_label }}
+                  {{ item.status_label }}
                 </q-chip>
               </div>
             </div>
@@ -90,7 +90,7 @@ onMounted(() => {
 
         <div v-else class="flex flex-col items-center justify-center py-20 text-center">
           <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 mx-auto">
-            <q-icon name="eva-tool-outline" size="2.5rem" color="grey-5" />
+            <q-icon name="eva-settings-2-outline" size="2.5rem" color="grey-5" />
           </div>
           <h3 class="text-lg font-semibold text-gray-900 mb-1">No hay mantenimientos programados</h3>
           <p class="text-gray-500 max-w-sm">Todas las instalaciones y áreas comunes se encuentran operando al 100%.</p>

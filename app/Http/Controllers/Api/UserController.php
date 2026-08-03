@@ -24,14 +24,22 @@ class UserController extends Controller
 {
     public function getUserById(Request $request, $id)
     {
-        $user = User::with(['units'])->find($id);
+        $user = User::with(['units', 'availableComunAreas'])->find($id);
         if (! $user) {
             return $this->returnFail(404, 'Usuario no encontrado');
         }
 
         $authUser = $request->user();
-        if ((int) $authUser->id !== (int) $id && ! in_array($authUser->rol_id, [Rol::ADMIN])) {
-            return $this->returnFail(403, 'No autorizado');
+        if ((int) $authUser->id !== (int) $id && ! in_array($authUser->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            $isOwnResident = PeoplesXDepartaments::where('user_id', $id)
+                ->where(function ($q) use ($authUser) {
+                    $q->whereHas('departament', fn ($sub) => $sub->where('user_id', $authUser->id))
+                        ->orWhere('created_by', $authUser->id);
+                })
+                ->exists();
+            if (! $isOwnResident) {
+                return $this->returnFail(403, 'No autorizado');
+            }
         }
 
         return $this->returnSuccess(200, $user);
@@ -223,9 +231,6 @@ class UserController extends Controller
                         }
                     }
                 }
-                if (method_exists($this, 'setAvailableComunAreaToReserve')) {
-                    $this->setAvailableComunAreaToReserve($people);
-                }
             }
             DB::commit();
 
@@ -305,6 +310,7 @@ class UserController extends Controller
             'type' => ['required', 'in:airbnb,familiar,inquilino'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
             'idApartament' => ['required', 'integer', 'exists:departaments,id'],
         ];
 
@@ -323,8 +329,25 @@ class UserController extends Controller
         } elseif (($inputs['type'] ?? '') === 'familiar') {
             // $rules['parentesco'] = ['required', 'string'];
         }
-
-        $validator = Validator::make($inputs, $rules);
+        $messages = [
+            'name.required' => 'El nombre es requerido',
+            'email.required' => 'El email es requerido',
+            'email.unique' => 'El email ya se encuetra registrado',
+            'username.required' => 'El nombre de usuario es requerido',
+            'username.unique' => 'El nombre de usuario ya se encuentra registrado',
+            'idApartament.required' => 'El departamento es requerido',
+            'active_time.required' => 'La fecha de inicio es requerida',
+            'airbnb.nameTo.required' => 'El nombre del titular es requerido',
+            'airbnb.quantity.required' => 'La cantidad de acompañantes es requerida',
+            'airbnb.init_time.required' => 'La fecha de inicio es requerida',
+            'airbnb.end_time.required' => 'La fecha de fin es requerida',
+            'airbnb.end_time.after_or_equal' => 'La fecha de fin debe ser mayor o igual a la fecha de inicio',
+            'airbnb.guests.required' => 'Los acompañantes son requeridos',
+            'airbnb.guests.*.name.required' => 'El nombre del acompañante es requerido',
+            'airbnb.guests.*.document.required' => 'El documento del acompañante es requerido',
+            'airbnb.guests.*.photo.required' => 'La foto del acompañante es requerida',
+        ];
+        $validator = Validator::make($inputs, $rules, $messages);
 
         return $validator->fails() ? $validator->errors()->all() : [];
     }
@@ -478,6 +501,19 @@ class UserController extends Controller
             return $this->returnFail(404, 'Usuario no encontrado');
         }
 
+        $authUser = $request->user();
+        if ($authUser->rol_id === Rol::PROPIETARIO || $authUser->rol_id === Rol::PARCIAL) {
+            $isOwnResident = PeoplesXDepartaments::where('user_id', $id)
+                ->where(function ($q) use ($authUser) {
+                    $q->whereHas('departament', fn ($sub) => $sub->where('user_id', $authUser->id))
+                        ->orWhere('created_by', $authUser->id);
+                })
+                ->exists();
+            if (! $isOwnResident) {
+                return $this->returnFail(403, 'No tienes permisos para configurar las áreas de este usuario');
+            }
+        }
+
         $validator = Validator::make($request->all(), [
             'comun_area_ids' => ['required', 'array'],
             'comun_area_ids.*' => ['integer', 'exists:comun_areas,id'],
@@ -511,10 +547,12 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'email' => ['required', 'email', 'unique:users,email'],
-
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['required', 'string', 'min:7'],
         ], [
+            'email.required' => 'El email es requerido.',
+            'email.email' => 'El email no es válido.',
+            'email.unique' => 'El email ya está registrado.',
             'password.required' => 'La contraseña es requerida.',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
@@ -550,7 +588,7 @@ class UserController extends Controller
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'min:7'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ], [
@@ -608,7 +646,7 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email,'.$id],
+            'email' => ['required', 'email', 'unique:users,email'],
             'phone' => ['nullable', 'string'],
             // 'parentesco' => ['nullable', 'string'],
             'password' => ['nullable', 'string', 'min:8'],

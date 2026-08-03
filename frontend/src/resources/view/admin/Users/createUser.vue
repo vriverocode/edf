@@ -4,13 +4,11 @@ import { Notify } from 'quasar'
 import { useUserStore } from '@/services/store/users.store';
 import { useApartmentStore } from '@/services/store/apartment.store';
 import phoneNumberInput from '@/components/layout/phoneNumberInput.vue';
-import userAvailableAreasStep from '@/components/admin/userAvailableAreasStep.vue';
 import { useRouter } from 'vue-router';
 const router = useRouter()
 const userStore = useUserStore()
 const apartmentStore = useApartmentStore()
 const apartmentsOptions = ref([])
-const selectedAreas = ref([])
 const rolOptions = ref([
   {
     id: 0,
@@ -110,30 +108,11 @@ const createUser = () => {
 
   userStore.createUser(formData.value)
     .then((response) => {
-      const userId = response.data?.id
-      if (selectedAreas.value.length > 0 && userId) {
-        userStore.setAvailableComunaAreas(userId, selectedAreas.value)
-          .then(() => {
-            showNotify('positive', 'Usuario creado con exito')
-            setTimeout(() => {
-              loading.value = false
-              router.go(-1)
-            }, 1000)
-          })
-          .catch(() => {
-            showNotify('positive', 'Usuario creado con exito')
-            setTimeout(() => {
-              loading.value = false
-              router.go(-1)
-            }, 1000)
-          })
-      } else {
-        showNotify('positive', 'Usuario creado con exito')
-        setTimeout(() => {
-          loading.value = false
-          router.go(-1)
-        }, 1000)
-      }
+      showNotify('positive', 'Usuario creado con exito')
+      setTimeout(() => {
+        loading.value = false
+        router.go(-1)
+      }, 1000)
     })
     .catch((response) => {
       loading.value = false
@@ -258,23 +237,6 @@ onMounted(() => {
         </div>
       </Transition>
     </q-form>
-    <Transition name="horizontal">
-      <div class="row w-full" v-if="step == 2">
-        <userAvailableAreasStep v-model="selectedAreas" />
-        <div class="col-12 mb-2 mt-5 px-2 md:px-12 flex items-center justify-between">
-          <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
-            <q-btn color="grey-9 " style="border-radius: 0.5rem;" @click="step--">
-              <div class="px-8 py-1 ">Volver</div>
-            </q-btn>
-          </div>
-          <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
-            <q-btn color="primary " style="border-radius: 0.5rem;" @click="createUser" :loading="loading">
-              <div class="px-8 py-1">Crear usuario</div>
-            </q-btn>
-          </div>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 <style lang="scss">

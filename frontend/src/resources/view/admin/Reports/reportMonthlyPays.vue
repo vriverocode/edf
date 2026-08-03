@@ -105,19 +105,19 @@ const fetchData = async () => {
 }
 
 const exportCsv = () => {
-  const headers = ['Unidad', 'Responsable', ...months.map((m) => m.full)]
+  const headers = ['Unidad', 'Tipo', 'Responsable', ...months.map((m) => m.full)]
   const rows = departments.value.map((dept) => {
     const monthCells = months.map(({ num }) => {
       const m = dept.months[num]
       return m ? Number(m.amount).toFixed(2) : '0.00'
     })
-    return [dept.number, dept.responsible, ...monthCells]
+    return [dept.number, dept.type_label || '', dept.responsible, ...monthCells]
   })
 
   // Footer rows
-  const paidRow = ['COBRADO', '', ...months.map(({ num }) => (filteredTotals.value[num]?.paid || 0).toFixed(2))]
-  const pendingRow = ['PENDIENTE', '', ...months.map(({ num }) => (filteredTotals.value[num]?.pending || 0).toFixed(2))]
-  const totalRow = ['TOTAL', '', ...months.map(({ num }) => (filteredTotals.value[num]?.amount || 0).toFixed(2))]
+  const paidRow = ['COBRADO', '', '', ...months.map(({ num }) => (filteredTotals.value[num]?.paid || 0).toFixed(2))]
+  const pendingRow = ['PENDIENTE', '', '', ...months.map(({ num }) => (filteredTotals.value[num]?.pending || 0).toFixed(2))]
+  const totalRow = ['TOTAL', '', '', ...months.map(({ num }) => (filteredTotals.value[num]?.amount || 0).toFixed(2))]
 
   const csv = [headers, ...rows, paidRow, pendingRow, totalRow]
     .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
@@ -227,6 +227,7 @@ onMounted(fetchData)
         <thead>
           <tr>
             <th class="col-fixed col-dept">Unidad</th>
+            <th class="col-fixed col-type">Tipo</th>
             <th class="col-fixed col-responsible">Responsable</th>
             <th v-for="m in months" :key="m.num" class="col-month" :title="m.full">
               {{ m.label }}
@@ -235,6 +236,7 @@ onMounted(fetchData)
           <!-- Filas de resumen al inicio (sticky) -->
           <tr class="totals-row totals-row--paid summary-header-row">
             <th class="col-fixed col-dept totals-row--paid">COBRADO</th>
+            <th class="col-fixed col-type totals-row--paid"></th>
             <th class="col-fixed col-responsible totals-row--paid"></th>
             <th v-for="m in months" :key="m.num" class="col-month">
               {{ formatMoney(filteredTotals[m.num]?.paid || 0) }}
@@ -242,6 +244,7 @@ onMounted(fetchData)
           </tr>
           <tr class="totals-row totals-row--pending summary-header-row">
             <th class="col-fixed col-dept totals-row--pending">PENDIENTE</th>
+            <th class="col-fixed col-type totals-row--pending"></th>
             <th class="col-fixed col-responsible totals-row--pending"></th>
             <th v-for="m in months" :key="m.num" class="col-month">
               {{ formatMoney(filteredTotals[m.num]?.pending || 0) }}
@@ -249,6 +252,7 @@ onMounted(fetchData)
           </tr>
           <tr class="totals-row totals-row--total summary-header-row">
             <th class="col-fixed col-dept totals-row--total">TOTAL</th>
+            <th class="col-fixed col-type totals-row--total"></th>
             <th class="col-fixed col-responsible totals-row--total"></th>
             <th v-for="m in months" :key="m.num" class="col-month">
               {{ formatMoney(filteredTotals[m.num]?.amount || 0) }}
@@ -258,6 +262,7 @@ onMounted(fetchData)
         <tbody>
           <tr v-for="dept in departments" :key="dept.departament_id">
             <td class="col-fixed col-dept">{{ dept.number }}</td>
+            <td class="col-fixed col-type">{{ dept.type_label || '—' }}</td>
             <td class="col-fixed col-responsible text-ellipsis">{{ dept.responsible }}</td>
             <td v-for="m in months" :key="m.num" class="col-month" :style="cellStyle(dept.months[m.num])">
               <template v-if="dept.months[m.num]">
@@ -271,6 +276,7 @@ onMounted(fetchData)
           <!-- Fila: Cobrado por mes -->
           <tr class="totals-row totals-row--paid">
             <td class="col-fixed col-dept text-bold">COBRADO</td>
+            <td class="col-fixed col-type"></td>
             <td class="col-fixed col-responsible"></td>
             <td v-for="m in months" :key="m.num" class="col-month text-bold">
               {{ formatMoney(filteredTotals[m.num]?.paid || 0) }}
@@ -279,6 +285,7 @@ onMounted(fetchData)
           <!-- Fila: Pendiente por mes -->
           <tr class="totals-row totals-row--pending">
             <td class="col-fixed col-dept text-bold">PENDIENTE</td>
+            <td class="col-fixed col-type"></td>
             <td class="col-fixed col-responsible"></td>
             <td v-for="m in months" :key="m.num" class="col-month text-bold">
               {{ formatMoney(filteredTotals[m.num]?.pending || 0) }}
@@ -287,6 +294,7 @@ onMounted(fetchData)
           <!-- Fila: Total por mes -->
           <tr class="totals-row totals-row--total">
             <td class="col-fixed col-dept text-bold">TOTAL</td>
+            <td class="col-fixed col-type"></td>
             <td class="col-fixed col-responsible"></td>
             <td v-for="m in months" :key="m.num" class="col-month text-bold">
               {{ formatMoney(filteredTotals[m.num]?.amount || 0) }}
@@ -394,8 +402,14 @@ onMounted(fetchData)
   text-transform: uppercase;
 }
 
-.col-responsible {
+.col-type {
   left: 80px;
+  width: 115px;
+  min-width: 115px;
+}
+
+.col-responsible {
+  left: 195px;
   width: 140px;
   min-width: 140px;
 }

@@ -137,7 +137,7 @@ onMounted(() => {
 <template>
   <div class="h-full" style="overflow: hidden;">
     <!-- Header: 15% -->
-    <div class="px-4 md:px-28 flex items-center" style="height: 15%;">
+    <div class="px-4 md:px-28 flex items-center" style="height: 18%;">
       <div class="row items-center w-full q-col-gutter-sm">
         <div class="col-12 col-md-6">
           <q-input v-model="search" dense borderless clearable placeholder="Buscar proveedor..."
@@ -158,7 +158,7 @@ onMounted(() => {
     </div>
 
     <!-- Content: 85% with scroll -->
-    <div style="height: 85%; overflow: auto;">
+    <div style="height: 82%; overflow: auto;">
 
       <!-- Loading -->
       <div v-if="!ready" class="flex justify-center items-center py-20">

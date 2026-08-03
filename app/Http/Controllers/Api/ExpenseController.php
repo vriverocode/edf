@@ -202,15 +202,15 @@ class ExpenseController extends Controller
     {
         $file = $request->file('attachment');
         $rand = rand(1000000, 9999999);
-        $name = $rand . '_' . time() . '.' . $file->extension();
+        $name = $rand.'_'.time().'.'.$file->extension();
         $destination = public_path('storage/images/expenses');
 
-        if (!is_dir($destination)) {
+        if (! is_dir($destination)) {
             @mkdir($destination, 0775, true);
         }
 
         $file->move($destination, $name);
 
-        return config('app.url') . "/storage/images/expenses/{$name}";
+        return config('app.url')."/storage/images/expenses/{$name}";
     }
 }

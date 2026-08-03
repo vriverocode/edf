@@ -1,9 +1,11 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { Notify } from 'quasar';
 import { useUserStore } from '@/services/store/users.store';
 import iconsApp from '@/assets/icons/index'
 import deleteUserModal from '@//components/admin/deleteUserModal.vue';
+import userAvailableAreasStep from '@/components/admin/userAvailableAreasStep.vue';
 const userStore = useUserStore()
 const filterRol = ref(2)
 const page = ref(1)
@@ -20,6 +22,35 @@ const goTo = (url) => {
 
 const users = ref([])
 const selectedUser = ref({})
+const areasUser = ref({})
+const areasDialog = ref(false)
+const areasLoading = ref(false)
+const selectedAreas = ref([])
+
+const openAreas = (user) => {
+  selectedAreas.value = []
+  areasUser.value = user
+  areasDialog.value = true
+}
+
+const saveAreas = () => {
+  areasLoading.value = true
+  userStore.setAvailableComunaAreas(areasUser.value.id, selectedAreas.value)
+    .then(() => {
+      showNotify('positive', 'Áreas comunes actualizadas correctamente')
+      areasDialog.value = false
+    })
+    .catch((error) => {
+      showNotify('negative', error || 'Error al actualizar las áreas comunes')
+    })
+    .finally(() => {
+      areasLoading.value = false
+    })
+}
+
+const showNotify = (type, text) => {
+  Notify.create({ color: type, message: text, timeout: 2000 })
+}
 
 const openModal = (user, type) => {
   selectedUser.value = user
@@ -161,6 +192,13 @@ onMounted(() => {
               </q-btn>
             </div>
             <div>
+              <q-btn icon="eva-grid-outline" class="mx-1" flat color="teal" size="0.9rem" @click="openAreas(user)">
+                <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
+                  Áreas que puede reservar
+                </q-tooltip>
+              </q-btn>
+            </div>
+            <div>
               <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.9rem" @click="openModal(user, 'delete')">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Borrar usuario
@@ -178,6 +216,29 @@ onMounted(() => {
     <div v-if="Object.values(selectedUser).length > 0">
       <deleteUserModal :dialog="(modal == 'delete')" :user="selectedUser" @close-modal="modal = ''" @update-list="getUsers()" />
     </div>
+    <q-dialog v-model="areasDialog">
+      <q-card style="max-width: 40rem; width: 100%;" class="q-pa-md">
+        <q-card-section>
+          <div class="text-h6 text-primary text-bold">
+            Áreas que puede reservar
+          </div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            {{ areasUser.name }} — Si no seleccionas ninguna área, el usuario podrá reservar todas las disponibles.
+          </div>
+        </q-card-section>
+        <q-card-section class="scroll" style="max-height: 55vh;">
+          <userAvailableAreasStep v-model="selectedAreas" :userId="areasUser.id" />
+        </q-card-section>
+        <q-card-actions align="right" class="q-px-md q-pb-md">
+          <q-btn flat color="grey-7" @click="areasDialog = false">
+            Cancelar
+          </q-btn>
+          <q-btn color="primary" :loading="areasLoading" @click="saveAreas">
+            Guardar
+          </q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <style lang="scss">

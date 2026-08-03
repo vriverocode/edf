@@ -23,6 +23,10 @@ class Booking extends Model
 
     public const STATUS_SUCCESS = 3;
 
+    public const STATUS_COMPLETED = 4;
+
+    public const STATUS_PENDING_REFUND = 5;
+
     protected $fillable = [
         'user_id', 'departament_id', 'comun_area_id', 'booking_number',
         'date', 'time_from', 'time_to', 'amount', 'type',
@@ -80,6 +84,8 @@ class Booking extends Model
                 self::STATUS_PENDING_PAY => 'Pago pendiente',
                 self::STATUS_PENDING_APPROVAL => 'Pendiente de aprob.',
                 self::STATUS_SUCCESS => 'Exitoso',
+                self::STATUS_COMPLETED => 'Completada',
+                self::STATUS_PENDING_REFUND => 'Pend. reembolso',
                 default => 'Desconocido',
             }
         );
@@ -92,6 +98,8 @@ class Booking extends Model
                 self::STATUS_CANCELLED => 'negative',
                 self::STATUS_PENDING_PAY, self::STATUS_PENDING_APPROVAL => 'warning',
                 self::STATUS_SUCCESS => 'positive',
+                self::STATUS_COMPLETED => 'teal-8',
+                self::STATUS_PENDING_REFUND => 'orange-8',
                 default => 'grey',
             }
         );
@@ -143,7 +151,7 @@ class Booking extends Model
     /* -------------------------------------------------------------------------- */
     public function scopeFilter(Builder $query, array $filters): void
     {
-        $query->when(isset($filters['status']) && (int) $filters['status'] !== 4, fn ($q) => $q->where('status', (int) $filters['status']))
+        $query->when(isset($filters['status']) && (int) $filters['status'] !== -1, fn ($q) => $q->where('status', (int) $filters['status']))
             ->when($filters['area_id'] ?? null, fn ($q, $areaId) => $q->where('comun_area_id', (int) $areaId))
             ->when($filters['date_from'] ?? null, fn ($q, $date) => $q->whereDate('date', '>=', $date))
             ->when($filters['date_to'] ?? null, fn ($q, $date) => $q->whereDate('date', '<=', $date))

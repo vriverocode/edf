@@ -32,8 +32,9 @@ class ImportCuotasMorosos extends Command
     {
         $jsonPath = storage_path('app/cuotas_morosos.json');
 
-        if (!file_exists($jsonPath)) {
+        if (! file_exists($jsonPath)) {
             $this->error("Archivo $jsonPath no encontrado.");
+
             return 1;
         }
 
@@ -41,10 +42,11 @@ class ImportCuotasMorosos extends Command
 
         if (empty($data)) {
             $this->error('JSON vacío.');
+
             return 1;
         }
 
-        $this->info("Procesando " . count($data) . " registros morosos...\n");
+        $this->info('Procesando '.count($data)." registros morosos...\n");
 
         $bar = $this->output->createProgressBar(count($data));
         $bar->start();
@@ -73,18 +75,19 @@ class ImportCuotasMorosos extends Command
         $quotas = $item['quotas'];
 
         $departamentData = $this->parsePredio($predio);
-        if (!$departamentData) {
+        if (! $departamentData) {
             $this->skipped[] = [
                 'codigo' => $codigo,
                 'propietario' => $propietario,
                 'predio' => $predio,
                 'motivo' => "Predio '$predio' no se pudo parsear",
             ];
+
             return;
         }
 
         $departament = Departament::where('number', $departamentData['number'])->first();
-        if (!$departament) {
+        if (! $departament) {
             $departament = Departament::create([
                 'number' => $departamentData['number'],
                 'type' => $departamentData['type'],
@@ -100,11 +103,11 @@ class ImportCuotasMorosos extends Command
         }
 
         $user = $this->findUserByName($propietario);
-        if (!$user) {
+        if (! $user) {
             $user = User::find($departament->user_id);
         }
 
-        if (!$user) {
+        if (! $user) {
             $this->skipped[] = [
                 'codigo' => $codigo,
                 'propietario' => $propietario,
@@ -112,12 +115,13 @@ class ImportCuotasMorosos extends Command
                 'motivo' => "Usuario no encontrado ni el departamento {$departament->number} tiene user_id",
             ];
             $this->stats['users_not_found']++;
+
             return;
         }
 
         $this->stats['users_found']++;
 
-        if (!$departament->user_id) {
+        if (! $departament->user_id) {
             $departament->update(['user_id' => $user->id]);
         }
 
@@ -137,11 +141,12 @@ class ImportCuotasMorosos extends Command
         foreach ($prefixMap as $excelPrefix => $map) {
             if (str_starts_with(strtoupper($predio), $excelPrefix)) {
                 $number = substr($predio, strlen($excelPrefix));
-                $dbNumber = $map['prefix'] . $number;
+                $dbNumber = $map['prefix'].$number;
+
                 return [
                     'number' => $dbNumber,
                     'type' => $map['type'],
-                    'description' => $map['label'] . ' ' . $dbNumber,
+                    'description' => $map['label'].' '.$dbNumber,
                 ];
             }
         }
@@ -213,8 +218,8 @@ class ImportCuotasMorosos extends Command
         }
 
         $description = $month === 0
-            ? 'Acumulado 2025 - ' . $departament->number
-            : 'Cuota ' . $q['label'] . ' - ' . $departament->number;
+            ? 'Acumulado 2025 - '.$departament->number
+            : 'Cuota '.$q['label'].' - '.$departament->number;
 
         $quota = Quota::create([
             'departament_id' => $departament->id,
@@ -238,7 +243,7 @@ class ImportCuotasMorosos extends Command
                 'amount' => $amount,
                 'status' => 2,
                 'pay_date' => $dueDate,
-                'reference' => 'Importacion automatica - ' . $q['label'],
+                'reference' => 'Importacion automatica - '.$q['label'],
                 'vaucher' => null,
                 'pay_method' => 1,
                 'pay_id' => '',
@@ -271,6 +276,7 @@ class ImportCuotasMorosos extends Command
     {
         if (empty($this->skipped)) {
             $this->info('No hubo registros omitidos.');
+
             return;
         }
 
@@ -278,9 +284,9 @@ class ImportCuotasMorosos extends Command
         $lines = [];
         $lines[] = '# Reporte de registros omitidos - Morosos';
         $lines[] = '';
-        $lines[] = "Generado: " . now()->format('d/m/Y H:i:s');
+        $lines[] = 'Generado: '.now()->format('d/m/Y H:i:s');
         $lines[] = '';
-        $lines[] = "Total omitidos: " . count($this->skipped);
+        $lines[] = 'Total omitidos: '.count($this->skipped);
         $lines[] = '';
         $lines[] = '| Codigo | Propietario | Predio | Motivo |';
         $lines[] = '|--------|-------------|--------|--------|';
@@ -291,6 +297,6 @@ class ImportCuotasMorosos extends Command
 
         file_put_contents($reportPath, implode("\n", $lines));
 
-        $this->warn("\n" . count($this->skipped) . " registros omitidos. Reporte: $reportPath");
+        $this->warn("\n".count($this->skipped)." registros omitidos. Reporte: $reportPath");
     }
 }

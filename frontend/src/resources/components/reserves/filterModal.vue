@@ -20,7 +20,7 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
     emit('closeModal')
   }
   const filters = ref({
-    status: 4,
+    status: -1,
     area_id: '',
     date_from: '',
     date_to: '',
@@ -40,7 +40,7 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
 
   const resetFilters = () => {
     filters.value = {
-      status: 4,
+      status: -1,
       area_id: '',
       date_from: '',
       date_to: '',

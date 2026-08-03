@@ -10,6 +10,7 @@ import booking from '@/assets/img/menu/reservas.png'
 import news from '@/assets/img/menu/noticias.png'
 import events from '@/assets/img/menu/eventos-admin.png'
 import report from '@/assets/img/menu/reports.png'
+import maintenance from '@/assets/img/menu/worker.png'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -31,6 +32,7 @@ const menu = [
   { title: 'Reservas', icon: booking, subtitle: 'Informacion de reservas', link: '/reserves', badgeKey: 'pendingReserves' },
   { title: 'Noticias', icon: news, subtitle: 'Envia información sobre: eventos, servicio, etc', link: '/admin/notices', badgeKey: 'pendingNotices' },
   { title: 'Eventos', icon: events, subtitle: 'Modulo de gestion de eventos', link: '/admin/events', badgeKey: 'pendingEvents' },
+  { title: 'Mantenimientos', icon: maintenance, subtitle: 'Programa y consulta mantenimientos', link: '/admin/maintenances', badgeKey: '' },
   { title: 'Reportes', icon: report, subtitle: 'Reportes', link: '/admin/reports', badgeKey: '' },
 ]
 

@@ -308,7 +308,7 @@ onMounted(async () => {
           <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.invoice_number" />
         </div>
 
-        <div class="col-md-6 col-12 mt-5 px-2 md:px-12">
+        <div class="col-md-6 col-12 mt-5 md:mt-3 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Monto (S/.)*</div>
           <q-input
             dense

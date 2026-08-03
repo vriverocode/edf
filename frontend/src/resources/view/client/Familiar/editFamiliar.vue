@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/services/store/users.store';
 import { useQuasar } from 'quasar';
 import phoneNumberInput from '@/components/layout/phoneNumberInput.vue';
+import userAvailableAreasStep from '@/components/admin/userAvailableAreasStep.vue';
 
 const $q = useQuasar();
 const route = useRoute();
@@ -13,6 +14,8 @@ const userStore = useUserStore();
 const loading = ref(false);
 const initialLoading = ref(true);
 const isPwd = ref(true);
+const selectedAreas = ref([])
+const areaLoading = ref(false)
 
 const formData = ref({
     name: '',
@@ -97,6 +100,28 @@ const onSubmit = () => {
         });
 };
 
+const saveAreas = () => {
+    areaLoading.value = true
+    userStore.setAvailableComunaAreas(route.params.id, selectedAreas.value)
+        .then(() => {
+            $q.notify({
+                color: 'positive',
+                message: 'Áreas comunes actualizadas correctamente',
+                timeout: 2000
+            });
+        })
+        .catch((error) => {
+            $q.notify({
+                color: 'negative',
+                message: error || 'Error al actualizar las áreas comunes',
+                timeout: 2000
+            });
+        })
+        .finally(() => {
+            areaLoading.value = false
+        });
+};
+
 onMounted(() => {
     loadData();
 });
@@ -166,6 +191,22 @@ onMounted(() => {
                                 class="cursor-pointer" @click="isPwd = !isPwd" />
                         </template>
                     </q-input>
+                </div>
+                
+                <div class="col-12 my-1 px-2 md:px-12">
+                    <q-separator class="q-my-md" />
+                    <div class="text-subtitle2 text-bold text-black pt-2">
+                        Áreas que puede reservar
+                    </div>
+                    <div class="text-body2 text-grey-7">
+                        Si no seleccionas ninguna área, el usuario podrá reservar todas las disponibles.
+                    </div>
+                    <userAvailableAreasStep v-model="selectedAreas" :userId="route.params.id" class="q-mt-sm" />
+                    <div class="flex justify-end q-mt-sm">
+                        <q-btn color="teal" style="border-radius: 0.5rem" :loading="areaLoading" @click="saveAreas">
+                            <div class="px-8 py-1">Guardar áreas</div>
+                        </q-btn>
+                    </div>
                 </div>
                 
                 <div class="col-12 my-4 px-2 md:px-12 flex items-center justify-between">

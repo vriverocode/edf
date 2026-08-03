@@ -89,7 +89,7 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Dashboard',
           depth: 0,
-          roles: ['admin', 'super-admin', 'propietario'],
+          roles: ['admin', 'super-admin', 'propietario', 'inquilino', 'familiar', 'airbnb', 'trabajador', 'propietario parcial'],
         },
       },
       {
@@ -377,6 +377,18 @@ const routes = [
           pagTitle: 'Programar mantenimiento',
           roles: ['admin'],
           depth: 3,
+        },
+      },
+      {
+        path: '/admin/maintenances',
+        component: () => import('@/view/admin/Maintenance/MaintenanceList.vue'),
+        name: 'maintenanceList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Mantenimientos',
+          roles: ['admin', 'super-admin'],
+          depth: 2,
         },
       },
       {

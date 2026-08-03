@@ -85,7 +85,8 @@ class MaintenanceController extends Controller
                 'views' => '[]',
             ]);
 
-            $bookingsToCancel = Booking::where('comun_area_id', $area->id)
+            $bookingsToCancel = Booking::with('pay')
+                ->where('comun_area_id', $area->id)
                 ->where('date', $dateFormatted)
                 ->where('status', '>', 0)
                 ->where('time_from', '<', $timeTo)
@@ -122,6 +123,10 @@ class MaintenanceController extends Controller
         try {
             $client = User::find($booking->user_id);
             $admin = User::find(1);
+            $needsRefund = $booking->type != 1
+                && $booking->amount > 0
+                && $booking->pay !== null
+                && (int) $booking->pay->status === 2;
 
             if ($client) {
                 $client->notify(new RealtimeNotification(
@@ -138,6 +143,15 @@ class MaintenanceController extends Controller
                     url: '/admin/reserves',
                     meta: ['booking_id' => $booking->id, 'icon' => 'cancel']
                 ));
+
+                if ($needsRefund) {
+                    $admin->notify(new RealtimeNotification(
+                        title: 'Reembolso pendiente',
+                        message: 'La reserva #'.$booking->booking_number.' fue cancelada por mantenimiento. Registra el reembolso manualmente.',
+                        url: '/admin/reserves',
+                        meta: ['booking_id' => $booking->id, 'icon' => 'refund']
+                    ));
+                }
             }
         } catch (\Throwable $e) {
             Log::error('Error al notificar cancelación: '.$e->getMessage());

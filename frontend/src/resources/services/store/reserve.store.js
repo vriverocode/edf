@@ -60,7 +60,7 @@ export const useReserveStore = defineStore('Reserve', {
               reject(response.data);
             }
             if (response.data.code == 409) {
-              reject('Límite de reservas alcanzado');
+              reject('Límite de reservas por día alcanzado');
             }
             reject('Error al realizar reserva');
           });
@@ -208,6 +208,23 @@ export const useReserveStore = defineStore('Reserve', {
         }
         ApiService.setHeader();
         ApiService.post('/api/security/bookings/cancel-maintenance/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
+      })
+    },
+    async completeBooking(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.post('/api/security/bookings/complete/' + id)
           .then(({ data }) => {
             if (data.code != 200) throw data;
 

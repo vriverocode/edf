@@ -3,11 +3,13 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useBankAccountStore } from '@/services/store/bankAccount.store'
+import { useAuthStore } from '@/services/store/auth.services'
 import AccountFormFields from '@/components/bankAccount/accountFormFields.vue'
 
 const router = useRouter()
 const $q = useQuasar()
 const store = useBankAccountStore()
+const authStore = useAuthStore()
 const loading = ref(false)
 
 const form = ref({
@@ -33,8 +35,9 @@ const onSubmit = () => {
 
   store
     .createAccount(payload)
-    .then((res) => {
+    .then(async (res) => {
       if (res.code !== 200) throw res
+      await authStore.currentUser()
       $q.notify({ type: 'positive', message: 'Cuenta agregada con éxito' })
       router.go(-1)
     })

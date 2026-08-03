@@ -11,6 +11,7 @@ import culqiCheckout from '@/components/layout/culqiCheckout.vue';
 import conditionPayLaterModal from '@/components/reserves/conditionPayLaterModal.vue';
 import ruleDetailsModal from '@/components/reserves/ruleDetailsModal.vue'; // <-- AGREGAR ESTA LÍNEA
 import { useAuthStore } from '@/services/store/auth.services';
+import { useMaintenanceStore } from '@/services/store/maintenance.store';
 
 
 moment.locale('es', {
@@ -37,9 +38,11 @@ const comunAreaStore = useComunAreaStore()
 const reserveStore = useReserveStore()
 const paymentMethodStore = usePayMethodStore()
 const authStore = useAuthStore()
+const maintenanceStore = useMaintenanceStore()
 const emitter = inject('emitter')
 const comunAreas = ref([])
 const blockedAreaIds = ref([])
+const maintenanceDates = ref([])
 const userApartments = computed(() => {
   if (authStore.user.role_id == 5) {
 
@@ -86,7 +89,7 @@ const selectArea = (id) => {
   formData.value.typeOfReserve = 0
   typeModalShow.value = true;
   visibleBackButton(false)
-
+  fetchMaintenanceDates(id)
 }
 const openRuleDetails = (rule) => {
   selectedRule.value = rule;
@@ -133,12 +136,15 @@ const nextStep = () => {
   }
   if (step.value == 1) {
       typeModalShow.value = false;
+      console.log(formData.value.typeOfReserve)
+      console.log(selectedComunArea.value.price > 0)
+      console.log(formData.value.typeOfReserve == 1 && selectedComunArea.value.warranty_price > 0)
 
       const necesitaPago = formData.value.typeOfReserve > 1
-        || selectedComunArea.value.price > 0
-        || selectedComunArea.value.warranty_price > 0
+        || (formData.value.typeOfReserve > 1 && selectedComunArea.value.price > 0)
+        || (formData.value.typeOfReserve == 1 && selectedComunArea.value.warranty_price > 0)
 
-      if (necesitaPago && !authStore.user.bankAccounts?.length) {
+      if (necesitaPago && authStore.user.bank_accounts?.length == 0) {
         showBankAccountModal.value = true
         return
       }
@@ -203,9 +209,9 @@ const getComunsArea = () => {
       if (response.code !== 200) throw response
       const allowedIds = (authStore.user.available_comun_areas || []).map(a => a.id)
       if (allowedIds.length > 0) {
-        comunAreas.value = response.data.filter(area => allowedIds.includes(area.id))
+        comunAreas.value = response.data.filter(area => allowedIds.includes(area.id) && area.status !== false)
       } else {
-        comunAreas.value = response.data
+        comunAreas.value = response.data.filter(area => area.status !== false)
       }
       setTimeout(() => {
         ready.value = true
@@ -288,6 +294,18 @@ const getAvaibleBookingByDay = () => {
     })
 }
 
+const fetchMaintenanceDates = (areaId) => {
+  maintenanceDates.value = []
+  maintenanceStore.getMaintenanceByArea(areaId, '')
+    .then((response) => {
+      if (selectedComunArea.value.id !== areaId) return
+      maintenanceDates.value = response.map(m => moment(m.date, 'YYYY-MM-DD').format('YYYY/MM/DD'))
+    })
+    .catch((err) => {
+      console.error('Error al obtener fechas de mantenimiento:', err)
+    })
+}
+
 const daysAvailableForBook = (date) => {
   const isFutureOrToday = date >= moment().format('YYYY/MM/DD');
 
@@ -298,6 +316,10 @@ const daysAvailableForBook = (date) => {
   if (isLounge) {
     const maxDate = moment().add(45, 'days').format('YYYY/MM/DD');
     if (date > maxDate) return false;
+  }
+
+  if (maintenanceDates.value.includes(date)) {
+    return false;
   }
 
   if (!selectedComunArea.value || !selectedComunArea.value.schedules || selectedComunArea.value.schedules.length === 0) {
@@ -1313,8 +1335,8 @@ watch(step,
             </p>
           </q-card-section>
           <q-card-actions align="center" class="q-pb-lg q-gutter-md">
-            <q-btn flat label="Cancelar" color="grey" v-close-popup />
-            <q-btn unelevated label="Crear cuenta" color="primary"
+            <q-btn flat  no-caps label="Cancelar" color="grey" v-close-popup />
+            <q-btn unelevated no-caps label="Crear cuenta" color="primary" class="px-5"
               @click="router.push('/client/account-bank/add')" />
           </q-card-actions>
         </q-card>

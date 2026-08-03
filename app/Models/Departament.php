@@ -37,7 +37,7 @@ class Departament extends Model
 
     public function getInterNumberAttribute()
     {
-        return substr($this->number, -3);
+        return intval(substr($this->number, 4));
     }
 
     public function owner()

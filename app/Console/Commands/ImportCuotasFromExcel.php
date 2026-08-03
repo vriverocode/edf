@@ -34,8 +34,9 @@ class ImportCuotasFromExcel extends Command
     {
         $sheet = $this->option('sheet');
 
-        if (!in_array($sheet, ['all', 'al-dia', 'morosos'])) {
+        if (! in_array($sheet, ['all', 'al-dia', 'morosos'])) {
             $this->error('Opcion --sheet invalida: use all, al-dia o morosos');
+
             return 1;
         }
 
@@ -45,8 +46,9 @@ class ImportCuotasFromExcel extends Command
         $allData = [];
 
         if (in_array($sheet, ['all', 'al-dia'])) {
-            if (!file_exists($jsonPathAlDia)) {
+            if (! file_exists($jsonPathAlDia)) {
                 $this->error("Archivo $jsonPathAlDia no encontrado. Generalo primero con el script Python.");
+
                 return 1;
             }
             $dataAlDia = json_decode(file_get_contents($jsonPathAlDia), true);
@@ -58,8 +60,9 @@ class ImportCuotasFromExcel extends Command
         }
 
         if (in_array($sheet, ['all', 'morosos'])) {
-            if (!file_exists($jsonPathMorosos)) {
+            if (! file_exists($jsonPathMorosos)) {
                 $this->error("Archivo $jsonPathMorosos no encontrado. Generalo primero con el script Python.");
+
                 return 1;
             }
             $dataMorosos = json_decode(file_get_contents($jsonPathMorosos), true);
@@ -72,10 +75,11 @@ class ImportCuotasFromExcel extends Command
 
         if (empty($allData)) {
             $this->warn('No se encontraron registros para procesar.');
+
             return 0;
         }
 
-        $this->info('Procesando ' . count($allData) . " registros...\n");
+        $this->info('Procesando '.count($allData)." registros...\n");
 
         $bar = $this->output->createProgressBar(count($allData));
         $bar->start();
@@ -104,7 +108,7 @@ class ImportCuotasFromExcel extends Command
         $quotas = $item['quotas'];
 
         $departamentData = $this->parsePredio($predio);
-        if (!$departamentData) {
+        if (! $departamentData) {
             $this->skipped[] = [
                 'codigo' => $codigo,
                 'propietario' => $propietario,
@@ -112,11 +116,12 @@ class ImportCuotasFromExcel extends Command
                 'motivo' => "Predio '$predio' no se pudo parsear",
             ];
             $this->stats['omitted']++;
+
             return;
         }
 
         $departament = Departament::where('number', $departamentData['number'])->first();
-        if (!$departament) {
+        if (! $departament) {
             $departament = Departament::create([
                 'number' => $departamentData['number'],
                 'type' => $departamentData['type'],
@@ -131,11 +136,11 @@ class ImportCuotasFromExcel extends Command
         }
 
         $user = $this->findUserByName($propietario);
-        if (!$user) {
+        if (! $user) {
             $user = User::find($departament->user_id);
         }
 
-        if (!$user) {
+        if (! $user) {
             $this->skipped[] = [
                 'codigo' => $codigo,
                 'propietario' => $propietario,
@@ -144,12 +149,13 @@ class ImportCuotasFromExcel extends Command
             ];
             $this->stats['users_not_found']++;
             $this->stats['omitted']++;
+
             return;
         }
 
         $this->stats['users_found']++;
 
-        if (!$departament->user_id) {
+        if (! $departament->user_id) {
             $departament->update(['user_id' => $user->id]);
         }
 
@@ -169,11 +175,12 @@ class ImportCuotasFromExcel extends Command
         foreach ($prefixMap as $excelPrefix => $map) {
             if (str_starts_with(strtoupper($predio), $excelPrefix)) {
                 $number = substr($predio, strlen($excelPrefix));
-                $dbNumber = $map['prefix'] . $number;
+                $dbNumber = $map['prefix'].$number;
+
                 return [
                     'number' => $dbNumber,
                     'type' => $map['type'],
-                    'description' => $map['label'] . ' ' . $dbNumber,
+                    'description' => $map['label'].' '.$dbNumber,
                 ];
             }
         }
@@ -245,8 +252,8 @@ class ImportCuotasFromExcel extends Command
         }
 
         $description = $month === 0
-            ? 'Acumulado 2025 - ' . $departament->number
-            : 'Cuota ' . $q['label'] . ' - ' . $departament->number;
+            ? 'Acumulado 2025 - '.$departament->number
+            : 'Cuota '.$q['label'].' - '.$departament->number;
 
         $quota = Quota::create([
             'departament_id' => $departament->id,
@@ -270,7 +277,7 @@ class ImportCuotasFromExcel extends Command
                 'amount' => $amount,
                 'status' => 2,
                 'pay_date' => $dueDate,
-                'reference' => 'Importacion automatica - ' . $q['label'],
+                'reference' => 'Importacion automatica - '.$q['label'],
                 'vaucher' => null,
                 'pay_method' => 1,
                 'pay_id' => '',
@@ -302,6 +309,7 @@ class ImportCuotasFromExcel extends Command
     {
         if (empty($this->skipped)) {
             $this->info('No hubo registros omitidos.');
+
             return;
         }
 
@@ -309,9 +317,9 @@ class ImportCuotasFromExcel extends Command
         $lines = [];
         $lines[] = '# Reporte de registros omitidos - Importacion Cuotas';
         $lines[] = '';
-        $lines[] = 'Generado: ' . now()->format('d/m/Y H:i:s');
+        $lines[] = 'Generado: '.now()->format('d/m/Y H:i:s');
         $lines[] = '';
-        $lines[] = 'Total omitidos: ' . count($this->skipped);
+        $lines[] = 'Total omitidos: '.count($this->skipped);
         $lines[] = '';
         $lines[] = '| Codigo | Propietario | Predio | Motivo |';
         $lines[] = '|--------|-------------|--------|--------|';
@@ -324,6 +332,6 @@ class ImportCuotasFromExcel extends Command
         }
 
         file_put_contents($reportPath, implode("\n", $lines));
-        $this->warn("\n" . count($this->skipped) . " registros omitidos. Reporte: $reportPath");
+        $this->warn("\n".count($this->skipped)." registros omitidos. Reporte: $reportPath");
     }
 }

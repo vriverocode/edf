@@ -84,6 +84,8 @@ class ReportController extends Controller
         $pendientesPago = (clone $base)->where('status', 1)->count();
         $pendientesAprob = (clone $base)->where('status', 2)->count();
         $exitosas = (clone $base)->where('status', 3)->count();
+        $completadas = (clone $base)->where('status', Booking::STATUS_COMPLETED)->count();
+        $pendReembolso = (clone $base)->where('status', Booking::STATUS_PENDING_REFUND)->count();
 
         $active = (clone $base)->where('status', '!=', 0);
 
@@ -131,6 +133,8 @@ class ReportController extends Controller
             'pendientes_pago' => $pendientesPago,
             'pendientes_aprob' => $pendientesAprob,
             'exitosas' => $exitosas,
+            'completadas' => $completadas,
+            'pend_reembolso' => $pendReembolso,
             'top_areas' => $topAreas,
             'top_dias' => $topDias,
         ]);
@@ -149,7 +153,7 @@ class ReportController extends Controller
         ])->where(function ($q) {
             $q->whereNotNull('user_id')
                 ->orWhereHas('peoples');
-        })->orderBy('type')->orderBy('number')->get();
+        })->get()->sortBy(fn ($d) => [$d->type, $d->inter_number])->values();
 
         $quotas = Quota::whereYear('due_date', $year)
             ->whereIn('departament_id', $departments->pluck('id'))
@@ -197,6 +201,7 @@ class ReportController extends Controller
             return [
                 'departament_id' => $dept->id,
                 'number' => $dept->number,
+                'inter_number' => $dept->inter_number,
                 'block' => $dept->block,
                 'type' => $dept->type,
                 'type_label' => $dept->type_label,
@@ -245,7 +250,7 @@ class ReportController extends Controller
     {
         $validFilters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'integer', 'in:0,1,2,3,4'],
+            'status' => ['nullable', 'integer', 'in:-1,0,1,2,3,4,5'],
             'area_id' => ['nullable', 'integer', 'exists:comun_areas,id'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
@@ -257,7 +262,7 @@ class ReportController extends Controller
 
         return array_merge([
             'search' => null,
-            'status' => 4,
+            'status' => -1,
             'area_id' => null,
             'date_from' => null,
             'date_to' => null,

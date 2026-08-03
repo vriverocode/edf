@@ -5,7 +5,6 @@ import { Notify } from 'quasar'
 import { useUserStore } from '@/services/store/users.store';
 import { useApartmentStore } from '@/services/store/apartment.store';
 import phoneNumberInput from '@/components/layout/phoneNumberInput.vue';
-import userAvailableAreasStep from '@/components/admin/userAvailableAreasStep.vue';
 import { useRouter } from 'vue-router';
 const router = useRouter()
 const userStore = useUserStore()
@@ -14,7 +13,6 @@ const apartmentsOptions = ref([])
 const hasNoApartments = ref(false)
 const hasSingleApartment = ref(false)
 const deptosWithInquilino = ref(new Set())
-const selectedAreas = ref([])
 const tipoResidentOptions = ref([
     {
         id: '',
@@ -122,7 +120,6 @@ const titleOfSection = [
     'Datos del residente',
     'Registro de Airbnb',
     'Datos de Airbnb',
-    'Áreas comunes disponibles',
     'Credenciales de acceso'
 ]
 const isAirbnb = () => formData.value.type?.id === 'airbnb'
@@ -145,10 +142,6 @@ const nextStep = () => {
         return
     }
     if (step.value == 3) {
-        step.value++
-        return
-    }
-    if (step.value == 4) {
         createUser()
         return
     }
@@ -193,24 +186,9 @@ const createUser = () => {
 
     userStore.createResident(payloadForm)
         .then((response) => {
-            const userId = response?.data?.id
-            if (isAirbnb() && selectedAreas.value.length > 0 && userId) {
-                userStore.setAvailableComunaAreas(userId, selectedAreas.value)
-                    .then(() => {
-                        showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
-                        loading.value = false
-                        step.value = 5
-                    })
-                    .catch(() => {
-                        showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
-                        loading.value = false
-                        step.value = 5
-                    })
-            } else {
-                showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
-                loading.value = false
-                step.value = 5
-            }
+            showNotify('positive', response?.data?.message || 'Residente registrado con éxito')
+            loading.value = false
+            step.value = 4
         })
         .catch((response) => {
             console.error(response)
@@ -232,10 +210,10 @@ const validatorStep = () => {
             return false
         }
 
-        if (isFamiliar() && !formData.value.parentesco) {
-            showNotify('negative', 'Indica el parentesco')
-            return false
-        }
+        // if (isFamiliar() && !formData.value.parentesco) {
+        //     showNotify('negative', 'Indica el parentesco')
+        //     return false
+        // }
         if (isInquilino() && deptosWithInquilino.value.has(apartmentId)) {
             showNotify('negative', 'Este departamento ya tiene un inquilino asignado')
             return false
@@ -244,6 +222,14 @@ const validatorStep = () => {
     if (step.value == 1) {
         if (!formData.value.name) {
             showNotify('negative', 'Nombre es requerido')
+            return false
+        }
+        if (!formData.value.username) {
+            showNotify('negative', 'Nombre de usuario es requerido')
+            return false
+        }
+        if (!formData.value.email) {
+            showNotify('negative', 'Correo electrónico es requerido')
             return false
         }
         if (!isAirbnb()) {
@@ -468,22 +454,23 @@ onMounted(() => {
                     </div>
                     <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
                         <div class="text-subtitle2 text-bold text-black">
-                            Nombre de usuario (opcional)
+                            Nombre de usuario
                         </div>
                         <q-input borderless clearable v-model="formData.username" dense class="form__inputsCR mt-2"
-                            color="primary" />
+                            color="primary" :rules="[val => !!val || 'Nombre de usuario es requerido']" />
                         <div class="text-right q-mt-xs">
                             <span class="cursor-pointer text-primary" style="text-decoration: underline; font-size: 0.85rem;" @click="setGeneratedUsername">
                                 generar
                             </span>
                         </div>
                     </div>
-                    <div v-if="isFamiliar() || isInquilino()" class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12 mt-4">
+                    <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12 mt-4">
                         <div class="text-subtitle2 text-bold text-black">
-                            Correo electrónico (opcional)
+                            Correo electrónico
                         </div>
                         <q-input borderless clearable v-model="formData.email" dense class="form__inputsCR mt-2"
-                            color="primary" />
+                            color="primary"
+                            :rules="[val => !!val || 'Correo electrónico es requerido', val => !val || /^\S+@\S+\.\S+$/.test(val) || 'Ingresa un correo válido']" />
                     </div>
                     <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
                         <div class="text-subtitle2 text-bold text-black">
@@ -654,23 +641,6 @@ onMounted(() => {
                         </div>
                         <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
                             <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
-                                <div class="px-8 py-1">Siguiente</div>
-                            </q-btn>
-                        </div>
-                    </div>
-                </div>
-            </Transition>
-            <Transition name="horizontal">
-                <div class="row w-full" v-if="step == 4">
-                    <userAvailableAreasStep v-model="selectedAreas" />
-                    <div class="col-12 pb-8 mt-6 px-2 md:px-12 flex items-center justify-between">
-                        <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
-                            <q-btn color="grey-9" style="border-radius: 0.5rem;" @click="step--">
-                                <div class="px-8 py-1">Volver</div>
-                            </q-btn>
-                        </div>
-                        <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
-                            <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
                                 <div class="px-8 py-1">Registrar</div>
                             </q-btn>
                         </div>
@@ -678,7 +648,7 @@ onMounted(() => {
                 </div>
             </Transition>
             <Transition name="horizontal">
-                <div class="row w-full" v-if="step == 5">
+                <div class="row w-full" v-if="step == 4">
                     <div class="col-12 px-2 md:px-12">
                         <div class="text-center q-my-lg">
                             <q-icon name="eva-checkmark-circle-2-outline" size="64px" color="positive" />

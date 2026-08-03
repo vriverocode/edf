@@ -72,7 +72,19 @@ class BookingController extends Controller
                 return $this->returnFail(403, 'No tienes permiso para reservar esta área común');
             }
 
+            $area = ComunArea::find($request->comun_area);
+            if (! $area) {
+                return $this->returnFail(404, 'Área común no encontrada');
+            }
+            if (! $area->status) {
+                return $this->returnFail(409, 'El área común está temporalmente deshabilitada');
+            }
+
             $date = date('Y-m-d', strtotime($request->date));
+            if ($this->hasBookingForSameAreaOnDay($user->id, $request->comun_area, $date)) {
+                return $this->returnFail(409, 'Ya tienes una reserva activa para esta área común en el día seleccionado. Solo se permite una reserva por día para la misma área.');
+            }
+
             if ($this->hasOverlappingBookingForUser($user->id, $request->comun_area, $date, $request->time_from, $request->time_to)) {
                 return $this->returnFail(409, 'Ya tienes una reserva activa que se superpone con el horario seleccionado. Cancela la reserva existente para poder crear una nueva.');
             }
@@ -130,7 +142,8 @@ class BookingController extends Controller
         if (! $booking) {
             return $this->returnFail(404, 'Reserva no encontrada');
         }
-        if (! $this->verifyBookingOwnership($booking)) {
+        $user = request()->user();
+        if ($user->rol_id !== Rol::TRABAJADOR && ! $this->verifyBookingOwnership($booking)) {
             return $this->returnFail(403, 'No autorizado');
         }
 
@@ -162,12 +175,12 @@ class BookingController extends Controller
 
     private function applyFilter($query, Request $request)
     {
-        $VIEW_ALL_STATUS = 4;
+        $VIEW_ALL_STATUS = -1;
         $FREE_AMOUNT = 0;
         if ($request->filled('status')) {
             $statusParam = $request->get('status');
             if ($statusParam == $VIEW_ALL_STATUS) {
-                // Status 4 = todos (incluye cancelados)
+                // Status -1 = todos (incluye cancelados)
             } else {
                 $statuses = array_map('intval', explode(',', $statusParam));
                 $query->whereIn('status', $statuses);
@@ -283,6 +296,32 @@ class BookingController extends Controller
         $booking->update([
             'status' => 0,
             'motive' => 'Cancelada por mantenimiento',
+        ]);
+        $this->sendNotification($booking);
+
+        return $this->returnSuccess(200, 'ok');
+    }
+
+    public function completeBooking(Request $request, $id)
+    {
+        $booking = Booking::with('pay')->find($id);
+        if (! $booking) {
+            return $this->returnFail(400, 'Reserva no encontrada');
+        }
+        if (! in_array($booking->status, [
+            Booking::STATUS_PENDING_PAY,
+            Booking::STATUS_PENDING_APPROVAL,
+            Booking::STATUS_SUCCESS,
+        ])) {
+            return $this->returnFail(400, 'La reserva no está en un estado válido para completarse');
+        }
+
+        $needsRefund = $booking->amount > 0
+            && $booking->pay != null
+            && $booking->pay->status == 2;
+
+        $booking->update([
+            'status' => $needsRefund ? Booking::STATUS_PENDING_REFUND : Booking::STATUS_COMPLETED,
         ]);
         $this->sendNotification($booking);
 
@@ -669,6 +708,15 @@ class BookingController extends Controller
         return $booking->user_id === $user->id || $user->rol_id === Rol::ADMIN;
     }
 
+    private function hasBookingForSameAreaOnDay(int $userId, int $comunAreaId, string $date): bool
+    {
+        return Booking::where('user_id', $userId)
+            ->where('comun_area_id', $comunAreaId)
+            ->where('date', $date)
+            ->where('status', '>', 0)
+            ->exists();
+    }
+
     private function hasOverlappingBookingForUser(int $userId, int $comunAreaId, string $date, string $timeFrom, string $timeTo): bool
     {
         $bookings = Booking::where('user_id', $userId)
@@ -744,7 +792,47 @@ class BookingController extends Controller
 
             return;
         }
+        if (in_array($booking->status, [Booking::STATUS_COMPLETED, Booking::STATUS_PENDING_REFUND])) {
+            $this->completeReserveNotification($users, $booking);
+
+            return;
+        }
         $this->successReserveNotification($users, $booking);
+    }
+
+    private function completeReserveNotification($users, $booking)
+    {
+        $isPendingRefund = $booking->status == Booking::STATUS_PENDING_REFUND;
+
+        try {
+            $users['client']->notify(new RealtimeNotification(
+                title: $isPendingRefund ? 'Reserva completada - reembolso pendiente' : 'Reserva completada',
+                message: $isPendingRefund
+                    ? 'Tu reserva #'.$booking->booking_number.' fue completada. El reembolso será registrado por administración.'
+                    : 'Tu reserva #'.$booking->booking_number.' fue completada.',
+                url: '/client/reserves/view/'.$booking->id,
+                meta: [
+                    'booking_id' => $booking->id,
+                    'icon' => $booking->icon_status,
+                ]
+            ));
+
+            if ($users['admin']) {
+                $users['admin']->notify(new RealtimeNotification(
+                    title: $isPendingRefund ? 'Reserva completada - reembolso pendiente' : 'Reserva completada',
+                    message: $isPendingRefund
+                        ? 'La reserva #'.$booking->booking_number.' fue completada. Requiere reembolso.'
+                        : 'La reserva #'.$booking->booking_number.' fue completada.',
+                    url: '/admin/reserves',
+                    meta: [
+                        'booking_id' => $booking->id,
+                        'icon' => $booking->icon_status,
+                    ]
+                ));
+            }
+        } catch (Exception $e) {
+            Log::error('Fallo al enviar notificación de reserva completada: '.$e->getMessage());
+        }
     }
 
     private function successReserveNotification($users, $booking)

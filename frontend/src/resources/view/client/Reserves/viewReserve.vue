@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Notify } from 'quasar'
 import { useReserveStore } from '@/services/store/reserve.store'
 import iconsApp from '@/assets/icons/index';
 import moment from 'moment';
@@ -39,20 +40,37 @@ const downloadReceipt = async () => {
   const payId = booking.value?.pay?.id
   if (!payId) return
   const token = localStorage.getItem('access_token')
+  const baseUrl = (import.meta.env.VITE_LARAVEL_API_URL || '').replace(/\/+$/, '')
   try {
-    const res = await fetch('/api/pays/receipt/' + payId, {
+    const res = await fetch(baseUrl + '/api/pays/receipt/' + payId, {
       headers: { Authorization: 'Bearer ' + token }
     })
-    if (!res.ok) return
+    if (!res.ok) {
+      let message = 'Error al descargar el recibo'
+      try {
+        const err = await res.json()
+        message = err?.error || err?.message || message
+      } catch (e) {}
+      Notify.create({ color: 'negative', message })
+      return
+    }
+    const contentType = res.headers.get('Content-Type') || ''
+    if (!contentType.includes('application/pdf')) {
+      Notify.create({ color: 'negative', message: 'El recibo no está disponible' })
+      return
+    }
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = 'recibo-reserva-' + (booking.value?.booking_number || payId) + '.pdf'
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(url)
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   } catch (e) {
     console.error('Error al descargar recibo:', e)
+    Notify.create({ color: 'negative', message: 'Error al descargar el recibo' })
   }
 }
 

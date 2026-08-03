@@ -23,9 +23,14 @@ const selectedReserve = ref({})
 const page = ref(1)
 const lastPage = ref(1)
 const perPage = ref(10)
+const pendingRefunds = ref([])
+const loadingRefunds = ref(false)
+const refundFilterActive = ref(false)
+const pendingRefundCount = computed(() => pendingRefunds.value.length)
+const displayReserves = computed(() => refundFilterActive.value ? pendingRefunds.value : reserves.value)
 
 const filter = ref({
-  status: 4,
+  status: -1,
   area_id: '',
   date_from: '',
   date_to: '',
@@ -139,8 +144,32 @@ const getDepartmentNumber = (reserve) => {
 
 const isCancelled = (reserve) => reserve.status === 0
 
+const fetchPendingRefunds = () => {
+  loadingRefunds.value = true
+  reserveStore.getReservesByUser({ status: 0, per_page: 999 })
+    .then((response) => {
+      if (response.code !== 200) throw response
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || [])
+      pendingRefunds.value = data.filter(needsRefund)
+    })
+    .catch(() => {
+      pendingRefunds.value = []
+    })
+    .finally(() => {
+      loadingRefunds.value = false
+    })
+}
+
+const toggleRefundFilter = () => {
+  refundFilterActive.value = !refundFilterActive.value
+  if (refundFilterActive.value) {
+    fetchPendingRefunds()
+  }
+}
+
 onMounted(() => {
   getReserves();
+  fetchPendingRefunds();
 });
 </script>
 <template>
@@ -165,8 +194,20 @@ onMounted(() => {
             @click="setAmountFilter('paid')" />
         </div>
 
+        <!-- Pending refunds banner -->
+        <div v-if="pendingRefundCount > 0"
+          class="bg-orange text-white q-pa-sm rounded-borders q-mb-md flex items-center justify-between"
+          style="border-radius: 0.5rem;">
+          <div class="flex items-center">
+            <q-icon name="eva-undo-outline" size="sm" class="q-mr-sm" />
+            <span class="text-body2 text-bold">{{ pendingRefundCount }} reembolso(s) pendiente(s) de registrar</span>
+          </div>
+          <q-btn dense flat color="white" :label="refundFilterActive ? 'Ver todas' : 'Ver'" no-caps
+            @click="toggleRefundFilter" />
+        </div>
+
         <!-- Filters row -->
-        <div class="flex justify-between items-center q-mb-sm md:px-6">
+        <div v-if="!refundFilterActive" class="flex justify-between items-center q-mb-sm md:px-6">
           <div class="flex q-gutter-xs py-1">
             <q-btn dense outline no-caps class="mx-1 px-2" size="md"
               :class="{ 'text-primary text-bold': activeAmountFilter === '' }"
@@ -183,8 +224,8 @@ onMounted(() => {
         </div>
 
         <!-- Lista de reservas -->
-        <div v-if="reserves.length > 0" class="space-y-3 pt-1 md:px-5">
-          <div v-for="reserve in reserves" :key="reserve.id"
+        <div v-if="displayReserves.length > 0" class="space-y-3 pt-1 md:px-5">
+          <div v-for="reserve in displayReserves" :key="reserve.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
             :class="{ 'opacity-60': isCancelled(reserve) }"
             style="position: relative;">
@@ -293,7 +334,7 @@ onMounted(() => {
           </div>
 
           <!-- Pagination -->
-          <div class="flex justify-center mt-4">
+          <div v-if="!refundFilterActive" class="flex justify-center mt-4">
             <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
               @update:model-value="getReserves()" />
           </div>
@@ -308,8 +349,8 @@ onMounted(() => {
               </path>
             </svg>
           </div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">No hay reservas🥺</h3>
-          <p class="text-gray-600 text-center mb-6">Aún no han realizado ninguna reserva de áreas comunes.</p>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ refundFilterActive ? 'No hay reembolsos pendientes' : 'No hay reservas🥺' }}</h3>
+          <p class="text-gray-600 text-center mb-6">{{ refundFilterActive ? 'Todas las devoluciones han sido registradas.' : 'Aún no han realizado ninguna reserva de áreas comunes.' }}</p>
         </div>
       </div>
     </div>
@@ -324,7 +365,7 @@ onMounted(() => {
         :dialog="(dialog == 'cancel')"
         :reserve="selectedReserve"
         @closeModal="dialog = ''"
-        @updateList="getReserves()"
+        @updateList="getReserves(); fetchPendingRefunds()"
       />
     </template>
   </div>

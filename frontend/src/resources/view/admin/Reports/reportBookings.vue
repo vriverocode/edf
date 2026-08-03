@@ -145,15 +145,17 @@ const monthOptions = [
 ]
 
 const statusOptions = [
-  { label: 'Todos', value: 4 },
+  { label: 'Todos', value: -1 },
   { label: 'Cancelada', value: 0 },
   { label: 'Pago pendiente', value: 1 },
   { label: 'Pendiente de aprob.', value: 2 },
   { label: 'Exitoso', value: 3 },
+  { label: 'Completada', value: 4 },
+  { label: 'Pend. reembolso', value: 5 },
 ]
 
 const filters = ref({
-  status: 4,
+  status: -1,
   area_id: null,
   date_from: null,
   date_to: null,
@@ -195,10 +197,12 @@ const stats = computed(() => [
   { label: 'Pend. Pago', value: metrics.value.pendientes_pago, color: 'text-warning' },
   { label: 'Pend. Aprob.', value: metrics.value.pendientes_aprob, color: 'text-warning' },
   { label: 'Exitosas', value: metrics.value.exitosas, color: 'text-positive' },
+  { label: 'Completadas', value: metrics.value.completadas, color: 'text-teal-8' },
+  { label: 'Pend. Reembolso', value: metrics.value.pend_reembolso, color: 'text-orange-8' },
 ])
 
 const hasActiveFilter = computed(() => {
-  return filters.value.status !== 4
+  return filters.value.status !== -1
     || filters.value.area_id !== null
     || filters.value.date_from !== null
     || filters.value.date_to !== null

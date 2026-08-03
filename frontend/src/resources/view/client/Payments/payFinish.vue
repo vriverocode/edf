@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Notify } from 'quasar'
 import checkIcon from '@/assets/img/util/check.webp'
 import moment from 'moment'
 import { usePayStore } from '@/services/store/pay.store'
@@ -38,20 +39,37 @@ const downloadReceipt = async () => {
   const payId = pay.value?.id
   if (!payId) return
   const token = localStorage.getItem('access_token')
+  const baseUrl = (import.meta.env.VITE_LARAVEL_API_URL || '').replace(/\/+$/, '')
   try {
-    const res = await fetch('/api/pays/receipt/' + payId, {
+    const res = await fetch(baseUrl + '/api/pays/receipt/' + payId, {
       headers: { Authorization: 'Bearer ' + token }
     })
-    if (!res.ok) return
+    if (!res.ok) {
+      let message = 'Error al descargar el recibo'
+      try {
+        const err = await res.json()
+        message = err?.error || err?.message || message
+      } catch (e) {}
+      Notify.create({ color: 'negative', message })
+      return
+    }
+    const contentType = res.headers.get('Content-Type') || ''
+    if (!contentType.includes('application/pdf')) {
+      Notify.create({ color: 'negative', message: 'El recibo no está disponible' })
+      return
+    }
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = 'recibo-pago-' + (pay.value?.pay_id || payId) + '.pdf'
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(url)
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   } catch (e) {
     console.error('Error al descargar recibo:', e)
+    Notify.create({ color: 'negative', message: 'Error al descargar el recibo' })
   }
 }
 
@@ -153,7 +171,7 @@ const reloadBooking = () => {
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Monto pagado</span>
-              <span class="text-gray-900 font-semibold">S/. {{ pay.amount.toFixed(2) }}</span>
+              <span class="text-gray-900 font-semibold">S/. {{ Number(pay.amount).toFixed(2) }}</span>
             </div>
 
             <!-- Fecha de pago -->
@@ -207,7 +225,7 @@ const reloadBooking = () => {
           </button>
 
           <!-- Enlace de volver al inicio -->
-          <div class="text-center ">
+          <div class="text-center pt-5">
             <button @click="goToHome" class="text-gray-600 font-medium underline hover:text-gray-800 transition-colors">
               Volver al inicio
             </button>

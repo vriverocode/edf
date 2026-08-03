@@ -73,7 +73,7 @@ class QuotaController extends Controller
                     ? Carbon::parse($quota->due_date)->year
                     : now()->year;
 
-                return (int) $quota->month . '_' . $year;
+                return (int) $quota->month.'_'.$year;
             })
             ->map(function ($group) {
                 $first = $group->first();
