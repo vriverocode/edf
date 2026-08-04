@@ -151,6 +151,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/availableBooking/{id}', [BookingController::class, 'getAvaibleBookingByDay']);
         Route::get('/byId/{id}', [BookingController::class, 'getBookingById']);
         Route::get('/byArea/{id}', [BookingController::class, 'getBookingByAreaId']);
+        Route::get('/byDepartment/{id}', [BookingController::class, 'getBookingsByDepartment']);
         Route::get('/extension-slots/{id}', [BookingController::class, 'getExtensionSlots']);
         // Write - ownership checked in controller
         Route::post('/', [BookingController::class, 'storeBooking'])->middleware('throttle:sensitive');

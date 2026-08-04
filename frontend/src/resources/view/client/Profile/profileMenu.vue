@@ -3,7 +3,7 @@ import { useRouter } from 'vue-router';
 import booking from '@/assets/img/menu/reservas.png'
 import gastos2 from '@/assets/img/menu/gastos2.png'
 import cuotas from '@/assets/img/menu/cuotas2.png'
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import iconsApp from '@/assets/icons/index'
 
 const router = useRouter()

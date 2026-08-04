@@ -44,8 +44,11 @@ const comunAreas = ref([])
 const blockedAreaIds = ref([])
 const maintenanceDates = ref([])
 const userApartments = computed(() => {
-  if (authStore.user.role_id == 5) {
-
+  if (authStore.user.role_id == 3) {
+    return (authStore.user.departments_inquilino || []).map(p => ({
+      id: p.departament_id,
+      number: p.departament?.number ?? `Dpto ${p.departament_id}`,
+    }))
   }
   if (!authStore.user?.units) return []
   return authStore.user.units.filter(u => u.type == 1)
@@ -136,10 +139,6 @@ const nextStep = () => {
   }
   if (step.value == 1) {
       typeModalShow.value = false;
-      console.log(formData.value.typeOfReserve)
-      console.log(selectedComunArea.value.price > 0)
-      console.log(formData.value.typeOfReserve == 1 && selectedComunArea.value.warranty_price > 0)
-
       const necesitaPago = formData.value.typeOfReserve > 1
         || (formData.value.typeOfReserve > 1 && selectedComunArea.value.price > 0)
         || (formData.value.typeOfReserve == 1 && selectedComunArea.value.warranty_price > 0)
@@ -223,12 +222,17 @@ const getComunsArea = () => {
     })
 }
 const fetchBlockedAreas = () => {
-  const today = moment().format('YYYY-MM-DD')
-  reserveStore.getReservesByUser({ status: 1 })
+  const departamentId = formData.value.departament_id || userApartments.value[0]?.id
+  if (!departamentId) {
+    blockedAreaIds.value = []
+    return
+  }
+  reserveStore.getBookingsByDepartment(departamentId)
     .then((response) => {
       if (response.code !== 200) throw response
-      const todayBookings = response.data.filter(b => b.date === today)
-      blockedAreaIds.value = [...new Set(todayBookings.map(b => b.comun_area_id))]
+      const today = moment().format('YYYY-MM-DD')
+      const activeBookings = response.data.filter(b => (b.date || '').slice(0, 10) >= today)
+      blockedAreaIds.value = [...new Set(activeBookings.map(b => b.comun_area_id))]
     })
     .catch(() => {})
 }
@@ -271,12 +275,10 @@ const validateStepForm = () => {
   return true
 }
 const getAvaibleBookingByDay = () => {
-  const selectedDate = moment(formData.value.date).format('YYYY-MM-DD')
-  const alreadyBlocked = blockedAreaIds.value.includes(selectedComunArea.value.id) &&
-    selectedDate === moment().format('YYYY-MM-DD')
+  const alreadyBlocked = blockedAreaIds.value.includes(selectedComunArea.value.id)
 
   if (alreadyBlocked) {
-    showNotify('negative', 'Ya tienes una reserva activa para esta área en el día seleccionado')
+    showNotify('negative', 'Ya tienes una reserva activa para esta área. Solo podrás reservarla nuevamente cuando finalice el día de tu reserva.')
     formData.value.date = ''
     return
   }
@@ -622,11 +624,10 @@ const calculateDiffHour = computed(() => {
 onMounted(() => {
   getComunsArea()
   getPayMethod()
-  fetchBlockedAreas()
-
   if (userApartments.value.length === 1) {
     formData.value.departament_id = userApartments.value[0].id
   }
+  fetchBlockedAreas()
 })
 
 onBeforeUnmount(() => {
@@ -663,7 +664,7 @@ watch(step,
           <div class="px-2 form-step row" v-if="step == 1">
             <div class="col-md-3 col-4 px-2 md:px-5 my-3" v-for="comunArea in comunAreas" :key="comunArea.id">
               <div class="boxContentV2 " :class="{ 'areaBlocked': blockedAreaIds.includes(comunArea.id) }">
-                <div class="boxItem_v2  md:px-6 " @click="blockedAreaIds.includes(comunArea.id) ? showNotify('negative', 'Ya tienes una reserva activa para esta área el día de hoy') : selectArea(comunArea.id)">
+                <div class="boxItem_v2  md:px-6 " @click="blockedAreaIds.includes(comunArea.id) ? showNotify('negative', 'Ya tienes una reserva activa para esta área. Solo podrás reservarla nuevamente cuando finalice el día de tu reserva') : selectArea(comunArea.id)">
                   <div class="flex justify-center items-center h-full w-full ">
                     <img :src="mediaUrl + '/images/icons/' + comunArea.icon + '.svg'" alt="" style="height:100%">
                   </div>
@@ -1203,7 +1204,8 @@ watch(step,
                   <div style="font-weight: 500; font-size: 0.95rem; margin-bottom: 8px;">Selecciona tu departamento:
                   </div>
                   <q-select v-model="formData.departament_id" :options="userApartments" option-value="id"
-                    option-label="number" emit-value map-options outlined dense color="tealedf" label="Departamento" />
+                    option-label="number" emit-value map-options outlined dense color="tealedf" label="Departamento"
+                    @update:model-value="fetchBlockedAreas" />
                 </div>
                 <div>
                   <div v-for="type in reservesByType" :key="type.id"

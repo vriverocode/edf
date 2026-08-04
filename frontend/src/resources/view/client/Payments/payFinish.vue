@@ -2,12 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Notify } from 'quasar'
-import checkIcon from '@/assets/img/util/check.webp'
+import notificationSound from '@/assets/audio/audio_1.mp3'
 import moment from 'moment'
 import { usePayStore } from '@/services/store/pay.store'
 const route = useRoute()
 const router = useRouter()
 const payStore = usePayStore()
+const sound = new Audio(notificationSound)
 
 // Estados reactivos
 const pay = ref(null)
@@ -90,6 +91,12 @@ onMounted(() => {
   }
 })
 
+onMounted(() => {
+  setTimeout(() => {
+    sound.play()
+  }, 2000)
+})
+
 // Función para recargar el pay
 const reloadBooking = () => {
   if (payId) {
@@ -142,7 +149,16 @@ const reloadBooking = () => {
       <!-- Success State -->
       <div v-else-if="pay" class="flex flex-col items-center pb-4">
         <div class="mb-4">
-          <img :src="checkIcon" alt="" style="width: 5.5rem;">
+          <div class="main-container">
+            <div class="check-container">
+              <div class="check-background">
+                <svg viewBox="0 0 65 51" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 25L27.3077 44L58.5 7" stroke="white" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <div class="check-shadow"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Título de éxito -->
@@ -252,3 +268,129 @@ const reloadBooking = () => {
     </div>
   </div>
 </template>
+
+<style lang="scss">
+.main-container {
+	width: 100%;
+	height: 100vh;
+	display: flex;
+	flex-flow: column;
+	justify-content: center;
+	align-items: center;
+	animation: animateTotal 0.75s ease-out forwards 2s;
+
+}
+
+.check-container {
+	width: 7.5rem;
+	height: 8.5rem;
+	display: flex;
+	flex-flow: column;
+	align-items: center;
+	justify-content: space-between;
+
+	.check-background {
+		width: 100%;
+		height: calc(100% - 1.25rem);
+		background: $primary;
+		box-shadow: 0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset;
+		transform: scale(0.84);
+		border-radius: 50%;
+		animation: animateContainer 0.75s ease-out forwards 0.75s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		opacity: 0;
+
+		svg {
+			width: 65%;
+			transform: translateY(0.25rem);
+			stroke-dasharray: 80;
+			stroke-dashoffset: 80;
+			animation: animateCheck 0.35s forwards 1.25s ease-out;
+		}
+	}
+
+	.check-shadow {
+		bottom: calc(-15% - 5px);
+		left: 0;
+		border-radius: 50%;
+		background: radial-gradient(closest-side, rgb(32, 44, 95), transparent);
+		animation: animateShadow 0.75s ease-out forwards 0.75s;
+	}
+}
+
+@keyframes animateContainer {
+	0% {
+		opacity: 0;
+		transform: scale(0);
+		box-shadow: 0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset;
+	}
+	25% {
+		opacity: 1;
+		transform: scale(0.9);
+		box-shadow: 0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset;
+	}
+	43.75% {
+		transform: scale(1.15);
+		box-shadow: 0px 0px 0px 43.334px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 65px rgba(255, 255, 255, 0.25) inset;
+	}
+	62.5% {
+		transform: scale(1);
+		box-shadow: 0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 21.667px rgba(255, 255, 255, 0.25) inset;
+	}
+	81.25% {
+		box-shadow: 0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset;
+	}
+	100% {
+		opacity: 1;
+		box-shadow: 0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset,
+			0px 0px 0px 0px rgba(255, 255, 255, 0.25) inset;
+	}
+}
+
+@keyframes animateCheck {
+	from {
+		stroke-dashoffset: 80;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes animateShadow {
+	0% {
+		opacity: 0;
+		width: 100%;
+		height: 15%;
+	}
+	25% {
+		opacity: 0.25;
+	}
+	43.75% {
+		width: 40%;
+		height: 7%;
+		opacity: 0.35;
+	}
+	100% {
+		width: 85%;
+		height: 15%;
+		opacity: 0.25;
+	}
+}
+
+@keyframes animateTotal {
+	0% {
+		height: 100vh;
+	}
+	100% {
+	  height: 20vh;
+	}
+}
+</style>

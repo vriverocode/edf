@@ -176,13 +176,18 @@ const getDialogData = (e) => {
 }
 const getPaymentStatus = (booking) => {
   if (booking.amount > 0) {
-    return !booking.pay
-      ? 'No pagada'
-      : booking.pay.status == 1
-        ? 'Pendiente de aprob.'
-        : 'Pagado';
+    if (!booking.pay) return 'No pagada'
+    const statuses = {
+      0: 'Cancelado',
+      1: 'Pendiente de aprob.',
+      2: 'Exitoso',
+      3: 'Rechazado',
+      4: 'Reemb. parcial',
+      5: 'Reembolsado',
+    }
+    return statuses[booking.pay.status] ?? 'Pagado'
   }
-  return booking.status == 3 ? 'Confirmado' : 'Cancelado';
+  return 'Gratis'
 }
 
 const getPaymentAmount = (booking) => {
@@ -209,13 +214,13 @@ const statusOptions = [
   <div class="h-full" style="overflow: hidden;">
     <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-24"
       style="height: 15%; overflow:hidden" >
-      <div class="flex items-center col-10  col-md-11 pr-2 md:pl-8">
+      <div class="flex items-center col-12  col-md-11 pr-2 md:pl-8">
         <q-btn color="primary" unelevated class="flex-1 createBookingButton"
           style="border-radius: 0.5rem;" @click="goTo('/client/reserves/form/add')">
           <div class="flex items-center py-1 md:py-2">
             <q-icon name="eva-plus-outline" />
             <div class="q-pt-none text-bold pl-1">
-              Agregar reserva
+              Agregar reservas
             </div>
           </div>
         </q-btn>

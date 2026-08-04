@@ -60,7 +60,7 @@ export const useReserveStore = defineStore('Reserve', {
               reject(response.data);
             }
             if (response.data.code == 409) {
-              reject('Límite de reservas por día alcanzado');
+              reject(response.data.error || 'Límite de reservas por día alcanzado');
             }
             reject('Error al realizar reserva');
           });
@@ -124,6 +124,23 @@ export const useReserveStore = defineStore('Reserve', {
             reject(response.data.error);
           });
 
+      })
+    },
+    async getBookingsByDepartment(departamentId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.get('/api/bookings/byDepartment/' + departamentId)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
       })
     },
 

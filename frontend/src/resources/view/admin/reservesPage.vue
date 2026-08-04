@@ -32,11 +32,11 @@ const displayReserves = computed(() => refundFilterActive.value ? pendingRefunds
 const filter = ref({
   status: -1,
   area_id: '',
-  date_from: '',
+  date_from: moment().format('YYYY-MM-DD'),
   date_to: '',
   amount_type: '',
-  sort_by: 'created_at',
-  sort_dir: 'desc'
+  sort_by: 'date',
+  sort_dir: 'asc'
 })
 
 const activeAmountFilter = ref('')

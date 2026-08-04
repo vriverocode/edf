@@ -50,9 +50,9 @@ class BookingController extends Controller
                 return $this->returnFail(422, 'Debes tener una unidad asignada para reservar áreas comunes.');
             }
 
-            if (! $departament_id && ($user->rol_id === Rol::AIRBNB || $user->rol_id === Rol::FAMILIAR)) {
+            if (! $departament_id && ($user->rol_id === Rol::AIRBNB || $user->rol_id === Rol::FAMILIAR || $user->rol_id === Rol::INQUILINO)) {
                 $residentRecord = PeoplesXDepartaments::where('user_id', $user->id)
-                    ->whereIn('type', [5, 4])
+                    ->whereIn('type', [5, 4, 3])
                     ->first();
                 if ($residentRecord) {
                     $departament_id = $residentRecord->departament_id;
@@ -81,11 +81,11 @@ class BookingController extends Controller
             }
 
             $date = date('Y-m-d', strtotime($request->date));
-            if ($this->hasBookingForSameAreaOnDay($user->id, $request->comun_area, $date)) {
-                return $this->returnFail(409, 'Ya tienes una reserva activa para esta área común en el día seleccionado. Solo se permite una reserva por día para la misma área.');
+            if ($this->hasActiveReservationForDepartment($departament_id, (int) $request->comun_area)) {
+                return $this->returnFail(409, 'Ya tienes una reserva activa para esta área. Solo podrás reservarla nuevamente cuando finalice el día de tu reserva.');
             }
 
-            if ($this->hasOverlappingBookingForUser($user->id, $request->comun_area, $date, $request->time_from, $request->time_to)) {
+            if ($this->hasOverlappingBookingForDepartment($departament_id, (int) $request->comun_area, $date, $request->time_from, $request->time_to)) {
                 return $this->returnFail(409, 'Ya tienes una reserva activa que se superpone con el horario seleccionado. Cancela la reserva existente para poder crear una nueva.');
             }
 
@@ -134,6 +134,29 @@ class BookingController extends Controller
         $perPage = $request->integer('per_page', 10);
 
         return $this->returnSuccess(200, $bookings->paginate($perPage));
+    }
+
+    public function getBookingsByDepartment(Request $request, int $departamentId)
+    {
+        $user = $request->user();
+
+        $ownedIds = $user->apartaments()->pluck('id');
+        $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
+        $allowedIds = $ownedIds->merge($residentIds)->unique()->values();
+
+        if (! $allowedIds->contains($departamentId)) {
+            return $this->returnFail(403, 'No tienes permisos para ver las reservas de este departamento');
+        }
+
+        $bookings = Booking::with('comunArea')
+            ->where('departament_id', $departamentId)
+            ->where('status', '>', 0)
+            ->where('date', '>=', now()->toDateString())
+            ->orderBy('date', 'asc')
+            ->orderBy('time_from', 'asc')
+            ->get();
+
+        return $this->returnSuccess(200, $bookings);
     }
 
     public function getBookingById($id)
@@ -708,18 +731,18 @@ class BookingController extends Controller
         return $booking->user_id === $user->id || $user->rol_id === Rol::ADMIN;
     }
 
-    private function hasBookingForSameAreaOnDay(int $userId, int $comunAreaId, string $date): bool
+    private function hasActiveReservationForDepartment(int $departamentId, int $comunAreaId): bool
     {
-        return Booking::where('user_id', $userId)
+        return Booking::where('departament_id', $departamentId)
             ->where('comun_area_id', $comunAreaId)
-            ->where('date', $date)
+            ->where('date', '>=', now()->toDateString())
             ->where('status', '>', 0)
             ->exists();
     }
 
-    private function hasOverlappingBookingForUser(int $userId, int $comunAreaId, string $date, string $timeFrom, string $timeTo): bool
+    private function hasOverlappingBookingForDepartment(int $departamentId, int $comunAreaId, string $date, string $timeFrom, string $timeTo): bool
     {
-        $bookings = Booking::where('user_id', $userId)
+        $bookings = Booking::where('departament_id', $departamentId)
             ->where('date', $date)
             ->where('status', '>', 0)
             ->where('time_from', '<', $timeTo)

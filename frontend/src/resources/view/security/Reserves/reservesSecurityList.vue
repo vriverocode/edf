@@ -31,10 +31,8 @@ const filter = ref({
 
 const quickFilters = [
   { key: 'hoy', label: 'Hoy' },
-  { key: 'pendientes', label: 'Pendiente' },
-  { key: 'exitosas', label: 'Exitosa' },
-  { key: 'completadas', label: 'Completada' },
-  { key: 'canceladas', label: 'Canceladas' },
+  { key: 'manana', label: 'Mañana' },
+  { key: 'semana', label: 'Esta semana' },
 ]
 const activeQuickFilter = ref('')
 
@@ -46,17 +44,11 @@ const applyQuickFilter = (key) => {
     case 'hoy':
       filter.value = { ...base, status: -1, date_from: today, date_to: today }
       break
-    case 'pendientes':
-      filter.value = { ...base, status: '1,2', date_from: '', date_to: '' }
+    case 'manana':
+      filter.value = { ...base, status: -1, date_from: moment().add(1, 'day').format('YYYY-MM-DD'), date_to: moment().add(1, 'day').format('YYYY-MM-DD') }
       break
-    case 'exitosas':
-      filter.value = { ...base, status: 3, date_from: '', date_to: '' }
-      break
-    case 'completadas':
-      filter.value = { ...base, status: 4, date_from: '', date_to: '' }
-      break
-    case 'canceladas':
-      filter.value = { ...base, status: 0, date_from: '', date_to: '' }
+    case 'semana':
+      filter.value = { ...base, status: -1, date_from: today, date_to: moment().endOf('week').format('YYYY-MM-DD') }
       break
   }
   getReserves();
@@ -159,7 +151,8 @@ const markAsComplete = async (reserveId) => {
 
 onMounted(() => {
   const today = moment().format('YYYY-MM-DD')
-  filter.value = { ...filter.value, status: -1, date_from: today, date_to: '', sort_by: 'date', sort_dir: 'desc' }
+  filter.value = { ...filter.value, status: -1, date_from: today, date_to: today, sort_by: 'date', sort_dir: 'desc' }
+  activeQuickFilter.value = 'hoy'
   getReserves();
 });
 </script>
