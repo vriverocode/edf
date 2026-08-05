@@ -184,6 +184,7 @@ const getPaymentStatus = (booking) => {
       3: 'Rechazado',
       4: 'Reemb. parcial',
       5: 'Reembolsado',
+      6: 'Pend. devolución',
     }
     return statuses[booking.pay.status] ?? 'Pagado'
   }
@@ -207,38 +208,27 @@ const statusOptions = [
   { label: 'Pago pendiente', value: 1 },
   { label: 'Pendiente de aprob.', value: 2 },
   { label: 'Exitoso', value: 3 },
+  { label: 'Pend. devolución', value: 6 },
 ]
 </script>
 
 <template>
   <div class="h-full" style="overflow: hidden;">
     <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-24"
-      style="height: 15%; overflow:hidden" >
-      <div class="flex items-center col-12  col-md-11 pr-2 md:pl-8">
+      style="height: 17%; overflow:hidden" >
+      <div class="flex items-center col-12  col-md-12 pr-2 md:pl-8">
         <q-btn color="primary" unelevated class="flex-1 createBookingButton"
           style="border-radius: 0.5rem;" @click="goTo('/client/reserves/form/add')">
           <div class="flex items-center py-1 md:py-2">
             <q-icon name="eva-plus-outline" />
             <div class="q-pt-none text-bold pl-1">
-              Agregar reservas
+              Agregar reserva
             </div>
           </div>
         </q-btn>
       </div>
-      <div class="w-full flex justify-end col-2 col-md-1 md:pr-8"></div>
-    </div>
-    <div class="" style="height: 85%; overflow: auto;">
-      <!-- Loading State -->
-      <div v-if="loading" class="flex justify-center items-center py-20">
-        <!-- <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div> -->
-        <q-spinner-dots color="primary" size="7rem" />
-
-      </div>
-
-      <!-- Content -->
-      <div v-else class="px-4 pb-6 md:px-28">
-        <!-- Quick filters -->
-        <div class="flex justify-between items-center q-mb-sm md:px-5">
+      <div class="w-full flex justify-end col-12 md:px-5 items-center">
+        <div class="flex justify-between items-center q-mb-sm md:px-5 w-full">
           <div class="flex q-gutter-xs py-1" style="overflow-x: auto; white-space: nowrap;">
             <q-btn dense outline no-caps class="px-2" size="sm"
               :class="{ 'text-primary text-bold': activeQuickFilter === 'all' }"
@@ -261,6 +251,19 @@ const statusOptions = [
             <q-badge v-if="activeFilterCount > 0" color="primary" floating>{{ activeFilterCount }}</q-badge>
           </q-btn>
         </div>
+      </div>
+    </div>
+    <div class="" style="height: 83%; overflow: auto;">
+      <!-- Loading State -->
+      <div v-if="loading" class="flex justify-center items-center py-20">
+        <!-- <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div> -->
+        <q-spinner-dots color="primary" size="7rem" />
+
+      </div>
+
+      <!-- Content -->
+      <div v-else class="px-4 pb-6 md:px-28">
+    
 
         <!-- Lista de reservas -->
         <div v-if="reserves.length > 0" class="space-y-3 md:px-5">
@@ -348,7 +351,7 @@ const statusOptions = [
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                     </path>
                   </svg>
-                  <span class="text-sm font-medium text-gray-700">{{ getPaymentStatus(reserve) }}</span>
+                  <span class="text-sm font-medium text-gray-700">{{ getPaymentStatus(reserve) }}SSS</span>
                 </div>
                 <div class="flex items-center">
                   <div v-if="reserve.type == 4" class="mr-3">
@@ -389,7 +392,7 @@ const statusOptions = [
                           <q-item-section>Ver detalles</q-item-section>
                         </q-item>
                         <q-item clickable v-close-popup @click="showDialog($event)" data-dialog="cancel"
-                          :data-reserve="reserve.id" v-if="reserve.status != 0">
+                          :data-reserve="reserve.id" v-if="[1, 2, 3].includes(reserve.status)">
                           <q-item-section>Cancelar reserva</q-item-section>
                         </q-item>
                         <q-separator />

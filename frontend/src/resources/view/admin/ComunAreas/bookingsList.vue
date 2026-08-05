@@ -190,7 +190,9 @@ onMounted(() => {
             <span class="text-weight-medium">Mantenimiento programado</span>
             <div class="text-caption">
               <span v-for="(m, i) in maintenances" :key="m.id">
-                {{ moment(m.date).format('DD/MM') }} {{ m.time_from }}-{{ m.time_to }}<span v-if="i < maintenances.length - 1">, </span>
+                {{ moment(m.date).format('DD/MM') }}
+                <template v-if="m.time_from && m.time_to">{{ m.time_from }}-{{ m.time_to }}</template>
+                <template v-else>Todo el día</template><span v-if="i < maintenances.length - 1">, </span>
               </span>
             </div>
           </q-banner>

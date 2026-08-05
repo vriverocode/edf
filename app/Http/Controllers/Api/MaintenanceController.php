@@ -10,6 +10,9 @@ use App\Models\Notice;
 use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
+use DateInterval;
+use DatePeriod;
+use DateTime;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +26,17 @@ class MaintenanceController extends Controller
         $maintenances = Maintenance::with(['comunArea'])->orderBy('date', 'desc')->get();
 
         return $this->returnSuccess(200, $maintenances);
+    }
+
+    public function show($id)
+    {
+        $maintenance = Maintenance::with('comunArea')->find($id);
+
+        if (! $maintenance) {
+            return $this->returnFail(404, 'Mantenimiento no encontrado');
+        }
+
+        return $this->returnSuccess(200, $maintenance);
     }
 
     public function store(Request $request)
@@ -45,20 +59,34 @@ class MaintenanceController extends Controller
         DB::beginTransaction();
 
         try {
-            $dateFormatted = date('Y-m-d', strtotime($request->date));
+            $dateStart = date('Y-m-d', strtotime($request->date));
+            $dateEnd = $request->date_to ? date('Y-m-d', strtotime($request->date_to)) : $dateStart;
             $timeFrom = $request->time_from;
             $timeTo = $request->time_to;
-            $durationText = $request->duration;
+            $isMultiDay = $dateEnd > $dateStart;
 
-            $maintenance = Maintenance::create([
-                'title' => 'Mantenimiento programado: '.$area->name,
-                'description' => htmlspecialchars($request->motive),
-                'comun_area_id' => $area->id,
-                'date' => $dateFormatted,
-                'time_from' => $timeFrom,
-                'time_to' => $timeTo,
-                'status' => 1,
-            ]);
+            $durationText = $this->buildDurationText($dateStart, $dateEnd, $timeFrom, $timeTo);
+
+            $period = new DatePeriod(
+                new DateTime($dateStart),
+                new DateInterval('P1D'),
+                (new DateTime($dateEnd))->modify('+1 day')
+            );
+
+            $maintenances = [];
+            foreach ($period as $day) {
+                $maintenances[] = Maintenance::create([
+                    'title' => 'Mantenimiento programado: '.$area->name,
+                    'description' => htmlspecialchars($request->motive),
+                    'comun_area_id' => $area->id,
+                    'date' => $day->format('Y-m-d'),
+                    'time_from' => $timeFrom,
+                    'time_to' => $timeTo,
+                    'status' => 1,
+                ]);
+            }
+
+            $maintenance = $maintenances[0];
 
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
@@ -69,9 +97,14 @@ class MaintenanceController extends Controller
                 $maintenance->update(['photo' => $photoUrl]);
             }
 
+            $fechaTexto = $isMultiDay
+                ? 'Del '.date('d/m/Y', strtotime($dateStart)).' al '.date('d/m/Y', strtotime($dateEnd))
+                : 'El día '.date('d/m/Y', strtotime($dateStart));
+            $horarioTexto = $timeFrom && $timeTo ? $timeFrom.' - '.$timeTo : 'Todo el día';
+
             $descriptionNotice = $request->motive
-                ."\nFecha: ".date('d/m/Y', strtotime($dateFormatted))
-                ."\nHorario: ".$timeFrom.' - '.$timeTo
+                ."\nFecha: ".$fechaTexto
+                ."\nHorario: ".$horarioTexto
                 ."\nDuración: ".$durationText;
 
             Notice::create([
@@ -85,13 +118,19 @@ class MaintenanceController extends Controller
                 'views' => '[]',
             ]);
 
-            $bookingsToCancel = Booking::with('pay')
+            $bookingsQuery = Booking::with('pay')
                 ->where('comun_area_id', $area->id)
-                ->where('date', $dateFormatted)
-                ->where('status', '>', 0)
-                ->where('time_from', '<', $timeTo)
-                ->where('time_to', '>', $timeFrom)
-                ->get();
+                ->where('status', '>', 0);
+
+            if ($isMultiDay) {
+                $bookingsQuery->whereBetween('date', [$dateStart, $dateEnd]);
+            } else {
+                $bookingsQuery->where('date', $dateStart)
+                    ->where('time_from', '<', $timeTo)
+                    ->where('time_to', '>', $timeFrom);
+            }
+
+            $bookingsToCancel = $bookingsQuery->get();
 
             foreach ($bookingsToCancel as $booking) {
                 $motive = 'Cancelada por mantenimiento';
@@ -105,7 +144,7 @@ class MaintenanceController extends Controller
                 $this->sendBookingCancelNotification($booking);
             }
 
-            $this->sendMaintenanceNotification($maintenance, $area);
+            $this->sendMaintenanceNotification($maintenance, $area, $dateEnd);
 
             DB::commit();
 
@@ -158,17 +197,23 @@ class MaintenanceController extends Controller
         }
     }
 
-    private function sendMaintenanceNotification($maintenance, $area)
+    private function sendMaintenanceNotification($maintenance, $area, $dateEnd = null)
     {
         $users = User::where('rol_id', '!=', 1)->where('status', 1)->get();
-        $fechaFormateada = date('d/m/Y', strtotime($maintenance->date));
+        $fechaFormateada = $dateEnd && $dateEnd !== $maintenance->date
+            ? 'del '.date('d/m/Y', strtotime($maintenance->date)).' al '.date('d/m/Y', strtotime($dateEnd))
+            : 'el día '.date('d/m/Y', strtotime($maintenance->date));
 
         try {
             foreach ($users as $user) {
+                $url = (int) $user->rol_id === Rol::SUPER_ADMIN
+                    ? '/admin/maintenances/'.$maintenance->id
+                    : '/client/maintenances/'.$maintenance->id;
+
                 $user->notify(new RealtimeNotification(
                     title: 'Mantenimiento programado',
-                    message: "Se programó un mantenimiento en {$area->name} el día {$fechaFormateada}.",
-                    url: '/client/notices',
+                    message: "Se programó un mantenimiento en {$area->name} {$fechaFormateada}.",
+                    url: $url,
                     meta: [
                         'maintenance_id' => $maintenance->id,
                         'icon' => 'build',
@@ -182,12 +227,18 @@ class MaintenanceController extends Controller
 
     private function validateFieldsFromInput($inputs)
     {
+        $isSingleDay = empty($inputs['date_to']) || $inputs['date_to'] === $inputs['date'];
+
         $rules = [
             'comun_area_id' => ['required', 'integer', 'exists:comun_areas,id'],
             'date' => ['required', 'date'],
-            'time_from' => ['required', 'date_format:H:i'],
-            'time_to' => ['required', 'date_format:H:i', 'after:time_from'],
-            'duration' => ['required', 'string'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date'],
+            'time_from' => $isSingleDay
+                ? ['required', 'date_format:H:i']
+                : ['nullable', 'required_with:time_to', 'date_format:H:i'],
+            'time_to' => $isSingleDay
+                ? ['required', 'date_format:H:i', 'after:time_from']
+                : ['nullable', 'required_with:time_from', 'date_format:H:i', 'after:time_from'],
             'motive' => ['required', 'string', 'max:500'],
         ];
 
@@ -196,19 +247,51 @@ class MaintenanceController extends Controller
             'comun_area_id.exists' => 'El área común no es válida.',
             'date.required' => 'La fecha es requerida.',
             'date.date' => 'La fecha no es válida.',
+            'date_to.date' => 'La fecha de fin no es válida.',
+            'date_to.after_or_equal' => 'La fecha de fin debe ser igual o posterior a la de inicio.',
             'time_from.required' => 'La hora de inicio es requerida.',
             'time_from.date_format' => 'La hora de inicio debe tener formato HH:MM.',
             'time_to.required' => 'La hora de fin es requerida.',
             'time_to.date_format' => 'La hora de fin debe tener formato HH:MM.',
             'time_to.after' => 'La hora de fin debe ser posterior a la de inicio.',
-            'duration.required' => 'La duración es requerida.',
-            'duration.string' => 'La duración no es válida.',
             'motive.required' => 'El motivo es requerido.',
         ];
 
         $validator = Validator::make($inputs, $rules, $messages)->errors();
 
         return $validator->all();
+    }
+
+    private function buildDurationText(?string $dateStart, ?string $dateEnd, ?string $timeFrom, ?string $timeTo): string
+    {
+        if ($dateEnd !== $dateStart) {
+            $days = (new DateTime($dateEnd))->diff(new DateTime($dateStart))->days + 1;
+
+            return $days.' día'.($days > 1 ? 's' : '');
+        }
+
+        if ($timeFrom && $timeTo) {
+            $diff = (new DateTime($timeTo))->diff(new DateTime($timeFrom));
+            $totalMinutes = $diff->days * 1440 + $diff->h * 60 + $diff->i;
+
+            if ($totalMinutes % 60 === 0) {
+                return ($totalMinutes / 60).' horas';
+            }
+
+            $hours = $diff->days * 24 + $diff->h;
+            $minutes = $diff->i;
+
+            if ($hours > 0 && $minutes > 0) {
+                return $hours.' h '.$minutes.' min';
+            }
+            if ($hours > 0) {
+                return $hours.' horas';
+            }
+
+            return $minutes.' min';
+        }
+
+        return '1 día';
     }
 
     public function getByArea(int $areaId, Request $request)

@@ -25,10 +25,15 @@ const loadingRefunds = ref(false)
 const loadRefundableBookings = async () => {
   loadingRefunds.value = true
   try {
-    const res = await reserveStore.getReservesByUser({ status: 0, per_page: 999 })
+    const res = await reserveStore.getReservesByUser({ status: -1, per_page: 999 })
     if (res?.code === 200) {
       const data = Array.isArray(res.data) ? res.data : (res.data?.data || [])
-      refundList.value = data.filter(r => r.amount > 0 && r.pay?.status === 2)
+      refundList.value = data.filter(r =>
+        r.amount > 0
+        && r.pay
+        && [0, 6].includes(r.status)
+        && [2, 6].includes(r.pay.status)
+      )
     }
   } catch {
     refundList.value = []
@@ -37,10 +42,22 @@ const loadRefundableBookings = async () => {
   }
 }
 
+const refundAmount = (b) => {
+  if (b.kind === 'warranty') {
+    const warrantyPrice = Number(b.comun_area?.warranty_price ?? 0)
+    if (warrantyPrice > 0) return warrantyPrice
+  }
+  return Number(b.amount ?? 0)
+}
+
+const refundOriginLabel = (b) => (b.kind === 'warranty' ? 'Garantía' : 'Cancelación')
+
 const registerRefund = async (booking) => {
+  const amount = refundAmount(booking)
+  const origin = refundOriginLabel(booking)
   Dialog.create({
-    title: 'Registrar devolución',
-    message: `¿Confirmas la devolución de S/. ${booking.amount} de la reserva #${booking.booking_number} a ${booking.user?.name}?`,
+    title: `Registrar devolución (${origin})`,
+    message: `¿Confirmas la devolución de S/. ${amount.toFixed(2)} de la reserva #${booking.booking_number} a ${booking.user?.name}?`,
     cancel: true,
     persistent: true,
     ok: { label: 'Devolver', color: 'primary' },
@@ -49,7 +66,7 @@ const registerRefund = async (booking) => {
       await ApiService.post('/api/pays/refund', {
         booking_id: booking.id,
         pay_id: booking.pay.id,
-        amount: booking.amount,
+        amount,
       })
       showNotify('positive', 'Devolución registrada correctamente')
       loadRefundableBookings()
@@ -415,13 +432,18 @@ const showModal = () => {
             <div class="flex justify-between items-center">
               <div>
                 <div class="text-body2 text-bold">#{{ b.booking_number }} — {{ b.comun_area?.name }}</div>
-                <div class="text-caption text-grey-7">{{ b.user?.name }} — S/. {{ b.amount }}</div>
+                <div class="text-caption text-grey-7">{{ b.user?.name }} — S/. {{ refundAmount(b).toFixed(2) }}</div>
               </div>
-              <q-btn color="orange" unelevated size="sm" style="border-radius: 0.5rem;"
-                @click="registerRefund(b)">
-                <q-icon name="eva-undo-outline" class="q-mr-xs" />
-                Devolver
-              </q-btn>
+              <div class="flex items-center gap-2">
+                <q-badge :color="b.kind === 'warranty' ? 'teal-8' : 'orange'" class="text-white px-2 py-1">
+                  {{ refundOriginLabel(b) }}
+                </q-badge>
+                <q-btn color="orange" unelevated size="sm" style="border-radius: 0.5rem;"
+                  @click="registerRefund(b)">
+                  <q-icon name="eva-undo-outline" class="q-mr-xs" />
+                  Devolver
+                </q-btn>
+              </div>
             </div>
           </div>
         </div>

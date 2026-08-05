@@ -5,8 +5,11 @@ import gastos2 from '@/assets/img/menu/gastos2.png'
 import cuotas from '@/assets/img/menu/cuotas2.png'
 import { computed, onMounted } from 'vue';
 import iconsApp from '@/assets/icons/index'
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '@/services/store/auth.services';
 
 const router = useRouter()
+const { user } = storeToRefs(useAuthStore())
 const menu = [
     {
         title: 'Datos Personales',

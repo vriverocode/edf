@@ -13,7 +13,7 @@ class BookingPendingPaymentReminders extends Command
 {
     protected $signature = 'app:booking-pending-pay-reminders';
 
-    protected $description = 'Reservas con pago pendiente (status 1): recordatorio cada ~24 h; si pasaron 72 h desde creación, pasa a status 0 (cancelada).';
+    protected $description = 'Reservas con pago pendiente (status 1): recordatorio cada ~24 h; si faltan 72 h o menos para la reserva, pasa a status 0 (cancelada).';
 
     public function handle(): int
     {
@@ -21,11 +21,11 @@ class BookingPendingPaymentReminders extends Command
         Booking::where('status', 1)->orderBy('id')->chunkById(100, function ($bookings) {
             foreach ($bookings as $booking) {
                 // 1. Calcular fecha y hora exacta del evento
-                $eventDateTime = Carbon::parse($booking->date.' '.$booking->time_from);
+                $eventDateTime = Carbon::parse($booking->date->toDateString().' '.$booking->time_from);
 
-                // 2. REGLA NUEVA: Cancelar si faltan 23 horas o menos para el evento
-                // Comparamos: si "ahora + 23 horas" es mayor o igual al momento del evento, quedan menos de 23h.
-                if (now()->addHours(23)->gte($eventDateTime)) {
+                // 2. Cancelar si faltan 72 horas o menos para el evento
+                // Comparamos: si "ahora + 72 horas" es mayor o igual al momento del evento, quedan 72h o menos.
+                if (now()->addHours(72)->gte($eventDateTime)) {
                     $booking->update(['status' => 0]);
                     $users = [
                         'admin' => User::find(1),

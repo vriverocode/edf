@@ -85,7 +85,10 @@ class ReportController extends Controller
         $pendientesAprob = (clone $base)->where('status', 2)->count();
         $exitosas = (clone $base)->where('status', 3)->count();
         $completadas = (clone $base)->where('status', Booking::STATUS_COMPLETED)->count();
-        $pendReembolso = (clone $base)->where('status', Booking::STATUS_PENDING_REFUND)->count();
+        $pendReembolso = (clone $base)->whereIn('status', [
+            Booking::STATUS_PENDING_REFUND,
+            Booking::STATUS_PENDING_DEVO,
+        ])->count();
 
         $active = (clone $base)->where('status', '!=', 0);
 
@@ -250,7 +253,7 @@ class ReportController extends Controller
     {
         $validFilters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'integer', 'in:-1,0,1,2,3,4,5'],
+            'status' => ['nullable', 'integer', 'in:-1,0,1,2,3,4,5,6'],
             'area_id' => ['nullable', 'integer', 'exists:comun_areas,id'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],

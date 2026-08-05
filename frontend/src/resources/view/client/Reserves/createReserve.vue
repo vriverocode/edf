@@ -301,7 +301,11 @@ const fetchMaintenanceDates = (areaId) => {
   maintenanceStore.getMaintenanceByArea(areaId, '')
     .then((response) => {
       if (selectedComunArea.value.id !== areaId) return
-      maintenanceDates.value = response.map(m => moment(m.date, 'YYYY-MM-DD').format('YYYY/MM/DD'))
+      maintenanceDates.value = response.map(m => ({
+        date: moment(m.date, 'YYYY-MM-DD').format('YYYY/MM/DD'),
+        time_from: m.time_from,
+        time_to: m.time_to,
+      }))
     })
     .catch((err) => {
       console.error('Error al obtener fechas de mantenimiento:', err)
@@ -320,8 +324,9 @@ const daysAvailableForBook = (date) => {
     if (date > maxDate) return false;
   }
 
-  if (maintenanceDates.value.includes(date)) {
-    return false;
+  const maintenance = maintenanceDates.value.find(m => m.date === date)
+  if (maintenance && (!maintenance.time_from || !maintenance.time_to)) {
+    return false
   }
 
   if (!selectedComunArea.value || !selectedComunArea.value.schedules || selectedComunArea.value.schedules.length === 0) {
@@ -777,11 +782,15 @@ watch(step,
                               <div class="text_interval pt-1">{{ interval.time_from }} - {{
                                 interval.time_to }}</div>
                               <div>
-                                <q-chip :color="selectedInterval?.id !== index ? setColor(interval.status) : 'tealedf'"
+                                <q-chip :color="selectedInterval?.id !== index ? (interval.maintenance ? 'warning' : setColor(interval.status)) : 'tealedf'"
                                   text-color="white" size="0.8rem">
                                   <div style="font-size: 0.7rem;" class="">
-                                    {{ selectedInterval?.id !== index ? interval.status : 'Seleccionado' }}
-                                    <span v-if="selectedComunArea?.max_cupo" class="q-ml-xs">({{ interval.occupancy }}/{{ selectedComunArea.max_cupo }})</span>
+                                    <template v-if="selectedInterval?.id === index">Seleccionado</template>
+                                    <template v-else-if="interval.maintenance">Mantenimiento</template>
+                                    <template v-else>
+                                      {{ interval.status }}
+                                      <span v-if="selectedComunArea?.max_cupo" class="q-ml-xs">({{ interval.occupancy }}/{{ selectedComunArea.max_cupo }})</span>
+                                    </template>
                                   </div>
                                 </q-chip>
                               </div>

@@ -31,18 +31,39 @@ const area = ref(null)
 const formData = ref({
   motive: '',
   date: '',
+  date_to: '',
   start_time: '',
   end_time: '',
-  duration_value: null,
-  duration_type: 'horas',
   photo: null,
 })
 
-const durationTypeOptions = [
-  { label: 'Horas', value: 'horas' },
-  { label: 'Días', value: 'dias' },
-  { label: 'Semanas', value: 'semanas' },
-]
+const isSingleDay = computed(() => {
+  return !formData.value.date_to || formData.value.date_to === formData.value.date
+})
+
+const durationLabel = computed(() => {
+  if (!formData.value.date) return ''
+  if (!isSingleDay.value) {
+    const days = moment(formData.value.date_to).diff(moment(formData.value.date), 'days') + 1
+    return days > 1 ? `${days} días` : '1 día'
+  }
+  if (formData.value.start_time && formData.value.end_time) {
+    const totalMinutes = moment(formData.value.end_time, 'HH:mm').diff(moment(formData.value.start_time, 'HH:mm'), 'minutes')
+    if (totalMinutes % 60 === 0) {
+      return `${totalMinutes / 60} horas`
+    }
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+    if (hours > 0 && minutes > 0) {
+      return `${hours} h ${minutes} min`
+    }
+    if (hours > 0) {
+      return `${hours} horas`
+    }
+    return `${minutes} min`
+  }
+  return '1 día'
+})
 
 const showNotify = (type, text) => {
   Notify.create({ color: type, message: text, timeout: 2000 })
@@ -68,37 +89,43 @@ const submit = () => {
     return
   }
   if (!formData.value.date) {
-    showNotify('negative', 'Selecciona una fecha')
+    showNotify('negative', 'Selecciona la fecha de inicio')
     return
   }
-  if (!formData.value.duration_value) {
-    showNotify('negative', 'Ingresa la duración')
+  if (formData.value.date_to && formData.value.date_to < formData.value.date) {
+    showNotify('negative', 'La fecha de fin debe ser igual o posterior a la de inicio')
     return
   }
-  if (!formData.value.start_time) {
-    showNotify('negative', 'Selecciona la hora de inicio')
-    return
-  }
-  if (!formData.value.end_time) {
-    showNotify('negative', 'Selecciona la hora de fin')
-    return
-  }
-  if (formData.value.start_time >= formData.value.end_time) {
-    showNotify('negative', 'La hora de fin debe ser posterior a la de inicio')
-    return
+  if (isSingleDay.value) {
+    if (!formData.value.start_time) {
+      showNotify('negative', 'Selecciona la hora de inicio')
+      return
+    }
+    if (!formData.value.end_time) {
+      showNotify('negative', 'Selecciona la hora de fin')
+      return
+    }
+    if (formData.value.start_time >= formData.value.end_time) {
+      showNotify('negative', 'La hora de fin debe ser posterior a la de inicio')
+      return
+    }
   }
 
   loading.value = true
-
-  const durationText = `${formData.value.duration_value} ${formData.value.duration_type}`
 
   const payload = new FormData()
   payload.append('comun_area_id', route.params.id)
   payload.append('motive', formData.value.motive)
   payload.append('date', formData.value.date)
-  payload.append('time_from', formData.value.start_time)
-  payload.append('time_to', formData.value.end_time)
-  payload.append('duration', durationText)
+  if (formData.value.date_to) {
+    payload.append('date_to', formData.value.date_to)
+  }
+  if (formData.value.start_time) {
+    payload.append('time_from', formData.value.start_time)
+  }
+  if (formData.value.end_time) {
+    payload.append('time_to', formData.value.end_time)
+  }
   if (formData.value.photo) {
     payload.append('photo', formData.value.photo)
   }
@@ -153,9 +180,9 @@ onMounted(() => {
 
     <q-form @submit="submit()">
       <div class="row w-full">
-        <!-- Fecha -->
+        <!-- Fecha inicio -->
         <div class="col-md-6 col-12 mt-0 px-2 md:px-12">
-          <div class="text-subtitle2 text-black">Fecha</div>
+          <div class="text-subtitle2 text-black">Fecha de inicio</div>
           <q-input v-model="formData.date" dense borderless readonly clearable
             class="form__inputsR mt-1" color="primary"
             placeholder="Selecciona la fecha"
@@ -175,19 +202,25 @@ onMounted(() => {
           </q-input>
         </div>
 
-        <!-- Duración -->
-        <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-black">Duración estimada</div>
-          <div class="flex gap-2 mt-1">
-            <q-input v-model.number="formData.duration_value" type="number" min="1" dense borderless
-              class="form__inputsR col" color="primary"
-              placeholder="Cantidad"
-              :rules="[val => !!val || 'Requerido']" />
-            <q-select v-model="formData.duration_type" :options="durationTypeOptions"
-              option-value="value" option-label="label" emit-value map-options
-              dense borderless class="form__inputsR col" color="primary"
-              :rules="[val => !!val || 'Requerido']" />
-          </div>
+        <!-- Fecha fin -->
+        <div class="col-md-6 col-12 md:mt-0 mt-1 px-2 md:px-12">
+          <div class="text-subtitle2 text-black">Fecha de fin <span class="text-caption text-grey-6">(opcional)</span></div>
+          <q-input v-model="formData.date_to" dense borderless readonly clearable
+            class="form__inputsR mt-1" color="primary"
+            placeholder="Selecciona la fecha de fin">
+            <template v-slot:append>
+              <q-icon name="eva-calendar-outline" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date v-model="formData.date_to" mask="YYYY-MM-DD"
+                    :options="dateOptions" :locale="myLocale" color="primary">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Aceptar" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
         </div>
 
         <!-- Hora inicio -->
@@ -195,7 +228,7 @@ onMounted(() => {
           <div class="text-subtitle2 text-black">Hora de inicio</div>
           <q-input v-model="formData.start_time" dense borderless mask="time"
             class="form__inputsR mt-1" color="primary" placeholder="HH:MM"
-            :rules="[val => !!val || 'Requerida']">
+            :rules="isSingleDay ? [val => !!val || 'Requerida'] : []">
             <template v-slot:append>
               <q-icon name="eva-clock-outline" class="cursor-pointer">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -215,7 +248,7 @@ onMounted(() => {
           <div class="text-subtitle2 text-black">Hora de fin</div>
           <q-input v-model="formData.end_time" dense borderless mask="time"
             class="form__inputsR mt-1" color="primary" placeholder="HH:MM"
-            :rules="[val => !!val || 'Requerida']">
+            :rules="isSingleDay ? [val => !!val || 'Requerida'] : []">
             <template v-slot:append>
               <q-icon name="eva-clock-outline" class="cursor-pointer">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -228,6 +261,16 @@ onMounted(() => {
               </q-icon>
             </template>
           </q-input>
+        </div>
+
+        <!-- Nota multi-día -->
+        <div v-if="!isSingleDay" class="col-12 mt-3 px-2 md:px-12">
+          <q-banner class="bg-orange-2 text-orange-9 rounded-lg" inline-actions>
+            <template v-slot:avatar>
+              <q-icon name="eva-alert-triangle-outline" color="orange" size="sm" />
+            </template>
+            Mantenimiento de varios días. Las horas son opcionales: si las defines se aplicarán cada día del rango; si no, el área se bloqueará todo el día.
+          </q-banner>
         </div>
 
         <!-- Foto -->
@@ -277,7 +320,7 @@ onMounted(() => {
         </div>
 
         <!-- Resumen -->
-        <div class="col-12 mt-3 px-2 md:px-12" v-if="formData.date && formData.duration_value && formData.start_time && formData.end_time">
+        <div class="col-12 mt-3 px-2 md:px-12" v-if="formData.date">
           <div class="selectedDateBlock px-4 py-3">
             <div class="text-subtitle2 text-black mb-2">Resumen</div>
             <div class="flex justify-between items-center mb-1">
@@ -286,18 +329,24 @@ onMounted(() => {
             </div>
             <div class="flex justify-between items-center mb-1 mt-5">
               <span class="text-grey-7">Fecha</span>
-              <span class="text-bold">{{ moment(formData.date).format('DD/MM/YYYY') }}</span>
+              <span class="text-bold">
+                <template v-if="isSingleDay">{{ moment(formData.date).format('DD/MM/YYYY') }}</template>
+                <template v-else>Del {{ moment(formData.date).format('DD/MM/YYYY') }} al {{ moment(formData.date_to).format('DD/MM/YYYY') }}</template>
+              </span>
             </div>
             <div class="flex justify-between items-center mb-1 ">
               <span class="text-grey-7">Horario</span>
-              <span class="text-bold">{{ formData.start_time }} - {{ formData.end_time }}</span>
+              <span class="text-bold">
+                <template v-if="formData.start_time && formData.end_time">{{ formData.start_time }} - {{ formData.end_time }}</template>
+                <template v-else>Todo el día</template>
+              </span>
             </div>
             <div class="flex justify-between items-center mb-1 ">
               <span class="text-grey-7">Duración</span>
-              <span class="text-bold">{{ formData.duration_value }} {{ formData.duration_type }}</span>
+              <span class="text-bold">{{ durationLabel }}</span>
             </div>
             <div class="text-caption text-grey-6 mt-2">
-              Se cancelarán automáticamente las reservas en este horario.
+              Se cancelarán automáticamente las reservas que coincidan con el mantenimiento.
             </div>
           </div>
         </div>

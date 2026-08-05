@@ -152,6 +152,7 @@ const statusOptions = [
   { label: 'Exitoso', value: 3 },
   { label: 'Completada', value: 4 },
   { label: 'Pend. reembolso', value: 5 },
+  { label: 'Pend. devolución', value: 6 },
 ]
 
 const filters = ref({

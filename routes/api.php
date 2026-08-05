@@ -277,6 +277,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Read
         Route::get('/', [MaintenanceController::class, 'index']);
         Route::get('/by-area/{id}', [MaintenanceController::class, 'getByArea']);
+        Route::get('/{id}', [MaintenanceController::class, 'show']);
         // Write - admin only
         Route::post('/', [MaintenanceController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
     });

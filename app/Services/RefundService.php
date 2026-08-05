@@ -1,3 +1,5 @@
+<?php
+
 namespace App\Services;
 
 use App\Models\Pay;
@@ -10,8 +12,8 @@ class RefundService
     {
         return DB::transaction(function () use ($bookingId, $amount, $reason) {
             $pay = Pay::where('booking_id', $bookingId)
-                      ->whereIn('status', ['completed', 'partially_refunded'])
-                      ->firstOrFail();
+                ->whereIn('status', [2, 4])
+                ->firstOrFail();
 
             $alreadyRefunded = $pay->refunds()->sum('amount');
             $remainingBalance = $pay->amount - $alreadyRefunded;
@@ -22,14 +24,15 @@ class RefundService
 
             $refund = Refund::create([
                 'booking_id' => $bookingId,
-                'pay_id'     => $pay->id,
-                'amount'     => $amount,
-                'reason'     => $reason,
-                'status'     => 'completed'
+                'pay_id' => $pay->id,
+                'amount' => $amount,
+                'reason' => $reason,
+                'type' => 'booking',
+                'status' => 'completed',
             ]);
 
             $newTotal = $alreadyRefunded + $amount;
-            $pay->update(['status' => $newTotal >= $pay->amount ? 'refunded' : 'partially_refunded']);
+            $pay->update(['status' => $newTotal >= $pay->amount ? 5 : 4]);
 
             return $refund;
         });

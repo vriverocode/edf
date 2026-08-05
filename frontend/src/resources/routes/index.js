@@ -392,6 +392,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/maintenances/:id',
+        component: () => import('@/view/admin/Maintenance/MaintenanceDetail.vue'),
+        name: 'maintenanceDetail',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalle de mantenimiento',
+          roles: ['admin', 'super-admin'],
+          depth: 2,
+        },
+      },
+      {
         path: '/admin/pay/validate/:id',
         component: () => import('@/view/admin/Pays/validatePay.vue'),
         name: 'PayValidate',
@@ -1005,6 +1017,17 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Información',
+          depth: 3,
+        },
+      },
+      {
+        path: '/client/maintenances/:id',
+        component: () => import('@/view/client/Maintenances/MaintenanceDetail.vue'),
+        name: 'clientMaintenanceDetail',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Mantenimiento programado',
           depth: 3,
         },
       },

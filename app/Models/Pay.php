@@ -105,6 +105,7 @@ class Pay extends Model
             'Rechazado',
             'Reembolsado parcialmente',
             'Reembolsado',
+            'Pendiente por devolución',
         ];
 
         return $status[$this->status] ?? '—';
@@ -128,6 +129,8 @@ class Pay extends Model
             'warning',
             'positive',
             'negative',
+            'orange-8',
+            'orange-8',
         ];
 
         return $status[$this->status] ?? 'grey';
@@ -140,6 +143,8 @@ class Pay extends Model
             'eva-alert-circle-outline',
             'eva-checkmark-outline',
             'eva-slash-outline',
+            'eva-undo-outline',
+            'eva-undo-outline',
         ];
 
         return $status[$this->status] ?? 'eva-question-mark-outline';

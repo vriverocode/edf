@@ -13,13 +13,21 @@ const authStore = useAuthStore()
 const accounts = ref([])
 const loading = ref(false)
 
+const formatDataAccounts = (data) => {
+  return data.map((account) => {
+    account.data = JSON.parse(account.data)
+    return account
+  })
+}
+
 const fetchAccounts = () => {
   loading.value = true
   bankStore
     .getAccounts()
     .then((response) => {
       if (response.code !== 200) throw response
-      accounts.value = response.data
+      accounts.value = formatDataAccounts(response.data)
+      console.log(accounts.value)
     })
     .catch(() => {
       accounts.value = []
@@ -70,6 +78,7 @@ onMounted(() => {
         icon="eva-plus-outline"
         label="Agregar cuenta"
         style="border-radius: 0.5rem;"
+        no-caps
         @click="goTo('/client/account-bank/add')"
       />
     </div>
@@ -100,7 +109,7 @@ onMounted(() => {
               <div>
                 <div class="flex items-center gap-2 mb-1">
                   <q-icon
-                    :name="account.data?.type === 'yape' ? 'eva-smartphone-outline' : 'eva-building-outline'"
+                    :name="account.data?.type === 'yape' ? 'eva-credit-card-outline' : 'eva-credit-card-outline'"
                     color="primary"
                     size="1.3rem"
                   />
@@ -111,12 +120,12 @@ onMounted(() => {
                 <div class="text-sm text-gray-600">
                   <template v-if="account.data?.type === 'bank'">
                     <div>{{ account.data.holder_name }}</div>
-                    <div class="font-mono text-xs mt-1">Cuenta: {{ account.data.account_number }}</div>
-                    <div v-if="account.data.cci" class="font-mono text-xs">CCI: {{ account.data.cci }}</div>
+                    <div class="text-sm mt-1">Cuenta: {{ account.data.account_number }}</div>
+                    <div v-if="account.data.cci" class="text-sm mt-1">CCI: {{ account.data.cci }}</div>
                   </template>
                   <template v-else-if="account.data?.type === 'yape'">
                     <div>{{ account.data.yape_name }}</div>
-                    <div class="font-mono text-xs mt-1">{{ account.data.yape_phone }}</div>
+                    <div class="text-sm mt-1">{{ account.data.yape_phone }}</div>
                   </template>
                   <div v-if="!account.data?.type" class="text-gray-400 italic">Sin datos configurados</div>
                 </div>

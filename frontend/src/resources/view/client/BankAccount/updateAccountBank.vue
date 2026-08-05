@@ -32,6 +32,7 @@ onMounted(async () => {
     const res = await store.getAccountById(route.params.id)
     if (res.code !== 200) throw res
     const acct = res.data
+    acct.data = JSON.parse(acct.data)
     form.value = {
       name: acct.name || '',
       data: {

@@ -10,11 +10,15 @@ class Refund extends Model
 {
     use SoftDeletes;
 
+    protected $table = 'table_refunds';
+
     protected $fillable = [
         'booking_id',
         'pay_id',
         'amount',
         'reason',
+        'type',
+        'kind',
         'status',
     ];
 

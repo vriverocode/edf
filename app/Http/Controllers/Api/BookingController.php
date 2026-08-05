@@ -13,7 +13,6 @@ use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
 use App\Services\BookingPendingPayNotifier;
-use App\Services\RefundService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -161,7 +160,7 @@ class BookingController extends Controller
 
     public function getBookingById($id)
     {
-        $booking = Booking::with('comunArea', 'user', 'pay', 'departament')->find($id);
+        $booking = Booking::with('comunArea', 'user', 'pay.payMethod', 'departament')->find($id);
         if (! $booking) {
             return $this->returnFail(404, 'Reserva no encontrada');
         }
@@ -266,7 +265,7 @@ class BookingController extends Controller
         return $this->returnSuccess(200, 'ok');
     }
 
-    public function cancelBooking(Request $request, $id, RefundService $refundService)
+    public function cancelBooking(Request $request, $id)
     {
 
         $booking = Booking::with('pay')->find($id);
@@ -277,18 +276,35 @@ class BookingController extends Controller
             return $this->returnFail(403, 'No autorizado');
         }
 
+        $isPaidBookingNotCompleted = (float) $booking->amount > 0
+            && (int) $booking->status !== Booking::STATUS_COMPLETED;
+
         DB::beginTransaction();
 
         try {
+            $pay = $booking->pay;
+
+            if ($isPaidBookingNotCompleted && $pay && in_array((int) $pay->status, [1, 2, 4])) {
+                $booking->update([
+                    'status' => Booking::STATUS_PENDING_DEVO,
+                    'motive' => $request->motive,
+                    'kind' => 'cancellation',
+                ]);
+                $pay->update(['status' => 6]);
+
+                DB::commit();
+                $this->cancelReserveNotification([
+                    'admin' => User::find(1),
+                    'client' => User::find($booking->user_id),
+                ], $booking);
+
+                return $this->returnSuccess(200, 'ok');
+            }
+
             $booking->update([
-                'status' => 0,
+                'status' => Booking::STATUS_CANCELLED,
                 'motive' => $request->motive,
             ]);
-
-            $amountToRefund = $booking->amount;
-            if ($booking->pay != null && $amountToRefund > 0) {
-                $refundService->processRefund($booking->id, $amountToRefund, $request->motive ?? 'Cancelación de reserva');
-            }
             DB::commit();
             $this->sendNotification($booking);
 
@@ -298,8 +314,6 @@ class BookingController extends Controller
 
             return $this->returnFail(500, 'Error al procesar la cancelación: '.$e->getMessage());
         }
-
-        return $this->returnSuccess(200, 'ok');
     }
 
     public function getBookingsForSecurity(Request $request)
@@ -339,12 +353,13 @@ class BookingController extends Controller
             return $this->returnFail(400, 'La reserva no está en un estado válido para completarse');
         }
 
-        $needsRefund = $booking->amount > 0
+        $needsRefund = (float) ($booking->comunArea?->warranty_price ?? 0) > 0
             && $booking->pay != null
             && $booking->pay->status == 2;
 
         $booking->update([
-            'status' => $needsRefund ? Booking::STATUS_PENDING_REFUND : Booking::STATUS_COMPLETED,
+            'status' => $needsRefund ? Booking::STATUS_PENDING_DEVO : Booking::STATUS_COMPLETED,
+            'kind' => $needsRefund ? 'warranty' : null,
         ]);
         $this->sendNotification($booking);
 
@@ -437,12 +452,20 @@ class BookingController extends Controller
                 $iStart = Carbon::parse($interval['time_from']);
                 $iEnd = Carbon::parse($interval['time_to']);
                 foreach ($maintenancesInDay as $m) {
+                    if (is_null($m->time_from) || is_null($m->time_to)) {
+                        $blocks[$category][$i]['available'] = 0;
+                        $blocks[$category][$i]['occupancy'] = $blocks[$category][$i]['capacity'];
+                        $blocks[$category][$i]['status'] = 'Ocupado';
+                        $blocks[$category][$i]['maintenance'] = true;
+                        break;
+                    }
                     $mStart = Carbon::parse($m->time_from);
                     $mEnd = Carbon::parse($m->time_to);
                     if ($iStart->lessThan($mEnd) && $iEnd->greaterThan($mStart)) {
                         $blocks[$category][$i]['available'] = 0;
                         $blocks[$category][$i]['occupancy'] = $blocks[$category][$i]['capacity'];
                         $blocks[$category][$i]['status'] = 'Ocupado';
+                        $blocks[$category][$i]['maintenance'] = true;
                         break;
                     }
                 }
@@ -773,8 +796,14 @@ class BookingController extends Controller
         $hasMaintenance = Maintenance::where('comun_area_id', $comunAreaId)
             ->where('date', $date)
             ->where('status', 1)
-            ->where('time_from', '<', $timeTo)
-            ->where('time_to', '>', $timeFrom)
+            ->where(function ($q) use ($timeFrom, $timeTo) {
+                $q->whereNull('time_from')
+                    ->orWhereNull('time_to')
+                    ->orWhere(function ($q2) use ($timeFrom, $timeTo) {
+                        $q2->where('time_from', '<', $timeTo)
+                            ->where('time_to', '>', $timeFrom);
+                    });
+            })
             ->exists();
 
         if ($hasMaintenance) {
@@ -815,17 +844,24 @@ class BookingController extends Controller
 
             return;
         }
-        if (in_array($booking->status, [Booking::STATUS_COMPLETED, Booking::STATUS_PENDING_REFUND])) {
-            $this->completeReserveNotification($users, $booking);
+        if (in_array($booking->status, [
+            Booking::STATUS_COMPLETED,
+            Booking::STATUS_PENDING_REFUND,
+            Booking::STATUS_PENDING_DEVO,
+        ])) {
+            self::completeReserveNotification($users, $booking);
 
             return;
         }
         $this->successReserveNotification($users, $booking);
     }
 
-    private function completeReserveNotification($users, $booking)
+    public static function completeReserveNotification($users, $booking)
     {
-        $isPendingRefund = $booking->status == Booking::STATUS_PENDING_REFUND;
+        $isPendingRefund = in_array((int) $booking->status, [
+            Booking::STATUS_PENDING_REFUND,
+            Booking::STATUS_PENDING_DEVO,
+        ]);
 
         try {
             $users['client']->notify(new RealtimeNotification(
@@ -894,10 +930,14 @@ class BookingController extends Controller
 
     public static function cancelReserveNotification($users, $booking)
     {
+        $isPendingDevo = (int) $booking->status === Booking::STATUS_PENDING_DEVO;
+
         try {
             $users['client']->notify(new RealtimeNotification(
-                title: 'Reserva cancelada',
-                message: 'Tu reserva #'.$booking->booking_number.' fue cancelada.',
+                title: $isPendingDevo ? 'Reserva cancelada - devolución pendiente' : 'Reserva cancelada',
+                message: $isPendingDevo
+                    ? 'Tu reserva #'.$booking->booking_number.' fue cancelada. La devolución será registrada por administración.'
+                    : 'Tu reserva #'.$booking->booking_number.' fue cancelada.',
                 url: '/client/reserves/view/'.$booking->id,
                 meta: [
                     'booking_id' => $booking->id,
@@ -907,8 +947,10 @@ class BookingController extends Controller
 
             if ($users['admin']) {
                 $users['admin']->notify(new RealtimeNotification(
-                    title: 'Reserva cancelada',
-                    message: 'Se canceló la reserva #'.$booking->booking_number.'.',
+                    title: $isPendingDevo ? 'Reserva cancelada - devolución pendiente' : 'Reserva cancelada',
+                    message: $isPendingDevo
+                        ? 'Se canceló la reserva #'.$booking->booking_number.'. Requiere devolución.'
+                        : 'Se canceló la reserva #'.$booking->booking_number.'.',
                     url: '/admin/reserves',
                     meta: [
                         'booking_id' => $booking->id,

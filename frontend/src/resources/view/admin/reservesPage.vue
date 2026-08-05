@@ -46,14 +46,26 @@ const pendingApprovalCount = computed(() => {
 })
 
 const needsRefund = (reserve) => {
-  return reserve.status === 0 && reserve.amount > 0 && reserve.pay?.status === 2
+  return reserve.amount > 0
+    && (reserve.status === 6 || (reserve.status === 0 && reserve.pay?.status === 2))
 }
+
+const refundAmount = (reserve) => {
+  if (reserve.kind === 'warranty') {
+    const warrantyPrice = Number(reserve.comun_area?.warranty_price ?? 0)
+    if (warrantyPrice > 0) return warrantyPrice
+  }
+  return Number(reserve.amount ?? 0)
+}
+
+const refundOriginLabel = (reserve) => (reserve.kind === 'warranty' ? 'Garantía' : 'Cancelación')
 
 const paymentStatusIcon = (booking) => {
   if (booking.amount === 0 || !booking.amount) return ''
   if (!booking.pay) return 'eva-alert-triangle-outline'
   if (booking.pay.status === 1) return 'eva-clock-outline'
   if (booking.pay.status === 2) return 'eva-checkmark-circle-2'
+  if (booking.pay.status === 6) return 'eva-undo-outline'
   return ''
 }
 
@@ -62,6 +74,7 @@ const paymentStatusColor = (booking) => {
   if (!booking.pay) return 'negative'
   if (booking.pay.status === 1) return 'warning'
   if (booking.pay.status === 2) return 'positive'
+  if (booking.pay.status === 6) return 'orange-8'
   return ''
 }
 
@@ -286,7 +299,7 @@ onMounted(() => {
                   <div v-if="needsRefund(reserve)"
                     class="q-mt-xs text-caption text-orange-8 flex items-center">
                     <q-icon name="eva-alert-circle-outline" size="sm" class="q-mr-xs" />
-                    Pendiente de devolver S/. {{ reserve.amount }}
+                    {{ refundOriginLabel(reserve) }} pendiente de devolver S/. {{ refundAmount(reserve).toFixed(2) }}
                   </div>
                 </div>
               </div>
@@ -310,7 +323,7 @@ onMounted(() => {
                     v-if="needsRefund(reserve)"
                     @click="goTo('/admin/pay/validate/' + reserve.pay.id)">
                     <q-tooltip class="bg-primary text-white text-body2" :offset="[10, 10]">
-                      Gestionar devolución
+                      Gestionar devolución ({{ refundOriginLabel(reserve) }})
                     </q-tooltip>
                     <q-icon name="eva-undo-outline" color="white" />
                   </q-btn>

@@ -140,6 +140,17 @@ class PayController extends Controller
             return $this->returnFail(400, $validated[0]);
         }
 
+        if ((int) $request->type === 2) {
+            $hasActivePay = Pay::query()
+                ->where('booking_id', $request->to_pay_id)
+                ->whereIn('status', [1, 2, 6])
+                ->exists();
+
+            if ($hasActivePay) {
+                return $this->returnFail(409, ['messageType' => 'negative', 'message' => 'La reserva ya tiene un pago registrado']);
+            }
+        }
+
         $prefixPayId = ['s', 't', 'y', 'd'];
 
         $quotaIdsForPay = null;
@@ -361,23 +372,47 @@ class PayController extends Controller
 
         DB::beginTransaction();
         try {
-            $pay = Pay::with('booking')->lockForUpdate()->find($request->pay_id);
+            $pay = Pay::with('booking.comunArea')->lockForUpdate()->find($request->pay_id);
 
-            if (! $pay || (int) $pay->status !== 2) {
+            if (! $pay || ! in_array((int) $pay->status, [2, 4, 6])) {
                 DB::rollBack();
 
-                return $this->returnFail(409, 'El pago no está en estado aprobado o no existe.');
+                return $this->returnFail(409, 'El pago no está en estado aprobado, reembolsado parcialmente o pendiente por devolución.');
             }
+
+            $booking = $pay->booking;
+            $isWarranty = $booking?->kind === 'warranty';
+            $kind = $isWarranty ? 'warranty' : 'cancellation';
+
+            $amount = (float) $request->amount;
+            $reason = $request->reason ?? 'Devolución por cancelación de reserva';
+
+            if ($isWarranty) {
+                $warrantyPrice = (float) ($booking->comunArea?->warranty_price ?? 0);
+                $amount = $warrantyPrice > 0 ? $warrantyPrice : $amount;
+                $reason = 'Devolución de garantía por reserva completada';
+            }
+
+            $alreadyRefunded = $pay->refunds()->sum('amount');
+            $newTotal = $alreadyRefunded + $amount;
 
             Refund::create([
                 'booking_id' => $request->booking_id,
                 'pay_id' => $request->pay_id,
-                'amount' => $request->amount,
-                'reason' => $request->reason ?? 'Devolución por cancelación de reserva',
+                'amount' => $amount,
+                'reason' => $reason,
+                'type' => 'booking',
+                'kind' => $kind,
                 'status' => 'completed',
             ]);
 
-            $pay->update(['status' => 4]);
+            $pay->update(['status' => $newTotal >= (float) $pay->amount ? 5 : 4]);
+
+            if ($pay->booking && (int) $pay->booking->status === Booking::STATUS_PENDING_DEVO) {
+                $pay->booking->update([
+                    'status' => $isWarranty ? Booking::STATUS_COMPLETED : Booking::STATUS_CANCELLED,
+                ]);
+            }
 
             DB::commit();
 
@@ -386,7 +421,7 @@ class PayController extends Controller
                 if ($user) {
                     $user->notify(new RealtimeNotification(
                         title: 'Devolución procesada',
-                        message: 'Se procesó la devolución de S/ '.number_format((float) $request->amount, 2).' por la reserva #'.($pay->booking->booking_number ?? ''),
+                        message: 'Se procesó la devolución de S/ '.number_format($amount, 2).' por la reserva #'.($pay->booking->booking_number ?? ''),
                         url: '/client/reserves/view/'.$pay->booking_id,
                         meta: ['booking_id' => $pay->booking_id, 'icon' => 'eva-undo-outline']
                     ));
@@ -641,6 +676,10 @@ class PayController extends Controller
 
     private function uploadVaucher($pay, $vaucher, $type = 1)
     {
+        if ($type == 1 && $pay->vaucher) {
+            return $pay->vaucher;
+        }
+
         $path = '';
         $id = $type == 1 ? $pay->id : $pay->sequence;
         $folder = $type == 1 ? 'vaucher' : 'claims';

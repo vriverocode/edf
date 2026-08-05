@@ -123,7 +123,7 @@ const cancelMaintenance = async (reserveId) => {
 const completeReserve = (reserve) => {
   const needsRefund = reserve.amount > 0 && reserve.pay?.status === 2
   const message = needsRefund
-    ? `La reserva #${reserve.booking_number} pasará al estado "Pendiente de reembolso". La devolución de S/. ${reserve.amount} será registrada por administración.`
+    ? `La reserva #${reserve.booking_number} pasará al estado "Pendiente de devolución". La devolución de S/. ${reserve.amount} será registrada por administración.`
     : `La reserva #${reserve.booking_number} pasará al estado "Completada".`
   Dialog.create({
     title: 'Completar reserva',

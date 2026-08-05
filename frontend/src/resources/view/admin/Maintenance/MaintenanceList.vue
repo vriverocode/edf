@@ -37,6 +37,10 @@ const goToCreate = () => {
   router.push('/admin/comun-area/list');
 };
 
+const goToDetail = (id) => {
+  router.push(`/admin/maintenances/${id}`);
+};
+
 onMounted(() => {
   getMaintenances();
 });
@@ -56,6 +60,7 @@ onMounted(() => {
             v-for="item in maintenances" 
             :key="item.id"
             class="p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer q-mb-md"
+            @click="goToDetail(item.id)"
           >
             <div class="row items-center justify-between">
               <div class="col-8">
@@ -65,7 +70,8 @@ onMounted(() => {
                   {{ moment(item.date).format('DD/MM/YYYY') }} 
                   <span class="q-mx-sm">|</span>
                   <q-icon name="eva-clock-outline" size="1rem" class="q-mr-xs" />
-                  {{ item.time_from ? item.time_from.substring(0,5) : '00:00' }} - {{ item.time_to ? item.time_to.substring(0,5) : '23:59' }}
+                  <template v-if="item.time_from && item.time_to">{{ item.time_from.substring(0,5) }} - {{ item.time_to.substring(0,5) }}</template>
+                  <template v-else>Todo el día</template>
                 </div>
                 <div v-if="item.comun_area" class="mt-2">
                   <q-chip dense color="teal-1" text-color="teal-9" icon="eva-building-outline" size="sm" class="text-bold">

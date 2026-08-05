@@ -27,10 +27,12 @@ class Booking extends Model
 
     public const STATUS_PENDING_REFUND = 5;
 
+    public const STATUS_PENDING_DEVO = 6;
+
     protected $fillable = [
         'user_id', 'departament_id', 'comun_area_id', 'booking_number',
         'date', 'time_from', 'time_to', 'amount', 'type',
-        'note', 'motive', 'status', 'pending_pay_notification_sent_at', 'is_exclusive',
+        'note', 'motive', 'status', 'kind', 'pending_pay_notification_sent_at', 'is_exclusive',
     ];
 
     protected $casts = [
@@ -41,7 +43,7 @@ class Booking extends Model
     ];
 
     // Corregido: status_color estaba duplicado
-    public $appends = ['booking_hour', 'status_label', 'status_color', 'type_label', 'type_color', 'has_extension'];
+    public $appends = ['booking_hour', 'status_label', 'status_color', 'type_label', 'type_color', 'has_extension', 'kind_label'];
 
     /* -------------------------------------------------------------------------- */
     /* Relaciones */
@@ -86,6 +88,7 @@ class Booking extends Model
                 self::STATUS_SUCCESS => 'Exitoso',
                 self::STATUS_COMPLETED => 'Completada',
                 self::STATUS_PENDING_REFUND => 'Pend. reembolso',
+                self::STATUS_PENDING_DEVO => 'Pend. devolución',
                 default => 'Desconocido',
             }
         );
@@ -100,6 +103,7 @@ class Booking extends Model
                 self::STATUS_SUCCESS => 'positive',
                 self::STATUS_COMPLETED => 'teal-8',
                 self::STATUS_PENDING_REFUND => 'orange-8',
+                self::STATUS_PENDING_DEVO => 'orange-8',
                 default => 'grey',
             }
         );
@@ -129,6 +133,17 @@ class Booking extends Model
                 3 => 'light-green-13',
                 4 => 'amber-8',
                 default => 'No definido',
+            }
+        );
+    }
+
+    protected function kindLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => match ($this->kind) {
+                'warranty' => 'Garantía',
+                'cancellation' => 'Cancelación',
+                default => null,
             }
         );
     }
