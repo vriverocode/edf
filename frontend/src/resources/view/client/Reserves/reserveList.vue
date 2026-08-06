@@ -351,7 +351,7 @@ const statusOptions = [
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                     </path>
                   </svg>
-                  <span class="text-sm font-medium text-gray-700">{{ getPaymentStatus(reserve) }}SSS</span>
+                  <span class="text-sm font-medium text-gray-700">{{ getPaymentStatus(reserve) }}</span>
                 </div>
                 <div class="flex items-center">
                   <div v-if="reserve.type == 4" class="mr-3">

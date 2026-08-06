@@ -34,7 +34,7 @@ const confirmAction = () => {
         </q-card-section>
         <section class="content__modalSectionRifa md:pt-5 md:pb-5 pt-1 pb-4  ">
         <div class="text-subtitle1 md:px-5" style="font-weight: 500;">
-            Puedes realizar el pago más adelante, siempre que se efectúe al menos 24 horas antes de la fecha de la reserva.<br>
+            Puedes realizar el pago más adelante, siempre que se efectúe al menos 72 horas antes de la fecha de la reserva.<br>
             Si el pago no se registra dentro del plazo establecido, la reserva será cancelada automáticamente.
         </div>
         </section>

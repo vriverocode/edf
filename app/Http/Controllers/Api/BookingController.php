@@ -882,7 +882,7 @@ class BookingController extends Controller
                     message: $isPendingRefund
                         ? 'La reserva #'.$booking->booking_number.' fue completada. Requiere reembolso.'
                         : 'La reserva #'.$booking->booking_number.' fue completada.',
-                    url: '/admin/reserves',
+                    url: '/client/reserves/view/'.$booking->id,
                     meta: [
                         'booking_id' => $booking->id,
                         'icon' => $booking->icon_status,
@@ -951,7 +951,7 @@ class BookingController extends Controller
                     message: $isPendingDevo
                         ? 'Se canceló la reserva #'.$booking->booking_number.'. Requiere devolución.'
                         : 'Se canceló la reserva #'.$booking->booking_number.'.',
-                    url: '/admin/reserves',
+                    url: '/client/reserves/view/'.$booking->id,
                     meta: [
                         'booking_id' => $booking->id,
                         'icon' => $booking->icon_status,

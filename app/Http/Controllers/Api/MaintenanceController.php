@@ -179,7 +179,7 @@ class MaintenanceController extends Controller
                 $admin->notify(new RealtimeNotification(
                     title: 'Reserva cancelada por mantenimiento',
                     message: 'La reserva #'.$booking->booking_number.' fue cancelada.',
-                    url: '/admin/reserves',
+                    url: '/client/reserves/view/'.$booking->id,
                     meta: ['booking_id' => $booking->id, 'icon' => 'cancel']
                 ));
 
@@ -187,7 +187,7 @@ class MaintenanceController extends Controller
                     $admin->notify(new RealtimeNotification(
                         title: 'Reembolso pendiente',
                         message: 'La reserva #'.$booking->booking_number.' fue cancelada por mantenimiento. Registra el reembolso manualmente.',
-                        url: '/admin/reserves',
+                        url: '/client/reserves/view/'.$booking->id,
                         meta: ['booking_id' => $booking->id, 'icon' => 'refund']
                     ));
                 }

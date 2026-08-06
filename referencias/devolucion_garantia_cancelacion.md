@@ -53,7 +53,7 @@ Se guarda en dos tablas: `bookings.kind` (origen a nivel reserva) y `table_refun
 
 **Frontend**
 - `frontend/src/resources/view/admin/Pays/validatePay.vue` — badge del origen, monto por garantía, diálogo con origen
-- `frontend/src/resources/view/admin/reservesPage.vue` — badge "Garantía/Cancelación pendiente de devolver S/. X", tooltip con origen
+- `frontend/src/resources/view/client/reserves/view/'.$booking->idPage.vue` — badge "Garantía/Cancelación pendiente de devolver S/. X", tooltip con origen
 - Build a `frontend/dist/` (gitignored) — renovar antes de Capacitor
 
 ---
