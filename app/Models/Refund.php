@@ -19,7 +19,14 @@ class Refund extends Model
         'reason',
         'type',
         'kind',
+        'vaucher',
+        'bank_account_id',
+        'bank_account_snapshot',
         'status',
+    ];
+
+    protected $casts = [
+        'bank_account_snapshot' => 'array',
     ];
 
     public function booking(): BelongsTo
@@ -30,5 +37,10 @@ class Refund extends Model
     public function pay(): BelongsTo
     {
         return $this->belongsTo(Pay::class);
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
     }
 }

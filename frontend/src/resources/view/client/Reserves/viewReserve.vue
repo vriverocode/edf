@@ -17,6 +17,20 @@ const booking = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const dialog = ref(false)
+const refundVoucherDialog = ref(null)
+const refundDestLabel = (r) => {
+  const snap = r.bank_account_snapshot
+  if (!snap) return ''
+  try {
+    const data = typeof snap.data === 'string' ? JSON.parse(snap.data) : (snap.data || {})
+    if (data.type === 'yape') {
+      return `A su Yape ${data.yape_name || ''} (${data.yape_phone || ''})`
+    }
+    return `A su cuenta ${data.holder_name || snap.name || ''}${data.account_number ? ' — N° ' + data.account_number : ''}`
+  } catch {
+    return snap.name || ''
+  }
+}
 // Función para obtener booking por ID
 const getBookingById = async (id) => {
   try {
@@ -232,6 +246,28 @@ const reloadBooking = () => {
               </div>
               <span class="ml-2" v-html="iconsApp.voucher"></span>
             </div>
+
+            <!-- Devoluciones -->
+            <div v-if="booking.refunds && booking.refunds.length > 0" class="q-mt-md"
+              style="border-top: 1px solid rgba(211, 211, 211, 0.534);">
+              <div class="text-subtitle1 text-bold text-black q-mt-sm q-mb-sm">Devolución</div>
+              <div v-for="r in booking.refunds" :key="r.id" class="flex justify-between items-center py-2"
+                style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+                <div>
+                  <div class="text-gray-600 font-medium">{{ r.kind === 'warranty' ? 'Garantía' : 'Cancelación' }}</div>
+                  <div class="text-gray-900 font-semibold">S/. {{ r.amount }}</div>
+                  <div class="text-caption text-grey-7">{{ refundDestLabel(r) }}</div>
+                </div>
+                <div class="flex flex-center cursor-pointer" @click="refundVoucherDialog = r.vaucher"
+                  v-if="r.vaucher">
+                  <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher"
+                    style="text-decoration:dotted">
+                    Vaucher de devolución
+                  </div>
+                  <span class="ml-2" v-html="iconsApp.voucher"></span>
+                </div>
+              </div>
+            </div>
           </div>
           <!-- Botones de acción -->
           <div class="w-full  space-y-4">
@@ -249,6 +285,8 @@ const reloadBooking = () => {
         </div>
         <template v-if="booking.pay">
           <voucherModal :vaucher="booking.pay.vaucher" :dialog="dialog" @closeModal="dialog = false" />
+          <voucherModal v-if="refundVoucherDialog" :vaucher="refundVoucherDialog"
+            :dialog="!!refundVoucherDialog" @closeModal="refundVoucherDialog = null" />
         </template>
 
       </div>

@@ -5,6 +5,7 @@ import iconsApp from '@/assets/icons/index'
 import { usePayStore } from '@/services/store/pay.store'
 import { useReserveStore } from '@/services/store/reserve.store'
 import { useTransactionCategoryStore } from '@/services/store/transactionCategory.store'
+import { useBankAccountStore } from '@/services/store/bankAccount.store'
 import moment from 'moment'
 import voucherModal from '@/components/pay/voucherModal.vue'
 import createTransactionCategoryModal from '@/components/finance/createTransactionCategoryModal.vue'
@@ -17,6 +18,7 @@ const router = useRouter()
 const payStore = usePayStore()
 const reserveStore = useReserveStore()
 const transactionCategoryStore = useTransactionCategoryStore()
+const bankStore = useBankAccountStore()
 const dialog = ref('')
 
 const refundList = ref([])
@@ -52,28 +54,83 @@ const refundAmount = (b) => {
 
 const refundOriginLabel = (b) => (b.kind === 'warranty' ? 'Garantía' : 'Cancelación')
 
-const registerRefund = async (booking) => {
-  const amount = refundAmount(booking)
-  const origin = refundOriginLabel(booking)
-  Dialog.create({
-    title: `Registrar devolución (${origin})`,
-    message: `¿Confirmas la devolución de S/. ${amount.toFixed(2)} de la reserva #${booking.booking_number} a ${booking.user?.name}?`,
-    cancel: true,
-    persistent: true,
-    ok: { label: 'Devolver', color: 'primary' },
-  }).onOk(async () => {
-    try {
-      await ApiService.post('/api/pays/refund', {
-        booking_id: booking.id,
-        pay_id: booking.pay.id,
-        amount,
-      })
-      showNotify('positive', 'Devolución registrada correctamente')
-      loadRefundableBookings()
-    } catch (e) {
-      showNotify('negative', e?.response?.data?.error || 'Error al registrar devolución')
-    }
-  })
+const refundDialog = ref(false)
+const refundTarget = ref(null)
+const refundAccounts = ref([])
+const refundLoadingAccounts = ref(false)
+const refundAccountId = ref(null)
+const refundVaucher = ref(null)
+const refundSubmitting = ref(false)
+const notifyingUser = ref(false)
+
+const parseAccountData = (data) => {
+  try {
+    return typeof data === 'string' ? JSON.parse(data) : (data || {})
+  } catch {
+    return {}
+  }
+}
+
+const refundAccountLabel = (acc) => {
+  const d = parseAccountData(acc.data)
+  if (d.type === 'yape') {
+    return `${acc.name} — Yape ${d.yape_name || ''} (${d.yape_phone || ''})`
+  }
+  return `${acc.name} — ${d.holder_name || ''} ${d.account_number ? `— Cuenta ${d.account_number}` : ''}`
+}
+
+const openRefundDialog = async (booking) => {
+  refundTarget.value = booking
+  refundAccountId.value = null
+  refundVaucher.value = null
+  refundDialog.value = true
+  refundLoadingAccounts.value = true
+  refundAccounts.value = []
+  try {
+    const res = await bankStore.getAccountsByUser(booking.user_id)
+    refundAccounts.value = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+  } catch {
+    refundAccounts.value = []
+  } finally {
+    refundLoadingAccounts.value = false
+  }
+}
+
+const notifyUserForBankAccount = async () => {
+  if (!refundTarget.value) return
+  notifyingUser.value = true
+  try {
+    await ApiService.post('/api/pays/refund/notify-missing-bank-account', {
+      booking_id: refundTarget.value.id,
+    })
+    showNotify('positive', 'Notificación enviada al usuario')
+  } catch (e) {
+    showNotify('negative', e?.response?.data?.error || 'Error al notificar al usuario')
+  } finally {
+    notifyingUser.value = false
+  }
+}
+
+const submitRefund = async () => {
+  const booking = refundTarget.value
+  if (!booking || !refundAccountId.value || !refundVaucher.value) return
+  refundSubmitting.value = true
+  try {
+    const formData = new FormData()
+    formData.append('booking_id', booking.id)
+    formData.append('pay_id', booking.pay.id)
+    formData.append('amount', refundAmount(booking))
+    formData.append('bank_account_id', refundAccountId.value)
+    formData.append('vaucher', refundVaucher.value)
+    await ApiService.post('/api/pays/refund', formData)
+    showNotify('positive', 'Devolución registrada correctamente')
+    refundDialog.value = false
+    loadRefundableBookings()
+  } catch (e) {
+    showNotify('negative', e?.response?.data?.error || 'Error al registrar devolución')
+  } finally {
+    refundSubmitting.value = false
+  }
 }
 
 onMounted(() => {
@@ -439,7 +496,7 @@ const showModal = () => {
                   {{ refundOriginLabel(b) }}
                 </q-badge>
                 <q-btn color="orange" unelevated size="sm" style="border-radius: 0.5rem;"
-                  @click="registerRefund(b)">
+                  @click="openRefundDialog(b)">
                   <q-icon name="eva-undo-outline" class="q-mr-xs" />
                   Devolver
                 </q-btn>
@@ -515,6 +572,60 @@ const showModal = () => {
       @close-modal="createCategoryDialog = false" @created="onCategoryCreated" />
     <createFinancialAccountModal :dialog="createAccountDialog"
       @close-modal="createAccountDialog = false" @created="onAccountCreated" />
+
+    <q-dialog v-model="refundDialog">
+      <q-card style="min-width: min(440px, 92vw);" class="q-pa-md">
+        <div class="flex items-center justify-between q-mb-sm">
+          <div class="text-h6">Registrar devolución</div>
+          <q-btn flat round dense icon="eva-close-outline" v-close-popup />
+        </div>
+        <div v-if="refundTarget" class="text-caption text-grey-7 q-mb-md">
+          #{{ refundTarget.booking_number }} — {{ refundTarget.comun_area?.name }} ·
+          {{ refundTarget.user?.name }} · <b>S/. {{ refundAmount(refundTarget).toFixed(2) }}</b>
+        </div>
+
+        <template v-if="refundLoadingAccounts">
+          <div class="flex flex-center q-py-md">
+            <q-spinner color="primary" size="sm" />
+            <span class="q-ml-sm text-caption text-grey-7">Cargando cuentas...</span>
+          </div>
+        </template>
+
+        <template v-else-if="refundAccounts.length > 0">
+          <div class="text-subtitle2 text-black">Cuenta bancaria / Yape del usuario</div>
+          <q-select dense borderless emit-value map-options class="form__inputsR mt-1" color="primary"
+            v-model="refundAccountId" :options="refundAccounts.map(a => ({ label: refundAccountLabel(a), value: a.id }))" />
+
+          <div class="text-subtitle2 text-black q-mt-md">Voucher de la devolución</div>
+          <div class="mt-1">
+            <label class="file__input border rounded-lg px-3 py-2 flex items-center justify-between cursor-pointer"
+              :class="refundVaucher ? 'border-green-500 text-green-600' : 'border-gray-300 text-gray-500'">
+              <span class="text-sm truncate">{{ refundVaucher?.name || 'Seleccionar imagen del voucher' }}</span>
+              <q-icon :name="refundVaucher ? 'eva-checkmark-circle-2-outline' : 'eva-attach-outline'" />
+              <input type="file" accept="image/*" class="hidden" @change="refundVaucher = $event.target.files[0] || null" />
+            </label>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 q-mb-md">
+            <div class="text-caption text-orange-800">
+              Este usuario aún no registra una cuenta bancaria o Yape. No es posible registrar la devolución.
+            </div>
+            <q-btn flat dense color="orange" no-caps class="q-mt-sm" icon="eva-email-outline"
+              :loading="notifyingUser" @click="notifyUserForBankAccount">
+              Notificar al usuario
+            </q-btn>
+          </div>
+        </template>
+
+        <div class="row justify-end q-gutter-sm q-mt-lg">
+          <q-btn flat label="Cancelar" v-close-popup color="grey" no-caps />
+          <q-btn color="orange" label="Devolver" no-caps :loading="refundSubmitting"
+            :disable="!refundAccountId || !refundVaucher" @click="submitRefund" />
+        </div>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 

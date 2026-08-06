@@ -160,7 +160,7 @@ class BookingController extends Controller
 
     public function getBookingById($id)
     {
-        $booking = Booking::with('comunArea', 'user', 'pay.payMethod', 'departament')->find($id);
+        $booking = Booking::with('comunArea', 'user', 'pay.payMethod', 'departament', 'refunds.bankAccount')->find($id);
         if (! $booking) {
             return $this->returnFail(404, 'Reserva no encontrada');
         }

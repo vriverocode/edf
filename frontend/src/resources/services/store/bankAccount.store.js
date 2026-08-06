@@ -17,6 +17,20 @@ export const useBankAccountStore = defineStore('BankAccount', {
           })
       })
     },
+    async getAccountsByUser(userId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.get('/api/bank-accounts?user_id=' + userId)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener cuentas bancarias')
+          })
+      })
+    },
     async getAccountById(id) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw ''

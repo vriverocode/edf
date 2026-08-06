@@ -201,6 +201,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/validate/{id}', [PayController::class, 'validatePayment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/refund', [PayController::class, 'refund'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/refund/notify-missing-bank-account', [PayController::class, 'notifyMissingBankAccountRequest'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::get('/receipt/{payId}', [PayController::class, 'downloadBookingReceipt']);
     });
 

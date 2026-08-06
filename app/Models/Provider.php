@@ -10,6 +10,7 @@ class Provider extends Model
     use SoftDeletes;
 
     protected $table = 'providers';
+
     protected $fillable = [
         'name',
         'tax_id',
@@ -20,7 +21,6 @@ class Provider extends Model
         'bank_details',
         'status',
     ];
-
 
     public $appends = ['status_label'];
 

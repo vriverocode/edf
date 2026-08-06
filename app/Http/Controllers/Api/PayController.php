@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\PayClaims;
+use App\Models\BankAccount;
 use App\Models\Booking;
 use App\Models\FinancialAccount;
 use App\Models\Pay;
@@ -364,6 +365,8 @@ class PayController extends Controller
             'pay_id' => ['required', 'integer', 'exists:pays,id'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'reason' => ['nullable', 'string', 'max:500'],
+            'vaucher' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'bank_account_id' => ['required', 'integer'],
         ]);
 
         if ($validator->fails()) {
@@ -381,7 +384,33 @@ class PayController extends Controller
             }
 
             $booking = $pay->booking;
-            $isWarranty = $booking?->kind === 'warranty';
+
+            if (! $booking) {
+                DB::rollBack();
+
+                return $this->returnFail(409, 'El pago no tiene una reserva asociada.');
+            }
+
+            $hasBankAccount = BankAccount::where('user_id', $booking->user_id)
+                ->where('status', true)
+                ->exists();
+
+            if (! $hasBankAccount) {
+                DB::rollBack();
+
+                $this->notifyMissingBankAccount($booking);
+
+                return $this->returnFail(409, 'El usuario no tiene cuenta bancaria registrada. Se le notificó para que registre una.');
+            }
+
+            $bankAccount = BankAccount::find($request->bank_account_id);
+            if (! $bankAccount || (int) $bankAccount->user_id !== (int) $booking->user_id) {
+                DB::rollBack();
+
+                return $this->returnFail(403, 'La cuenta bancaria no pertenece al usuario de la reserva.');
+            }
+
+            $isWarranty = $booking->kind === 'warranty';
             $kind = $isWarranty ? 'warranty' : 'cancellation';
 
             $amount = (float) $request->amount;
@@ -396,6 +425,8 @@ class PayController extends Controller
             $alreadyRefunded = $pay->refunds()->sum('amount');
             $newTotal = $alreadyRefunded + $amount;
 
+            $vaucherPath = $this->uploadRefundVaucher($request);
+
             Refund::create([
                 'booking_id' => $request->booking_id,
                 'pay_id' => $request->pay_id,
@@ -403,13 +434,19 @@ class PayController extends Controller
                 'reason' => $reason,
                 'type' => 'booking',
                 'kind' => $kind,
+                'vaucher' => $vaucherPath,
+                'bank_account_id' => $bankAccount->id,
+                'bank_account_snapshot' => [
+                    'name' => $bankAccount->name,
+                    'data' => $bankAccount->data,
+                ],
                 'status' => 'completed',
             ]);
 
             $pay->update(['status' => $newTotal >= (float) $pay->amount ? 5 : 4]);
 
-            if ($pay->booking && (int) $pay->booking->status === Booking::STATUS_PENDING_DEVO) {
-                $pay->booking->update([
+            if ((int) $booking->status === Booking::STATUS_PENDING_DEVO) {
+                $booking->update([
                     'status' => $isWarranty ? Booking::STATUS_COMPLETED : Booking::STATUS_CANCELLED,
                 ]);
             }
@@ -421,9 +458,9 @@ class PayController extends Controller
                 if ($user) {
                     $user->notify(new RealtimeNotification(
                         title: 'Devolución procesada',
-                        message: 'Se procesó la devolución de S/ '.number_format($amount, 2).' por la reserva #'.($pay->booking->booking_number ?? ''),
-                        url: '/client/reserves/view/'.$pay->booking_id,
-                        meta: ['booking_id' => $pay->booking_id, 'icon' => 'eva-undo-outline']
+                        message: 'Se procesó la devolución de S/ '.number_format($amount, 2).' por la reserva #'.($booking->booking_number ?? ''),
+                        url: '/client/reserves/view/'.$booking->id,
+                        meta: ['booking_id' => $booking->id, 'icon' => 'eva-undo-outline']
                     ));
                 }
             } catch (\Throwable $e) {
@@ -444,6 +481,22 @@ class PayController extends Controller
         $sequence = Sequence::where('name', 'claims')->first();
 
         return $this->returnSuccess(200, $sequence->value);
+    }
+
+    public function notifyMissingBankAccountRequest(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'booking_id' => ['required', 'integer', 'exists:bookings,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $booking = Booking::find($request->booking_id);
+        $this->notifyMissingBankAccount($booking);
+
+        return $this->returnSuccess(200, 'Notificación enviada al usuario.');
     }
 
     private function normalizedConsolidatedIdsFromPayRequest(Request $request): ?array
@@ -698,6 +751,40 @@ class PayController extends Controller
         }
 
         return $path;
+    }
+
+    private function uploadRefundVaucher(Request $request): string
+    {
+        $rand = rand(1000000, 9999999);
+        $fileName = trim(str_replace(' ', '_', $request->booking_id));
+        $extension = $request->file('vaucher')->extension();
+        $path = "/public/images/refunds/{$rand}_{$fileName}.{$extension}";
+        $folder = public_path().'/images/refunds/';
+
+        if (! is_dir($folder)) {
+            mkdir($folder, 0755, true);
+        }
+
+        $request->file('vaucher')->move($folder, basename($path));
+
+        return $path;
+    }
+
+    private function notifyMissingBankAccount($booking): void
+    {
+        try {
+            $user = User::find($booking->user_id);
+            if ($user) {
+                $user->notify(new RealtimeNotification(
+                    title: 'Registra tu cuenta bancaria',
+                    message: 'Para recibir la devolución de tu reserva #'.$booking->booking_number.', registra tu cuenta bancaria o Yape.',
+                    url: '/client/account-bank',
+                    meta: ['booking_id' => $booking->id, 'icon' => 'eva-credit-card-outline']
+                ));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Error al notificar cuenta bancaria faltante: '.$e->getMessage());
+        }
     }
 
     private function updateBooking($id, $user)

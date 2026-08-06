@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
+use App\Models\Rol;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -11,7 +12,15 @@ class BankAccountController extends Controller
 {
     public function index(Request $request)
     {
-        $accounts = BankAccount::where('user_id', $request->user()->id)->get();
+        if ($request->filled('user_id')) {
+            if (! in_array($request->user()->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+                return $this->returnFail(403, 'No autorizado');
+            }
+
+            $accounts = BankAccount::where('user_id', (int) $request->user_id)->get();
+        } else {
+            $accounts = BankAccount::where('user_id', $request->user()->id)->get();
+        }
 
         return $this->returnSuccess(200, $accounts);
     }
