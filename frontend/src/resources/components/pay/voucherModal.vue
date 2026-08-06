@@ -33,7 +33,7 @@ watch(() => props.vaucher, (newValue) => {
       <div>
         <q-card-section class="q-px-none">
           <div class="text-h6 text-center text-black pb-2 px-5" style="border-bottom: 1px solid lightgray;">
-            Vaucher de pago
+            Voucher de pago
           </div>
         </q-card-section>
         <section class="content__modalSectionRifa md:mt-5 py-5 ">

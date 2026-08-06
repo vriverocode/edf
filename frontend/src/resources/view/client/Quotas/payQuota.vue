@@ -357,7 +357,7 @@ onMounted(() => {
                   </div>                    
                   <div class="col-12 mt-2 mb-4">
                     <div class="text-subtitle2 text-black ">
-                      Vaucher de pago
+                      Voucher de pago
                     </div>
                     <div class="pr-2 md:pr-4">
                       <q-file v-model="payFormData.vaucher"  dense

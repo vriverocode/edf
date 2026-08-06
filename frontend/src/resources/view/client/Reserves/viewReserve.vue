@@ -242,7 +242,7 @@ const reloadBooking = () => {
             <div class="flex flex-center mt-4" @click="dialog = true" v-if="booking.pay">
               <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher"
                 style="text-decoration:dotted">
-                Vaucher de pago
+                Voucher de pago
               </div>
               <span class="ml-2" v-html="iconsApp.voucher"></span>
             </div>
@@ -262,7 +262,7 @@ const reloadBooking = () => {
                   v-if="r.vaucher">
                   <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher"
                     style="text-decoration:dotted">
-                    Vaucher de devolución
+                    Voucher de devolución
                   </div>
                   <span class="ml-2" v-html="iconsApp.voucher"></span>
                 </div>

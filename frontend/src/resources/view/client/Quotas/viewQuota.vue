@@ -188,7 +188,7 @@ const reloadQuota = () => {
             </div>
             <div class="flex flex-center mt-4" @click="dialog = true" v-if="quota.pays.length > 0">
               <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher" style="text-decoration:dotted">
-                Vaucher de pago 
+                Voucher de pago 
               </div>
               <span class="ml-2" v-html="iconsApp.voucher"></span>
             </div>

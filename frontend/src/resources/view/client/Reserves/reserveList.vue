@@ -197,6 +197,15 @@ const getPaymentAmount = (booking) => {
   }
   return 'Gratis';
 }
+
+const isBookingInProgress = (booking) => {
+  const today = moment().format('YYYY-MM-DD')
+  if (booking.date !== today) return false
+  const now = moment()
+  const startTime = moment(booking.time_from, 'HH:mm')
+  return now.isSameOrAfter(startTime)
+}
+
 const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
   getReserves();
@@ -392,7 +401,7 @@ const statusOptions = [
                           <q-item-section>Ver detalles</q-item-section>
                         </q-item>
                         <q-item clickable v-close-popup @click="showDialog($event)" data-dialog="cancel"
-                          :data-reserve="reserve.id" v-if="[1, 2, 3].includes(reserve.status)">
+                          :data-reserve="reserve.id" v-if="[1, 2, 3].includes(reserve.status) && !isBookingInProgress(reserve)">
                           <q-item-section>Cancelar reserva</q-item-section>
                         </q-item>
                         <q-separator />

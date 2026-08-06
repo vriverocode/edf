@@ -31,20 +31,12 @@ const selectedStatuses = ref([-1])
 
 const quickDateFilters = [
   { key: 'hoy', label: 'Hoy' },
-  { key: 'ayer', label: 'Ayer' },
   { key: 'manana', label: 'Mañana' },
-  { key: 'semana', label: 'Esta semana' },
-  { key: 'mes', label: 'Este mes' },
   { key: 'todo', label: 'Todo' },
 ]
 
 const statusOptions = [
   { value: 0, label: 'Canceladas' },
-  { value: 1, label: 'Pago pendiente' },
-  { value: 2, label: 'Pend. aprobación' },
-  { value: 3, label: 'Exitosas' },
-  { value: 4, label: 'Completadas' },
-  { value: 6, label: 'Pend. devolución' },
 ]
 
 const applyQuickDateFilter = (key) => {
@@ -212,7 +204,7 @@ onMounted(() => {
 </script>
 <template>
   <div class="h-full">
-    <div class="px-4 py-3 md:px-28" style="height: 17%;">
+    <div class="px-4 py-3 md:px-28" style="height: 21%;">
       <div class="row items-center w-full q-col-gutter-sm">
         <div class="col-12 flex flex-wrap gap-2 pb-1 md:px-1">
           <q-btn
@@ -237,7 +229,7 @@ onMounted(() => {
             class="form__inputsR" @update:model-value="onDateChange" />
         </div>
       </div>
-      <div class="row items-center w-full q-mt-xs">
+      <div class="row items-center w-full q-mt-md">
         <div class="col-12 flex flex-wrap gap-x-4 gap-y-1">
           <q-checkbox dense :label="'Todas'" :model-value="selectedStatuses.includes(-1)"
             @update:model-value="toggleStatus(-1)" />
@@ -248,7 +240,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="" style="height: 73%; overflow: auto;">
+    <div class="" style="height: 69%; overflow: auto;">
 
       <!-- Loading State -->
       <div v-if="!readyPage" class="flex justify-center items-center py-20">
@@ -256,7 +248,7 @@ onMounted(() => {
       </div>
 
       <!-- Content -->
-      <div v-else class="px-4 md:px-28">
+      <div v-else class="px-4 md:px-28 pb-8">
         <!-- Maintenance Banner -->
         <div v-if="maintenances.length > 0" class="q-mb-md">
           <q-banner class="bg-orange-2 text-orange-9 rounded-lg" inline-actions>

@@ -717,8 +717,8 @@ class PayController extends Controller
             'reference.regex' => 'la referencia no es valida',
             'pay_method.required' => 'Metodo de pago es requerido',
             'pay_method.numeric' => 'Metodo de pago no es valido',
-            'vaucher.required' => 'Vaucher es requerido',
-            'vaucher.file' => 'Vaucher no valido',
+            'vaucher.required' => 'Voucher es requerido',
+            'vaucher.file' => 'Voucher no valido',
 
         ];
 

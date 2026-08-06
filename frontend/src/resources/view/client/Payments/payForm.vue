@@ -620,7 +620,7 @@ watch(step, (toStep, fromStep) => {
                               <div class="flex items-center">
                                 <q-icon color="tealedf" name="eva-checkmark-circle-2" />
                                 <div class="ml-1">
-                                  <div class="text-xsImage text-tealedf">Vaucher adjuntado correctamente</div>
+                                  <div class="text-xsImage text-tealedf">Voucher adjuntado correctamente</div>
                                   <div class="text-xsImage text-black">
                                     {{ payFormData.vaucher.name.slice(0, 10) }}***{{ payFormData.vaucher.name.slice(-5) }} - {{ fileSizeInMB }} MB
                                   </div>

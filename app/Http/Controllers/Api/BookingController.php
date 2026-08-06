@@ -281,6 +281,10 @@ class BookingController extends Controller
             return $this->returnFail(403, 'No autorizado');
         }
 
+        if ($this->isBookingInProgress($booking)) {
+            return $this->returnFail(409, 'No puedes cancelar una reserva que ya está en curso.');
+        }
+
         $isPaidBookingNotCompleted = (float) $booking->amount > 0
             && (int) $booking->status !== Booking::STATUS_COMPLETED;
 
@@ -806,6 +810,23 @@ class BookingController extends Controller
         $user = request()->user();
 
         return $booking->user_id === $user->id || $user->rol_id === Rol::ADMIN;
+    }
+
+    private function isBookingInProgress(Booking $booking): bool
+    {
+        $now = Carbon::now()->setTimezone('America/Lima');
+        $bookingDate = $booking->date instanceof Carbon
+            ? $booking->date->format('Y-m-d')
+            : (string) $booking->date;
+
+        if ($bookingDate !== $now->toDateString()) {
+            return false;
+        }
+
+        $startTime = Carbon::createFromFormat('H:i:s', $booking->time_from, 'America/Lima')
+            ->setDate($now->year, $now->month, $now->day);
+
+        return $now->greaterThanOrEqualTo($startTime);
     }
 
     private function hasActiveReservationForDepartment(int $departamentId, int $comunAreaId): bool
