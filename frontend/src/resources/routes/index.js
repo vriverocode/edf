@@ -224,10 +224,10 @@ const routes = [
       // },
       {
         path: '/reserves',
-        component: () => import('@/view/client/reserves/view/'.$booking -> idPage.vue'),
+        component: () => import('@/view/admin/reservesPage.vue'),
         name: 'reservedAdmin',
-          beforeEnter: [auth, role],
-          meta: {
+        beforeEnter: [auth, role],
+        meta: {
           title: 'Bienvenido',
           pagTitle: 'Reservas',
           depth: 2,

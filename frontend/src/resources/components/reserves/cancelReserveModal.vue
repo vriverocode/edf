@@ -9,7 +9,11 @@ const emit = defineEmits(['closeModal', 'updateList'])
 const reserveStore = useReserveStore()
 const props = defineProps({
   dialog: Boolean,
-  reserve: Object
+  reserve: Object,
+  viaMaintenance: {
+    type: Boolean,
+    default: false,
+  },
 })
 const router = useRouter()
 const loading = ref(false)
@@ -24,15 +28,19 @@ const updateList = () => {
 }
 
 const cancelBooking = () => {
+  if (!motive.value.trim()) return
   loading.value = true
-  reserveStore.cancelReserve(props.reserve.id, motive.value)
+  const request = props.viaMaintenance
+    ? reserveStore.cancelBookingForMaintenance(props.reserve.id, motive.value)
+    : reserveStore.cancelReserve(props.reserve.id, motive.value)
+  request
     .then((response) => {
       loading.value = false
       updateList()
     })
-    .catch(() => {
+    .catch((err) => {
       loading.value = false
-      showNotify('negative', 'Error al borrar area común')
+      showNotify('negative', err || 'Error al cancelar la reserva')
     })
 }
 
@@ -70,7 +78,8 @@ watch(() => props.dialog, (newValue) => {
 
               <div class="mt-2">
                 <div>
-                  Motivo de cancelación:
+                  Motivo de cancelación<span v-if="!viaMaintenance" class="text-grey-6"> (opcional)</span><span
+                    v-else class="text-red-500"> *</span>:
                 </div>
                 <q-input v-model="motive" outlined type="textarea" class="form__inputsRs" />
 
@@ -85,6 +94,7 @@ watch(() => props.dialog, (newValue) => {
             style="border-radius: 0.8rem; padding:0px  2rem!important; font-size: 1rem;  " @click="hideModal()" />
           <q-btn label="Cancelar reserva" unelevated class="q-mx-sm mt-2" color="negative" outline
             style="border-radius: 0.8rem;  padding:0px  2rem!important; font-size: 1rem;  " :loading="loading"
+            :disable="viaMaintenance && !motive.trim()"
             @click="cancelBooking()" />
         </div>
       </section>

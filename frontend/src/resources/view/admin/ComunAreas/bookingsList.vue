@@ -23,25 +23,79 @@ const router = useRouter()
 const route = useRoute()
 const page = ref(1)
 const lastPage = ref(1)
-const now = new Date()
-const selectedMonth = ref(now.getMonth() + 1)
-const selectedYear = ref(now.getFullYear())
-const showCancelled = ref(false)
+const today = moment().format('YYYY-MM-DD')
+const dateFrom = ref(today)
+const dateTo = ref(today)
+const activeQuickFilter = ref('hoy')
+const selectedStatuses = ref([-1])
 
-const monthOptions = [
-  { value: 1, name: 'Enero' },
-  { value: 2, name: 'Febrero' },
-  { value: 3, name: 'Marzo' },
-  { value: 4, name: 'Abril' },
-  { value: 5, name: 'Mayo' },
-  { value: 6, name: 'Junio' },
-  { value: 7, name: 'Julio' },
-  { value: 8, name: 'Agosto' },
-  { value: 9, name: 'Septiembre' },
-  { value: 10, name: 'Octubre' },
-  { value: 11, name: 'Noviembre' },
-  { value: 12, name: 'Diciembre' }
+const quickDateFilters = [
+  { key: 'hoy', label: 'Hoy' },
+  { key: 'ayer', label: 'Ayer' },
+  { key: 'manana', label: 'Mañana' },
+  { key: 'semana', label: 'Esta semana' },
+  { key: 'mes', label: 'Este mes' },
+  { key: 'todo', label: 'Todo' },
 ]
+
+const statusOptions = [
+  { value: 0, label: 'Canceladas' },
+  { value: 1, label: 'Pago pendiente' },
+  { value: 2, label: 'Pend. aprobación' },
+  { value: 3, label: 'Exitosas' },
+  { value: 4, label: 'Completadas' },
+  { value: 6, label: 'Pend. devolución' },
+]
+
+const applyQuickDateFilter = (key) => {
+  activeQuickFilter.value = key
+  switch (key) {
+    case 'ayer':
+      dateFrom.value = moment().subtract(1, 'day').format('YYYY-MM-DD')
+      dateTo.value = moment().subtract(1, 'day').format('YYYY-MM-DD')
+      break
+    case 'manana':
+      dateFrom.value = moment().add(1, 'day').format('YYYY-MM-DD')
+      dateTo.value = moment().add(1, 'day').format('YYYY-MM-DD')
+      break
+    case 'semana':
+      dateFrom.value = moment().startOf('week').format('YYYY-MM-DD')
+      dateTo.value = moment().endOf('week').format('YYYY-MM-DD')
+      break
+    case 'mes':
+      dateFrom.value = moment().startOf('month').format('YYYY-MM-DD')
+      dateTo.value = moment().endOf('month').format('YYYY-MM-DD')
+      break
+    case 'todo':
+      dateFrom.value = ''
+      dateTo.value = ''
+      break
+    default:
+      dateFrom.value = today
+      dateTo.value = today
+  }
+  onChangeFilter()
+}
+
+const onDateChange = () => {
+  activeQuickFilter.value = ''
+  onChangeFilter()
+}
+
+const toggleStatus = (value) => {
+  if (value === -1) {
+    selectedStatuses.value = selectedStatuses.value.includes(-1) ? [] : [-1]
+  } else {
+    const next = selectedStatuses.value.filter((s) => s !== -1)
+    if (next.includes(value)) {
+      selectedStatuses.value = next.filter((s) => s !== value)
+    } else {
+      next.push(value)
+    }
+    selectedStatuses.value = next
+  }
+  onChangeFilter()
+}
 
 const ownerDialog = ref(false)
 const ownerSearch = ref('')
@@ -82,10 +136,12 @@ const getReservesByArea = () => {
   const params = {
     page: page.value,
     per_page: 10,
-    date_from: `${selectedYear.value}-${String(selectedMonth.value).padStart(2, '0')}-01`,
-    date_to: `${selectedYear.value}-${String(selectedMonth.value).padStart(2, '0')}-31`,
   }
-  if (!showCancelled.value) params.status = 1
+  if (selectedStatuses.value.length > 0) {
+    params.status = selectedStatuses.value.includes(-1) ? -1 : selectedStatuses.value.join(',')
+  }
+  if (dateFrom.value) params.date_from = dateFrom.value
+  if (dateTo.value) params.date_to = dateTo.value
   reserveStore.getReservesByArea(route.params.id, params)
     .then((response) => {
       const payload = response.data || {}
@@ -156,18 +212,38 @@ onMounted(() => {
 </script>
 <template>
   <div class="h-full">
-    <div class="px-4 py-3 md:px-28 flex items-center q-col-gutter-sm" style="height: 17%;">
-      <div class="row items-center w-full">
-        <div class="col-6 col-md-2 pr-2">
-          <q-select dense borderless class="form__inputsR" v-model="selectedMonth" :options="monthOptions"
-            option-label="name" option-value="value" emit-value map-options @update:model-value="onChangeFilter" />
+    <div class="px-4 py-3 md:px-28" style="height: 17%;">
+      <div class="row items-center w-full q-col-gutter-sm">
+        <div class="col-12 flex flex-wrap gap-2 pb-1 md:px-1">
+          <q-btn
+            v-for="qf in quickDateFilters"
+            :key="qf.key"
+            dense
+            no-caps
+            outline
+            class="px-2"
+            :label="qf.label"
+            :color="activeQuickFilter === qf.key ? 'primary' : 'grey-3'"
+            :text-color="activeQuickFilter === qf.key ? 'blue-5' : 'grey-8'"
+            @click="applyQuickDateFilter(qf.key)"
+          />
         </div>
-        <div class="col-6 col-md-2 pr-2">
-          <q-input dense borderless class="form__inputsR" type="number" v-model="selectedYear"
-            @update:model-value="onChangeFilter" />
+        <div class="col-6 col-md-3 pr-2">
+          <q-input dense borderless type="date" v-model="dateFrom"
+            class="form__inputsR" @update:model-value="onDateChange" />
         </div>
-        <div class="col-6 col-md-3 pt-2 md:pt-0">
-          <q-checkbox v-model="showCancelled" label="Mostrar canceladas" @update:model-value="onChangeFilter" />
+        <div class="col-6 col-md-3 pr-2">
+          <q-input dense borderless type="date" v-model="dateTo"
+            class="form__inputsR" @update:model-value="onDateChange" />
+        </div>
+      </div>
+      <div class="row items-center w-full q-mt-xs">
+        <div class="col-12 flex flex-wrap gap-x-4 gap-y-1">
+          <q-checkbox dense :label="'Todas'" :model-value="selectedStatuses.includes(-1)"
+            @update:model-value="toggleStatus(-1)" />
+          <q-checkbox v-for="opt in statusOptions" :key="opt.value" dense :label="opt.label"
+            :model-value="selectedStatuses.includes(opt.value)"
+            @update:model-value="toggleStatus(opt.value)" />
         </div>
       </div>
     </div>

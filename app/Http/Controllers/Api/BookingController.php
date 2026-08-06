@@ -176,11 +176,21 @@ class BookingController extends Controller
     {
         $bookings = Booking::with('pay.payMethod', 'user')->where('comun_area_id', $areaId);
 
-       
         if ($request->filled('status')) {
-            $bookings->where('status', $request->integer('status'));
+            $statusParam = $request->get('status');
+            if ((int) $statusParam !== -1) {
+                $statuses = array_map('intval', explode(',', $statusParam));
+                $bookings->whereIn('status', $statuses);
+            }
         } else {
             $bookings->where('status', '>', 0);
+        }
+
+        if ($request->filled('date_from')) {
+            $bookings->whereDate('date', '>=', $request->get('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $bookings->whereDate('date', '<=', $request->get('date_to'));
         }
 
         $bookings->orderBy('date', 'desc')->orderBy('time_from', 'asc');
@@ -321,17 +331,66 @@ class BookingController extends Controller
 
     public function cancelBookingForMaintenance(Request $request, $id)
     {
-        $booking = Booking::find($id);
+        $validator = Validator::make($request->all(), [
+            'motive' => ['required', 'string', 'max:500'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $booking = Booking::with('pay')->find($id);
         if (! $booking) {
             return $this->returnFail(400, 'Reserva no encontrada');
         }
-        $booking->update([
-            'status' => 0,
-            'motive' => 'Cancelada por mantenimiento',
-        ]);
-        $this->sendNotification($booking);
+        if (! in_array((int) $booking->status, [
+            Booking::STATUS_PENDING_PAY,
+            Booking::STATUS_PENDING_APPROVAL,
+            Booking::STATUS_SUCCESS,
+        ])) {
+            return $this->returnFail(409, 'La reserva no está en un estado válido para cancelarse');
+        }
 
-        return $this->returnSuccess(200, 'ok');
+        $motive = $request->motive;
+        $pay = $booking->pay;
+        $isPaidBooking = (float) $booking->amount > 0
+            && $pay
+            && in_array((int) $pay->status, [1, 2, 4]);
+
+        DB::beginTransaction();
+
+        try {
+            if ($isPaidBooking) {
+                $booking->update([
+                    'status' => Booking::STATUS_PENDING_DEVO,
+                    'motive' => $motive,
+                    'kind' => 'cancellation',
+                ]);
+                $pay->update(['status' => 6]);
+            } else {
+                $booking->update([
+                    'status' => Booking::STATUS_CANCELLED,
+                    'motive' => $motive,
+                ]);
+            }
+
+            DB::commit();
+
+            if ($isPaidBooking) {
+                self::cancelReserveNotification([
+                    'admin' => User::find(1),
+                    'client' => User::find($booking->user_id),
+                ], $booking);
+            } else {
+                $this->sendNotification($booking);
+            }
+
+            return $this->returnSuccess(200, 'ok');
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return $this->returnFail(500, 'Error al cancelar la reserva: '.$e->getMessage());
+        }
     }
 
     public function completeBooking(Request $request, $id)

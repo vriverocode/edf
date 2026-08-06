@@ -107,23 +107,18 @@ const formatTimeNoSeconds = (t) => {
   return m.isValid() ? m.format('HH:mm') : String(t).trim();
 };
 
-const cancelMaintenance = async (reserveId) => {
-    try {
-        loading.value = true;
-        await reserveStore.cancelBookingForMaintenance(reserveId);
-        Notify.create({ color: 'positive', message: 'Reserva cancelada por mantenimiento' });
-        getReserves();
-    } catch (e) {
-        Notify.create({ color: 'negative', message: 'Error al cancelar la reserva' });
-    } finally {
-        loading.value = false;
-    }
+const openCancelReserve = (reserveId) => {
+  selectReserve(reserveId)
+  setTimeout(() => {
+    dialog.value = 'cancel'
+  }, 500)
 }
 
 const completeReserve = (reserve) => {
-  const needsRefund = reserve.amount > 0 && reserve.pay?.status === 2
+  const warrantyPrice = Number(reserve.comun_area?.warranty_price ?? 0)
+  const needsRefund = warrantyPrice > 0 && reserve.pay?.status === 2
   const message = needsRefund
-    ? `La reserva #${reserve.booking_number} pasará al estado "Pendiente de devolución". La devolución de S/. ${reserve.amount} será registrada por administración.`
+    ? `La reserva #${reserve.booking_number} pasará al estado "Pendiente de devolución". La devolución de S/. ${warrantyPrice.toFixed(2)} será registrada por administración.`
     : `La reserva #${reserve.booking_number} pasará al estado "Completada".`
   Dialog.create({
     title: 'Completar reserva',
@@ -235,18 +230,6 @@ onMounted(() => {
                   <span class="text-sm font-medium text-gray-700">{{ reserve.user?.name }} {{ reserve.user?.lastname }}</span>
                 </div>
                 <div class="flex items-center">
-
-              <q-btn
-                v-if="reserve.status === 3"
-                dense
-                no-caps
-                unelevated
-                color="primary"
-                class="w-full mt-3"
-                icon="eva-checkmark-circle-2-outline"
-                label="Completar reserva"
-                @click="completeReserve(reserve)"
-              />
                   <div class="flex items-center">
                     <div flat rounded color="primary" size="sm" class="ml-3 cursor-pointer" >
                       <div v-html="iconsApp.optionsBook"></div>
@@ -255,8 +238,8 @@ onMounted(() => {
                         <q-item clickable v-close-popup @click="goTo('/client/reserves/view/'+reserve.id)">
                           <q-item-section>Ver detalles</q-item-section>
                         </q-item>
-                        <q-item clickable v-close-popup @click="cancelMaintenance(reserve.id)" v-if="[1,2,3].includes(reserve.status)">
-                          <q-item-section>Cancelar por mantenimiento</q-item-section>
+                        <q-item clickable v-close-popup @click="openCancelReserve(reserve.id)" v-if="[1,2,3].includes(reserve.status)">
+                          <q-item-section>Cancelar reserva</q-item-section>
                         </q-item>
                         <q-separator />
                       </q-list>
@@ -264,6 +247,18 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
+                <q-btn
+                    v-if="reserve.status === 3"
+                    dense
+                    no-caps
+                    unelevated
+                    color="primary"
+                    class="w-full mt-3 py-1"
+                    icon="eva-checkmark-circle-2-outline"
+                    label="Completar reserva"
+                    style="border-radius: 0.4rem;"
+                    @click="completeReserve(reserve)"
+                  />
               </div>
               
             </div>
@@ -286,6 +281,13 @@ onMounted(() => {
         :dialog="(dialog == 'filter')" 
         @closeModal="dialog = ''"
         @updateList="getReserveWithFilter"
+      />
+    <cancelReserveModal
+        :dialog="(dialog == 'cancel')"
+        :reserve="selectedReserve"
+        via-maintenance
+        @closeModal="dialog = ''"
+        @updateList="getReserves"
       />
   </div>
 </template> 

@@ -218,13 +218,13 @@ export const useReserveStore = defineStore('Reserve', {
           });
       })
     },
-    async cancelBookingForMaintenance(id) {
+    async cancelBookingForMaintenance(id, motive) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/security/bookings/cancel-maintenance/' + id)
+        ApiService.post('/api/security/bookings/cancel-maintenance/' + id, { motive: motive })
           .then(({ data }) => {
             if (data.code != 200) throw data;
 
