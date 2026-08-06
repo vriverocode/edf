@@ -176,12 +176,7 @@ class BookingController extends Controller
     {
         $bookings = Booking::with('pay.payMethod', 'user')->where('comun_area_id', $areaId);
 
-        if ($request->filled('date_from')) {
-            $bookings->whereDate('date', '>=', $request->get('date_from'));
-        }
-        if ($request->filled('date_to')) {
-            $bookings->whereDate('date', '<=', $request->get('date_to'));
-        }
+       
         if ($request->filled('status')) {
             $bookings->where('status', $request->integer('status'));
         } else {

@@ -163,7 +163,7 @@ onMounted(() => {
             option-label="name" option-value="value" emit-value map-options @update:model-value="onChangeFilter" />
         </div>
         <div class="col-6 col-md-2 pr-2">
-          <q-input dense borderless class="form__inputsR" type="number" v-model.number="selectedYear"
+          <q-input dense borderless class="form__inputsR" type="number" v-model="selectedYear"
             @update:model-value="onChangeFilter" />
         </div>
         <div class="col-6 col-md-3 pt-2 md:pt-0">
