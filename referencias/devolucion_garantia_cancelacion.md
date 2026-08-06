@@ -1,6 +1,6 @@
 # Devolución por garantía vs cancelación — Campo `kind` + automatizaciones de reservas
 
-**Fecha:** 2026-08-05
+**Fecha:** 2026-08-06
 **Estado:** Implementado y probado (backend + frontend). Pendiente de desplegar en el servidor.
 
 ## Resumen de lo hecho hoy
@@ -66,6 +66,30 @@ Se guarda en dos tablas: `bookings.kind` (origen a nivel reserva) y `table_refun
 
 ---
 
+## Devoluciones con vaucher + cuenta bancaria (2026-08-06)
+
+Toda devolución (garantía **y** cancelación) ahora exige:
+
+1. **Vaucher de la devolución** (imagen jpg/jpeg/png/webp, máx 5 MB) — se guarda en `public/images/refunds/`.
+2. **Cuenta bancaria / Yape del usuario** de la reserva (`bank_accounts` con `status = true`).
+
+### Reglas
+
+- El admin elige la cuenta desde un diálogo en `validatePay.vue` (se cargan con `GET /api/bank-accounts?user_id=`, solo admin/super-admin). Si el usuario **no tiene cuentas activas**, el registro se **bloquea (409)** y se **notifica al usuario** para que registre una (`POST /api/pays/refund/notify-missing-bank-account` también disponible para notificar manualmente).
+- La cuenta debe pertenecer al usuario de la reserva (si no → **403**).
+- En el refund se guarda un **snapshot** (`name` + `data`) para que el destino quede inmutable aunque el usuario edite/elimine su cuenta.
+- El **cliente ve su devolución** en el detalle de la reserva (`viewReserve.vue`): monto, cuenta destino (del snapshot) y botón para ver el vaucher de la devolución (`voucherModal`).
+
+### Base de datos
+
+- Migración `2026_08_06_132239_add_vaucher_and_bank_account_to_refunds.php` sobre `table_refunds`:
+  - `vaucher` (string) — ruta del comprobante.
+  - `bank_account_id` (FK nullable, `nullOnDelete`).
+  - `bank_account_snapshot` (json) — `{"name": ..., "data": ...}`.
+- `getBookingById` eager-loads `refunds.bankAccount` para el detalle.
+
+---
+
 ## Manual de despliegue (SERVIDOR)
 
 > El usuario sube los archivos a mano a `SERVIDOR/` (no va en commits). La BD se despliega manualmente.
@@ -74,6 +98,10 @@ Se guarda en dos tablas: `bookings.kind` (origen a nivel reserva) y `table_refun
 2. **Correr la migración** en el servidor:
    ```bash
    php artisan migrate --force
+   ```
+3. **Crear la carpeta de vauchers de devolución** (si no la crea sola al subir el primer archivo):
+   ```bash
+   mkdir -p public/images/refunds && chmod 0755 public/images/refunds
    ```
 3. **Reiniciar el scheduler (cron) y el worker de cola:**
    ```bash
@@ -103,6 +131,19 @@ Se guarda en dos tablas: `bookings.kind` (origen a nivel reserva) y `table_refun
 - El devol por garantía **no cancela** la reserva (queda Completada). La cancelación sí la cancela.
 - `RefundService.php` estaba roto por la tabla `refunds` inexistente, corregido con `$table = 'table_refunds'`.
 - Las tablas de BD local y de migraciones pueden estar desalineadas (ej. `bookings.kind` ya existía sin migración); la migración es idempotente a propósito.
+- El vaucher de devolución se sirve como `VITE_LARAVEL_API_URL + vaucher` (misma convención que los vauchers de pago).
+
+## Verificación hecha (2026-08-06, flujo de devoluciones con vaucher)
+
+- `php -l` en todos los archivos PHP tocados. OK.
+- `./vendor/bin/pint`. OK.
+- Build frontend `npm run build`. OK.
+- Pruebas reales vía API contra BD local (datos temporales luego eliminados):
+  - **Garantía**: booking 6 + `kind=warranty` + pay 6 → refund con cuenta BCP del usuario + vaucher → 200; monto forzado a `warranty_price` (100), booking → 4, pay → 5; snapshot + vaucher en `public/images/refunds/`.
+  - **Cuenta ajena** → 403. **Sin vaucher** → 422.
+  - **Usuario sin cuentas** → 409 + notificación creada; `notify-missing-bank-account` → 200.
+  - `GET /api/bank-accounts?user_id=3` (admin) → cuenta del user 3; sin `user_id` → cuentas propias.
+  - `GET /api/bookings/byId/{id}` → incluye `refunds.bank_account` + `bank_account_snapshot`.
 
 ## Verificación hecha
 
