@@ -83,11 +83,7 @@ const isShowablePage = () => {
   return (['reservePayConfirm'].includes(route.name))
 }
 const showNavbar = () => {
-  return [
-    'dashboardAdmin', 'financePage', 'usersAdmin',
-    'apartmentOption', 'paymentMenu', 'balanceAdmin', 'reportsAdmin',
-    'accountsPage', 'MonthlyBillsMenu', 'quotasPaysMenu', 'payMenu', 'ProfileMenu'
-  ].includes(route.name)
+  return !['reserveConfirm', 'payConfirm'].includes(route.name)
 }
 const showBack = () => {
   return !(['dashboardAdmin', 'financePage', 'usersAdmin', 'payConfirm', 'reserveConfirm', 'ProfileMenu'].includes(route.name))

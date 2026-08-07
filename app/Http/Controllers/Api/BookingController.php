@@ -124,7 +124,19 @@ class BookingController extends Controller
     {
         $bookings = Booking::with('comunArea', 'user', 'pay', 'departament');
         if ($request->user()->rol_id !== Rol::ADMIN) {
-            $bookings->where('user_id', $request->user()->id)->orderBy('date', 'asc');
+            $user = $request->user();
+            if ($user->rol_id === Rol::PROPIETARIO) {
+                if ($request->boolean('only_residents')) {
+                    $residentIds = PeoplesXDepartaments::where('created_by', $user->id)->pluck('user_id');
+                    $allUserIds = clone $residentIds;
+                    $allUserIds->push($user->id);
+                    $bookings->whereIn('user_id', $allUserIds)->orderBy('date', 'asc');
+                } else {
+                    $bookings->where('user_id', $user->id)->orderBy('date', 'asc');
+                }
+            } else {
+                $bookings->where('user_id', $user->id)->orderBy('date', 'asc');
+            }
         } elseif ($request->filled('user_id')) {
             $bookings->where('user_id', (int) $request->user_id);
         }
@@ -166,7 +178,7 @@ class BookingController extends Controller
         }
         $user = request()->user();
         if ($user->rol_id !== Rol::TRABAJADOR && ! $this->verifyBookingOwnership($booking)) {
-            return $this->returnFail(403, 'No autorizado');
+            return $this->returnFail(403, 'No autorizssado');
         }
 
         return $this->returnSuccess(200, $booking);
@@ -809,7 +821,17 @@ class BookingController extends Controller
     {
         $user = request()->user();
 
-        return $booking->user_id === $user->id || $user->rol_id === Rol::ADMIN;
+        if ($booking->user_id === $user->id || $user->rol_id === Rol::ADMIN) {
+            return true;
+        }
+
+        if ($user->rol_id === Rol::PROPIETARIO) {
+            return PeoplesXDepartaments::where('user_id', $booking->user_id)
+                ->where('created_by', $user->id)
+                ->exists();
+        }
+
+        return false;
     }
 
     private function isBookingInProgress(Booking $booking): bool

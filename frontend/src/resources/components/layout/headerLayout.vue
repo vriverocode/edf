@@ -34,10 +34,15 @@ const changePagTitle = (title) => {
 }
 watch(route, (newRoute) => {
   pagTitle.value = newRoute.meta.pagTitle
+  console.log('dddddd')
   isHomePage.value = homePagesNameToHeader.includes(newRoute.name)
 });
 
-
+watch(route.pagTitle, (newRoute) => {
+  // pagTitle.value = newRoute.meta.pagTitle
+  console.log('dddddd')
+  // isHomePage.value = homePagesNameToHeader.includes(newRoute.name)
+});
 
 const hasPendingToPay = computed(() => {
   let quotas = 0;
@@ -109,7 +114,7 @@ onMounted(() => {
           Reservar
         </div>
         <div class="flex items-center pl-1">
-          <img :src="mediaUrl + '/images/icons/' + reserveInfo.icon + '.svg'" alt=""
+          <img :src="mediaUrl + '/images/icons/' + reserveInfo.icon " alt=""
             style="height:4.5rem; transform:translateX(-15px) translateY(-5px)">
           <div class="text-reserveData" style="transform:translateX(-15px);">
             {{ reserveInfo.name }}

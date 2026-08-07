@@ -112,7 +112,7 @@ onMounted(() => {
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <div class="w-12 h-12 rounded-xl flex items-center justify-center mr-3" style="background: #e8f0fe;">
-                <img :src="urlMedia + '/images/icons/' + (area?.icon || 'default') + '.svg'"
+                <img :src="urlMedia + '/images/icons/' + (area?.icon || 'default') "
                   style="height: 100%" alt="">
               </div>
               <div>

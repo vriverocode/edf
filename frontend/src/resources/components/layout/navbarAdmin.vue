@@ -19,10 +19,33 @@ const logout = () => {
 }
 
 const items = [
-  { label: 'Inicio', icon: iconsApp.home3, route: '/dashboard' },
-  { label: 'Usuarios', icon: iconsApp.user3, route: '/admin/users', roles: ['admin'] },
-  { label: 'Finanzas', icon: iconsApp.finance2, route: '/admin/finance', roles: ['admin', 'propietario'] },
-  { label: 'Perfil', icon: iconsApp.user3, route: '/profile/menu', roles: ['propietario'] },
+  { label: 'Inicio', icon: iconsApp.home3, route: '/dashboard', activePaths: ['/dashboard'] },
+  { label: 'Usuarios', icon: iconsApp.user3, route: '/admin/users', activePaths: ['/admin/users'], roles: ['admin'] },
+  {
+    label: 'Finanzas',
+    icon: iconsApp.finance2,
+    route: '/admin/finance',
+    activePaths: [
+      '/admin/finance',
+      '/admin/accounts',
+      '/admin/account-',
+      '/admin/financial-accounts',
+      '/admin/pay',
+      '/admin/pays',
+      '/admin/monthly_bills',
+      '/admin/quota',
+      '/admin/expenses',
+      '/admin/providers',
+      '/admin/budget',
+      '/admin/water_readings',
+      '/admin/account-bank',
+      '/balances',
+      '/client/pays/menu',
+      '/client/quota',
+    ],
+    roles: ['admin', 'propietario'],
+  },
+  { label: 'Perfil', icon: iconsApp.user3, route: '/profile/menu', activePaths: ['/profile', '/client/profile', '/client/account-bank'], roles: ['propietario'] },
 
   { label: 'Salir', icon: iconsApp.exit2, action: logout },
 ]
@@ -36,7 +59,12 @@ const visibleItems = computed(() => {
 
 const activeIndex = computed(() => {
   const path = route.path
-  return visibleItems.value.findIndex(item => item.route && path === item.route)
+  const index = visibleItems.value.findIndex(item => {
+    if (!item.route) return false
+    if (!item.activePaths) return path === item.route
+    return item.activePaths.some(p => path === p || path.startsWith(p + '/'))
+  })
+  return index === -1 ? 0 : index
 })
 
 const blobIndex = computed(() => {

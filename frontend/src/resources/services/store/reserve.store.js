@@ -315,6 +315,7 @@ export const useReserveStore = defineStore('Reserve', {
         if (filter.user_id) params.set('user_id', String(filter.user_id));
         if (filter.sort_by) params.set('sort_by', String(filter.sort_by));
         if (filter.sort_dir) params.set('sort_dir', String(filter.sort_dir));
+        if (filter.only_residents) params.set('only_residents', '1');
         return params.toString();
       } catch (e) {
         return '';

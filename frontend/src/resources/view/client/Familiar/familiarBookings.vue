@@ -95,7 +95,7 @@ onMounted(() => {
                                 <!-- Imagen del área -->
                                 <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: #f1f5f9; padding: 10px;">
                                     <div class="flex justify-center items-center h-full w-full">
-                                        <img :src="urlMedia + '/images/icons/' + (reserve.comun_area?.icon || 'default') + '.svg'" alt=""
+                                        <img :src="urlMedia + '/images/icons/' + (reserve.comun_area?.icon || 'default') " alt=""
                                             style="height:100%">
                                     </div>
                                 </div>

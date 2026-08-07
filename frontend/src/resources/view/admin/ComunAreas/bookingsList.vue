@@ -1,11 +1,14 @@
 <script setup>
 import { useReserveStore } from '@/services/store/reserve.store';
 import { useMaintenanceStore } from '@/services/store/maintenance.store'
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/services/store/users.store';
 import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
+import { useComunAreaStore } from '@//services/store/comunArea.store';
+
+const emitter = inject('emitter')
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split(
@@ -28,6 +31,7 @@ const dateFrom = ref(today)
 const dateTo = ref(today)
 const activeQuickFilter = ref('hoy')
 const selectedStatuses = ref([-1])
+const comunAreaStore = useComunAreaStore()
 
 const quickDateFilters = [
   { key: 'hoy', label: 'Hoy' },
@@ -35,6 +39,13 @@ const quickDateFilters = [
   { key: 'todo', label: 'Todo' },
 ]
 
+const getComunAreaById = () => {
+  comunAreaStore.getComunAreaById(route.params.id)
+    .then((response) => {
+      const name = response.data.name
+      emitter.emit('pagTitle', name)
+    })
+}
 const statusOptions = [
   { value: 0, label: 'Canceladas' },
 ]
@@ -199,6 +210,7 @@ const onChangeFilter = () => {
 onMounted(() => {
   getReservesByArea()
   loadMaintenances()
+  getComunAreaById()
 })
 
 </script>
@@ -249,6 +261,9 @@ onMounted(() => {
 
       <!-- Content -->
       <div v-else class="px-4 md:px-28 pb-8">
+        <div>
+          {{ reserves[0]?.comun_area?.name }}
+        </div>
         <!-- Maintenance Banner -->
         <div v-if="maintenances.length > 0" class="q-mb-md">
           <q-banner class="bg-orange-2 text-orange-9 rounded-lg" inline-actions>
@@ -383,26 +398,27 @@ onMounted(() => {
         </div>
       </q-btn>
     </div>
+
+    <q-dialog v-model="ownerDialog" persistent>
+      <q-card style="min-width: 320px; width: 95%; max-width: 480px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Seleccionar propietario</div>
+        </q-card-section>
+        <q-card-section>
+          <q-input dense borderless v-model="ownerSearch" placeholder="Buscar propietario..."
+            class="form__inputsR q-mb-sm" color="primary" clearable />
+          <q-select dense borderless v-model="selectedOwner" :options="ownerOptions"
+            option-label="label" option-value="value" emit-value map-options class="form__inputsTypeDepart"
+            :loading="loadingOwners" :disable="loadingOwners" use-chips use-input
+            @filter="(val, update) => { update(); }" />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Cancelar" color="grey-7" v-close-popup />
+          <q-btn color="primary" no-caps label="Continuar" :disable="!selectedOwner" @click="confirmOwner" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
-  <q-dialog v-model="ownerDialog" persistent>
-    <q-card style="min-width: 320px; width: 95%; max-width: 480px;">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">Seleccionar propietario</div>
-      </q-card-section>
-      <q-card-section>
-        <q-input dense borderless v-model="ownerSearch" placeholder="Buscar propietario..."
-          class="form__inputsR q-mb-sm" color="primary" clearable />
-        <q-select dense borderless v-model="selectedOwner" :options="ownerOptions"
-          option-label="label" option-value="value" emit-value map-options class="form__inputsTypeDepart"
-          :loading="loadingOwners" :disable="loadingOwners" use-chips use-input
-          @filter="(val, update) => { update(); }" />
-      </q-card-section>
-      <q-card-actions align="right">
-        <q-btn flat no-caps label="Cancelar" color="grey-7" v-close-popup />
-        <q-btn color="primary" no-caps label="Continuar" :disable="!selectedOwner" @click="confirmOwner" />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
 </template>
 <style >
 .badgeReserve {

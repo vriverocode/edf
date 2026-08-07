@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useReserveStore } from '@/services/store/reserve.store';
+import { useAuthStore } from '@/services/store/auth.services';
 import { useRouter } from 'vue-router';
 import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
@@ -14,6 +15,7 @@ moment.locale('es', {
 })
 
 const reserveStore = useReserveStore();
+const authStore = useAuthStore();
 const router = useRouter();
 
 const reserves = ref([]);
@@ -34,6 +36,7 @@ const userFilters = ref({
   status: '',
   date_from: moment().format('YYYY-MM-DD'),
   date_to: '',
+  only_residents: false,
 })
 
 const activeFilterCount = computed(() => {
@@ -42,6 +45,7 @@ const activeFilterCount = computed(() => {
   if (!userFilters.value.hidePast) count++
   if (userFilters.value.status && userFilters.value.status !== '') count++
   if (userFilters.value.date_to) count++
+  if (userFilters.value.only_residents) count++
   return count
 })
 
@@ -63,6 +67,10 @@ const getApiParams = () => {
 
   if (userFilters.value.date_to) {
     params.date_to = userFilters.value.date_to
+  }
+
+  if (userFilters.value.only_residents) {
+    params.only_residents = true
   }
 
   return params
@@ -100,6 +108,7 @@ const setQuickFilter = (filter) => {
         status: '4',
         date_from: '',
         date_to: '',
+        only_residents: false,
       }
       break
     case 'upcoming':
@@ -109,6 +118,7 @@ const setQuickFilter = (filter) => {
         status: '',
         date_from: moment().format('YYYY-MM-DD'),
         date_to: '',
+        only_residents: false,
       }
       break
     case 'pending':
@@ -118,6 +128,7 @@ const setQuickFilter = (filter) => {
         status: '1,2',
         date_from: '',
         date_to: '',
+        only_residents: false,
       }
       break
     case 'success':
@@ -127,6 +138,7 @@ const setQuickFilter = (filter) => {
         status: '3',
         date_from: '',
         date_to: '',
+        only_residents: false,
       }
       break
     case 'cancelled':
@@ -136,6 +148,7 @@ const setQuickFilter = (filter) => {
         status: '0',
         date_from: '',
         date_to: '',
+        only_residents: false,
       }
       break
   }
@@ -150,6 +163,7 @@ const resetFilters = () => {
     status: '',
     date_from: moment().format('YYYY-MM-DD'),
     date_to: '',
+    only_residents: false,
   }
   activeQuickFilter.value = 'upcoming'
   page.value = 1
@@ -223,8 +237,8 @@ const statusOptions = [
 
 <template>
   <div class="h-full" style="overflow: hidden;">
-    <div class="reserve-list-footer row px-4 pt-2 flex md:justify-center items-center md:w-full md:px-24"
-      style="height: 17%; overflow:hidden" >
+    <div class=" row px-4 pt-2  md:justify-center items-center md:w-full md:px-24"
+      style="height: 20%; overflow:hidden" >
       <div class="flex items-center col-12  col-md-12 pr-2 md:pl-8">
         <q-btn color="primary" unelevated class="flex-1 createBookingButton"
           style="border-radius: 0.5rem;" @click="goTo('/client/reserves/form/add')">
@@ -236,8 +250,8 @@ const statusOptions = [
           </div>
         </q-btn>
       </div>
-      <div class="w-full flex justify-end col-12 md:px-5 items-center">
-        <div class="flex justify-between items-center q-mb-sm md:px-5 w-full">
+      <div class="w-full flex justify-end col-12 md:px-5  pt-1">
+        <div class="flex justify-between  md:px-5 w-full">
           <div class="flex q-gutter-xs py-1" style="overflow-x: auto; white-space: nowrap;">
             <q-btn dense outline no-caps class="px-2" size="sm"
               :class="{ 'text-primary text-bold': activeQuickFilter === 'all' }"
@@ -254,6 +268,9 @@ const statusOptions = [
             <q-btn dense outline no-caps class="px-2" size="sm"
               :class="{ 'text-primary text-bold': activeQuickFilter === 'cancelled' }"
               @click="setQuickFilter('cancelled')">Canceladas</q-btn>
+            
+            <div class="w-px h-4 bg-gray-300 mx-1 self-center" v-if="authStore.user?.rol_id === 2"></div>
+            
           </div>
           <q-btn outline color="primary" size="sm" @click="filterModal = true" class="filter-btn">
             <q-icon name="eva-funnel-outline" size="1.2rem" />
@@ -261,8 +278,20 @@ const statusOptions = [
           </q-btn>
         </div>
       </div>
+      <div class="w-full flex col-12">
+            <q-checkbox 
+              v-if="authStore.user?.rol_id === 2" 
+              dense 
+              v-model="userFilters.only_residents" 
+              label="Reserva de residentes" 
+              color="primary" 
+              size="sm"
+              class="text-primary self-center"
+              @update:model-value="page = 1; getReserves()" 
+            />
+      </div>
     </div>
-    <div class="" style="height: 83%; overflow: auto;">
+    <div class="pt-2" style="height: 80%; overflow: auto;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <!-- <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div> -->
@@ -289,7 +318,10 @@ const statusOptions = [
                     {{ reserve.comun_area?.name || 'Área Común' }}
                   </h3>
                   <div v-if="reserve.departament" class="text-sm text-gray-500 mb-2">
-                    Unidad #{{ reserve.departament.number }}
+                    Unidad #{{ reserve.departament.number }} 
+                    <span v-if="reserve.user_id !== authStore.user?.id" class="text-primary font-medium ml-1">
+                      (Reserva de {{ reserve.user?.name }})
+                    </span>
                   </div>
                 </div>
                 <!-- Estado badge -->
@@ -305,7 +337,7 @@ const statusOptions = [
                 <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0">
                   <div class="boxItem_list_v2">
                     <div class="flex justify-center items-center h-full w-full ">
-                      <img :src="urlMedia + '/images/icons/' + (reserve.comun_area?.icon || 'default') + '.svg'" alt=""
+                      <img :src="urlMedia + '/images/icons/' + (reserve.comun_area?.icon || 'default') " alt=""
                         style="height:100%">
                     </div>
                   </div>
@@ -472,6 +504,9 @@ const statusOptions = [
               </div>
               <div class="col-12 my-1">
                 <q-checkbox v-model="userFilters.hidePast"  color="primary" label="Solo próximas (Fechas iguales o mayores a hoy)" />
+              </div>
+              <div class="col-12 my-1" v-if="authStore.user?.rol_id === 2">
+                <q-checkbox v-model="userFilters.only_residents"  color="primary" label="Incluir reservas de mis inquilinos/huéspedes" />
               </div>
             </div>
             <div class="row py-4 px-5" style="border-top: 1px solid lightgray;">

@@ -220,7 +220,7 @@ onMounted(async () => {
           <div class="row w-full" style="height:85%; overflow:auto" v-if="step == 0">
             <div class="col-md-6 col-12 mt-1 mb-4 md:mt-0 px-2 md:px-12">
               <div class="boxImgStore">
-                <img :src="urlMedia + '/images/icons/' + comunArea.icon.value + '.svg'" alt="">
+                <img :src="urlMedia + '/images/icons/' + comunArea.icon.value " alt="">
               </div>
             </div>
             <div class="col-md-6 col-12 mt-0 px-2 md:px-12">

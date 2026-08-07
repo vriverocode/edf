@@ -277,11 +277,11 @@ const validateStepForm = () => {
 const getAvaibleBookingByDay = () => {
   const alreadyBlocked = blockedAreaIds.value.includes(selectedComunArea.value.id)
 
-  if (alreadyBlocked) {
-    showNotify('negative', 'Ya tienes una reserva activa para esta área. Solo podrás reservarla nuevamente cuando finalice el día de tu reserva.')
-    formData.value.date = ''
-    return
-  }
+  // if (alreadyBlocked) {
+  //   showNotify('negative', 'Ya tienes una reserva activa para esta área. Solo podrás reservarla nuevamente cuando finalice el día de tu reserva.')
+  //   formData.value.date = ''
+  //   return
+  // }
 
   const data = {
     idArea: selectedComunArea.value.id,
@@ -668,10 +668,15 @@ watch(step,
         <Transition :name="transitionName">
           <div class="px-2 form-step row" v-if="step == 1">
             <div class="col-md-3 col-4 px-2 md:px-5 my-3" v-for="comunArea in comunAreas" :key="comunArea.id">
-              <div class="boxContentV2 " :class="{ 'areaBlocked': blockedAreaIds.includes(comunArea.id) }">
-                <div class="boxItem_v2  md:px-6 " @click="blockedAreaIds.includes(comunArea.id) ? showNotify('negative', 'Ya tienes una reserva activa para esta área. Solo podrás reservarla nuevamente cuando finalice el día de tu reserva') : selectArea(comunArea.id)">
+              <div class="boxContentV2 " :class="{ '': blockedAreaIds.includes(comunArea.id) }">
+                <!-- <div class="boxItem_v2  md:px-6 " 
+                @click="blockedAreaIds.includes(comunArea.id) 
+                ? showNotify('negative', 'Ya tienes una reserva activa para esta área. Solo podrás reservarla nuevamente cuando finalice el día de tu reserva') 
+                : selectArea(comunArea.id)"> -->
+                <div class="boxItem_v2  md:px-6 " 
+                @click=" selectArea(comunArea.id)">
                   <div class="flex justify-center items-center h-full w-full ">
-                    <img :src="mediaUrl + '/images/icons/' + comunArea.icon + '.svg'" alt="" style="height:100%">
+                    <img :src="mediaUrl + '/images/icons/' + comunArea.icon " alt="" style="height:100%">
                   </div>
                   <div v-if="blockedAreaIds.includes(comunArea.id)" class="areaBlockedBadge">
                     Reservado
@@ -1792,7 +1797,7 @@ watch(step,
 
   &.areaBlocked {
     opacity: 0.5;
-    pointer-events: none;
+    //pointer-events: none;
   }
 }
 

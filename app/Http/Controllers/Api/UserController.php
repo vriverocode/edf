@@ -279,6 +279,7 @@ class UserController extends Controller
         $residents = PeoplesXDepartaments::with(['user.rol', 'departament'])
             ->where('created_by', $request->user()->id)
             ->whereIn('type', [Rol::FAMILIAR, Rol::AIRBNB, Rol::INQUILINO])
+            ->whereHas('user')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($people) {
@@ -709,7 +710,14 @@ class UserController extends Controller
     public function destroy(int $id, Request $request)
     {
         $authUser = request()->user();
-        if ($authUser->rol_id !== Rol::ADMIN) {
+        $isAdmin = $authUser->rol_id === Rol::ADMIN;
+
+        // El propietario solo puede eliminar usuarios que él mismo creó
+        $isCreator = PeoplesXDepartaments::where('user_id', $id)
+            ->where('created_by', $authUser->id)
+            ->exists();
+
+        if (! $isAdmin && ! $isCreator) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 

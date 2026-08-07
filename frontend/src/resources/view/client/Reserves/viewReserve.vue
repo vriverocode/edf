@@ -148,7 +148,7 @@ const reloadBooking = () => {
                 <div class="bg-primary rounded-xl p-4 boxContentV2">
                   <div class="boxItem_v2-2  md:px-6 ">
                     <div class="flex justify-center items-center h-full w-full ">
-                      <img :src="mediaUrl + '/images/icons/' + (booking.comun_area?.icon || 'default') + '.svg'" alt=""
+                      <img :src="mediaUrl + '/images/icons/' + (booking.comun_area?.icon || 'default') " alt=""
                         style="height:100%">
                     </div>
                   </div>

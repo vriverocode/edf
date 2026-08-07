@@ -363,7 +363,7 @@ const routes = [
         beforeEnter: [auth, role],
         meta: {
           title: 'Bienvenido',
-          pagTitle: 'Lista de reservaciones',
+          pagTitle: '---',
           depth: 3,
         },
       },
