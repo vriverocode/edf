@@ -60,6 +60,12 @@ class UserController extends Controller
             return response()->json(['code' => 403, 'error' => 'No puedes crear usuarios con este rol'], 403);
         }
 
+        if ((int) $request->idRol === Rol::INQUILINO
+            && (int) $request->idApartament !== 0
+            && $this->departmentHasActiveInquilino((int) $request->idApartament)) {
+            return $this->returnFail(409, 'El departamento ya tiene un inquilino activo.');
+        }
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -151,14 +157,8 @@ class UserController extends Controller
                 $rolId = Rol::INQUILINO;
             }
 
-            if ($isInquilino) {
-                $existingTenant = PeoplesXDepartaments::where('departament_id', $request->idApartament)
-                    ->where('type', Rol::INQUILINO)
-                    ->whereHas('user', fn ($q) => $q->where('status', '!=', 3)->whereNull('deleted_at'))
-                    ->exists();
-                if ($existingTenant) {
-                    throw new Exception('El departamento ya tiene un inquilino activo.');
-                }
+            if ($isInquilino && $this->departmentHasActiveInquilino((int) $request->idApartament)) {
+                throw new Exception('El departamento ya tiene un inquilino activo.');
             }
 
             // Preparación de credenciales
@@ -183,12 +183,16 @@ class UserController extends Controller
             ]);
 
             // 2. Vincular usuario al departamento
-            $people = PeoplesXDepartaments::create([
-                'user_id' => $user->id,
-                'departament_id' => $request->idApartament,
-                'type' => $rolId,
-                'created_by' => $request->user()->id,
-            ]);
+            if ($isInquilino) {
+                $this->createInquilinoRelation($user, (int) $request->idApartament);
+            } else {
+                PeoplesXDepartaments::create([
+                    'user_id' => $user->id,
+                    'departament_id' => $request->idApartament,
+                    'type' => $rolId,
+                    'created_by' => $request->user()->id,
+                ]);
+            }
 
             if ($isAirbnb) {
                 $airbnbData = $request->input('airbnb');
@@ -355,11 +359,39 @@ class UserController extends Controller
 
     private function afteSaveUser($user, $request)
     {
-        if ($request->idApartament != 0 && $request->user()->rol_id == Rol::ADMIN) {
-            Departament::find($request->idApartament)->update([
-                'user_id' => $user->id,
-            ]);
+        if ($request->user()->rol_id != Rol::ADMIN || (int) $request->idApartament == 0) {
+            return;
         }
+
+        if ((int) $request->idRol === Rol::INQUILINO) {
+            $this->createInquilinoRelation($user, (int) $request->idApartament);
+
+            return;
+        }
+
+        Departament::find($request->idApartament)->update([
+            'user_id' => $user->id,
+        ]);
+    }
+
+    private function departmentHasActiveInquilino(int $departamentId): bool
+    {
+        return PeoplesXDepartaments::where('departament_id', $departamentId)
+            ->where('type', Rol::INQUILINO)
+            ->whereHas('user', fn ($q) => $q->where('status', '!=', 3)->whereNull('deleted_at'))
+            ->exists();
+    }
+
+    private function createInquilinoRelation(User $user, int $departamentId): void
+    {
+        $departament = Departament::find($departamentId);
+
+        PeoplesXDepartaments::create([
+            'user_id' => $user->id,
+            'departament_id' => $departamentId,
+            'type' => Rol::INQUILINO,
+            'created_by' => $departament->user_id,
+        ]);
     }
 
     public function getOwners(Request $request)
@@ -651,7 +683,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email'],
             'phone' => ['nullable', 'string'],
-          // 'parentesco' => ['nullable', 'string'],
+            // 'parentesco' => ['nullable', 'string'],
             'password' => ['nullable', 'string', 'min:8'],
         ], [
             'name.required' => 'El nombre es requerido.',
@@ -663,7 +695,7 @@ class UserController extends Controller
         if ($validator->fails()) {
             return $this->returnFail(400, $validator->errors()->first());
         }
-        
+
         try {
             $data = [
                 'name' => $request->name,
@@ -740,6 +772,7 @@ class UserController extends Controller
 
         return $this->returnSuccess(200, 'Usuario eliminado con éxito');
     }
+
     private function validateIdEmailUsed($request, $user)
     {
         $userToValidate = User::where('email', $request->email)->first();

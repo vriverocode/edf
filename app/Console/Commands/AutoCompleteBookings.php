@@ -12,7 +12,7 @@ class AutoCompleteBookings extends Command
 {
     protected $signature = 'app:auto-complete-bookings';
 
-    protected $description = 'Cada 30 min: completa automáticamente reservas en estado Exitoso cuyo horario ya inició o finalizó. Si el área tiene garantía, pasa a Pend. devolución.';
+    protected $description = 'Cada 30 min: completa automáticamente reservas en estado Exitoso cuyo horario ya finalizó. Si el área tiene garantía, pasa a Pend. devolución.';
 
     public function handle(): int
     {
@@ -20,9 +20,11 @@ class AutoCompleteBookings extends Command
             ->with('comunArea', 'pay')
             ->chunkById(100, function ($bookings) {
                 foreach ($bookings as $booking) {
-                    $eventDateTime = Carbon::parse($booking->date->toDateString().' '.$booking->time_from);
-
-                    if ($eventDateTime->gt(now())) {
+                    $eventDateTime = Carbon::parse(
+                        $booking->date->toDateString() . ' ' . $booking->time_to,
+                        'America/Lima'
+                    );
+                    if ($eventDateTime->gt(now('America/Lima'))) {
                         continue;
                     }
 
