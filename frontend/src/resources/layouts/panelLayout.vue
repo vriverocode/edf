@@ -172,7 +172,7 @@ watch(
             <div class="row w-full backButton items-center md:px-20 md:mx-16 px-2" v-if="showBack()">
               <div class="flex items-center" @click="goBack()">
                 <q-btn color="white" flat round outline class="text-backButton flex flex-center" size="0.7rem">
-                  <img :src="backButton" alt="" style="height: 60px; width: 60px;">
+                  <img :src="backButton" alt="" style="height: 55px; width: 55px;">
                 </q-btn>
                 <div class="ml-0 pt-1 backButton-text">Volver</div>
               </div>
@@ -242,7 +242,7 @@ watch(
 }
 
 .backButton {
-  height: 8%;
+  height: 9%;
 
   & .q-btn--outline:before {
     border-width: 3px;

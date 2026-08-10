@@ -407,7 +407,7 @@ const visibleBackButton = (visible) => {
   const element = document.querySelector('.backButton');
   const tope = document.querySelector('.page_continerContent');
   element.style.display = visible ? 'flex' : 'none'
-
+  tope.style.height =  visible ? '92%' : '100%'
 }
 const changeTap = (tab) => {
   tapActive.value = tab;
@@ -676,7 +676,8 @@ watch(step,
                 <div class="boxItem_v2  md:px-6 " 
                 @click=" selectArea(comunArea.id)">
                   <div class="flex justify-center items-center h-full w-full ">
-                    <img :src="mediaUrl + '/images/icons/' + comunArea.icon " alt="" style="height:100%">
+                    <img :src="mediaUrl + '/images/icons/' + comunArea.icon " alt=""  
+                    :class="{'h-full': !comunArea.name.includes('Sauna'), 'h-5/6': comunArea.name.includes('Sauna')}">
                   </div>
                   <div v-if="blockedAreaIds.includes(comunArea.id)" class="areaBlockedBadge">
                     Reservado
@@ -721,7 +722,7 @@ watch(step,
 
                 </div>
               </div>
-              <div :style="{ height: step != 3 ? '76%' : '65%' }" style=" overflow: auto;" class="pb-5">
+              <div :style="{ height: step != 3 ? '75%' : '65%' }" style=" overflow: auto;" class="pb-5">
                 <div class="row w-full pt-2">
                   <template v-if="step == 2">
                     <div class="flex flex-center w-full q-px-md">
@@ -1005,8 +1006,8 @@ watch(step,
                   </template>
                 </div>
               </div>
-              <div :style="{ height: step != 3 ? '9%' : '20%' }" class="buttonSection">
-                <div class="row pt-2 ">
+              <div :style="{ height: step != 3 ? '10%' : '20%' }" class="buttonSection">
+                <div class="row  ">
                   <template v-if="step >= 4">
                     <div class="col-4 flex flex-center ">
                       <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"
@@ -1049,10 +1050,10 @@ watch(step,
                           <div class="py-1 md:py-1 font-bold mr-2" style="font-size:0.95rem">
                             Elegir horario
                           </div>
-                          <div class="flex flex-center"
+                          <!-- <div class="flex flex-center"
                             style="height:1.7rem; width:1.7rem; border:2px solid white; border-radius:50%">
                             <q-icon name="eva-arrow-forward-outline" size="1rem" />
-                          </div>
+                          </div> -->
                         </div>
                       </q-btn>
                     </div>

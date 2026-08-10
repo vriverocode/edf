@@ -104,15 +104,16 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="px-4 md:flex md:justify-center items-center md:w-full md:px-12 pb-4" style="min-height: 10%;">
+    <div class="px-4 md:flex md:justify-center items-center w-full md:px-12 pb-4" style="min-height: 10%;">
       <q-btn 
         color="primary" 
         unelevated 
         class="w-full mt-0 md:mx-24 font-bold"
         style="border-radius: 0.5rem;" 
         @click="goToCreate"
+        no-caps
       >
-        <div class="flex items-center py-2">
+        <div class="flex items-center py-1">
           <q-icon name="eva-plus-outline" class="q-mr-xs" />
           <span>Programar Mantenimiento</span>
         </div>

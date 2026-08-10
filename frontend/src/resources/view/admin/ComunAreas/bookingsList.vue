@@ -216,7 +216,7 @@ onMounted(() => {
 </script>
 <template>
   <div class="h-full">
-    <div class="px-4 py-3 md:px-28" style="height: 21%;">
+    <div class="px-4 py-1 md:px-28" style="height: 25%;">
       <div class="row items-center w-full q-col-gutter-sm">
         <div class="col-12 flex flex-wrap gap-2 pb-1 md:px-1">
           <q-btn
@@ -252,7 +252,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="" style="height: 69%; overflow: auto;">
+    <div class="" style="height: 65%; overflow: auto;">
 
       <!-- Loading State -->
       <div v-if="!readyPage" class="flex justify-center items-center py-20">
@@ -389,14 +389,15 @@ onMounted(() => {
       </div>
     </div>
     <!-- Botón crear reserva -->
-    <div class="px-4 pb-12 pt-3 md:pb-8 md:flex md:justify-center items-center md:w-full md:px-12" style="height: 10%;">
-      <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
+    <div class="px-4 pb-12 pt-3 md:pb-8 md:flex md:justify-center items-center md:w-full md:px-12"
+     style="height: 10%;">
+      <!-- <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
         style="border-radius: 0.5rem;" @click="openCreateReserve">
         <div class="flex items-center py-1">
           <q-icon name="eva-plus-outline" />
           <div class="q-pt-xs text-bold pl-1">Agregar reserva</div>
         </div>
-      </q-btn>
+      </q-btn> -->
     </div>
 
     <q-dialog v-model="ownerDialog" persistent>

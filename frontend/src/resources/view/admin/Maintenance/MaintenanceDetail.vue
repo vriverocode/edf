@@ -50,8 +50,7 @@ onMounted(async () => {
       </div>
 
       <div v-else-if="maintenance" class="px-4 py-6 md:px-28">
-        <q-btn flat dense color="grey-7" icon="eva-arrow-back-outline" label="Volver" class="q-mb-3" @click="goBack" />
-
+  
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 md:px-8">
           <div class="flex items-start justify-between flex-wrap gap-3">
             <h1 class="text-xl font-bold text-gray-900">{{ maintenance.title }}</h1>

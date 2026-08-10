@@ -9,7 +9,7 @@ window.Echo = new Echo({
   key: import.meta.env.VITE_PUSHER_APP_KEY,
   cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
   forceTLS: true,
-  authEndpoint: 'https://website-a40e47dc.gtq.fvz.mybluehost.me/broadcasting/auth',
+  authEndpoint: import.meta.env.VITE_LARAVEL_API_URL + '/broadcasting/auth',
   // authEndpoint: 'http://192.168.31.117:8030/broadcasting/auth',
   // authEndpoint: 'http://192.168.1.30:8030/broadcasting/auth',
 

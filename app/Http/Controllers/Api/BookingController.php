@@ -308,7 +308,7 @@ class BookingController extends Controller
             if ($isPaidBookingNotCompleted && $pay && in_array((int) $pay->status, [1, 2, 4])) {
                 $booking->update([
                     'status' => Booking::STATUS_PENDING_DEVO,
-                    'motive' => $request->motive,
+                    'motive' => $request->motive ?? '',
                     'kind' => 'cancellation',
                 ]);
                 $pay->update(['status' => 6]);
@@ -324,7 +324,7 @@ class BookingController extends Controller
 
             $booking->update([
                 'status' => Booking::STATUS_CANCELLED,
-                'motive' => $request->motive,
+                'motive' => $request->motive ?? '',
             ]);
             DB::commit();
             $this->sendNotification($booking);

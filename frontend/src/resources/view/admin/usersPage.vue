@@ -8,6 +8,7 @@ import unidades from '@/assets/img/menu/departamentos.png'
 import usuarios from '@/assets/img/menu/usuarios.png'
 import visitas from '@/assets/img/menu/visitas.png'
 
+
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
@@ -23,6 +24,11 @@ const menu = [
     subtitle: 'Gestión de unidades',
     link: '/admin/department/list',
   },
+  {
+        title: 'Mis datos',
+        icon: iconsApp.profile,
+        link: '/client/profile/edit',
+    },
   // {
   //   title: 'Visitas',
   //   icon: visitas,
@@ -44,7 +50,9 @@ const goTo = (url) => {
           <div class="flex justify-center items-center h-full w-full p-1">
             <!-- <img :src="items.icon" class="w-full md:w-auto h-full" /> -->
             <!-- <div v-html="items.icon" class="flex justify-center mt-0" /> -->
-            <img :src="item.icon" class="md:w-auto "
+            <div v-html="item.icon" class="flex justify-center mt-0" v-if="item.title == 'Mis datos'" />
+
+            <img :src="item.icon" class="md:w-auto " v-else
             :class="{ 'h-3/5': item.icon.includes('default-dash'), 'h-3/5': !item.icon.includes('default-dash') }" />
         
           </div>

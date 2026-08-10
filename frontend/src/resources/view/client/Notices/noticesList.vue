@@ -79,16 +79,18 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      <div class="flex justify-end w-full md:pr-5 px-4 mt-2">
-        <q-btn outline color="primary" icon="eva-funnel-outline" @click="modal = 'filter'" v-if="panelToShow == 'announces'" />
-      </div>
-      <div class="flex items-center w-full gap-2 px-4 md:px-28 pt-2" v-if="panelToShow == 'announces'">
-        <q-btn color="primary" unelevated class="flex-1" style="border-radius: 0.5rem;" @click="showModal('create_announce')">
-          <div class="flex items-center py-2">
-            <q-icon name="eva-plus-outline" />
-            <div class="q-pt-xs text-bold pl-1">Crear anuncio</div>
-          </div>
-        </q-btn>
+      <div class="row">
+        <div class="flex justify-end w-full md:pr-5 px-4 mt-2 col-2">
+          <q-btn outline color="primary" icon="eva-funnel-outline" @click="modal = 'filter'" v-if="panelToShow == 'announces'" />
+        </div>
+        <div class="flex items-center w-full gap-2 px-4 md:px-28 pt-2 col-10" v-if="panelToShow == 'announces'">
+          <q-btn color="primary" unelevated class="flex-1" style="border-radius: 0.5rem;" @click="showModal('create_announce')">
+            <div class="flex items-center py-1">
+              <q-icon name="eva-plus-outline" />
+              <div class="q-pt-xs text-bold pl-1">Crear anuncio</div>
+            </div>
+          </q-btn>
+        </div>
       </div>
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">

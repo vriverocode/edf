@@ -136,7 +136,7 @@ class Booking extends Model
             get: fn () => match ((int) $this->type) {
                 1 => 'blue-9',
                 2 => 'deep-purple-10',
-                3 => 'light-green-13',
+                3 => 'positive',
                 4 => 'amber-8',
                 default => 'No definido',
             }

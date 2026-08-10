@@ -239,10 +239,6 @@ onMounted(() => {
             <div class="text-grey-6 text-center q-mb-lg">
               Registra las visitas que recibas en tu departamento.
             </div>
-            <q-btn color="primary" unelevated style="border-radius: 0.5rem;" @click="goTo('/client/visit/add')">
-              <q-icon name="eva-plus-outline" class="q-mr-sm" />
-              Registrar visita
-            </q-btn>
           </div>
         </template>
       </div>

@@ -160,14 +160,14 @@ const onSubmit = () => {
         </div>
 
         <div class="col-12 pb-8 mt-6 px-2 md:px-12 flex items-center justify-between">
-          <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
+          <!-- <div class="flex items-center" style="width: 50%; box-sizing: border-box;">
             <q-btn color="grey-9" style="border-radius: 0.5rem;" @click="router.go(-1)">
               <div class="px-8 py-1">
                 Volver
               </div>
             </q-btn>
-          </div>
-          <div class="flex items-center justify-end" style="width: 50%; box-sizing: border-box;">
+          </div> -->
+          <div class="flex items-center justify-end" style="width: 100%; box-sizing: border-box;">
             <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
               <div class="px-8 py-1">
                 Guardar

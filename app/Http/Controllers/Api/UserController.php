@@ -635,7 +635,6 @@ class UserController extends Controller
         if (! $user) {
             return $this->returnFail(404, 'Usuario no encontrado');
         }
-
         // Verificar que el usuario autenticado es el creador de este residente
         $isCreator = PeoplesXDepartaments::where('user_id', $id)
             ->where('created_by', $request->user()->id)
@@ -645,24 +644,26 @@ class UserController extends Controller
             return $this->returnFail(403, 'No tiene permiso para editar este usuario.');
         }
 
+        if ($this->validateIdEmailUsed($request, $user)) {
+            return $this->returnFail(400, 'Correo electrónico ya esta en uso');
+        }
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => ['required', 'email'],
             'phone' => ['nullable', 'string'],
-            // 'parentesco' => ['nullable', 'string'],
+          // 'parentesco' => ['nullable', 'string'],
             'password' => ['nullable', 'string', 'min:8'],
         ], [
             'name.required' => 'El nombre es requerido.',
-            'email.required' => 'El email es requerido.',
+            'email.required' => 'El c es requerido.',
             'email.email' => 'El email no es válido.',
-            'email.unique' => 'El email ya está registrado.',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
         ]);
 
         if ($validator->fails()) {
             return $this->returnFail(400, $validator->errors()->first());
         }
-
+        
         try {
             $data = [
                 'name' => $request->name,
@@ -738,5 +739,11 @@ class UserController extends Controller
         $user->delete();
 
         return $this->returnSuccess(200, 'Usuario eliminado con éxito');
+    }
+    private function validateIdEmailUsed($request, $user)
+    {
+        $userToValidate = User::where('email', $request->email)->first();
+
+        return $userToValidate->id !== $user->id;
     }
 }

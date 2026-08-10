@@ -338,7 +338,7 @@ const statusOptions = [
                   <div class="boxItem_list_v2">
                     <div class="flex justify-center items-center h-full w-full ">
                       <img :src="urlMedia + '/images/icons/' + (reserve.comun_area?.icon || 'default') " alt=""
-                        style="height:100%">
+                        style="height:100%" :class="{'p-2': reserve.comun_area.name.includes('Sauna')}">
                     </div>
                   </div>
                 </div>
@@ -559,6 +559,7 @@ const statusOptions = [
   border-radius: 0.8rem;
   overflow: visible;
   position: relative;
+  background-color: #2d6fb5;
   width: 100%;
   background-repeat: no-repeat;
   background-size: cover;

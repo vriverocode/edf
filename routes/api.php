@@ -90,7 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/complete-first-time', [UserController::class, 'completeFirstTime']);
         Route::post('/{user}/available-areas', [UserController::class, 'setAvailableComunAreaToReserve'])->middleware('role:admin,super-admin,propietario');
         Route::delete('/d/{id}', [UserController::class, 'destroy'])->middleware('throttle:write');
-        Route::put('/resident/{id}', [UserController::class, 'updateResident'])->middleware('throttle:write');
+        Route::post('/resident/u/{id}', [UserController::class, 'updateResident'])->middleware('throttle:write');
         Route::put('/{id}', [UserController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/assign-property', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');

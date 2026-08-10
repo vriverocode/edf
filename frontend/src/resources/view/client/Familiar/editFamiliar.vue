@@ -203,7 +203,7 @@ onMounted(() => {
                     </div>
                     <userAvailableAreasStep v-model="selectedAreas" :userId="route.params.id" class="q-mt-sm" />
                     <div class="flex justify-end q-mt-sm">
-                        <q-btn color="teal" style="border-radius: 0.5rem" :loading="areaLoading" @click="saveAreas">
+                        <q-btn color="teal" no-caps style="border-radius: 0.5rem" :loading="areaLoading" @click="saveAreas">
                             <div class="px-8 py-1">Guardar áreas</div>
                         </q-btn>
                     </div>
@@ -213,7 +213,7 @@ onMounted(() => {
                     <q-btn flat color="grey-9" class="q-mr-sm" @click="router.go(-1)">
                         Volver
                     </q-btn>
-                    <q-btn color="primary" style="border-radius: 0.5rem" type="submit" :loading="loading">
+                    <q-btn color="primary" style="border-radius: 0.5rem" no-caps type="submit" :loading="loading">
                         <div class="px-10 py-1">
                             Guardar cambios
                         </div>

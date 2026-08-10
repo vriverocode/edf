@@ -205,7 +205,7 @@ export const useUserStore = defineStore('User', {
           throw ''
         }
         ApiService.setHeader()
-        ApiService.put('/api/users/resident/' + id, formData)
+        ApiService.post('/api/users/resident/u/' + id, formData)
           .then(({ data }) => {
             if (data.code != 200) throw data
             resolve(data)

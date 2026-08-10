@@ -233,7 +233,7 @@ watch(
 }
 
 .backButton {
-  height: 8%;
+  height: 9%;
 
   & .q-btn--outline:before {
     border-width: 3px;
