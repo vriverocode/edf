@@ -457,7 +457,7 @@ onMounted(() => {
                             Nombre de usuario
                         </div>
                         <q-input borderless clearable v-model="formData.username" dense class="form__inputsCR mt-2"
-                            color="primary" :rules="[val => !!val || 'Nombre de usuario es requerido']" />
+                            color="primary" :rules="[val => (val && val.length > 0) || 'Nombre de usuario es requerido', val => /^[a-zA-Z0-9]+$/.test(val) || 'Solo se permiten letras y números']" />
                         <div class="text-right q-mt-xs">
                             <span class="cursor-pointer text-primary" style="text-decoration: underline; font-size: 0.85rem;" @click="setGeneratedUsername">
                                 generar

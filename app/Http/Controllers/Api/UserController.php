@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -260,7 +261,7 @@ class UserController extends Controller
         $imageName = "{$rand}_{$fileName}.{$extension}";
 
         // Ruta relativa que se guardará en la base de datos
-        $relativePath = "/public/images/airbnb/guest/{$imageName}";
+        $relativePath = "/images/airbnb/guest/{$imageName}";
 
         // Ruta física absoluta en el servidor donde se moverá
         $destinationPath = public_path().'/images/airbnb/guest/';
@@ -311,11 +312,22 @@ class UserController extends Controller
 
     private function validateTemporaryOrResidentInput(array $inputs): array
     {
+        $userId = $inputs['id'] ?? $inputs['user_id'] ?? null;
+
         $rules = [
             'type' => ['required', 'in:airbnb,familiar,inquilino'],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
-            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->ignore($userId)->whereNull('deleted_at'),
+            ],
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('users', 'username')->ignore($userId)->whereNull('deleted_at'),
+            ],
             'idApartament' => ['required', 'integer', 'exists:departaments,id'],
         ];
 

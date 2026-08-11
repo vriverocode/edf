@@ -27,7 +27,7 @@ class DepartamentController extends Controller
      */
     public function apartmentsByfind(Request $request)
     {
-        $departaments = Departament::query();
+        $departaments = Departament::with('owner');
         if ($request->find == 'available') {
             $departaments->where('user_id', null);
             if ($request->has('type')) {

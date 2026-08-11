@@ -31,7 +31,27 @@ const lastShownId = ref(null)
 const transitionName = ref('slide-up');
 const showFirstTimeModal = computed(() => user.value?.is_first_time === 1);
 const transitionName2 = ref('fade');
+const reserveAreaActive = ref(false)
+const homePagesNameToHeader = ['dashboardAdmin', 'financePage', 'usersAdmin', 'ProfileMenu']
 const budgetBannerOffset = ref(0);
+
+const hasPendingToPay = computed(() => {
+  const units = user.value?.units ?? [];
+  return units.reduce((sum, unit) => sum + (unit.pending_quotas_count || 0), 0);
+})
+
+const headerSizeClass = computed(() => {
+  if (reserveAreaActive.value && route.name === 'reserveClientAdd') return 'header--reserve';
+  if (homePagesNameToHeader.includes(route.name)) {
+    return hasPendingToPay.value > 0 ? 'header--home-quotas' : 'header--home'
+  }
+  return 'header--default'
+})
+
+watch(() => route.name, (name) => {
+  if (name !== 'reserveClientAdd') reserveAreaActive.value = false
+})
+
 const onBudgetBannerOffset = (px) => {
   budgetBannerOffset.value = px;
 };
@@ -50,7 +70,10 @@ const goBack = () => {
   router.go(-1)
 }
 onMounted(() => {
-  if (emitter) emitter.on('logoutModal', () => { showModal.value = 'logout' })
+  if (emitter) {
+    emitter.on('logoutModal', () => { showModal.value = 'logout' })
+    emitter.on('isReserve', (e) => { reserveAreaActive.value = e.visible })
+  }
   useAuthStore().currentUser()
     .then((response) => {
 
@@ -157,17 +180,13 @@ watch(
   <div class="" style=" height: 100vh; 
     width: 100%;
     overflow: hidden;">
-    <div class="panel-layout-root h-full bg-white w-full min-h-screen " :class="panelRootClass" :style="panelRootStyle">
+    <div class="panel-layout-root layout--default h-full bg-white w-full min-h-screen " :class="panelRootClass" :style="panelRootStyle">
       <template v-if="ready">
         <budgetReminderBanner @offset="onBudgetBannerOffset" />
         <transition :name="'fade'">
-          <headerLayout class="header__container w-100" v-if="!isShowablePage()" />
+          <headerLayout class="header__container w-100" v-if="!isShowablePage()" :class="headerSizeClass" />
         </transition>
-        <section class="principal" :class="{
-          'withoutNav': isShowablePage(),
-          'page__container': showNavbar(),
-          'page_continerFull': !showNavbar()
-        }">
+        <section class="principal">
           <transition :name="transitionName2">
             <div class="row w-full backButton items-center md:px-20 md:mx-16 px-2" v-if="showBack()">
               <div class="flex items-center" @click="goBack()">
@@ -178,8 +197,7 @@ watch(
               </div>
             </div>
           </transition>
-          <div class="relative w-full overflow-hidden pt-3 "
-            :class="{ 'page_continerContentFull': !showBack(), 'page_continerContent': showBack() }">
+          <div class="relative w-full overflow-hidden pt-3 page_continerContent">
             <router-view v-slot="{ Component, route }">
               <transition :name="transitionName">
                 <component :is="Component" :key="route.fullPath" class="inner-page-component pb-1" />
@@ -204,78 +222,80 @@ watch(
   padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
 }
 
-.inner-page-component {
+/* ── Esquema híbrido: header y navbar con altura fija en px, content con flex ── */
+.layout--default {
+  display: flex;
+  flex-direction: column;
 
-  /* Fijo para que no se traslapen las vistas */
+  .header__container {
+    flex-shrink: 0;
+    height: 96px;
+    min-height: 0;
+    max-height: none;
 
-  /* CRUCIAL PARA EL SCROLL */
-  overflow-y: auto;
-  overflow-x: hidden;
+    &.header--home {
+      height: 120px;
+    }
 
-  /* Hardware acceleration para que la animación fluya mientras haces scroll */
-  backface-visibility: hidden;
-  transform: translateZ(0);
+    &.header--home-quotas {
+      height: 168px;
+    }
 
-
-}
-
-.page_continerContent {
-  height: 92%;
-}
-
-.page_continerContentFull {
-  height: 100%;
-}
-
-.text-backButton {
-  color: #c9a344 !important;
-}
-
-.bg-backButton {
-  background-color: #c9a344 !important;
-}
-
-.backButton-text {
-  font-size: 1.1rem;
-  color: rgb(63, 63, 63);
-  font-weight: 500;
-}
-
-.backButton {
-  height: 9%;
-
-  & .q-btn--outline:before {
-    border-width: 3px;
+    &.header--reserve {
+      height: 168px;
+    }
   }
 
-  & .q-btn .q-icon {
-    font-size: 2.1em;
+  .principal {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
-}
 
-.header__container {
-  max-height: 21%;
-  height: auto;
-  min-height: 16%;
-  overflow: hidden;
-}
+  .page_continerContent {
+    flex: 1;
+    min-height: 0;
+  }
 
-.page__container {
-  height: 74%;
-  overflow: hidden;
-  // overflow-x: hidden;
-  // overflow-y: auto;
-}
+  .inner-page-component {
+    height: 100%;
 
-.page_continerFull {
-  height: 85%;
-  overflow: hidden;
-  // overflow-x: hidden;
-  // overflow-y: auto;
-}
+    /* CRUCIAL PARA EL SCROLL */
+    overflow-y: auto;
+    overflow-x: hidden;
 
-.withoutNav {
-  height: 100%;
-  overflow: hidden;
+    /* Hardware acceleration para que la animación fluya mientras haces scroll */
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  .backButton {
+    height: 64px;
+    flex-shrink: 0;
+
+    & .q-btn--outline:before {
+      border-width: 3px;
+    }
+
+    & .q-btn .q-icon {
+      font-size: 2.1em;
+    }
+  }
+
+  .text-backButton {
+    color: #c9a344 !important;
+  }
+
+  .bg-backButton {
+    background-color: #c9a344 !important;
+  }
+
+  .backButton-text {
+    font-size: 1.1rem;
+    color: rgb(63, 63, 63);
+    font-weight: 500;
+  }
 }
 </style>

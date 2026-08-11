@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { Notify } from 'quasar'
 import { useUserStore } from '@/services/store/users.store';
 import { useApartmentStore } from '@/services/store/apartment.store';
@@ -32,8 +32,9 @@ const rolOptions = ref([
   },
 ])
 
-const getAvailableApartaments = () => {
-  apartmentStore.getApartmentsByFind('available')
+const loadApartaments = () => {
+  const find = formData.value.rol_id?.id == 3 ? 'allWithUser' : 'available'
+  apartmentStore.getApartmentsByFind(find)
     .then((response) => {
       apartmentsOptions.value = [
         {
@@ -44,6 +45,14 @@ const getAvailableApartaments = () => {
       ]
     })
 }
+
+watch(() => formData.value.rol_id?.id, () => {
+  formData.value.apartment = {
+    id: 0,
+    number: 'Selecciona un departamento'
+  }
+  loadApartaments()
+})
 
 const isPwd = ref('true')
 
@@ -129,7 +138,7 @@ const showNotify = (type, text) => {
 }
 
 onMounted(() => {
-  getAvailableApartaments()
+  loadApartaments()
 })
 </script>
 <template>
@@ -210,7 +219,10 @@ onMounted(() => {
                       <div class="text-subtitle1 " style="font-weight: 500;">
                         {{ scope.opt.id != 0 ? '#' : '' }} {{ scope.opt.number }}
                       </div>
-                      <div v-if="scope.opt.id != 0" class="text-positive text-subtitle2 pl-2">
+                      <div v-if="scope.opt.id != 0 && scope.opt.user_id" class="text-grey-6 text-subtitle2 pl-2">
+                        Ocupado — {{ scope.opt.owner?.name }}
+                      </div>
+                      <div v-else-if="scope.opt.id != 0" class="text-positive text-subtitle2 pl-2">
                         Disponible
                       </div>
                     </div>

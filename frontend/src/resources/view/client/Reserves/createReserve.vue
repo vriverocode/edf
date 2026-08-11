@@ -405,9 +405,7 @@ const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
 
 const visibleBackButton = (visible) => {
   const element = document.querySelector('.backButton');
-  const tope = document.querySelector('.page_continerContent');
-  element.style.display = visible ? 'flex' : 'none'
-  tope.style.height =  visible ? '92%' : '100%'
+  if (element) element.style.display = visible ? 'flex' : 'none'
 }
 const changeTap = (tab) => {
   tapActive.value = tab;

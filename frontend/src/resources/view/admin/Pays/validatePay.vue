@@ -79,6 +79,14 @@ const refundAccountLabel = (acc) => {
   return `${acc.name} — ${d.holder_name || ''} ${d.account_number ? `— Cuenta ${d.account_number}` : ''}`
 }
 
+const selectedAccountData = computed(() => {
+  if (!refundAccountId.value) return null
+  const acc = refundAccounts.value.find(a => a.id === refundAccountId.value)
+  if (!acc) return null
+  return { ...parseAccountData(acc.data), name: acc.name }
+})
+
+
 const openRefundDialog = async (booking) => {
   refundTarget.value = booking
   refundAccountId.value = null
@@ -595,6 +603,41 @@ const showModal = () => {
           <div class="text-subtitle2 text-black">Cuenta bancaria / Yape del usuario</div>
           <q-select dense borderless emit-value map-options class="form__inputsR mt-1" color="primary"
             v-model="refundAccountId" :options="refundAccounts.map(a => ({ label: refundAccountLabel(a), value: a.id }))" />
+
+          <div v-if="selectedAccountData" class="q-mt-sm bg-grey-2 p-3 rounded-lg border border-gray-200">
+            <table v-if="selectedAccountData.type === 'yape'" class="w-full text-sm">
+              <tbody>
+                <tr>
+                  <td class="font-medium text-gray-600 py-1 w-1/3">Nombre:</td>
+                  <td class="text-gray-900">{{ selectedAccountData.yape_name || selectedAccountData.name }}</td>
+                </tr>
+                <tr>
+                  <td class="font-medium text-gray-600 py-1">Teléfono:</td>
+                  <td class="text-gray-900">{{ selectedAccountData.yape_phone }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <table v-else class="w-full text-sm">
+              <tbody>
+                <tr>
+                  <td class="font-medium text-gray-600 py-1 w-1/3">Banco:</td>
+                  <td class="text-gray-900">{{ selectedAccountData.name }}</td>
+                </tr>
+                <tr>
+                  <td class="font-medium text-gray-600 py-1">Titular:</td>
+                  <td class="text-gray-900">{{ selectedAccountData.holder_name }}</td>
+                </tr>
+                <tr v-if="selectedAccountData.account_number">
+                  <td class="font-medium text-gray-600 py-1">Cuenta:</td>
+                  <td class="text-gray-900">{{ selectedAccountData.account_number }}</td>
+                </tr>
+                <tr v-if="selectedAccountData.cci">
+                  <td class="font-medium text-gray-600 py-1">CCI:</td>
+                  <td class="text-gray-900">{{ selectedAccountData.cci }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
           <div class="text-subtitle2 text-black q-mt-md">Voucher de la devolución</div>
           <div class="mt-1">

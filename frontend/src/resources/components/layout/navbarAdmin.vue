@@ -4,11 +4,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/services/store/auth.services'
 import iconsApp from '@/assets/icons/index'
-import { Capacitor } from '@capacitor/core'
 
 const router = useRouter()
 const route = useRoute()
-const isNative = ref(Capacitor.isNativePlatform())
 const emit = defineEmits(['logoutModal'])
 const { user } = storeToRefs(useAuthStore())
 const hoveredIndex = ref(-1)
@@ -95,7 +93,7 @@ const handleClick = (item, index) => {
 </script>
 
 <template>
-  <nav class="bottom-tab" :class="{ 'spaceBarBottom': isNative, 'total-h': !isNative }">
+  <nav class="bottom-tab">
     <div class="bottom-tab-inner">
       <div class="navbar__blob-track" :style="blobPositionStyle">
         <div class="navbar__blob" :class="{ 'navbar__blob--gooey': clickingIndex !== -1 }" />
@@ -165,10 +163,13 @@ $timing: 350ms;
   width: 100%;
   z-index: 2;
   background: #ffffff;
+  height: 72px;
+  flex-shrink: 0;
 }
 
 .bottom-tab-inner {
   position: relative;
+  height: 100%;
 }
 
 .navbar__menu {
@@ -231,15 +232,6 @@ $timing: 350ms;
   &.navbar__blob--gooey {
     animation: gooeyEffect $timing ease 1;
   }
-}
-
-.spaceBarBottom {
-  height: 10%;
-}
-
-.total-h {
-  position: fixed;
-  bottom: 0;
 }
 
 @media screen and (max-width: 820px) {
