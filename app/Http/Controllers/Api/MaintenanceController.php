@@ -299,7 +299,7 @@ class MaintenanceController extends Controller
         $date = $request->query('date');
 
         $query = Maintenance::where('comun_area_id', $areaId)
-            ->where('status', 1);
+            ->whereIn('status', [Maintenance::STATUS_PENDING, Maintenance::STATUS_PENDING_MATERIAL]);
 
         if ($date) {
             $query->where('date', date('Y-m-d', strtotime($date)));
@@ -310,5 +310,100 @@ class MaintenanceController extends Controller
             ->get(['id', 'title', 'description', 'date', 'time_from', 'time_to', 'status', 'photo']);
 
         return $this->returnSuccess(200, $maintenances);
+    }
+
+    public function complete(Request $request, $id)
+    {
+        $maintenance = Maintenance::find($id);
+
+        if (! $maintenance) {
+            return $this->returnFail(404, 'Mantenimiento no encontrado');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'evidence' => ['required', 'image', 'max:8192'],
+            'description' => ['required', 'string', 'max:500'],
+        ], [
+            'evidence.required' => 'Debes adjuntar una evidencia.',
+            'evidence.image' => 'La evidencia debe ser una imagen.',
+            'evidence.max' => 'La evidencia no puede superar los 8MB.',
+            'description.required' => 'La descripción corta es requerida.',
+            'description.max' => 'La descripción no puede superar los 500 caracteres.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(400, $validator->errors()->first());
+        }
+
+        try {
+            $photoUrl = $this->storeEvidencePhoto($request->file('evidence'), $maintenance->id);
+
+            $maintenance->update([
+                'status' => Maintenance::STATUS_COMPLETED,
+                'evidence_photo' => $photoUrl,
+                'completion_description' => htmlspecialchars($request->description),
+                'completed_at' => now(),
+                'completed_by' => $request->user()->id,
+            ]);
+
+            return $this->returnSuccess(200, 'Mantenimiento completado con éxito');
+        } catch (Exception $e) {
+            Log::error('Error al completar mantenimiento: '.$e->getMessage());
+
+            return $this->returnFail(500, 'No se pudo completar el mantenimiento');
+        }
+    }
+
+    public function changeStatus(Request $request, $id)
+    {
+        $maintenance = Maintenance::find($id);
+
+        if (! $maintenance) {
+            return $this->returnFail(404, 'Mantenimiento no encontrado');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => ['required', 'integer', 'in:0,1,2,3'],
+            'evidence' => ['nullable', 'image', 'max:8192'],
+            'description' => ['nullable', 'string', 'max:500'],
+        ], [
+            'status.required' => 'El estado es requerido.',
+            'status.in' => 'El estado no es válido.',
+            'evidence.image' => 'La evidencia debe ser una imagen.',
+            'evidence.max' => 'La evidencia no puede superar los 8MB.',
+            'description.max' => 'La descripción no puede superar los 500 caracteres.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(400, $validator->errors()->first());
+        }
+
+        try {
+            $data = ['status' => (int) $request->status];
+
+            if ((int) $request->status === Maintenance::STATUS_COMPLETED && $request->hasFile('evidence')) {
+                $data['evidence_photo'] = $this->storeEvidencePhoto($request->file('evidence'), $maintenance->id);
+                $data['completion_description'] = $request->description ? htmlspecialchars($request->description) : null;
+                $data['completed_at'] = now();
+                $data['completed_by'] = $request->user()->id;
+            }
+
+            $maintenance->update($data);
+
+            return $this->returnSuccess(200, 'Estado actualizado con éxito');
+        } catch (Exception $e) {
+            Log::error('Error al actualizar estado del mantenimiento: '.$e->getMessage());
+
+            return $this->returnFail(500, 'No se pudo actualizar el estado');
+        }
+    }
+
+    private function storeEvidencePhoto($photo, int $maintenanceId): string
+    {
+        $rand = rand(1000000, 9999999);
+        $fileName = $rand.'_evidence_'.$maintenanceId.'.'.$photo->extension();
+        $photo->move(public_path('storage').'/images/maintenance/', $fileName);
+
+        return config('app.url').'/storage/images/maintenance/'.$fileName;
     }
 }

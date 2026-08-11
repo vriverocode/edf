@@ -26,10 +26,11 @@ const getMaintenances = () => {
 
 const getStatusColor = (status) => {
   switch (Number(status)) {
-    case 1: return 'blue-7';      // Programado
-    case 2: return 'warning';     // En Curso
-    case 3: return 'positive';    // Finalizado
-    default: return 'negative';   // Cancelado
+    case 0: return 'negative';    // Cancelado
+    case 1: return 'blue-7';      // Pendiente
+    case 2: return 'positive';    // Completado
+    case 3: return 'warning';     // Pendiente de material
+    default: return 'grey-7';
   }
 };
 
@@ -39,6 +40,14 @@ const goToCreate = () => {
 
 const goToDetail = (id) => {
   router.push(`/admin/maintenances/${id}`);
+};
+
+const goToComplete = (id) => {
+  router.push(`/admin/maintenances/${id}/complete`);
+};
+
+const goToChangeStatus = (id) => {
+  router.push(`/admin/maintenances/${id}/status`);
 };
 
 onMounted(() => {

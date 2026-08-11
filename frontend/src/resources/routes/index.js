@@ -404,6 +404,30 @@ const routes = [
         },
       },
       {
+        path: '/admin/maintenances/:id/complete',
+        component: () => import('@/view/admin/Maintenance/completeMaintenance.vue'),
+        name: 'completeMaintenance',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Completar mantenimiento',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
+        path: '/admin/maintenances/:id/status',
+        component: () => import('@/view/admin/Maintenance/changeStatus.vue'),
+        name: 'changeMaintenanceStatus',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Cambiar estado',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/admin/pay/validate/:id',
         component: () => import('@/view/admin/Pays/validatePay.vue'),
         name: 'PayValidate',

@@ -77,6 +77,42 @@ export const useMaintenanceStore = defineStore('Maintenance', {
                         reject(response?.data?.error || 'Error al obtener el mantenimiento');
                     });
             })
+        },
+
+        async completeMaintenance(id, formData) {
+            return await new Promise((resolve, reject) => {
+                if (!ApiService.getToken()) {
+                    throw '';
+                }
+                ApiService.setHeader();
+                ApiService.post(`/api/maintenances/${id}/complete`, formData)
+                    .then(({ data }) => {
+                        if (data.code !== 200) throw data;
+                        resolve(data);
+                    })
+                    .catch(({ response }) => {
+                        console.error(response);
+                        reject(response?.data?.error || 'Error al completar el mantenimiento');
+                    });
+            })
+        },
+
+        async changeMaintenanceStatus(id, data) {
+            return await new Promise((resolve, reject) => {
+                if (!ApiService.getToken()) {
+                    throw '';
+                }
+                ApiService.setHeader();
+                ApiService.post(`/api/maintenances/${id}/status`, data)
+                    .then(({ data }) => {
+                        if (data.code !== 200) throw data;
+                        resolve(data);
+                    })
+                    .catch(({ response }) => {
+                        console.error(response);
+                        reject(response?.data?.error || 'Error al cambiar el estado del mantenimiento');
+                    });
+            })
         }
     }
 })

@@ -14,15 +14,24 @@ const error = ref('')
 
 const getStatusColor = (status) => {
   switch (Number(status)) {
+    case 0: return 'negative'
     case 1: return 'blue-7'
-    case 2: return 'warning'
-    case 3: return 'positive'
-    default: return 'negative'
+    case 2: return 'positive'
+    case 3: return 'warning'
+    default: return 'grey-7'
   }
 }
 
 const goBack = () => {
   router.push('/admin/maintenances')
+}
+
+const goToComplete = () => {
+  router.push(`/admin/maintenances/${route.params.id}/complete`)
+}
+
+const goToChangeStatus = () => {
+  router.push(`/admin/maintenances/${route.params.id}/status`)
 }
 
 onMounted(async () => {
@@ -59,6 +68,28 @@ onMounted(async () => {
             </q-chip>
           </div>
 
+          <div class="flex flex-wrap gap-2 mt-4">
+            <q-btn
+              v-if="Number(maintenance.status) !== 2"
+              color="positive"
+              unelevated
+              no-caps
+              icon="eva-checkmark-circle-2-outline"
+              label="Completar"
+              style="border-radius: 0.5rem;"
+              @click="goToComplete"
+            />
+            <q-btn
+              color="primary"
+              outline
+              no-caps
+              icon="eva-edit-2-outline"
+              label="Cambiar status"
+              style="border-radius: 0.5rem;"
+              @click="goToChangeStatus"
+            />
+          </div>
+
           <div class="mt-4 space-y-3">
             <div v-if="maintenance.comun_area" class="row items-center">
               <q-icon name="eva-building-outline" size="1.1rem" color="teal-9" class="q-mr-sm" />
@@ -87,8 +118,25 @@ onMounted(async () => {
             </div>
 
             <div v-if="maintenance.photo" class="mt-4 pt-3 border-t border-gray-100">
-              <h2 class="text-subtitle1 text-bold text-gray-800 q-mb-sm">Evidencia</h2>
+              <h2 class="text-subtitle1 text-bold text-gray-800 q-mb-sm">Foto del mantenimiento</h2>
               <q-img :src="maintenance.photo" spinner-color="primary" style="max-width: 22rem; border-radius: 0.75rem;" />
+            </div>
+
+            <div v-if="maintenance.evidence_photo" class="mt-4 pt-3 border-t border-gray-100">
+              <h2 class="text-subtitle1 text-bold text-gray-800 q-mb-sm">Evidencia de finalización</h2>
+              <q-img :src="maintenance.evidence_photo" spinner-color="primary" style="max-width: 22rem; border-radius: 0.75rem;" />
+            </div>
+
+            <div v-if="maintenance.completion_description" class="mt-4 pt-3 border-t border-gray-100">
+              <h2 class="text-subtitle1 text-bold text-gray-800 q-mb-sm">Descripción de finalización</h2>
+              <p class="text-body1 text-gray-700 whitespace-pre-line">{{ maintenance.completion_description }}</p>
+            </div>
+
+            <div v-if="maintenance.completed_at" class="row items-center">
+              <q-icon name="eva-checkmark-circle-2-outline" size="1.1rem" color="positive" class="q-mr-sm" />
+              <span class="text-body1 text-grey-7">
+                Completado el {{ moment(maintenance.completed_at).format('DD/MM/YYYY HH:mm') }}
+              </span>
             </div>
 
             <div class="mt-4 pt-3 border-t border-gray-100 text-caption text-grey-6">

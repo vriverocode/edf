@@ -462,7 +462,7 @@ class BookingController extends Controller
 
         $maintenancesInDay = Maintenance::where('comun_area_id', $idArea)
             ->where('date', $dateStr)
-            ->where('status', 1)
+            ->whereIn('status', [Maintenance::STATUS_PENDING, Maintenance::STATUS_PENDING_MATERIAL])
             ->get(['time_from', 'time_to']);
 
         $intervalSize = $request->reserve_type == 2 ? $area->max_time_reserve_exclusive : $area->max_time_reserve;
@@ -892,7 +892,7 @@ class BookingController extends Controller
 
         $hasMaintenance = Maintenance::where('comun_area_id', $comunAreaId)
             ->where('date', $date)
-            ->where('status', 1)
+            ->whereIn('status', [Maintenance::STATUS_PENDING, Maintenance::STATUS_PENDING_MATERIAL])
             ->where(function ($q) use ($timeFrom, $timeTo) {
                 $q->whereNull('time_from')
                     ->orWhereNull('time_to')

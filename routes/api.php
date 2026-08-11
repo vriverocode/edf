@@ -281,6 +281,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [MaintenanceController::class, 'show']);
         // Write - admin only
         Route::post('/', [MaintenanceController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/{id}/complete', [MaintenanceController::class, 'complete'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/{id}/status', [MaintenanceController::class, 'changeStatus'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Pay Methods ──────────────────────────────────────────

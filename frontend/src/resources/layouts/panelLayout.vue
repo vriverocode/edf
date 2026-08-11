@@ -229,12 +229,12 @@ watch(
 
   .header__container {
     flex-shrink: 0;
-    height: 96px;
+    height: 112px;
     min-height: 0;
     max-height: none;
 
     &.header--home {
-      height: 120px;
+      height: 140px;
     }
 
     &.header--home-quotas {

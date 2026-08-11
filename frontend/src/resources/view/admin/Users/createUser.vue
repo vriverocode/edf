@@ -46,13 +46,7 @@ const loadApartaments = () => {
     })
 }
 
-watch(() => formData.value.rol_id?.id, () => {
-  formData.value.apartment = {
-    id: 0,
-    number: 'Selecciona un departamento'
-  }
-  loadApartaments()
-})
+
 
 const isPwd = ref('true')
 
@@ -137,6 +131,13 @@ const showNotify = (type, text) => {
   })
 }
 
+watch(() => formData.value.rol_id?.id, () => {
+  formData.value.apartment = {
+    id: 0,
+    number: 'Selecciona un departamento'
+  }
+  loadApartaments()
+})
 onMounted(() => {
   loadApartaments()
 })
