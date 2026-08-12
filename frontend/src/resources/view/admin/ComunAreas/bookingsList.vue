@@ -186,7 +186,7 @@ const getPaymentAmount = (booking) => {
 }
 
 const getDepartmentNumber = (booking) => {
-  return booking.department?.number || booking.user?.units?.[0]?.number || '—'
+  return booking.departament?.number || booking.user?.units?.[0]?.number || '—'
 }
 
 const loadMaintenances = async () => {

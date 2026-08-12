@@ -274,15 +274,17 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ── Maintenances ─────────────────────────────────────────
-    Route::prefix('maintenances')->name('maintenance.')->middleware('role_not:trabajador')->group(function () {
-        // Read
+    Route::prefix('maintenances')->name('maintenance.')->group(function () {
+        // Read — all authenticated users
         Route::get('/', [MaintenanceController::class, 'index']);
         Route::get('/by-area/{id}', [MaintenanceController::class, 'getByArea']);
         Route::get('/{id}', [MaintenanceController::class, 'show']);
         // Write - admin only
         Route::post('/', [MaintenanceController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
-        Route::post('/{id}/complete', [MaintenanceController::class, 'complete'])->middleware('role:admin,super-admin', 'throttle:write');
-        Route::post('/{id}/status', [MaintenanceController::class, 'changeStatus'])->middleware('role:admin,super-admin', 'throttle:write');
+        // Write - admin + trabajador (security)
+        Route::post('/{id}/complete', [MaintenanceController::class, 'complete'])->middleware('role:admin,super-admin,trabajador', 'throttle:write');
+        Route::post('/{id}/status', [MaintenanceController::class, 'changeStatus'])->middleware('role:admin,super-admin,trabajador', 'throttle:write');
+        Route::post('/{id}/update', [MaintenanceController::class, 'update'])->middleware('role:admin,super-admin,trabajador', 'throttle:write');
     });
 
     // ── Pay Methods ──────────────────────────────────────────

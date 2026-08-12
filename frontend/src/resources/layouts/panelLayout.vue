@@ -268,7 +268,6 @@ watch(
 
     /* Hardware acceleration para que la animación fluya mientras haces scroll */
     backface-visibility: hidden;
-    transform: translateZ(0);
   }
 
   .backButton {

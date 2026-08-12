@@ -387,7 +387,7 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Mantenimientos',
-          roles: ['admin', 'super-admin'],
+          roles: ['admin', 'super-admin', 'trabajador'],
           depth: 2,
         },
       },
@@ -399,8 +399,20 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Detalle de mantenimiento',
-          roles: ['admin', 'super-admin'],
+          roles: ['admin', 'super-admin', 'trabajador'],
           depth: 2,
+        },
+      },
+      {
+        path: '/admin/maintenances/:id/edit',
+        component: () => import('@/view/admin/Maintenance/editMaintenance.vue'),
+        name: 'editMaintenance',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Editar mantenimiento',
+          roles: ['admin', 'super-admin', 'trabajador'],
+          depth: 3,
         },
       },
       {
@@ -411,7 +423,7 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Completar mantenimiento',
-          roles: ['admin', 'super-admin'],
+          roles: ['admin', 'super-admin', 'trabajador'],
           depth: 3,
         },
       },
@@ -423,7 +435,7 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Cambiar estado',
-          roles: ['admin', 'super-admin'],
+          roles: ['admin', 'super-admin', 'trabajador'],
           depth: 3,
         },
       },
