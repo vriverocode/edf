@@ -99,7 +99,7 @@ onMounted(() => {
       <div class="flex items-start">
         <div class="flex items-end h-full">
           <img :src="logo" alt="PACIFIK-LOGO-WHITE" class="imgLogoHeader mb-2"
-            :class="{ 'h-16 md:h-24': isHomePage, 'h-16': !isHomePage, 'toBottomFixed': reserveAreaActive }">
+            :class="{ 'h-16 ': isHomePage, 'h-20': !isHomePage, 'toBottomFixed': reserveAreaActive }">
         </div>
         <div class="relative pt-2" @click="router.push({ name: 'notificationsPage' })">
           <q-badge class="badgeNotificationCount " v-if="notificationsStore.unreadCount > 0" color="red"

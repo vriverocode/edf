@@ -54,9 +54,8 @@ onMounted(() => {
 <template>
     <div class="h-full" style="overflow: hidden;">
         <!-- Header -->
-        <div class="px-4 md:px-20 pt-5 pb-2 flex items-center justify-between">
+        <div class="px-4 md:px-36 pt-5 pb-2 flex items-center justify-between">
             <div class="text-h5 text-bold text-black flex items-center">
-                <q-btn flat round icon="eva-arrow-ios-back-outline" color="grey-8" class="q-mr-sm" @click="router.go(-1)" />
                 Reservas del residente
             </div>
         </div>
@@ -93,7 +92,7 @@ onMounted(() => {
                             <!-- Contenido principal con imagen y detalles -->
                             <div class="flex items-center space-x-4">
                                 <!-- Imagen del área -->
-                                <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: #f1f5f9; padding: 10px;">
+                                <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 bg-primary" style="padding: 10px;">
                                     <div class="flex justify-center items-center h-full w-full">
                                         <img :src="urlMedia + '/images/icons/' + (reserve.comun_area?.icon || 'default') " alt=""
                                             style="height:100%">

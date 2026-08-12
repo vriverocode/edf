@@ -9,7 +9,7 @@ const props = defineProps({
 })
 const noticeStore = useNoticeStore();
 
-const groups = noticeStore.group.slice(1)
+const groups = noticeStore.group
 const groupOptions = [{name:'Selecciona una opción', value: -1}, ...groups]
 const categoryOptions = ref([{name:'Selecciona una opción', value: -1}])
 
@@ -111,8 +111,8 @@ watch(() => props.dialog, (newValue) => {
           <div class="px-5 mt-2 text-gray-600" style="font-size: 12px;">
             Comparte tu emprendimiento, vende un producto, ofrece un servicio o publica una oportunidad para la comunidad.
           </div>
-          <div class="row w-full px-4" >
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+          <div class="row w-full px-4 mt-3 " >
+            <div class="col-md-12 mt-1 px-2 ">
               <div class="text-subtitle2 text-black">
                 Titulo *
               </div>
@@ -127,7 +127,7 @@ watch(() => props.dialog, (newValue) => {
                   :rules="[ val => val && val.length > 0 || 'Titulo del anuncio es obligatorio']"
                 />
             </div>
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+            <div class="col-md-6 col-12 mt-1 px-2 ">
               <div class="text-subtitle2 text-black">
                 ¿Qué deseas publicar? *
               </div>
@@ -143,7 +143,7 @@ watch(() => props.dialog, (newValue) => {
                 @update:model-value="isAvailableOption"
                 dense borderless />
             </div>
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+            <div class="col-md-6 col-12 mt-1 px-2 ">
               <div class="text-subtitle2 text-black">
                 Categoria *
               </div>
@@ -158,7 +158,7 @@ watch(() => props.dialog, (newValue) => {
                 :rules="[ val => val.value != -1 || 'Categoria es obligatoria']"
                 dense borderless />
             </div>
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+            <div class="col-12 mt-1 px-2">
               <div class="text-subtitle2 text-black">
                 Descripción *
               </div>
@@ -176,7 +176,7 @@ watch(() => props.dialog, (newValue) => {
                 ]"
                 />
             </div>
-            <div class="col-md-6 col-12 mt-2 px-2 md:px-12"> 
+            <div class=" col-12 my-2 px-2"> 
               <div class="text-subtitle2 text-black">
                 Adjuntar imagen
               </div>
