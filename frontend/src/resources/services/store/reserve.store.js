@@ -292,12 +292,32 @@ export const useReserveStore = defineStore('Reserve', {
         ApiService.setHeader();
         ApiService.get('/api/bookings/pendings')
           .then(({ data }) => {
-            if (data.code != 200) throw data;
+            if (data.code !== 200) throw data;
 
             resolve(data);
-          }).catch(({ response }) => {
+          })
+          .catch(({ response }) => {
             console.error(response)
             reject(response.data.error);
+          });
+      })
+    },
+    async getAllBookings(params) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        const query = this.filterQuery(params);
+        ApiService.get('/api/bookings/all' + (query ? `?${query}` : ''))
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al obtener las reservas');
           });
       })
     },

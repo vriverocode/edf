@@ -30,6 +30,7 @@ const year = now.getFullYear()
 const menu = [
   { title: 'Areas comunes', icon: comunArea, subtitle: 'Gestiona las areas comunes', link: '/admin/comun-area/list', badgeKey: '' },
   { title: 'Reservas', icon: booking, subtitle: 'Informacion de reservas', link: '/reserves', badgeKey: 'pendingReserves' },
+  { title: 'Historial de reservas', icon: booking, subtitle: 'Todas las reservas del sistema', link: '/reserves/transparency', badgeKey: '' },
   { title: 'Noticias', icon: news, subtitle: 'Envia información sobre: eventos, servicio, etc', link: '/admin/notices', badgeKey: 'pendingNotices' },
   { title: 'Eventos', icon: events, subtitle: 'Modulo de gestion de eventos', link: '/admin/events', badgeKey: 'pendingEvents' },
   { title: 'Mantenimientos', icon: maintenance, subtitle: 'Programa y consulta mantenimientos', link: '/admin/maintenances', badgeKey: '' },

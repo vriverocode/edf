@@ -278,7 +278,7 @@ const statusOptions = [
           </q-btn>
         </div>
       </div>
-      <div class="w-full flex col-12">
+      <div class="w-full flex col-12 md:px-10">
             <q-checkbox 
               v-if="authStore.user?.rol_id === 2" 
               dense 

@@ -235,6 +235,18 @@ const routes = [
         },
       },
       {
+        path: '/reserves/transparency',
+        component: () => import('@/view/client/Reserves/reservesTransparency.vue'),
+        name: 'reservesTransparency',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Historial de reservas',
+          depth: 2,
+          roles: ['admin', 'super-admin', 'trabajador'],
+        },
+      },
+      {
         path: '/balances',
         component: () => import('@/view/admin/balancesPage.vue'),
         name: 'balanceAdmin',
@@ -812,6 +824,30 @@ const routes = [
 
       // ---- client Routes -----
 
+      {
+        path: '/client/reserves',
+        component: () => import('@/view/client/Reserves/reservesMenu.vue'),
+        name: 'reservesMenu',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Reservas',
+          roles: ['propietario', 'inquilino', 'familiar', 'airbnb'],
+          depth: 1,
+        },
+      },
+      {
+        path: '/client/reserves/history',
+        component: () => import('@/view/client/Reserves/reservesTransparency.vue'),
+        name: 'reservesHistory',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Historial de reservas',
+          roles: ['propietario', 'inquilino', 'familiar', 'airbnb'],
+          depth: 2,
+        },
+      },
       {
         path: '/client/reserves/list',
         component: () => import('@/view/client/Reserves/reserveList.vue'),

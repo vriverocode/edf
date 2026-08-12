@@ -164,6 +164,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Read-only: accesible para el trabajador (detalles de reserva en el módulo de seguridad)
     Route::get('/bookings/byId/{id}', [BookingController::class, 'getBookingById']);
 
+    // Transparencia: todas las reservas (todos los roles autenticados)
+    Route::get('/bookings/all', [BookingController::class, 'getAllBookings']);
+
     // ── Guest Lists ──────────────────────────────────────────
     Route::prefix('bookings/{id}/guests')->name('booking.guests.')->middleware('role_not:trabajador')->group(function () {
         Route::get('/', [GuestListController::class, 'getByBooking']);

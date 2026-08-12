@@ -40,7 +40,7 @@ const menu = computed(() => [
   {
     title: 'Reservas',
     icon: mis_reservas,
-    link: '/client/reserves/list',
+    link: '/client/reserves',
     roles: [2, 3, 4, 5]
   },
   {
@@ -83,6 +83,12 @@ const menu = computed(() => [
     title: 'Reservas',
     icon: mis_reservas,
     link: '/security/reserves/list',
+    roles: [6]
+  },
+  {
+    title: 'Historial de reservas',
+    icon: mis_reservas,
+    link: '/reserves/transparency',
     roles: [6]
   },
   {

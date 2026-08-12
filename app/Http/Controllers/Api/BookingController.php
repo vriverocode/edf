@@ -147,6 +147,17 @@ class BookingController extends Controller
         return $this->returnSuccess(200, $bookings->paginate($perPage));
     }
 
+    public function getAllBookings(Request $request)
+    {
+        $bookings = Booking::with('comunArea', 'user', 'pay.payMethod', 'departament')
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc');
+
+        $perPage = $request->integer('per_page', 10);
+
+        return $this->returnSuccess(200, $bookings->paginate($perPage));
+    }
+
     public function getBookingsByDepartment(Request $request, int $departamentId)
     {
         $user = $request->user();
