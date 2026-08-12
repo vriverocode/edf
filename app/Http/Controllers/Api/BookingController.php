@@ -109,8 +109,9 @@ class BookingController extends Controller
                 'status' => ($request->typeOfReserve == 1 && $request->amount == 0) ? 3 : 1,
                 'is_exclusive' => $request->exclusive,
             ]);
-
-            $lo = $this->createEventIfPublicCine($booking);
+            if ($booking->comun_area_id == 8) {
+                $lo = $this->createEventIfPublicCine($booking);
+            }
         } catch (Exception $th) {
             return $this->returnFail(500, $th->getMessage());
         }
@@ -909,9 +910,6 @@ class BookingController extends Controller
             if ((int) $booking->comun_area_id === $comunAreaId) {
                 return true;
             }
-            if ($booking->is_exclusive) {
-                return true;
-            }
         }
 
         return false;
@@ -1098,10 +1096,8 @@ class BookingController extends Controller
 
     private function createEventIfPublicCine($booking)
     {
-        $area = ComunArea::find($booking->comun_area_id);
-        $isCine = $area && str_contains(strtolower($area->name), 'cine');
 
-        if ($isCine && $booking->type == 1) {
+        if ($booking->type == 1) {
             // Creamos el evento y lo atamos a la reserva recién creada
             $event = Event::create([
                 'title' => 'Cine: '.$booking->note, // El nombre de la película
@@ -1116,8 +1112,6 @@ class BookingController extends Controller
             // Notificamos a los usuarios sobre el nuevo evento
             $this->sendEventCreatedNotification($event, $booking->user_id);
         }
-
-        return $area;
     }
 
     private function sendEventCreatedNotification($event, $creatorId)

@@ -78,6 +78,7 @@ export const useReportStore = defineStore('Report', {
     },
 
     filterQuery(filter) {
+      console.log(filter)
       try {
         const params = new URLSearchParams()
         if (!filter || typeof filter !== 'object') return ''
@@ -90,6 +91,10 @@ export const useReportStore = defineStore('Report', {
         if (filter.sort_by) params.set('sort_by', String(filter.sort_by))
         if (filter.sort_dir) params.set('sort_dir', String(filter.sort_dir))
         if (filter.per_page) params.set('per_page', String(filter.per_page))
+
+        // ¡Esta es la línea clave que faltaba!
+        if (filter.page) params.set('page', String(filter.page))
+
         return params.toString()
       } catch (e) {
         return ''

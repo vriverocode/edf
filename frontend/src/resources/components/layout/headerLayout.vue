@@ -34,7 +34,6 @@ const changePagTitle = (title) => {
 }
 watch(route, (newRoute) => {
   pagTitle.value = newRoute.meta.pagTitle
-  console.log('dddddd')
   isHomePage.value = homePagesNameToHeader.includes(newRoute.name)
 });
 

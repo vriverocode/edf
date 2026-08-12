@@ -40,7 +40,7 @@ class ReportController extends Controller
             });
         }
 
-        $bookings = $query->paginate($perPage);
+        $bookings = $query->orderBy('date', 'desc')->paginate($perPage);
 
         return $this->returnSuccess(200, $bookings);
     }
