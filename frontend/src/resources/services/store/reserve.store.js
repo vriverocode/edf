@@ -346,7 +346,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(true)
           })
           .catch((err) => {
-            console.error(err)
+            console.log(err)
             reject('Error al descargar el archivo')
           })
       })

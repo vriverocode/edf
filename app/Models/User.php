@@ -74,7 +74,7 @@ class User extends Authenticatable
             'Inactivo',
         ];
 
-        return $status[$this->status];
+        return $status[$this->status] ?? $this->status;
     }
 
     public function apartaments()
