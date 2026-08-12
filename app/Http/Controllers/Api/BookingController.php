@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\BookingsExport;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ComunArea;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BookingController extends Controller
 {
@@ -149,13 +152,32 @@ class BookingController extends Controller
 
     public function getAllBookings(Request $request)
     {
-        $bookings = Booking::with('comunArea', 'user', 'pay.payMethod', 'departament')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc');
+        $bookings = Booking::with('comunArea', 'user', 'pay.payMethod', 'departament');
+        $this->applyFilter($bookings, $request);
 
         $perPage = $request->integer('per_page', 10);
 
         return $this->returnSuccess(200, $bookings->paginate($perPage));
+    }
+
+    public function exportBookings(Request $request): BinaryFileResponse
+    {
+        $filters = [
+            'search' => $request->query('search'),
+            'status' => $request->integer('status', -1),
+            'area_id' => $request->query('area_id'),
+            'user_id' => $request->query('user_id'),
+            'date_from' => $request->query('date_from'),
+            'date_to' => $request->query('date_to'),
+            'sort_by' => $request->query('sort_by', 'created_at'),
+            'sort_dir' => $request->query('sort_dir', 'desc'),
+            'include_cancelled' => (int) $request->integer('status', -1) === -1,
+            'per_page' => 10000,
+        ];
+
+        $filename = 'reporte-reservas-'.now()->format('Y-m-d-His').'.xlsx';
+
+        return Excel::download(new BookingsExport($filters), $filename);
     }
 
     public function getBookingsByDepartment(Request $request, int $departamentId)
@@ -240,6 +262,9 @@ class BookingController extends Controller
         }
         if ($request->filled('area_id')) {
             $query->where('comun_area_id', intval($request->area_id));
+        }
+        if ($request->filled('user_id')) {
+            $query->where('user_id', intval($request->user_id));
         }
         if ($request->filled('date_from')) {
             $query->whereDate('date', '>=', $request->get('date_from'));

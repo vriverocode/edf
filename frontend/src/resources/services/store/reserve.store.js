@@ -321,6 +321,36 @@ export const useReserveStore = defineStore('Reserve', {
           });
       })
     },
+    async exportBookings(filters) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        const token = ApiService.getToken()
+        const query = this.filterQuery(filters)
+        const url = import.meta.env.VITE_LARAVEL_API_URL + '/api/bookings/export' + (query ? `?${query}` : '')
+        fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+          .then((res) => {
+            if (!res.ok) throw new Error('Error al exportar')
+            return res.blob()
+          })
+          .then((blob) => {
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            a.download = 'reporte-reservas.xlsx'
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+            resolve(true)
+          })
+          .catch((err) => {
+            console.error(err)
+            reject('Error al descargar el archivo')
+          })
+      })
+    },
     filterQuery(filter) {
       try {
         const params = new URLSearchParams();

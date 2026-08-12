@@ -166,6 +166,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Transparencia: todas las reservas (todos los roles autenticados)
     Route::get('/bookings/all', [BookingController::class, 'getAllBookings']);
+    Route::get('/bookings/export', [BookingController::class, 'exportBookings']);
+
+    // Opciones de usuario (para selects, todos los roles autenticados)
+    Route::get('/users/options', [UserController::class, 'getUsersOptions']);
 
     // ── Guest Lists ──────────────────────────────────────────
     Route::prefix('bookings/{id}/guests')->name('booking.guests.')->middleware('role_not:trabajador')->group(function () {

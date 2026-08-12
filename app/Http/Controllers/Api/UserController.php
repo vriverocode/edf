@@ -448,6 +448,15 @@ class UserController extends Controller
         return $this->returnSuccess(200, $owners);
     }
 
+    public function getUsersOptions()
+    {
+        $users = User::select('id', 'name')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return $this->returnSuccess(200, $users);
+    }
+
     public function getCountPendingsForAdmin()
     {
         $user = request()->user();

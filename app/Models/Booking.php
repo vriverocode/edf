@@ -174,6 +174,7 @@ class Booking extends Model
     {
         $query->when(isset($filters['status']) && (int) $filters['status'] !== -1, fn ($q) => $q->where('status', (int) $filters['status']))
             ->when($filters['area_id'] ?? null, fn ($q, $areaId) => $q->where('comun_area_id', (int) $areaId))
+            ->when($filters['user_id'] ?? null, fn ($q, $userId) => $q->where('user_id', (int) $userId))
             ->when($filters['date_from'] ?? null, fn ($q, $date) => $q->whereDate('date', '>=', $date))
             ->when($filters['date_to'] ?? null, fn ($q, $date) => $q->whereDate('date', '<=', $date))
             ->when($filters['amount_type'] ?? null, function ($q, $type) {
