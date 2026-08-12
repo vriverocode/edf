@@ -38,11 +38,6 @@ watch(route, (newRoute) => {
   isHomePage.value = homePagesNameToHeader.includes(newRoute.name)
 });
 
-watch(route.pagTitle, (newRoute) => {
-  // pagTitle.value = newRoute.meta.pagTitle
-  console.log('dddddd')
-  // isHomePage.value = homePagesNameToHeader.includes(newRoute.name)
-});
 
 const hasPendingToPay = computed(() => {
   let quotas = 0;

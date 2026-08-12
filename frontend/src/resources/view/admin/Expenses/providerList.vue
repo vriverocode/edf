@@ -119,7 +119,8 @@ const confirmDelete = (provider) => {
       notify('positive', 'Proveedor eliminado')
       loadProviders()
     } catch (err) {
-      notify('negative', err?.error || err?.message || 'Error al eliminar')
+      console.log(err)
+      notify('negative', err || err?.error || err?.message || 'Error al eliminar')
     }
   })
 }
@@ -137,7 +138,7 @@ onMounted(() => {
 <template>
   <div class="h-full" style="overflow: hidden;">
     <!-- Header: 15% -->
-    <div class="px-4 md:px-28 flex items-center" style="height: 18%;">
+    <div class="px-4 md:px-28 flex items-center" style="height: 25%;">
       <div class="row items-center w-full q-col-gutter-sm">
         <div class="col-12 col-md-6">
           <q-input v-model="search" dense borderless clearable placeholder="Buscar proveedor..."
@@ -158,7 +159,7 @@ onMounted(() => {
     </div>
 
     <!-- Content: 85% with scroll -->
-    <div style="height: 82%; overflow: auto;">
+    <div style="height: 75%; overflow: auto;">
 
       <!-- Loading -->
       <div v-if="!ready" class="flex justify-center items-center py-20">
@@ -166,7 +167,7 @@ onMounted(() => {
       </div>
 
       <!-- Content -->
-      <div v-else class="px-4 md:px-28">
+      <div v-else class="px-4 md:px-28 pt-2">
         <div v-if="providers.length > 0" class="space-y-3 md:px-5">
           <div v-for="provider in providers" :key="provider.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"

@@ -14,6 +14,7 @@ import pagos from '@/assets/img/menu/pagos.svg'
 import residentes from '@/assets/img/menu/residentes.png'
 import visitas from '@/assets/img/menu/visitas.png'
 import eventos from '@/assets/img/menu/eventos.svg'
+import mantenimientos from '@/assets/img/menu/worker.png'
 
 const { user } = storeToRefs(useAuthStore());
 const router = useRouter();
@@ -100,6 +101,12 @@ const menu = computed(() => [
     title: 'Visitas',
     icon: iconsApp.visitor,
     link: '/security/visit/list',
+    roles: [6]
+  },
+  {
+    title: 'Mantenimientos',
+    icon: mantenimientos,
+    link: '/admin/maintenances',
     roles: [6]
   },
 ]);

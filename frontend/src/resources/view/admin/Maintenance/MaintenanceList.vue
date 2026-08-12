@@ -27,7 +27,7 @@ const getMaintenances = () => {
 const getStatusColor = (status) => {
   switch (Number(status)) {
     case 0: return 'negative';    // Cancelado
-    case 1: return 'blue-7';      // Pendiente
+    case 1: return 'yellow-9';      // Pendiente
     case 2: return 'positive';    // Completado
     case 3: return 'warning';     // Pendiente de material
     default: return 'grey-7';
@@ -40,6 +40,10 @@ const goToCreate = () => {
 
 const goToDetail = (id) => {
   router.push(`/admin/maintenances/${id}`);
+};
+
+const goToEdit = (id) => {
+  router.push(`/admin/maintenances/${id}/edit`);
 };
 
 const goToComplete = (id) => {
@@ -68,7 +72,8 @@ onMounted(() => {
           <div 
             v-for="item in maintenances" 
             :key="item.id"
-            class="p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer q-mb-md"
+            class="p-4 pb-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow 
+            cursor-pointer"
             @click="goToDetail(item.id)"
           >
             <div class="row items-center justify-between">
@@ -93,12 +98,52 @@ onMounted(() => {
                 <q-chip 
                   :color="getStatusColor(item.status)" 
                   text-color="white" 
-                  class="text-bold px-3"
+                  class="text-bold px-5 py-1"
                   dense
                 >
                   {{ item.status_label }}
                 </q-chip>
               </div>
+            </div>
+
+            <div class="row items-center justify-end mt-2">
+              <q-btn
+                v-if="Number(item.status) !== 2"
+                unelevated
+                no-caps
+                color="positive"
+                dense
+                class="q-mr-sm px-5"
+                icon="eva-checkmark-circle-2-outline"
+                size="0.8rem"
+                label=""
+                style="border-radius: 0.4rem;"
+                @click.stop="goToComplete(item.id)"
+              />
+              <q-btn
+                unelevated
+                no-caps
+                color="primary"
+                dense
+                class="q-mr-sm px-5"
+                icon="eva-edit-2-outline"
+                size="0.8rem"
+                label=""
+                style="border-radius: 0.4rem;"
+                @click.stop="goToEdit(item.id)"
+              />
+              <q-btn
+                outline
+                no-caps
+                color="primary"
+                class="q-mr-sm px-5"
+                dense
+                size="0.8rem"
+                icon="eva-sync-outline"
+                label=""
+                style="border-radius: 0.4rem;"
+                @click.stop="goToChangeStatus(item.id)"
+              />
             </div>
           </div>
         </div>

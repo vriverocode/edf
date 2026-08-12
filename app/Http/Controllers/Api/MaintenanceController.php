@@ -118,19 +118,7 @@ class MaintenanceController extends Controller
                 'views' => '[]',
             ]);
 
-            $bookingsQuery = Booking::with('pay')
-                ->where('comun_area_id', $area->id)
-                ->where('status', '>', 0);
-
-            if ($isMultiDay) {
-                $bookingsQuery->whereBetween('date', [$dateStart, $dateEnd]);
-            } else {
-                $bookingsQuery->where('date', $dateStart)
-                    ->where('time_from', '<', $timeTo)
-                    ->where('time_to', '>', $timeFrom);
-            }
-
-            $bookingsToCancel = $bookingsQuery->get();
+            $bookingsToCancel = $this->cancelConflictingBookings($area->id, $dateStart, $dateEnd, $timeFrom, $timeTo);
 
             foreach ($bookingsToCancel as $booking) {
                 $motive = 'Cancelada por mantenimiento';
@@ -155,6 +143,105 @@ class MaintenanceController extends Controller
 
             return $this->returnFail(500, $e->getMessage());
         }
+    }
+
+    private function cancelConflictingBookings(int $areaId, string $dateStart, string $dateEnd, ?string $timeFrom, ?string $timeTo)
+    {
+        $bookingsQuery = Booking::with('pay')
+            ->where('comun_area_id', $areaId)
+            ->where('status', '>', 0);
+
+        if ($dateEnd > $dateStart) {
+            $bookingsQuery->whereBetween('date', [$dateStart, $dateEnd]);
+        } else {
+            $bookingsQuery->where('date', $dateStart)
+                ->where('time_from', '<', $timeTo)
+                ->where('time_to', '>', $timeFrom);
+        }
+
+        return $bookingsQuery->get();
+    }
+
+    public function update(Request $request, $id)
+    {
+        $maintenance = Maintenance::find($id);
+        if (! $maintenance) {
+            return $this->returnFail(404, 'Mantenimiento no encontrado');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'date' => ['required', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date'],
+            'time_from' => ['nullable', 'date_format:H:i'],
+            'time_to' => ['nullable', 'date_format:H:i', 'after:time_from'],
+            'motive' => ['required', 'string', 'max:500'],
+            'photo' => ['nullable', 'image', 'max:8192'],
+        ], [
+            'date.required' => 'La fecha es requerida.',
+            'date.date' => 'La fecha no es válida.',
+            'date_to.date' => 'La fecha de fin no es válida.',
+            'date_to.after_or_equal' => 'La fecha de fin debe ser igual o posterior a la de inicio.',
+            'time_from.date_format' => 'La hora de inicio debe tener formato HH:MM.',
+            'time_to.date_format' => 'La hora de fin debe tener formato HH:MM.',
+            'time_to.after' => 'La hora de fin debe ser posterior a la de inicio.',
+            'motive.required' => 'El motivo es requerido.',
+            'motive.max' => 'El motivo no puede superar los 500 caracteres.',
+            'photo.image' => 'La foto debe ser una imagen.',
+            'photo.max' => 'La foto no puede superar los 8MB.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(400, $validator->errors()->first());
+        }
+
+        try {
+            $dateStart = date('Y-m-d', strtotime($request->date));
+            $dateEnd = $request->date_to ? date('Y-m-d', strtotime($request->date_to)) : $dateStart;
+            $timeFrom = $request->time_from;
+            $timeTo = $request->time_to;
+
+            $data = [
+                'date' => $dateStart,
+                'time_from' => $timeFrom,
+                'time_to' => $timeTo,
+                'description' => htmlspecialchars($request->motive),
+            ];
+
+            if ($request->hasFile('photo')) {
+                $data['photo'] = $this->storeMaintenancePhoto($request->file('photo'), $maintenance->id);
+            }
+
+            $maintenance->update($data);
+
+            $bookingsToCancel = $this->cancelConflictingBookings($maintenance->comun_area_id, $dateStart, $dateEnd, $timeFrom, $timeTo);
+
+            foreach ($bookingsToCancel as $booking) {
+                $motive = 'Cancelada por mantenimiento';
+                if ($booking->type != 1 && $booking->amount > 0) {
+                    $motive .= '. El dinero será reembolsado';
+                }
+                $booking->update([
+                    'status' => 0,
+                    'motive' => $motive,
+                ]);
+                $this->sendBookingCancelNotification($booking);
+            }
+
+            return $this->returnSuccess(200, 'Mantenimiento actualizado con éxito');
+        } catch (Exception $e) {
+            Log::error('Error al actualizar mantenimiento: '.$e->getMessage());
+
+            return $this->returnFail(500, 'No se pudo actualizar el mantenimiento');
+        }
+    }
+
+    private function storeMaintenancePhoto($photo, int $maintenanceId): string
+    {
+        $rand = rand(1000000, 9999999);
+        $fileName = $rand.'_maintenance_'.$maintenanceId.'.'.$photo->extension();
+        $photo->move(public_path('storage').'/images/maintenance/', $fileName);
+
+        return config('app.url').'/storage/images/maintenance/'.$fileName;
     }
 
     private function sendBookingCancelNotification($booking)

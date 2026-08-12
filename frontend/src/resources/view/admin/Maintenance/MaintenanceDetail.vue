@@ -30,6 +30,10 @@ const goToComplete = () => {
   router.push(`/admin/maintenances/${route.params.id}/complete`)
 }
 
+const goToEdit = () => {
+  router.push(`/admin/maintenances/${route.params.id}/edit`)
+}
+
 const goToChangeStatus = () => {
   router.push(`/admin/maintenances/${route.params.id}/status`)
 }
@@ -87,6 +91,14 @@ onMounted(async () => {
               label="Cambiar status"
               style="border-radius: 0.5rem;"
               @click="goToChangeStatus"
+            />
+            <q-btn
+              color="primary"
+              no-caps
+              icon="eva-edit-outline"
+              label="Editar"
+              style="border-radius: 0.5rem;"
+              @click="goToEdit"
             />
           </div>
 

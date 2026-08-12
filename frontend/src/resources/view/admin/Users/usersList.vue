@@ -107,7 +107,7 @@ onMounted(() => {
 </script>
 <template>
   <div class="h-full" style="overflow: auto;">
-    <div class="w-full px-4 flex items-center q-col-gutter-sm">
+    <div class="w-full px-4 flex items-center q-col-gutter-sm md:px-24">
       <div class="col">
         <q-select v-model="filterRol" :options="optionsFilterRol" option-label="name" option-value="value"
           emit-value map-options dense borderless color="primary"
@@ -132,7 +132,7 @@ onMounted(() => {
       </q-btn>
     </div>
     <div class="mt-4 md:mt-8">
-      <div class="px-4 md:mx-24 md:pr-12">
+      <div class="px-4 md:mx-24">
         <div v-for="user in users" :key="user.id"
           class="md:py-4 py-3 mb-5 userListContainer row items-center">
           <div class="flex items-center pb-3 pt-2 pl-2 md:pl-5 col-12 no-wrap">
@@ -210,7 +210,7 @@ onMounted(() => {
       </div>
       <div v-if="lastPage > 1" class="flex justify-center q-py-md">
         <q-pagination v-model="page" :max="lastPage" :max-pages="7" boundary-numbers color="primary"
-          @update:model-value="getUsers" />
+          @update:model-value="getUsers()" />
       </div>
     </div>
     <div v-if="Object.values(selectedUser).length > 0">

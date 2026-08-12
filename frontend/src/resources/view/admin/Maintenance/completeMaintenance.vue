@@ -97,11 +97,6 @@ onMounted(async () => {
         <q-spinner-dots color="primary" size="7rem" />
       </div>
 
-      <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center">
-        <q-icon name="eva-alert-triangle-outline" size="3rem" color="negative" />
-        <h3 class="text-lg font-semibold text-gray-900 mb-1 mt-3">{{ error }}</h3>
-        <q-btn flat color="primary" label="Volver" @click="goBack" />
-      </div>
 
       <div v-else-if="maintenance" class="px-4 py-6 md:px-28">
         <div class="text-center text-grey-9 text-h6 mb-4">{{ maintenance.title }}</div>
@@ -178,13 +173,8 @@ onMounted(async () => {
             </div>
 
             <div class="col-12 row mb-2 px-2 md:px-12 pt-8 pb-8">
-              <div class="col-6 px-5">
-                <q-btn color="grey-7" style="border-radius: 0.5rem;" @click="goBack">
-                  <div class="px-6 py-1">Volver</div>
-                </q-btn>
-              </div>
-              <div class="col-6 px-5">
-                <q-btn color="positive" style="border-radius: 0.5rem;" type="submit" :loading="submitting">
+              <div class="col-12 px-5">
+                <q-btn color="primary" style="border-radius: 0.5rem;" class="w-full" type="submit" :loading="submitting">
                   <div class="px-6 py-1">Completar</div>
                 </q-btn>
               </div>
