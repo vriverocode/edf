@@ -184,14 +184,14 @@ onMounted(() => {
     <div style="height: 100%; overflow: auto;">
 
       <!-- Barra filtros (solo admin/seguridad) -->
-      <div v-if="route.name === 'reservesTransparency'"
+      <div
         class="flex justify-end items-center gap-2 px-4 pt-4 md:px-28">
         <q-btn :color="hasActiveFilter ? 'primary' : 'grey-7'" outline
           :label="hasActiveFilter ? `Filtros (${activeFilterCount})` : 'Filtros'"
           @click="openFilter">
           <q-badge v-if="hasActiveFilter" color="red" floating rounded>{{ activeFilterCount }}</q-badge>
         </q-btn>
-        <q-btn color="green" unelevated label="Exportar Excel" icon="eva-download-outline"
+        <q-btn v-if="2==1" color="green" unelevated label="Exportar Excel" icon="eva-download-outline"
           :loading="exporting" @click="handleExport" />
       </div>
 

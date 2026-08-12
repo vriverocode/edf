@@ -112,7 +112,7 @@ watch(() => props.dialog, (newValue) => {
             Comparte tu emprendimiento, vende un producto, ofrece un servicio o publica una oportunidad para la comunidad.
           </div>
           <div class="row w-full px-4 mt-3 " >
-            <div class="col-md-12 mt-1 px-2 ">
+            <div class="col-12 mt-1 px-2 ">
               <div class="text-subtitle2 text-black">
                 Titulo *
               </div>
