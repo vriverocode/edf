@@ -155,8 +155,17 @@ class DepartamentController extends Controller
         $departments = Departament::with('owner')
             ->withCount('peoples')
             ->where('type', Departament::TYPE_DEPARTAMENTO)
-            ->whereNotNull('user_id')
-            ->paginate(15);
+            ->whereNotNull('user_id');
+
+        if ($request->filled('number')) {
+            $departments->where('number', 'like', "%{$request->number}%");
+        }
+
+        if ($request->filled('name')) {
+            $departments->whereHas('owner', fn ($q) => $q->where('name', 'like', "%{$request->name}%"));
+        }
+
+        $departments = $departments->paginate(15);
 
         return $this->returnSuccess(200, $departments);
     }

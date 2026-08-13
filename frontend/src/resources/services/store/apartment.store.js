@@ -148,11 +148,14 @@ export const useApartmentStore = defineStore('Apartment', {
           .catch(({ response }) => reject(response.data.error))
       })
     },
-    async getInhabitedDepartments(page = 1) {
+    async getInhabitedDepartments(page = 1, filters = {}) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw ''
         ApiService.setHeader()
-        ApiService.get(`/api/security/departments/inhabited?page=${page}`)
+        const params = new URLSearchParams({ page })
+        if (filters.number) params.set('number', filters.number)
+        if (filters.name) params.set('name', filters.name)
+        ApiService.get(`/api/security/departments/inhabited?${params}`)
           .then(({ data }) => {
             if (data.code != 200) throw data
             resolve(data)
