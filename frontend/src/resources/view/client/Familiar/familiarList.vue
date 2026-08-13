@@ -2,8 +2,9 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/services/store/users.store';
-import { useQuasar } from 'quasar';
+import { useQuasar, Notify } from 'quasar';
 import iconsApp from '@/assets/icons/index'
+import userAvailableAreasStep from '@/components/admin/userAvailableAreasStep.vue';
 
 const $q = useQuasar()
 const userStore = useUserStore()
@@ -18,6 +19,32 @@ const goTo = (url) => {
 }
 
 const residents = ref([])
+
+const areasUser = ref({})
+const areasDialog = ref(false)
+const areasLoading = ref(false)
+const selectedAreas = ref([])
+
+const openAreas = (user) => {
+    selectedAreas.value = []
+    areasUser.value = user
+    areasDialog.value = true
+}
+
+const saveAreas = () => {
+    areasLoading.value = true
+    userStore.setAvailableComunaAreas(areasUser.value.id, selectedAreas.value)
+        .then(() => {
+            Notify.create({ color: 'positive', message: 'Áreas comunes actualizadas correctamente', timeout: 2000 })
+            areasDialog.value = false
+        })
+        .catch((error) => {
+            Notify.create({ color: 'negative', message: error || 'Error al actualizar las áreas comunes', timeout: 2000 })
+        })
+        .finally(() => {
+            areasLoading.value = false
+        })
+}
 
 const getUsers = () => {
 
@@ -135,6 +162,15 @@ onMounted(() => {
                                         </q-btn>
                                     </div>
                                     <div>
+                                        <q-btn icon="eva-grid-outline" class="mx-1" flat color="teal"
+                                            size="0.9rem" @click="openAreas(item.user)">
+                                            <q-tooltip transition-show="flip-right" transition-hide="flip-left"
+                                                :class="'bg-black text-body2 px-2'">
+                                                Áreas que puede reservar
+                                            </q-tooltip>
+                                        </q-btn>
+                                    </div>
+                                    <div>
                                         <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat
                                             size="0.9rem" @click="confirmDelete(item)">
                                             <q-tooltip transition-show="flip-right" transition-hide="flip-left"
@@ -183,6 +219,29 @@ onMounted(() => {
             </div>
         </template>
     </div>
+    <q-dialog v-model="areasDialog">
+        <q-card style="max-width: 40rem; width: 100%;" class="q-pa-md">
+            <q-card-section>
+                <div class="text-h6 text-primary text-bold">
+                    Áreas que puede reservar
+                </div>
+                <div class="text-body2 text-grey-7 q-mt-xs">
+                    {{ areasUser.name }} — Si no seleccionas ninguna área, el usuario podrá reservar todas las disponibles.
+                </div>
+            </q-card-section>
+            <q-card-section class="scroll" style="max-height: 55vh;">
+                <userAvailableAreasStep v-model="selectedAreas" :userId="areasUser.id" />
+            </q-card-section>
+            <q-card-actions align="right" class="q-px-md q-pb-md">
+                <q-btn flat color="grey-7" @click="areasDialog = false">
+                    Cancelar
+                </q-btn>
+                <q-btn color="primary" :loading="areasLoading" @click="saveAreas">
+                    Guardar
+                </q-btn>
+            </q-card-actions>
+        </q-card>
+    </q-dialog>
 </template>
 <style lang="scss">
 .userListContainer {

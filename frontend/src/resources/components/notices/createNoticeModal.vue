@@ -32,7 +32,6 @@ const floorInput = ref('')
 
 const segmentOptions = [
   { value: 'all', label: 'Todos los residentes' },
-  { value: 'tower', label: 'Por torre' },
   { value: 'floor', label: 'Por piso' },
   { value: 'department', label: 'Por departamento' },
   { value: 'user', label: 'Por usuario' },

@@ -1,18 +1,25 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
 import { useMaintenanceStore } from '@/services/store/maintenance.store';
 import moment from 'moment';
 
 const router = useRouter();
+const $q = useQuasar();
 const maintenanceStore = useMaintenanceStore();
 
 const maintenances = ref([]);
 const loading = ref(true);
+const search = ref({
+  date: null,
+  comun_area_id: null,
+  status: 1,
+});
 
 const getMaintenances = () => {
   loading.value = true;
-  maintenanceStore.getMaintenances()
+  maintenanceStore.getMaintenancesBySearch(search.value)
     .then((response) => {
       maintenances.value = response.data || response;
     })
@@ -54,6 +61,25 @@ const goToChangeStatus = (id) => {
   router.push(`/admin/maintenances/${id}/status`);
 };
 
+const confirmDelete = (item) => {
+  $q.dialog({
+    title: 'Eliminar mantenimiento',
+    message: `¿Estás seguro de que deseas eliminar el mantenimiento "${item.title}"? Esta acción no se puede deshacer.`,
+    cancel: { label: 'Cancelar', flat: true, color: 'grey-7' },
+    ok: { label: 'Eliminar', unelevated: true, color: 'negative' },
+    persistent: true,
+  }).onOk(() => {
+    maintenanceStore.deleteMaintenance(item.id)
+      .then(() => {
+        maintenances.value = maintenances.value.filter(m => m.id !== item.id);
+        $q.notify({ type: 'positive', message: 'Mantenimiento eliminado con éxito', position: 'top' });
+      })
+      .catch((error) => {
+        $q.notify({ type: 'negative', message: error || 'No se pudo eliminar el mantenimiento', position: 'top' });
+      });
+  });
+};
+
 onMounted(() => {
   getMaintenances();
 });
@@ -61,7 +87,7 @@ onMounted(() => {
 
 <template>
   <div class="h-full flex flex-column justify-between" style="overflow: hidden;">
-    <div style="height: 90%; overflow: auto;" class="w-full">
+    <div style="height: 92%; overflow: auto;" class="w-full">
       
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />
@@ -109,11 +135,11 @@ onMounted(() => {
             <div class="row items-center justify-end mt-2">
               <q-btn
                 v-if="Number(item.status) !== 2"
-                unelevated
+                flat
                 no-caps
                 color="positive"
                 dense
-                class="q-mr-sm px-5"
+                class="q-mr-sm px-3"
                 icon="eva-checkmark-circle-2-outline"
                 size="0.8rem"
                 label=""
@@ -121,11 +147,11 @@ onMounted(() => {
                 @click.stop="goToComplete(item.id)"
               />
               <q-btn
-                unelevated
+                flat
                 no-caps
                 color="primary"
                 dense
-                class="q-mr-sm px-5"
+                class="q-mr-sm px-3"
                 icon="eva-edit-2-outline"
                 size="0.8rem"
                 label=""
@@ -133,16 +159,28 @@ onMounted(() => {
                 @click.stop="goToEdit(item.id)"
               />
               <q-btn
-                outline
+                flat
                 no-caps
                 color="primary"
-                class="q-mr-sm px-5"
+                class="q-mr-sm px-3"
                 dense
                 size="0.8rem"
                 icon="eva-sync-outline"
                 label=""
                 style="border-radius: 0.4rem;"
                 @click.stop="goToChangeStatus(item.id)"
+              />
+              <q-btn
+                flat
+                no-caps
+                color="negative"
+                dense
+                class="q-mr-sm px-3"
+                icon="eva-trash-2-outline"
+                size="0.8rem"
+                label=""
+                style="border-radius: 0.4rem;"
+                @click.stop="confirmDelete(item)"
               />
             </div>
           </div>
@@ -158,7 +196,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="px-4 md:flex md:justify-center items-center w-full md:px-12 pb-4" style="min-height: 10%;">
+    <div class="px-4 flex justify-center items-center w-full md:px-12" style="height: 8%;">
       <q-btn 
         color="primary" 
         unelevated 

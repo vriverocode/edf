@@ -72,15 +72,15 @@ const getComunAreaById = () => {
 
 const iconsOption = [
   { value: 'default', name: 'Por defecto' },
-  { value: 'arcade', name: 'Arcade' },
-  { value: 'cine', name: 'Cine' },
-  { value: 'coworking', name: 'Coworking' },
-  { value: 'gimnasio', name: 'Gimnasio' },
-  { value: 'juego_de_salon', name: 'Juego de salón' },
-  { value: 'lounge', name: 'Lounge' },
-  { value: 'parrilla', name: 'Parilla' },
-  { value: 'piscina', name: 'Piscina' },
-  { value: 'sauna', name: 'Sauna' },
+  { value: 'arcade.svg', name: 'Arcade' },
+  { value: 'cine.svg', name: 'Cine' },
+  { value: 'coworking.svg', name: 'Coworking' },
+  { value: 'gimnasio.svg', name: 'Gimnasio' },
+  { value: 'juego_de_salon.svg', name: 'Juego de salón' },
+  { value: 'lounge.svg', name: 'Lounge' },
+  { value: 'parrilla.svg', name: 'Parilla' },
+  { value: 'piscina.svg', name: 'Piscina' },
+  { value: 'sauna1.png', name: 'Sauna' },
 ];
 
 const typeArea = [

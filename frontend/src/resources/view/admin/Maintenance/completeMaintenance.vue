@@ -64,7 +64,7 @@ const submit = () => {
     .then(() => {
       showNotify('positive', 'Mantenimiento completado con éxito')
       setTimeout(() => {
-        router.push(`/admin/maintenances/${route.params.id}`)
+        router.go(-1)
       }, 1000)
     })
     .catch((err) => {
@@ -75,9 +75,7 @@ const submit = () => {
     })
 }
 
-const goBack = () => {
-  router.push(`/admin/maintenances/${route.params.id}`)
-}
+
 
 onMounted(async () => {
   try {

@@ -58,17 +58,18 @@ watch([selectedPrefix, phoneNumber], ([newPrefix, newNumber]) => {
 onMounted(() => {
   // Lógica para separar el prefijo y el número si viene un valor inicial
   const initialValue = props.modelValue
-  const foundPrefix = prefixes.find(p => initialValue.startsWith(p.value))
+  const withPrefix = prefixes.find(p => initialValue.startsWith(p.value)) 
+  const foundPrefix = prefixes.find(p => initialValue.startsWith(p.value)) ?? '+51'
 
   if (foundPrefix) {
-    selectedPrefix.value = foundPrefix.value
-    phoneNumber.value = initialValue.substring(foundPrefix.value.length)
+    selectedPrefix.value = foundPrefix
+    phoneNumber.value = withPrefix ? initialValue.substring(foundPrefix.length) : initialValue
   }
 })
 </script>
 
 <template>
-  <q-input v-model="phoneNumber" :placeholder="placeholder" borderless clearable class="form__inputsSelect mt-2"
+  <q-input v-model="phoneNumber" :placeholder="placeholder" borderless clearable dense class="form__inputsSelect mt-2"
     :rules="rules">
     <template v-slot:prepend>
       <q-select v-model="selectedPrefix" :options="filteredPrefixes" @filter="filterFn" input-debounce="0" borderless

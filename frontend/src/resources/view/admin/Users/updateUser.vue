@@ -45,7 +45,7 @@ const submit = () => {
   userStore.updateUser(route.params.id, payload)
     .then(() => {
       showNotify('positive', 'Usuario actualizado correctamente')
-      setTimeout(() => router.push('/admin/users/list'), 1000)
+      setTimeout(() => router.go(-1), 1000)
     })
     .catch((err) => {
       showNotify('negative', err || 'Error al actualizar usuario')
@@ -106,7 +106,8 @@ onMounted(loadUserData)
           <phoneNumberInput v-model="formData.phone" label="Tu Teléfono" placeholder="997 123 456"
             class="phoneUser" />
         </div>
-        <div class="col-12 my-2 px-2 md:px-12 pb-8 flex justify-end q-gutter-sm">
+
+        <div class="col-12 mt-8 px-5 md:px-12 pb-8 flex  justify-between">
           <q-btn color="grey-7" style="border-radius: 0.5rem;" @click="router.push('/admin/users/list')">
             <div class="px-6 py-1">Cancelar</div>
           </q-btn>
