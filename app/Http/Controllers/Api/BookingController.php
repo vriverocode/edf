@@ -110,7 +110,7 @@ class BookingController extends Controller
                 'is_exclusive' => $request->exclusive,
             ]);
             if ($booking->comun_area_id == 8) {
-                $lo = $this->createEventIfPublicCine($booking);
+                $lo = $this->createEventIfPublicCine($booking->load('comunArea'));
             }
         } catch (Exception $th) {
             return $this->returnFail(500, $th->getMessage());
@@ -1105,12 +1105,13 @@ class BookingController extends Controller
                 'date' => date('Y-m-d', strtotime($booking->date)),
                 'time_from' => $booking->time_from,
                 'time_to' => $booking->time_to,
-                'location' => $area->name,
+                'location' => $booking->comunArea->name,
                 'booking_id' => $booking->id,
             ]);
 
             // Notificamos a los usuarios sobre el nuevo evento
-            $this->sendEventCreatedNotification($event, $booking->user_id);
+             $this->sendEventCreatedNotification($event, $booking->user_id);
+             return $event;
         }
     }
 
