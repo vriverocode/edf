@@ -7,12 +7,14 @@ import { useUserStore } from '@/services/store/users.store'
 import iconsApp from '@/assets/icons/index'
 import moment from 'moment'
 import { Notify } from 'quasar'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from '@//services/store/auth.services'
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split('_'),
 })
-
+const {user} = storeToRefs(useAuthStore())
 const route = useRoute()
 const reserveStore = useReserveStore()
 const comunAreaStore = useComunAreaStore()
@@ -83,7 +85,6 @@ const activeFilterCount = computed(() => {
 
 const getReserves = () => {
   loading.value = true
-  page.value = 1
   reserveStore.getAllBookings({
     page: page.value,
     per_page: 10,
@@ -333,7 +334,7 @@ onMounted(() => {
               </div>
 
               <!-- Usuario -->
-              <div class="row pt-4 pb-5 px-5" style="border-top: 1px solid lightgray">
+              <div class="row pt-4 pb-5 px-5" style="border-top: 1px solid lightgray" v-if="user.rol_id == 1">
                 <div class="mb-3 text-lg font-medium text-primary col-12">Usuario</div>
                 <div class="col-12">
                   <q-select v-model="localFilters.user_id" :options="userOptions"

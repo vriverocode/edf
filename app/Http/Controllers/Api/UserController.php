@@ -92,8 +92,8 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => ['nullable', 'string', 'max:255'],
-            'username' => ['nullable', 'string', 'max:255', 'unique:users,username,'.$id],
-            'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$id],
+            'username' => ['nullable', 'string', 'max:255', Rule::unique('users', 'username')->ignore($id)->whereNull('deleted_at')],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)->whereNull('deleted_at')],
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['nullable', 'string', 'min:6'],
         ]);
@@ -491,8 +491,8 @@ class UserController extends Controller
     {
         $rules = [
             'name' => ['required', 'regex:/^[a-zA-Z-À-ÿ .]+$/i'],
-            'email' => ['required', 'email', 'unique:users'],
-            'username' => ['required', 'unique:users', 'regex:/^[a-zA-Z-À-ÿ0-9 .]+$/i'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
+            'username' => ['required', Rule::unique('users', 'username')->whereNull('deleted_at'), 'regex:/^[a-zA-Z-À-ÿ0-9 .]+$/i'],
             'password' => ['required', 'min:8'],
 
         ];
@@ -601,7 +601,7 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['required', 'string', 'min:7'],
         ], [
@@ -643,7 +643,7 @@ class UserController extends Controller
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)->whereNull('deleted_at')],
             'phone' => ['required', 'string', 'min:7'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ], [
@@ -698,12 +698,9 @@ class UserController extends Controller
             return $this->returnFail(403, 'No tiene permiso para editar este usuario.');
         }
 
-        if ($this->validateIdEmailUsed($request, $user)) {
-            return $this->returnFail(400, 'Correo electrónico ya esta en uso');
-        }
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)->whereNull('deleted_at')],
             'phone' => ['nullable', 'string'],
             // 'parentesco' => ['nullable', 'string'],
             'password' => ['nullable', 'string', 'min:8'],
@@ -793,12 +790,5 @@ class UserController extends Controller
         $user->delete();
 
         return $this->returnSuccess(200, 'Usuario eliminado con éxito');
-    }
-
-    private function validateIdEmailUsed($request, $user)
-    {
-        $userToValidate = User::where('email', $request->email)->first();
-
-        return $userToValidate->id !== $user->id;
     }
 }
