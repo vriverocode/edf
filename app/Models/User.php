@@ -30,6 +30,7 @@ class User extends Authenticatable
         'email',
         'username',
         'phone',
+        'dni',
         'password',
         'status',
         'device_token',

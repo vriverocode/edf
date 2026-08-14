@@ -11,6 +11,7 @@ const authStore = useAuthStore()
 const form = ref({
   email: authStore.user.email || '',
   phone: authStore.user.phone || '',
+  phone: authStore.user.dni || '',
   password: '',
   password_confirmation: '',
 })
@@ -25,6 +26,7 @@ const onSubmit = () => {
   const payload = {
     email: form.value.email,
     phone: form.value.phone,
+    dni: form.value.dni,
   }
 
   if (form.value.password) {
@@ -77,7 +79,26 @@ const onSubmit = () => {
             </template>
           </q-input>
         </div>
-
+        <div class="col-md-6 col-12 my-1 px-2 md:px-12">
+          <div class="text-subtitle2 text-bold text-black">
+            DNI
+          </div>
+          <q-input
+            v-model="form.dni"
+            borderless
+            dense
+            placeholder="Ej. 45288179"
+            clearable
+            class="form__inputsCR mt-2"
+            color="primary"
+            lazy-rules
+            :rules="[val => val && val.length >= 8 || 'Por favor ingresa un DNI valido']"
+          >
+            <template v-slot:prepend>
+              <q-icon name="eva-phone-outline" color="grey-7" />
+            </template>
+          </q-input>
+        </div>
         <div class="col-md-6 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">
             Número de teléfono

@@ -748,7 +748,7 @@ watch(step,
                     </div>
                   </template>
                   <template v-if="step == 3">
-                    <div class="col-12 col-md-6 row md:px-5 px-4">
+                    <div class="col-12  row md:px-32 px-4">
                       <div class="selectedDateBlock flex  items-center justify-between px-4 w-full py-2">
                         <div>
                           <div class="text-dateBlockTitle">Fecha elegida</div>

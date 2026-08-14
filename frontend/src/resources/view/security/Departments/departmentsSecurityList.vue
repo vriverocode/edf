@@ -16,8 +16,8 @@ const searchNumber = ref('')
 const searchName = ref('')
 const searchTimeout = ref(null)
 
-const getApartment = () => {
-  ready.value = false;
+const getApartment = (needReload = true) => {
+  ready.value = !needReload;
   apartmentStore.getInhabitedDepartments(page.value, { number: searchNumber.value, name: searchName.value })
     .then((response) => {
       apartments.value = response.data.data;
@@ -34,7 +34,7 @@ const onSearchInput = () => {
   clearTimeout(searchTimeout.value)
   searchTimeout.value = setTimeout(() => {
     page.value = 1
-    getApartment()
+    getApartment(false)
   }, 400)
 }
 
@@ -48,19 +48,23 @@ onMounted(() => { getApartment() })
 <template>
   <div class="h-full" style="overflow: auto;">
     <div class="mt-5 md:mt-8 px-2 md:px-28 pb-5" style="overflow: auto;" v-if="ready">
-      <div class="flex flex-col md:flex-row gap-2 pb-4">
-        <q-input v-model="searchNumber" outlined dense color="primary" clearable
-          placeholder="Buscar por # de departamento" class="w-full md:w-1/2" @update:model-value="onSearchInput">
-          <template v-slot:prepend>
-            <q-icon name="eva-search-outline" color="grey-6" />
-          </template>
-        </q-input>
-        <q-input v-model="searchName" outlined dense color="primary" clearable
-          placeholder="Buscar por nombre del usuario" class="w-full md:w-1/2" @update:model-value="onSearchInput">
-          <template v-slot:prepend>
-            <q-icon name="eva-people-outline" color="grey-6" />
-          </template>
-        </q-input>
+      <div class="row pb-4">
+        <div class="col-6">
+          <q-input v-model="searchNumber" outlined dense color="primary" clearable
+            placeholder="Buscar por # de departamento" class="w-full pr-5" @update:model-value="onSearchInput">
+            <template v-slot:prepend>
+              <q-icon name="eva-search-outline" color="grey-6" />
+            </template>
+          </q-input>
+        </div>
+        <div class="col-6">
+          <q-input v-model="searchName" outlined dense color="primary" clearable
+            placeholder="Buscar por nombre del usuario" class="w-full pl-5" @update:model-value="onSearchInput">
+            <template v-slot:prepend>
+              <q-icon name="eva-people-outline" color="grey-6" />
+            </template>
+          </q-input>
+        </div>
       </div>
       <template v-if="apartments.length > 0">
         <div class="px-2 pt-3 mt-4 apartamentContainer relative" v-for="apartment in apartments" :key="apartment.id">

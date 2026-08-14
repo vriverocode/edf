@@ -296,12 +296,12 @@ class MaintenanceController extends Controller
         );
     }
 
-    private function sendCompleteNotification($maintenance, $area): void
+    private function sendCompleteNotification($maintenance): void
     {
         $this->notifyMaintenanceUsers(
             maintenance: $maintenance,
             title: 'Mantenimiento completado',
-            message: "Se completó el mantenimiento en {$area->name}.",
+            message: "Se completó el mantenimiento en {$maintenance->comunArea->name}.",
         );
     }
 
@@ -426,7 +426,7 @@ class MaintenanceController extends Controller
 
     public function complete(Request $request, $id)
     {
-        $maintenance = Maintenance::find($id);
+        $maintenance = Maintenance::with('comunArea')->find($id);
 
         if (! $maintenance) {
             return $this->returnFail(404, 'Mantenimiento no encontrado');
@@ -457,7 +457,7 @@ class MaintenanceController extends Controller
                 'completed_at' => now(),
                 'completed_by' => $request->user()->id,
             ]);
-            $this->sendCompleteNotification();
+            $this->sendCompleteNotification($maintenance);
             return $this->returnSuccess(200, 'Mantenimiento completado con éxito');
         } catch (Exception $e) {
             Log::error('Error al completar mantenimiento: '.$e->getMessage());

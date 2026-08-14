@@ -82,7 +82,7 @@ onMounted(() => {
 </script>
 <template>
   <section class="h-full" style="overflow: hidden;">
-    <div v-if="ready" class="h-full pb-8" style="overflow: scroll;">
+    <div v-if="ready" class="h-full pb-8 md:px-32" style="overflow: scroll; ">
       <div v-if="Object.values(notice).length > 0" class="px-4">
         <div class="mt-4 flex items-center justify-between relative position-relative" >
           <div class=" text-h6 text-primary font-bold">
@@ -92,11 +92,11 @@ onMounted(() => {
             {{ notice.status_label }}
           </div>
         </div>
-        <div class="mt-4 text-sm text-stone-600" style="line-height: 1.5;">
+        <div class="mt-4 text-sm text-stone-600 whitespace-pre-line" style="line-height: 1.5;">
           {{ notice.description }}
         </div>
         <div v-if="attachImages?.length > 0" class="row md:mt-5">
-          <div class="col-12 mt-5 md:mt-0 col-md-6" v-for="(image, index) in attachImages" :key="index">
+          <div class="col-12 mt-5 md:mt-0 col-md-6 mx-auto" v-for="(image, index) in attachImages" :key="index">
             <ZoomImg :src="image" alt="post_image" />
           </div>
         </div>

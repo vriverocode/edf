@@ -336,6 +336,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/users/detail/:id',
+        component: () => import('@/view/admin/Users/userDetail.vue'),
+        name: 'userDetail',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Detalle de Usuario',
+          roles: ['trabajador', 'admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/admin/department/form/add',
         component: () => import('@/view/admin/Department/createUnit.vue'),
         name: 'departmentAdd',
