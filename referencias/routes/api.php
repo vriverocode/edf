@@ -73,7 +73,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/profile', [UserController::class, 'updateProfile'])->middleware('throttle:write');
 
     // ── Users ────────────────────────────────────────────────
-    Route::get('users/show/{id}', [UserController::class, 'show'])->middleware('role:admin,super-admin,trabajador');
     Route::prefix('users')->name('user.')->middleware('role_not:trabajador')->group(function () {
         // Read
         Route::get('/', [UserController::class, 'getOwners']);
@@ -96,7 +95,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/assign-property', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');
     });
-    
 
     // ── Apartments ───────────────────────────────────────────
     Route::prefix('apartments')->name('apartment.')->middleware('role_not:trabajador')->group(function () {
@@ -215,7 +213,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ── Notifications ────────────────────────────────────────
-    Route::prefix('notifications')->name('notifications.')->group(function () {
+    Route::prefix('notifications')->name('notifications.')->middleware('role_not:trabajador')->group(function () {
         Route::get('/', [NotificationController::class, 'index']);
         Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
         Route::post('/{id}/mark-as-read', [NotificationController::class, 'markAsRead']);

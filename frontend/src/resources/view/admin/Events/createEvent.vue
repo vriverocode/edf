@@ -37,7 +37,7 @@ const formData = ref({
   time_from: '',
   time_to: '',
 })
-const minOptionsFrom = ref([0])
+const minOptionsFrom = ref([0, 15, 30, 45])
 
 
 const backButton = () => {
@@ -220,7 +220,7 @@ onMounted(() => {
                                 <q-icon name="eva-clock-outline" class="cursor-pointer">
                                   <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                                     <q-time v-model="formData.time_from" :minute-options="minOptionsFrom">
-                                      <div class="row items-center justify-end">
+      , 15, 30, 45                                <div class="row items-center justify-end">
                                         <q-btn v-close-popup label="Aceptar" color="primary" flat />
                                       </div>
                                     </q-time>
@@ -240,7 +240,7 @@ onMounted(() => {
                                 <q-icon name="eva-clock-outline" class="cursor-pointer">
                                   <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                                     <q-time v-model="formData.time_to" :minute-options="minOptionsFrom">
-                                      <div class="row items-center justify-end">
+      , 15, 30, 45                                <div class="row items-center justify-end">
                                         <q-btn v-close-popup label="Aceptar" color="primary" flat />
                                       </div>
                                     </q-time>

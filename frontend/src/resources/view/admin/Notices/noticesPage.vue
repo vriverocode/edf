@@ -185,8 +185,8 @@ onMounted(() => {
 }
 .createAnnouncesFloat{
   position: fixed;
-  bottom: 3rem;
-  right: 1rem;
+  bottom: 8rem;
+  right: 2rem;
 }
 .buttonsContainer{
   border-radius: 15px; 
@@ -261,6 +261,13 @@ onMounted(() => {
     font-size:0.75rem; 
     font-weight: 500;
     color: #777;
+  }
+}
+@media (max-width: 780px) {
+  .createAnnouncesFloat{
+    position: fixed;
+    bottom: 6rem;
+    right: 0.5rem;
   }
 }
 /* Estilos adicionales si es necesario */

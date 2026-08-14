@@ -46,6 +46,26 @@ class UserController extends Controller
         return $this->returnSuccess(200, $user);
     }
 
+    /**
+     * Devuelve el perfil completo de un usuario con todas sus relaciones.
+     * Solo accesible para admin, super-admin y trabajador.
+     */
+    public function show(int $id)
+    {
+        $user = User::with([
+            'rol',
+            'units',
+            'availableComunAreas',
+            'apartaments',
+        ])->find($id);
+
+        if (! $user) {
+            return $this->returnFail(404, 'Usuario no encontrado');
+        }
+
+        return $this->returnSuccess(200, $user);
+    }
+
     public function store(Request $request)
     {
 
@@ -95,6 +115,7 @@ class UserController extends Controller
             'username' => ['nullable', 'string', 'max:255', Rule::unique('users', 'username')->ignore($id)->whereNull('deleted_at')],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)->whereNull('deleted_at')],
             'phone' => ['nullable', 'string', 'max:20'],
+            'dni' => ['nullable', 'string', 'max:10'],
             'password' => ['nullable', 'string', 'min:6'],
         ]);
 
@@ -102,7 +123,7 @@ class UserController extends Controller
             return $this->returnFail(422, $validator->errors()->first());
         }
 
-        $data = $request->only(['name', 'username', 'email', 'phone']);
+        $data = $request->only(['name', 'username', 'email', 'phone', 'dni']);
         $data = array_filter($data, fn ($v) => $v !== null && $v !== '');
 
         if ($request->filled('password')) {
@@ -702,6 +723,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)->whereNull('deleted_at')],
             'phone' => ['nullable', 'string'],
+            'dni' => ['nullable', 'string', 'max:10'],
             // 'parentesco' => ['nullable', 'string'],
             'password' => ['nullable', 'string', 'min:8'],
         ], [
@@ -720,6 +742,7 @@ class UserController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'phone' => $request->phone,
+                'dni' => $request->dni,
                 // 'parentesco' => $request->parentesco,
             ];
 
@@ -764,7 +787,6 @@ class UserController extends Controller
         $authUser = request()->user();
         $isAdmin = $authUser->rol_id === Rol::ADMIN;
 
-        // El propietario solo puede eliminar usuarios que él mismo creó
         $isCreator = PeoplesXDepartaments::where('user_id', $id)
             ->where('created_by', $authUser->id)
             ->exists();
@@ -787,6 +809,9 @@ class UserController extends Controller
             ->whereIn('status', [Booking::STATUS_PENDING_PAY, Booking::STATUS_PENDING_APPROVAL, Booking::STATUS_SUCCESS])
             ->update(['status' => Booking::STATUS_CANCELLED]);
 
+        if ($user->rol_id == 5) {
+            AirbnbRent::where('assing_to', $user->id)->update(['status' => 4]);
+        }
         $user->delete();
 
         return $this->returnSuccess(200, 'Usuario eliminado con éxito');

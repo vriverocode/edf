@@ -56,8 +56,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen relative overflow-hidden">
-    <div class="relative pt-8 pb-0 md:px-6 px-3">
+  <div class="h-full relative overflow-hidden">
+    <div class="relative pt-8 pb-0 md:px-6 px-3 h-full" style="overflow: auto;">
       <!-- Loading -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">
         <q-spinner-dots color="primary" size="4rem" />

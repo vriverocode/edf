@@ -47,7 +47,7 @@ const segmentLabel = (notice) => {
           <div v-if="segmentLabel(notice)" class="text-caption text-primary q-my-xs">
             {{ segmentLabel(notice) }}
           </div>
-          <div class="notice__item--description text-stone-400 my-1">
+          <div class="notice__item--description text-stone-400 my-1 whitespace-pre-line">
             {{ notice.description.substring(0,94) }}...
           </div>
 

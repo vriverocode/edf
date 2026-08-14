@@ -48,7 +48,18 @@ onMounted(() => {
 
 <template>
   <div class="h-full" style="overflow: hidden;">
-    <div class="" style="height: 90%; overflow: auto;">
+    <div class="px-4 flex  justify-center items-center md:w-full md:px-12" style="height: 12%;">
+      <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
+        style="border-radius: 0.5rem; width: 100%;" @click="goTo('/admin/events/form/add')">
+        <div class="flex items-center py-1">
+          <q-icon name="eva-plus-outline" />
+          <div class="q-pt-xs text-bold pl-1">
+            Agregar Evento
+          </div>
+        </div>
+      </q-btn>
+    </div>
+    <div class="" style="height: 88%; overflow: auto;">
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <!-- <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div> -->
@@ -62,17 +73,7 @@ onMounted(() => {
       </div>
     </div>
     <!-- Botón flotante para crear reserva -->
-    <div class="px-4 md:flex  md:justify-center items-center md:w-full md:px-12" style="height: 10%;">
-      <q-btn color="primary" unelevated class="w-full mt-0 md:mx-24 createBookingButton md:w-full"
-        style="border-radius: 0.5rem; width: 100%;" @click="goTo('/admin/events/form/add')">
-        <div class="flex items-center py-2">
-          <q-icon name="eva-plus-outline" />
-          <div class="q-pt-xs text-bold pl-1">
-            Agregar Evento
-          </div>
-        </div>
-      </q-btn>
-    </div>
+    
     <template v-if="Object.values(selectedEvent).length > 0">
       <deleteEventModal :dialog="(dialog === 'delete')" :event="selectedEvent" @closeModal="closeModal" @updateList="getEvents"/>
     </template>

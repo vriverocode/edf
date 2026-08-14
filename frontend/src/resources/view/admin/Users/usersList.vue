@@ -107,7 +107,7 @@ onMounted(() => {
 </script>
 <template>
   <div class="h-full" style="overflow: auto;">
-    <div class="w-full px-4 flex items-center q-col-gutter-sm md:px-24">
+    <div class="w-full px-4 flex items-center q-col-gutter-sm md:px-32">
       <div class="col">
         <q-select v-model="filterRol" :options="optionsFilterRol" option-label="name" option-value="value"
           emit-value map-options dense borderless color="primary"
@@ -132,7 +132,7 @@ onMounted(() => {
       </q-btn>
     </div>
     <div class="mt-4 md:mt-8">
-      <div class="px-4 md:mx-24">
+      <div class="px-4 md:mx-28">
         <div v-for="user in users" :key="user.id"
           class="md:py-4 py-3 mb-5 userListContainer row items-center">
           <div class="flex items-center pb-3 pt-2 pl-2 md:pl-5 col-12 no-wrap">
@@ -166,6 +166,14 @@ onMounted(() => {
             </div>
           </template>
           <div class="flex justify-end px-2 w-full pt-3 col-12" style="border-top: 1px solid lightgrey;">
+            <div>
+              <q-btn icon="eva-eye-outline" class="mx-1" flat color="indigo-5" size="0.9rem"
+                @click="goTo('/admin/users/detail/' + user.id)">
+                <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
+                  Ver detalle
+                </q-tooltip>
+              </q-btn>
+            </div>
             <div v-if="user.rol_id == 2 || user.rol_id == 7">
               <q-btn icon="eva-home-outline" class="mx-1" flat color="yellow-9" size="0.9rem"
                 @click="goTo('/admin/users/assign-property/' + user.id)">

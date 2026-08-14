@@ -160,19 +160,13 @@ class ComunAreaController extends Controller
      */
     private function syncRulesForArea(ComunArea $area, array $rulesList)
     {
-        // 1. Extraemos todos los IDs de las reglas que vienen del frontend (ignorando los nulos)
         $incomingRuleIds = collect($rulesList)->pluck('id')->filter()->toArray();
-
-        // 2. Eliminamos las reglas de la BD que pertenecen a este área pero que YA NO vienen en el frontend
         $area->rulesArea()->whereNotIn('id', $incomingRuleIds)->delete();
-
-        // 3. Iteramos para Crear o Actualizar
         foreach ($rulesList as $ruleData) {
             $typeValue = is_array($ruleData['type']) ? $ruleData['type']['value'] : $ruleData['type'];
             $severityValue = is_array($ruleData['severity']) ? $ruleData['severity']['value'] : $ruleData['severity'];
 
             if (isset($ruleData['id']) && ! empty($ruleData['id'])) {
-                // Si tiene ID, buscamos la regla y la actualizamos
                 $rule = $area->rulesArea()->find($ruleData['id']);
                 if ($rule) {
                     $rule->update([
@@ -184,7 +178,6 @@ class ComunAreaController extends Controller
                     ]);
                 }
             } else {
-                // Si no tiene ID, es una regla nueva añadida desde el botón "Agregar regla"
                 $area->rulesArea()->create([
                     'code' => $ruleData['code'] ?? '',
                     'title' => $ruleData['title'],

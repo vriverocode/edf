@@ -112,8 +112,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen relative overflow-hidden">
-    <div class="relative pt-8 pb-0 md:px-6 px-3">
+  <div class="h-full relative overflow-hidden">
+    <div class="relative pt-8 pb-10 md:px-6 px-3 h-full" style="overflow: auto;">
       <!-- Loading -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">
         <q-spinner-dots color="primary" size="4rem" />
@@ -138,7 +138,7 @@ onMounted(() => {
       </div>
 
       <!-- Evento cargado -->
-      <div v-else-if="eventData" class="flex flex-col items-center md:px-28 md:mx-28">
+      <div v-else-if="eventData" class="flex flex-col items-center md:px-28 md:mx-28" >
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col items-center w-full">
           <div class="row w-full mb-3 items-start">
             <div class="col-12 text-right  ">

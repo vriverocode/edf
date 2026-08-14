@@ -53,6 +53,8 @@ class EventController extends Controller
             'time_from' => $request->time_from,
             'time_to' => $request->time_to,
             'location' => $request->location,
+            'assits' => json_encode([]),
+            'not_assits' => json_encode([]),
         ]);
         if ($request->type_location == $LOCATION_TYPE_COMUN_AREA) {
             $bookingToEvent = $this->createEventReserve($request);
@@ -205,9 +207,11 @@ class EventController extends Controller
 
     private function sendNotification($event, ?int $creatorId = null)
     {
-        $users = User::where('rol_id', 2)->get();
-        $creator = $creatorId ? User::find($creatorId) : null;
-        if ($creator && ! $users->contains('id', $creator->id)) {
+        $users = User::whereIn('rol_id', [2, 3, 4, 5])->get();
+        $creator = User::find($creatorId);
+
+
+        if ($creator && $creator->rol_id != 1 && ! $users->contains('id', $creator->id)) {
             $users->push($creator);
         }
         $dataNotificaction = $this->getDataToNotification($event);
@@ -230,9 +234,8 @@ class EventController extends Controller
     {
         return [
             'title' => 'Nuevo evento programado',
-            'message' => 'El evento: '.$event->title
-                .', fue programado entra y confirma tu asistencia',
-            'url' => '/client/events/view/'.$event->id,
+            'message' => 'El evento: ' . $event->title . ', fue programado entra y confirma tu asistencia',
+            'url' => '/client/events/view/' . $event->id,
             'meta' => ['event_id' => $event->id],
         ];
     }

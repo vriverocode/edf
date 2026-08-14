@@ -191,6 +191,8 @@ class VisitController extends Controller
             })
             ->orderBy('init_day', 'asc')
             ->orderBy('created_at', 'desc')
+            ->where('status', '!=', 4)
+             ->where('status', '!=', 5)
             ->get();
 
         return $this->returnSuccess(200, $visits);

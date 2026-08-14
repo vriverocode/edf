@@ -39,7 +39,7 @@ onMounted(() => { getResidents() })
 
     <div class="mt-4 md:mt-6 px-4  md:px-28 pb-5" style="overflow: auto;" v-if="ready">
       <template v-if="residents.length > 0">
-        <div class="px-4 py-3 mt-3 residentContainer relative flex items-center bg-white" v-for="(resident, idx) in residents" :key="idx">
+        <div @click="router.push('/admin/users/detail/'+resident.id)" class="px-4 py-3 mt-3 residentContainer relative flex items-center bg-white" v-for="(resident, idx) in residents" :key="idx">
           <div class="flex items-center w-full">
             <div
               style="height: 3.5rem; width: 3.5rem; background: #1976d2; border-radius: 50%; font-size: 1.5rem; font-weight: bold;"
@@ -92,7 +92,13 @@ onMounted(() => { getResidents() })
 .residentContainer {
   overflow: hidden;
   border-radius: 0.8rem;
+  cursor: pointer;
   border: 1px solid #e0e0e0;
   box-shadow: 0px 2px 6px 0px rgba(0,0,0,0.05);
+  transition: all 0.5s ease;
+  &:hover{
+    box-shadow: 0px 8px 10px 0px rgba(0,0,0,0.05);
+
+  }
 }
 </style>
