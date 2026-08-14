@@ -207,10 +207,10 @@ class NoticeController extends Controller
             Notification::send($users, new RealtimeNotification(
                 title: 'Nuevo aviso publicado',
                 message: $notice->title,
-                url: '/client/notices',
+                url: 'client/notice/view/'.$notice->id,
                 meta: [
                     'notice_id' => $notice->id,
-                    'icon' => 'campaign',
+                    'icon' => 'eva-bell-outline',
                 ]
             ));
         } catch (\Throwable $e) {
@@ -317,6 +317,6 @@ class NoticeController extends Controller
         $fileName = trim(str_replace(' ', '_', $notice->id));
         $extension = $image->extension();
 
-        return config('app.url')."/storage/images/post/{$rand}_{$fileName}.{$extension}";
+        return config('app.url')."public/storage/images/post/{$rand}_{$fileName}.{$extension}";
     }
 }

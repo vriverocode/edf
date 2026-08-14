@@ -213,7 +213,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ── Notifications ────────────────────────────────────────
-    Route::prefix('notifications')->name('notifications.')->middleware('role_not:trabajador')->group(function () {
+    Route::prefix('notifications')->name('notifications.')->middleware()->group(function () {
         Route::get('/', [NotificationController::class, 'index']);
         Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
         Route::post('/{id}/mark-as-read', [NotificationController::class, 'markAsRead']);
@@ -292,6 +292,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/complete', [MaintenanceController::class, 'complete'])->middleware('role:admin,super-admin,trabajador', 'throttle:write');
         Route::post('/{id}/status', [MaintenanceController::class, 'changeStatus'])->middleware('role:admin,super-admin,trabajador', 'throttle:write');
         Route::post('/{id}/update', [MaintenanceController::class, 'update'])->middleware('role:admin,super-admin,trabajador', 'throttle:write');
+        Route::delete('/{id}', [MaintenanceController::class, 'destroy'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Pay Methods ──────────────────────────────────────────

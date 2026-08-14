@@ -21,11 +21,12 @@ use Illuminate\Support\Facades\Validator;
 
 class MaintenanceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $maintenances = Maintenance::with(['comunArea'])->orderBy('date', 'desc')->get();
+        $maintenances = Maintenance::with(['comunArea']);
+        $this->applyFilter($maintenances, $request);
 
-        return $this->returnSuccess(200, $maintenances);
+        return $this->returnSuccess(200, $maintenances->orderBy('date', 'asc')->get());
     }
 
     public function show($id)
@@ -284,22 +285,39 @@ class MaintenanceController extends Controller
         }
     }
 
-    private function sendMaintenanceNotification($maintenance, $area, $dateEnd = null)
+    private function sendMaintenanceNotification($maintenance, $area, $dateEnd = null): void
+    {
+        $fechaFormateada = $this->formatMaintenanceDate($maintenance->date, $dateEnd);
+
+        $this->notifyMaintenanceUsers(
+            maintenance: $maintenance,
+            title: 'Mantenimiento programado',
+            message: "Se programó un mantenimiento en {$area->name} {$fechaFormateada}.",
+        );
+    }
+
+    private function sendCompleteNotification($maintenance, $area): void
+    {
+        $this->notifyMaintenanceUsers(
+            maintenance: $maintenance,
+            title: 'Mantenimiento completado',
+            message: "Se completó el mantenimiento en {$area->name}.",
+        );
+    }
+
+    private function notifyMaintenanceUsers($maintenance, string $title, string $message): void
     {
         $users = User::where('rol_id', '!=', 1)->where('status', 1)->get();
-        $fechaFormateada = $dateEnd && $dateEnd !== $maintenance->date
-            ? 'del '.date('d/m/Y', strtotime($maintenance->date)).' al '.date('d/m/Y', strtotime($dateEnd))
-            : 'el día '.date('d/m/Y', strtotime($maintenance->date));
 
         try {
             foreach ($users as $user) {
                 $url = (int) $user->rol_id === Rol::SUPER_ADMIN
-                    ? '/admin/maintenances/'.$maintenance->id
-                    : '/client/maintenances/'.$maintenance->id;
+                    ? '/admin/maintenances/' . $maintenance->id
+                    : '/client/maintenances/' . $maintenance->id;
 
                 $user->notify(new RealtimeNotification(
-                    title: 'Mantenimiento programado',
-                    message: "Se programó un mantenimiento en {$area->name} {$fechaFormateada}.",
+                    title: $title,
+                    message: $message,
                     url: $url,
                     meta: [
                         'maintenance_id' => $maintenance->id,
@@ -308,8 +326,15 @@ class MaintenanceController extends Controller
                 ));
             }
         } catch (\Throwable $e) {
-            Log::error('Fallo al enviar notificaciones de mantenimiento: '.$e->getMessage());
+            Log::error('Fallo al enviar notificaciones de mantenimiento: ' . $e->getMessage());
         }
+    }
+
+    private function formatMaintenanceDate(string $date, ?string $dateEnd): string
+    {
+        return $dateEnd && $dateEnd !== $date
+            ? 'del ' . date('d/m/Y', strtotime($date)) . ' al ' . date('d/m/Y', strtotime($dateEnd))
+            : 'el día ' . date('d/m/Y', strtotime($date));
     }
 
     private function validateFieldsFromInput($inputs)
@@ -432,7 +457,7 @@ class MaintenanceController extends Controller
                 'completed_at' => now(),
                 'completed_by' => $request->user()->id,
             ]);
-
+            $this->sendCompleteNotification();
             return $this->returnSuccess(200, 'Mantenimiento completado con éxito');
         } catch (Exception $e) {
             Log::error('Error al completar mantenimiento: '.$e->getMessage());
@@ -492,5 +517,52 @@ class MaintenanceController extends Controller
         $photo->move(public_path('storage').'/images/maintenance/', $fileName);
 
         return config('app.url').'/storage/images/maintenance/'.$fileName;
+    }
+    private function applyFilter($query, Request $request)
+    {
+        $VIEW_ALL_STATUS = -1;
+        if ($request->filled('status')) {
+            $statusParam = $request->get('status');
+            if ($statusParam == $VIEW_ALL_STATUS) {
+                // No filters apply
+            } else {
+                $statuses = array_map('intval', explode(',', $statusParam));
+                $query->whereIn('status', $statuses);
+            }
+        } else {
+            $query->where('status', '>', 0);
+        }
+        if ($request->filled('area_id')) {
+            $query->where('comun_area_id', intval($request->area_id));
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('date', '>=', $request->get('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('date', '<=', $request->get('date_to'));
+        }
+    }
+
+    public function destroy($id)
+    {
+        $user = request()->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+
+        $maintenance = Maintenance::find($id);
+        if (! $maintenance) {
+            return $this->returnFail(404, 'Mantenimiento no encontrado');
+        }
+
+        try {
+            $maintenance->delete();
+
+            return $this->returnSuccess(200, 'Mantenimiento eliminado con éxito');
+        } catch (Exception $e) {
+            Log::error('Error al eliminar mantenimiento: '.$e->getMessage());
+
+            return $this->returnFail(500, 'No se pudo eliminar el mantenimiento');
+        }
     }
 }
