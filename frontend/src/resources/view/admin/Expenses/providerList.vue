@@ -4,6 +4,7 @@ import { Notify, Dialog } from 'quasar'
 import { useProviderStore } from '@/services/store/provider.store'
 import { useServiceCategoryStore } from '@/services/store/serviceCategory.store'
 import createProviderModal from '@/components/finance/createProviderModal.vue'
+import { usePaginationState } from '@/composables/usePaginationState'
 
 const providerStore = useProviderStore()
 const serviceCategoryStore = useServiceCategoryStore()
@@ -11,10 +12,15 @@ const serviceCategoryStore = useServiceCategoryStore()
 const loading = ref(false)
 const ready = ref(false)
 const providers = ref([])
-const page = ref(1)
 const lastPage = ref(1)
 const search = ref('')
 const searchTimeout = ref(null)
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'search', ref: search }
+  ]
+})
 
 const editDialog = ref(false)
 const editingProvider = ref(null)
@@ -58,6 +64,7 @@ const onSearchInput = () => {
   clearTimeout(searchTimeout.value)
   searchTimeout.value = setTimeout(() => {
     page.value = 1
+    syncToUrl()
     loadProviders()
   }, 400)
 }
@@ -130,6 +137,7 @@ const onProviderCreated = (created) => {
 }
 
 onMounted(() => {
+  restoreFromQuery()
   loadProviders()
   loadServiceCategories()
 })
@@ -221,7 +229,7 @@ onMounted(() => {
           <!-- Pagination -->
           <div v-if="lastPage > 1" class="flex justify-center q-mt-md q-mb-lg">
             <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="5"
-              @update:model-value="loadProviders" />
+              @update:model-value="onPageChange(loadProviders)" />
           </div>
         </div>
 

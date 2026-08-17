@@ -167,6 +167,7 @@ class BookingController extends Controller
             'search' => $request->query('search'),
             'status' => $request->integer('status', -1),
             'area_id' => $request->query('area_id'),
+            'department_id' => $request->query('department_id'),
             'user_id' => $request->query('user_id'),
             'date_from' => $request->query('date_from'),
             'date_to' => $request->query('date_to'),
@@ -263,6 +264,9 @@ class BookingController extends Controller
         }
         if ($request->filled('area_id')) {
             $query->where('comun_area_id', intval($request->area_id));
+        }
+        if ($request->filled('department_id')) {
+            $query->where('departament_id', intval($request->department_id));
         }
         if ($request->filled('user_id')) {
             $query->where('user_id', intval($request->user_id));
@@ -1013,7 +1017,7 @@ class BookingController extends Controller
                     message: $isPendingRefund
                         ? 'La reserva #'.$booking->booking_number.' fue completada. Requiere reembolso.'
                         : 'La reserva #'.$booking->booking_number.' fue completada.',
-                    url: '/client/reserves/view/'.$booking->id,
+                    url: '/admin/reserves/view/'.$booking->id,
                     meta: [
                         'booking_id' => $booking->id,
                         'icon' => $booking->icon_status,
@@ -1042,7 +1046,7 @@ class BookingController extends Controller
                 $users['admin']->notify(new RealtimeNotification(
                     title: 'Nueva reserva',
                     message: 'Se creó la reserva #'.$booking->booking_number.'.',
-                    url: '/client/reserves/view/'.$booking->id,
+                    url: '/admin/reserves/view/'.$booking->id,
                     meta: [
                         'booking_id' => $booking->id,
                         'icon' => $booking->icon_status,
@@ -1082,7 +1086,7 @@ class BookingController extends Controller
                     message: $isPendingDevo
                         ? 'Se canceló la reserva #'.$booking->booking_number.'. Requiere devolución.'
                         : 'Se canceló la reserva #'.$booking->booking_number.'.',
-                    url: '/client/reserves/view/'.$booking->id,
+                    url: '/admin/reserves/view/'.$booking->id,
                     meta: [
                         'booking_id' => $booking->id,
                         'icon' => $booking->icon_status,
@@ -1110,8 +1114,9 @@ class BookingController extends Controller
             ]);
 
             // Notificamos a los usuarios sobre el nuevo evento
-             $this->sendEventCreatedNotification($event, $booking->user_id);
-             return $event;
+            $this->sendEventCreatedNotification($event, $booking->user_id);
+
+            return $event;
         }
     }
 

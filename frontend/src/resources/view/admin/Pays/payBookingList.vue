@@ -1,13 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { usePayStore } from '@/services/store/pay.store'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import moment from 'moment'
 
 const pays = ref([])
 const loading = ref(true)
 const payStore = usePayStore()
 const router = useRouter()
+const route = useRoute()
 const pagination = ref({
   page: 1,
   lastPage: 1,
@@ -37,11 +38,13 @@ const goToDetail = (id) => {
 }
 
 const onPageChange = (page) => {
+  router.replace({ query: { ...route.query, page } })
   getPays(page)
 }
 
 onMounted(() => {
-  getPays()
+  if (route.query.page) pagination.value.page = Number(route.query.page)
+  getPays(pagination.value.page)
 })
 </script>
 

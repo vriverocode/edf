@@ -5,6 +5,7 @@ import { useMonthlyBillsStore } from '@/services/store/monthlyBills.store'
 import filterModal from '@/components/monthlyBills/filterModal.vue'
 import { useRouter } from 'vue-router'
 import iconsApp from '@/assets/icons/index'
+import { usePaginationState } from '@/composables/usePaginationState'
 
 
 const loading = ref(false)
@@ -13,11 +14,16 @@ const monthlyBillsStore = useMonthlyBillsStore()
 const router = useRouter()
 const dialog = ref('')
 
-const page = ref(1)
 const lastPage = ref(1)
 const selectedBill = ref({});
 const selectedYears = ref([])
 const availableYears = ref([])
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'years', ref: selectedYears, parse: (v) => (Array.isArray(v) ? v.map(Number) : v ? [Number(v)] : []) }
+  ]
+})
 
 const bills = ref([])
 
@@ -93,12 +99,14 @@ const getDialogData = (e) => {
 const updateListWithFilter = (newFilter) => {
   selectedYears.value = newFilter?.years || []
   page.value = 1
+  syncToUrl()
   fetchMonthlyBills()
 }
 
 const clearFilters = () => {
   selectedYears.value = []
   page.value = 1
+  syncToUrl()
   fetchMonthlyBills()
 }
 const goTo = (url) => {
@@ -107,6 +115,7 @@ const goTo = (url) => {
 showDialog
 
 onMounted(() => {
+  restoreFromQuery()
   fetchMonthlyBills()
 })
 </script>
@@ -200,7 +209,7 @@ onMounted(() => {
                 :max="lastPage"
                 :max-pages="4"
                 :boundary-numbers="false"
-                @update:model-value="fetchMonthlyBills()"
+                @update:model-value="onPageChange(fetchMonthlyBills)"
               />
             </div>
           </template>

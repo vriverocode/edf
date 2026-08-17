@@ -5,6 +5,7 @@ import { useVisitStore } from '@/services/store/visits.store';
 import moment from 'moment';
 import { Notify } from 'quasar';
 import filterModal from '@/components/visits/filterModal.vue';
+import { usePaginationState } from '@/composables/usePaginationState';
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -29,10 +30,19 @@ const loadingDelete = ref(false)
 const activeFilterSearch = ref('')
 const statusOptions = ref([])
 const apartmentOptions = ref([])
-const page = ref(1)
 const lastPage = ref(1)
 const total = ref(0)
 const perPage = ref(15)
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'search', get: () => filters.value.search, set: (v) => { filters.value.search = v || '' } },
+    { key: 'status', get: () => filters.value.status, set: (v) => { filters.value.status = Array.isArray(v) ? v.map(Number) : v ? [Number(v)] : [] } },
+    { key: 'departament_id', get: () => filters.value.departament_id, set: (v) => { filters.value.departament_id = v || '' } },
+    { key: 'date_from', get: () => filters.value.date_from, set: (v) => { filters.value.date_from = v || '' } },
+    { key: 'date_to', get: () => filters.value.date_to, set: (v) => { filters.value.date_to = v || '' } }
+  ]
+})
 
 const goTo = (url) => {
   router.push(url)
@@ -72,6 +82,7 @@ const isUsingFilter = () => {
 const getVisitsWithFilter = (newFilter) => {
   filters.value = { ...filters.value, ...newFilter }
   isUsingFilter()
+  syncToUrl()
   getVisits(1)
 }
 
@@ -123,8 +134,9 @@ const showNotify = (type, text) => {
 }
 
 onMounted(() => {
+  restoreFromQuery()
   loadFilterOptions()
-  getVisits()
+  getVisits(page.value)
 })
 </script>
 
@@ -225,7 +237,7 @@ onMounted(() => {
             </div>
             <div v-if="lastPage > 1" class="flex justify-center py-4 px-4">
               <q-pagination v-model="page" :max="lastPage" :max-pages="4" :boundary-numbers="false"
-                color="primary" @update:model-value="(p) => getVisits(p)" />
+                color="primary" @update:model-value="(p) => onPageChange(() => getVisits(p))" />
             </div>
           </div>
           

@@ -48,7 +48,16 @@ const updateApartment = () => {
       setTimeout(() => {
         loading.value = false
         const page = route.query.page || ''
-        router.push(`/admin/department/list${page ? `?page=${page}&highlight=${route.params.id}` : ''}`)
+        const type = route.query.type || ''
+        const search = route.query.search || ''
+        const number = route.query.number || ''
+        const params = []
+        if (page) params.push(`page=${page}`)
+        if (type) params.push(`type=${type}`)
+        if (search) params.push(`search=${search}`)
+        if (number) params.push(`number=${number}`)
+        params.push(`highlight=${route.params.id}`)
+        router.push(`/admin/department/list?${params.join('&')}`)
       }, 1000)
     })
     .catch(() => {

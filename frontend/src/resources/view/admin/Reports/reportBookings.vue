@@ -5,9 +5,12 @@ import { useReportStore } from '@/services/store/report.store'
 import { useQuasar } from 'quasar'
 import moment from 'moment'
 import ReportFilterModal from '@/components/reports/reportFilterModal.vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const $q = useQuasar()
 const reportStore = useReportStore()
+const route = useRoute()
+const router = useRouter()
 
 const loading = ref(false)
 const loadingMetrics = ref(false)
@@ -106,11 +109,13 @@ const totalPages = computed(() => {
 
 function onPageChange(newPage) {
   pagination.value.page = newPage
+  syncToUrl()
   loadData()
 }
 function onQuickFilterChange() {
   pagination.value.page = 1
   updateDateRange()
+  syncToUrl()
   loadData()
   loadMetrics()
 }
@@ -132,6 +137,7 @@ function onSearchChange(val) {
   clearTimeout(searchTimeout.value)
   searchTimeout.value = setTimeout(() => {
     pagination.value.page = 1
+    syncToUrl()
     loadData()
   }, 400)
 }
@@ -139,8 +145,43 @@ function onSearchChange(val) {
 function onUpdateFilters(newFilters) {
   filters.value = newFilters
   pagination.value.page = 1
+  syncToUrl()
   loadData()
   loadMetrics()
+}
+
+function syncToUrl() {
+  const query = { ...route.query }
+  const set = (k, v) => {
+    if (v === '' || v === null || v === undefined || v === false) delete query[k]
+    else query[k] = v
+  }
+  set('search', search.value)
+  set('quickMonth', quickMonth.value)
+  set('quickYear', quickYear.value)
+  set('status', filters.value.status)
+  set('area_id', filters.value.area_id)
+  set('date_from', filters.value.date_from)
+  set('date_to', filters.value.date_to)
+  set('sort_by', filters.value.sort_by)
+  set('sort_dir', filters.value.sort_dir)
+  set('include_cancelled', filters.value.include_cancelled ? 1 : undefined)
+  query.page = pagination.value.page
+  router.replace({ query })
+}
+
+function restoreFromQuery() {
+  if (route.query.page) pagination.value.page = Number(route.query.page)
+  if (route.query.search !== undefined) search.value = route.query.search
+  if (route.query.quickMonth !== undefined) quickMonth.value = Number(route.query.quickMonth) || null
+  if (route.query.quickYear !== undefined) quickYear.value = Number(route.query.quickYear) || now.getFullYear()
+  if (route.query.status !== undefined) filters.value.status = Number(route.query.status)
+  if (route.query.area_id !== undefined) filters.value.area_id = route.query.area_id === '' ? null : Number(route.query.area_id)
+  if (route.query.date_from !== undefined) filters.value.date_from = route.query.date_from || null
+  if (route.query.date_to !== undefined) filters.value.date_to = route.query.date_to || null
+  if (route.query.sort_by !== undefined) filters.value.sort_by = route.query.sort_by
+  if (route.query.sort_dir !== undefined) filters.value.sort_dir = route.query.sort_dir
+  if (route.query.include_cancelled !== undefined) filters.value.include_cancelled = route.query.include_cancelled === '1' || route.query.include_cancelled === 'true'
 }
 
 async function loadData() {
@@ -206,7 +247,8 @@ async function handleExport() {
 }
 
 onMounted(() => {
-  updateDateRange()
+  restoreFromQuery()
+  if (route.query.quickMonth !== undefined) updateDateRange()
   loadData()
   loadMetrics()
 })
@@ -240,7 +282,7 @@ onMounted(() => {
       <div class="col-md-4 col-12 row items-center">
         <div class="col-4 col-md-4">
           <q-checkbox :model-value="filters.include_cancelled" label="Incluir canceladas"
-            @update:model-value="val => { filters.include_cancelled = val; loadData(); loadMetrics() }" />
+            @update:model-value="val => { filters.include_cancelled = val; syncToUrl(); loadData(); loadMetrics() }" />
         </div>
         <div class="col-2 col-md-2">
           <q-btn :color="hasActiveFilter ? 'primary' : 'grey-7'" outline
@@ -377,7 +419,7 @@ onMounted(() => {
           boundary-numbers
           direction-links
           color="primary"
-          @update:model-value="(val) => { pagination.page = val; loadData(); }"
+          @update:model-value="onPageChange"
         />
       </div>
 

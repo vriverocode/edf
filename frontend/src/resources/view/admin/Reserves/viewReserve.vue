@@ -3,21 +3,20 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Notify } from 'quasar'
 import { useReserveStore } from '@/services/store/reserve.store'
-import iconsApp from '@/assets/icons/index';
-import moment from 'moment';
-import voucherModal from '@/components/pay/voucherModal.vue';
-
+import iconsApp from '@/assets/icons/index'
+import moment from 'moment'
+import voucherModal from '@/components/pay/voucherModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const reserveStore = useReserveStore()
 
-// Estados reactivos
 const booking = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const dialog = ref(false)
 const refundVoucherDialog = ref(null)
+
 const refundDestLabel = (r) => {
   const snap = r.bank_account_snapshot
   if (!snap) return ''
@@ -31,7 +30,7 @@ const refundDestLabel = (r) => {
     return snap.name || ''
   }
 }
-// Función para obtener booking por ID
+
 const getBookingById = async (id) => {
   try {
     loading.value = true
@@ -39,17 +38,14 @@ const getBookingById = async (id) => {
 
     const response = await reserveStore.getReserveById(id)
     booking.value = response.data
-
   } catch (err) {
     console.error('Error al obtener la reserva:', err)
     error.value = err || 'Error al cargar la reserva'
   } finally {
-
     loading.value = false
   }
 }
 
-// Función para descargar recibo
 const downloadReceipt = async () => {
   const payId = booking.value?.pay?.id
   if (!payId) return
@@ -88,15 +84,16 @@ const downloadReceipt = async () => {
   }
 }
 
-// Función para ir al inicio
-const goToHome = () => {
-  router.push('/client/reserves/list')
+const goToGuests = () => {
+  router.push('/client/reserves/guests/' + booking.value?.id)
 }
 
-// Obtener el ID del booking desde la URL o props
+const goBack = () => {
+  router.back()
+}
+
 const bookingId = route.params.id || route.query.id
 
-// Cargar el booking al montar el componente
 onMounted(() => {
   if (bookingId) {
     getBookingById(bookingId)
@@ -104,9 +101,9 @@ onMounted(() => {
     error.value = 'ID de reserva no proporcionado'
   }
 })
+
 const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
 
-// Función para recargar el booking
 const reloadBooking = () => {
   if (bookingId) {
     getBookingById(bookingId)
@@ -115,12 +112,11 @@ const reloadBooking = () => {
 </script>
 
 <template>
-  <div class="h-full  relative " style="overflow: auto;">
-    <div class="relative  pt-8 pb-8 md:px-6 px-3">
+  <div class="h-full relative" style="overflow: auto">
+    <div class="relative pt-8 pb-8 md:px-6 px-3">
       <!-- Loading State -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">
         <q-spinner-dots color="primary" size="4rem" />
-
         <p class="text-gray-600 font-medium">Cargando reserva...</p>
       </div>
 
@@ -140,15 +136,15 @@ const reloadBooking = () => {
       </div>
 
       <!-- Success State -->
-      <div v-else-if="booking" class="flex flex-col items-center md:px-28 md:mx-28 pb-8 ">
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col items-center w-full ">
+      <div v-else-if="booking" class="flex flex-col items-center md:px-28 md:mx-28 pb-8">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col items-center w-full">
           <div class="row w-full mb-3 items-end">
-            <div class="flex flex-col items-start col-md-6 col-6 md:pl-5 pl-3 ">
+            <div class="flex flex-col items-start col-md-6 col-6 md:pl-5 pl-3">
               <div class="mb-4 pt-5 w-3/5">
                 <div class="bg-primary rounded-xl p-4 boxContentV2">
-                  <div class="boxItem_v2-2  md:px-6 ">
-                    <div class="flex justify-center items-center h-full w-full ">
-                      <img :src="mediaUrl + '/images/icons/' + (booking.comun_area?.icon || 'default') " alt=""
+                  <div class="boxItem_v2-2 md:px-6">
+                    <div class="flex justify-center items-center h-full w-full">
+                      <img :src="mediaUrl + '/images/icons/' + (booking.comun_area?.icon || 'default')" alt=""
                         style="height:100%">
                     </div>
                   </div>
@@ -160,9 +156,9 @@ const reloadBooking = () => {
             </div>
             <div class="col-md-6 col-6 text-right">
               <div class="flex justify-end">
-                <div class="p-4  dateFact text-primary text-md font-bold">
-                  <span class="text-grey-7 font-medium text-md">Creada el:</span> {{
-                    moment(booking.created_at).format('DD/MM/YYYY') }}
+                <div class="p-4 dateFact text-primary text-md font-bold">
+                  <span class="text-grey-7 font-medium text-md">Creada el:</span>
+                  {{ moment(booking.created_at).format('DD/MM/YYYY') }}
                 </div>
               </div>
               <div class="mt-4 md:pr-5 pr-3">
@@ -174,51 +170,66 @@ const reloadBooking = () => {
                 <div class="text-primary text-md font-bold">{{ booking.user.phone ?? '' }}</div>
               </div>
               <div class="mt-4 md:pr-5 pr-3">
+                <div class="text-grey-7 font-medium text-md">Email:</div>
+                <div class="text-primary text-md font-bold">{{ booking.user.email }}</div>
+              </div>
+              <div class="mt-4 md:pr-5 pr-3">
                 <div class="text-grey-7 font-medium text-md">Unidad:</div>
-                <div class="text-primary text-md font-bold " style="text-transform:uppercase">{{ booking.departament?.number ? '#' + booking.departament.number : '-' }}</div>
+                <div class="text-primary text-md font-bold" style="text-transform:uppercase">
+                  {{ booking.departament?.number ? '#' + booking.departament.number : '-' }}
+                </div>
               </div>
             </div>
           </div>
           <!-- Tarjeta de detalles -->
-          <div class=" w-full  md:p-5  px-4 pt-5 mb-5" style="border-top: 1px solid lightgray;">
+          <div class="w-full md:p-5 px-4 pt-5 mb-5" style="border-top: 1px solid lightgray">
             <div class="space-y-4">
-              <!-- Estado del pago -->
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Estado de la reserva</span>
                 <span class="font-semibold" :class="'text-' + booking.status_color">{{ booking.status_label }}</span>
               </div>
 
-              <!-- Monto pagado -->
               <div class="flex justify-between items-center pb-2" v-if="booking.amount > 0"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Monto pagado</span>
                 <span class="text-gray-900 font-semibold">S/. {{ booking.amount }}</span>
               </div>
 
-              <!-- Fecha de pago -->
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Fecha de reserva</span>
                 <span class="text-gray-900 font-semibold">{{ moment(booking.date).format('DD/MM/YYYY') }}</span>
               </div>
 
-              <!-- Método de pago -->
               <div class="flex justify-between items-center pb-2" v-if="booking.amount > 0 && booking.pay"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Método de pago</span>
-                <span class="text-gray-900 font-semibold">
-                  {{ booking.pay?.pay_method?.name || 'S/N' }}
-                </span>
+                <span class="text-gray-900 font-semibold">{{ booking.pay?.pay_method?.name || 'S/N' }}</span>
               </div>
 
-              <!-- ID de transacción -->
+              <!-- Datos del pago (admin) -->
+              <div class="flex justify-between items-center pb-2" v-if="booking.pay"
+                style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+                <span class="text-gray-600 font-medium">N° de pago</span>
+                <span class="text-gray-900 font-semibold">{{ booking.pay.pay_id }}</span>
+              </div>
+              <div class="flex justify-between items-center pb-2" v-if="booking.pay?.pay_date"
+                style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+                <span class="text-gray-600 font-medium">Fecha de pago</span>
+                <span class="text-gray-900 font-semibold">{{ booking.pay.pay_date }}</span>
+              </div>
+              <div class="flex justify-between items-center pb-2" v-if="booking.pay?.status"
+                style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+                <span class="text-gray-600 font-medium">Estado del pago</span>
+                <q-badge :color="booking.pay.status_color">{{ booking.pay.status_label }}</q-badge>
+              </div>
+
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">ID de reserva</span>
                 <span class="text-gray-900 font-semibold">#{{ booking.booking_number }}</span>
               </div>
-              <!-- Horarios -->
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Horario</span>
@@ -235,9 +246,6 @@ const reloadBooking = () => {
                   </q-chip>
                 </span>
               </div>
-
-
-
             </div>
             <div class="flex flex-center mt-4" @click="dialog = true" v-if="booking.pay">
               <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher"
@@ -258,8 +266,7 @@ const reloadBooking = () => {
                   <div class="text-gray-900 font-semibold">S/. {{ r.amount }}</div>
                   <div class="text-caption text-grey-7">{{ refundDestLabel(r) }}</div>
                 </div>
-                <div class="flex flex-center cursor-pointer" @click="refundVoucherDialog = r.vaucher"
-                  v-if="r.vaucher">
+                <div class="flex flex-center cursor-pointer" @click="refundVoucherDialog = r.vaucher" v-if="r.vaucher">
                   <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher"
                     style="text-decoration:dotted">
                     Voucher de devolución
@@ -270,17 +277,26 @@ const reloadBooking = () => {
             </div>
           </div>
           <!-- Botones de acción -->
-          <div class="w-full  space-y-4">
-          <!-- Botón de descargar recibo -->
-          <button @click="downloadReceipt" v-if="booking.pay"
-            class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-              </path>
-            </svg>
-            <span>Descargar Recibo</span>
-          </button>
+          <div class="w-full space-y-4">
+            <button @click="goToGuests"
+              class="w-full py-4 rounded-xl font-medium bg-primary text-white hover:bg-primary transition-colors flex items-center justify-center space-x-2">
+              <q-icon name="eva-people-outline" size="1.2rem" />
+              <span>Ver invitados</span>
+            </button>
+            <button @click="downloadReceipt" v-if="booking.pay"
+              class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+              </svg>
+              <span>Descargar Recibo</span>
+            </button>
+            <button @click="goBack"
+              class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
+              <q-icon name="eva-arrow-back-outline" size="1.2rem" />
+              <span>Volver</span>
+            </button>
           </div>
         </div>
         <template v-if="booking.pay">
@@ -288,7 +304,6 @@ const reloadBooking = () => {
           <voucherModal v-if="refundVoucherDialog" :vaucher="refundVoucherDialog"
             :dialog="!!refundVoucherDialog" @closeModal="refundVoucherDialog = null" />
         </template>
-
       </div>
 
       <!-- No Booking Found -->
@@ -302,9 +317,9 @@ const reloadBooking = () => {
         </div>
         <h2 class="text-xl font-bold text-gray-900 mb-2">Reserva no encontrada</h2>
         <p class="text-gray-600 text-center mb-6">La reserva solicitada no existe o no tienes permisos para verla.</p>
-        <button @click="goToHome"
+        <button @click="goBack"
           class="px-6 py-3 bg-gray-500 text-white rounded-full font-medium hover:bg-gray-600 transition-colors">
-          Volver al inicio
+          Volver
         </button>
       </div>
     </div>
@@ -330,12 +345,9 @@ const reloadBooking = () => {
   border-radius: 0.8rem;
   overflow: visible;
   position: relative;
-  // border: 2px solid rgb(3, 156, 195) ;
   width: 100%;
-  //box-shadow: 0px 0.1rem 1rem 0px rgba(0, 0, 0, 0.205);
   background-repeat: no-repeat;
   background-size: cover;
-
   transition: all 0.7s ease-in-out;
   cursor: pointer;
   height: 100%;
@@ -346,7 +358,6 @@ const reloadBooking = () => {
 }
 
 @media (max-width: 780px) {
-
   .boxContentV2 {
     height: 6.5rem;
   }

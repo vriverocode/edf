@@ -35,7 +35,7 @@ final class BookingPendingPayNotifier
                 $users['admin']->notify(new RealtimeNotification(
                     title: 'Nueva reserva no completada',
                     message: 'Se creó la reserva #'.$booking->booking_number.', pero falta que se realice el pago correspondiente',
-                    url: '/client/reserves/view/'.$booking->id,
+                    url: '/admin/reserves/view/'.$booking->id,
                     meta: [
                         'booking_id' => $booking->id,
                         'icon' => $booking->icon_status,

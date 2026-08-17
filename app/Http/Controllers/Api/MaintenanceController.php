@@ -267,7 +267,7 @@ class MaintenanceController extends Controller
                 $admin->notify(new RealtimeNotification(
                     title: 'Reserva cancelada por mantenimiento',
                     message: 'La reserva #'.$booking->booking_number.' fue cancelada.',
-                    url: '/client/reserves/view/'.$booking->id,
+                    url: '/admin/reserves/view/'.$booking->id,
                     meta: ['booking_id' => $booking->id, 'icon' => 'cancel']
                 ));
 
@@ -275,7 +275,7 @@ class MaintenanceController extends Controller
                     $admin->notify(new RealtimeNotification(
                         title: 'Reembolso pendiente',
                         message: 'La reserva #'.$booking->booking_number.' fue cancelada por mantenimiento. Registra el reembolso manualmente.',
-                        url: '/client/reserves/view/'.$booking->id,
+                        url: '/admin/reserves/view/'.$booking->id,
                         meta: ['booking_id' => $booking->id, 'icon' => 'refund']
                     ));
                 }
@@ -312,8 +312,8 @@ class MaintenanceController extends Controller
         try {
             foreach ($users as $user) {
                 $url = (int) $user->rol_id === Rol::SUPER_ADMIN
-                    ? '/admin/maintenances/' . $maintenance->id
-                    : '/client/maintenances/' . $maintenance->id;
+                    ? '/admin/maintenances/'.$maintenance->id
+                    : '/client/maintenances/'.$maintenance->id;
 
                 $user->notify(new RealtimeNotification(
                     title: $title,
@@ -326,15 +326,15 @@ class MaintenanceController extends Controller
                 ));
             }
         } catch (\Throwable $e) {
-            Log::error('Fallo al enviar notificaciones de mantenimiento: ' . $e->getMessage());
+            Log::error('Fallo al enviar notificaciones de mantenimiento: '.$e->getMessage());
         }
     }
 
     private function formatMaintenanceDate(string $date, ?string $dateEnd): string
     {
         return $dateEnd && $dateEnd !== $date
-            ? 'del ' . date('d/m/Y', strtotime($date)) . ' al ' . date('d/m/Y', strtotime($dateEnd))
-            : 'el día ' . date('d/m/Y', strtotime($date));
+            ? 'del '.date('d/m/Y', strtotime($date)).' al '.date('d/m/Y', strtotime($dateEnd))
+            : 'el día '.date('d/m/Y', strtotime($date));
     }
 
     private function validateFieldsFromInput($inputs)
@@ -458,6 +458,7 @@ class MaintenanceController extends Controller
                 'completed_by' => $request->user()->id,
             ]);
             $this->sendCompleteNotification($maintenance);
+
             return $this->returnSuccess(200, 'Mantenimiento completado con éxito');
         } catch (Exception $e) {
             Log::error('Error al completar mantenimiento: '.$e->getMessage());
@@ -518,6 +519,7 @@ class MaintenanceController extends Controller
 
         return config('app.url').'/storage/images/maintenance/'.$fileName;
     }
+
     private function applyFilter($query, Request $request)
     {
         $VIEW_ALL_STATUS = -1;

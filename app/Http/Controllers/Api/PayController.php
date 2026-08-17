@@ -941,7 +941,7 @@ class PayController extends Controller
                 $users['admin']->notify(new RealtimeNotification(
                     title: 'Nueva reserva',
                     message: 'Se creó la reserva #'.$booking->booking_number.'.',
-                    url: '/client/reserves/view/'.$booking->id,
+                    url: '/admin/reserves/view/'.$booking->id,
                     meta: [
                         'booking_id' => $booking->id,
                         'icon' => $booking->icon_status,

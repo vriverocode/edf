@@ -21,7 +21,7 @@ class AutoCompleteBookings extends Command
             ->chunkById(100, function ($bookings) {
                 foreach ($bookings as $booking) {
                     $eventDateTime = Carbon::parse(
-                        $booking->date->toDateString() . ' ' . $booking->time_to,
+                        $booking->date->toDateString().' '.$booking->time_from,
                         'America/Lima'
                     );
                     if ($eventDateTime->gt(now('America/Lima'))) {

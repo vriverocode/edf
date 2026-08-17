@@ -20,6 +20,14 @@ class Event extends Model
         'booking_id',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'assits' => 'array',
+            'not_assits' => 'array',
+        ];
+    }
+
     public function booking(): HasOne
     {
         return $this->hasOne(Booking::class, 'id', 'booking_id');

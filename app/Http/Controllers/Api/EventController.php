@@ -81,6 +81,7 @@ class EventController extends Controller
 
         $event = Event::with(['booking.comunArea'])->find($id);
         $bookingToEvent = $event->booking_id;
+        $previousDate = $event->date;
 
         if (count($validated) > 0) {
             return $this->returnFail(400, $validated[0]);
@@ -113,7 +114,9 @@ class EventController extends Controller
             'booking_id' => $bookingToEvent,
         ]);
 
-        $this->sendNotification($event, (int) $request->user()->id);
+        if ($previousDate !== date('Y-m-d', strtotime($request->date))) {
+            $this->sendNotification($event, (int) $request->user()->id, true);
+        }
 
         return $this->returnSuccess(200, 'ok');
     }
@@ -146,10 +149,42 @@ class EventController extends Controller
         array_push($assits, $request->user()->id);
 
         $event->update([
-            $request->assitType == 0 ? 'not_assits' : 'assits' => json_encode($assits),
+            $request->assitType == 0 ? 'not_assits' : 'assits' => $assits,
         ]);
 
         return $this->returnSuccess(200, ['assits' => $event->assits, 'not_assits' => $event->not_assits]);
+    }
+
+    public function attendance($id)
+    {
+        $event = Event::with(['booking.comunArea'])->find($id);
+
+        if (! $event) {
+            return $this->returnFail(404, 'Evento no encontrado');
+        }
+
+        $mapUsers = function ($ids) {
+            return User::with('units')->whereIn('id', $ids)->get()->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'departments' => $user->units->map(function ($departament) {
+                        return [
+                            'number' => $departament->number,
+                            'type_label' => $departament->type_label,
+                        ];
+                    })->values(),
+                ];
+            })->values();
+        };
+
+        return $this->returnSuccess(200, [
+            'event' => $event,
+            'assits' => $mapUsers($event->assits ?? []),
+            'not_assits' => $mapUsers($event->not_assits ?? []),
+        ]);
     }
 
     private function validateFieldsFromInput($inputs)
@@ -205,16 +240,15 @@ class EventController extends Controller
         $booking->delete();
     }
 
-    private function sendNotification($event, ?int $creatorId = null)
+    private function sendNotification($event, ?int $creatorId = null, bool $modified = false)
     {
         $users = User::whereIn('rol_id', [2, 3, 4, 5])->get();
         $creator = User::find($creatorId);
 
-
         if ($creator && $creator->rol_id != 1 && ! $users->contains('id', $creator->id)) {
             $users->push($creator);
         }
-        $dataNotificaction = $this->getDataToNotification($event);
+        $dataNotificaction = $this->getDataToNotification($event, $modified);
 
         try {
             foreach ($users as $user) {
@@ -230,12 +264,21 @@ class EventController extends Controller
         }
     }
 
-    private function getDataToNotification($event)
+    private function getDataToNotification($event, bool $modified = false)
     {
+        if ($modified) {
+            return [
+                'title' => 'Evento modificado',
+                'message' => 'El evento: '.$event->title.', fue modificado. Revisa la nueva fecha',
+                'url' => '/client/events/view/'.$event->id,
+                'meta' => ['event_id' => $event->id],
+            ];
+        }
+
         return [
             'title' => 'Nuevo evento programado',
-            'message' => 'El evento: ' . $event->title . ', fue programado entra y confirma tu asistencia',
-            'url' => '/client/events/view/' . $event->id,
+            'message' => 'El evento: '.$event->title.', fue programado entra y confirma tu asistencia',
+            'url' => '/client/events/view/'.$event->id,
             'meta' => ['event_id' => $event->id],
         ];
     }
@@ -244,10 +287,10 @@ class EventController extends Controller
     {
         $assit = [];
         if ($request->assitType == 0) {
-            $assit = json_decode($event->not_assits, true);
+            $assit = $event->not_assits ?? [];
         }
         if ($request->assitType == 1) {
-            $assit = json_decode($event->assits, true);
+            $assit = $event->assits ?? [];
         }
 
         return $assit;

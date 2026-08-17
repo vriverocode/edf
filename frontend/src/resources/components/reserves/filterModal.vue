@@ -1,11 +1,13 @@
 <script setup>
 import { Notify } from 'quasar'
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { RadioGroup, Radio } from 'vant';
 
 import { useComunAreaStore } from '@/services/store/comunArea.store';
+import { useAuthStore } from '@/services/store/auth.services';
+import { useApartmentStore } from '@/services/store/apartment.store';
 
   const emit = defineEmits(['closeModal', 'updateList'])
 
@@ -19,9 +21,18 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
   const hideModal = () => {
     emit('closeModal')
   }
+
+  const authStore = useAuthStore()
+  const apartmentStore = useApartmentStore()
+
+  const isAdmin = computed(() => {
+    return authStore.user?.rol_id === 1 || authStore.user?.rol_id === 2 || ['admin', 'super-admin'].includes(authStore.user?.rol?.name?.toLowerCase() || '')
+  })
+
   const filters = ref({
     status: -1,
     area_id: '',
+    department_id: '',
     date_from: '',
     date_to: '',
     amount_type: '',
@@ -29,6 +40,7 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
     sort_dir: 'desc'
   })
   const areas = ref([])
+  const departments = ref([])
   const updateList = () => {
     emit('closeModal')
     emit('updateList', { ...filters.value })
@@ -42,6 +54,7 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
     filters.value = {
       status: -1,
       area_id: '',
+      department_id: '',
       date_from: '',
       date_to: '',
       amount_type: '',
@@ -58,8 +71,24 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
     })
   }
 
+  const loadDepartments = async () => {
+    if (isAdmin.value) {
+      try {
+        const response = await apartmentStore.getApartmentsByFind('')
+        if (response && Array.isArray(response)) {
+          departments.value = response
+        } else if (response && response.data) {
+          departments.value = response.data
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }
+
   onMounted(() => {
     loadAreas();
+    loadDepartments();
   })
 
 </script>
@@ -94,10 +123,13 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
   
                   </div>
                   <div class="col-12 my-2" >
-                    <radio :name="3" icon-size="1.3rem" label-position="left">Completas</radio>
+                    <radio :name="3" icon-size="1.3rem" label-position="left">Exitosas</radio>
                   </div>
                   <div class="col-12 my-2" >
-                    <radio :name="4" icon-size="1.3rem" label-position="left">Todas</radio>
+                    <radio :name="4" icon-size="1.3rem" label-position="left">Completadas</radio>
+                  </div>
+                  <div class="col-12 my-2" >
+                    <radio :name="7" icon-size="1.3rem" label-position="left">Todas</radio>
                   </div>
                 </radio-group>
               </div>
@@ -121,6 +153,24 @@ import { useComunAreaStore } from '@/services/store/comunArea.store';
                 dense borderless />
               </div>
               
+            </div>
+            <div class="row py-4 px-5" style="border-top: 1px solid lightgray;" v-if="isAdmin">
+              <div class="mb-3 text-lg font-medium text-primary col-12">
+                Departamento
+              </div>
+              <div class="col-12 ">
+                <q-select 
+                class="form__inputsFilterBookings"
+                v-model="filters.department_id"
+                :options="departments"
+                option-label="number"
+                option-value="id"
+                emit-value
+                map-options
+                use-input input-debounce="200"
+                label="Selecciona un departamento"
+                dense borderless />
+              </div>
             </div>
             <div class="row py-4 px-5" style="border-top: 1px solid lightgray;">
               <div class="mb-4 text-lg font-medium text-primary col-12">

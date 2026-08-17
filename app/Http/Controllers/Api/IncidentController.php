@@ -20,7 +20,7 @@ class IncidentController extends Controller
         try {
             $user = $request->user();
             $isOwnerOrResident = in_array($user->rol_id, [Rol::PROPIETARIO, Rol::INQUILINO, Rol::FAMILIAR, Rol::AIRBNB]);
-            $incidents = Incident::when($isOwnerOrResident, function ($q) use ($user) {
+            $incidents = Incident::with(['user'])->when($isOwnerOrResident, function ($q) use ($user) {
                 return $q->where('user_id', $user->id);
             })
                 ->orderBy('created_at', 'desc')
@@ -94,7 +94,7 @@ class IncidentController extends Controller
     {
         try {
             $user = $request->user();
-            $incident = Incident::find($id);
+            $incident = Incident::with(['user'])->find($id);
             if (! $incident) {
                 return $this->returnFail(404, 'Incidencia no encontrada');
             }
@@ -107,5 +107,54 @@ class IncidentController extends Controller
         } catch (Exception $e) {
             return $this->returnFail(505, $e->getMessage());
         }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = $request->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR])) {
+            return $this->returnFail(403, 'No tienes permiso para actualizar incidencias');
+        }
+
+        $request->validate([
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'date' => 'nullable|date',
+            'hour' => 'nullable|string',
+            'location' => 'nullable|string|max:255',
+            'type' => 'nullable|integer',
+            'status' => 'nullable|integer|in:1,2,3,4',
+        ]);
+
+        $incident = Incident::find($id);
+        if (! $incident) {
+            return $this->returnFail(404, 'Incidencia no encontrada');
+        }
+
+        $previousStatus = $incident->status;
+
+        $data = array_filter(
+            $request->only(['title', 'description', 'date', 'hour', 'location', 'type', 'status']),
+            fn ($value) => $value !== null
+        );
+        $incident->update($data);
+
+        if ((int) $previousStatus !== (int) $incident->status) {
+            try {
+                $owner = User::find($incident->user_id);
+                if ($owner) {
+                    $owner->notify(new RealtimeNotification(
+                        title: 'Incidencia actualizada',
+                        message: 'Tu incidencia: '.$incident->title.', cambió a '.$incident->status_label,
+                        url: '/client/incidents/view/'.$incident->id,
+                        meta: ['incident_id' => $incident->id, 'icon' => 'alert-circle'],
+                    ));
+                }
+            } catch (\Throwable $e) {
+                Log::error('Error al notificar incidencia actualizada: '.$e->getMessage());
+            }
+        }
+
+        return $this->returnSuccess(200, $incident);
     }
 }

@@ -73,6 +73,12 @@ const getPaymentAmount = (booking) => {
                   <q-item clickable v-close-popup @click="goToDetail(event.id)">
                     <q-item-section>Ver detalles</q-item-section>
                   </q-item>
+                  <template v-if="[1, 8].includes(user.rol_id)">
+                    <q-item clickable v-close-popup @click="goTo('/admin/events/attendance/' + event.id)">
+                      <q-item-section>Ver asistencia</q-item-section>
+                    </q-item>
+                    <q-separator />
+                  </template>
                   <template v-if="user.rol_id == 1">
                     <q-item
                       clickable

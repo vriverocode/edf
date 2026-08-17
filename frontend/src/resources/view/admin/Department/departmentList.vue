@@ -11,12 +11,13 @@ const apartmentStore = useApartmentStore()
 const waterReadingsStore = useWaterReadingsStore()
 
 const page = ref(1)
-const search = ref('')
+const route = useRoute()
+const search = ref(route.query.search || '')
+const number = ref(route.query.number || '')
 const filter = ref(0)
 const lastPage = ref(1)
 const ready = ref(false)
 const router = useRouter()
-const route = useRoute()
 const highlightId = ref(null)
 
 const goTo = (url) => {
@@ -37,7 +38,7 @@ const filteredOwners = computed(() => {
     o.name?.toLowerCase().includes(q)
   )
 })
-const unitType = ref(1)
+const unitType = ref(Number(route.query.type) || 1)
 const unitTypesOptions = [
   { label: 'Departamentos', value: 1 },
   { label: 'Estacionamientos', value: 2 },
@@ -77,6 +78,7 @@ const getApartment = () => {
   const data = {
     page: page.value,
     search: search.value,
+    number: number.value,
     filter: filter.value,
     type: unitType.value // Pasamos el tipo al store
   }
@@ -148,16 +150,46 @@ const goToOwnerInfo = (apartmentId) => {
 }
 
 const editApartment = (apartment) => {
-  router.push(`/admin/apartments/edit/${apartment.id}?page=${page.value}&from=list`)
+  const params = [
+    `page=${page.value}`,
+    `type=${unitType.value}`,
+    search.value ? `search=${encodeURIComponent(search.value)}` : '',
+    number.value ? `number=${encodeURIComponent(number.value)}` : '',
+    'from=list'
+  ].filter(Boolean).join('&')
+  router.push(`/admin/apartments/edit/${apartment.id}?${params}`)
 }
 
 const removeHighlight = () => {
   setTimeout(() => { highlightId.value = null }, 3000)
 }
 
-watch(unitType, () => {
+watch(unitType, (value) => {
   page.value = 1;
+  router.replace({ query: { ...route.query, type: value, page: 1 } })
   getApartment();
+})
+
+const onPageChange = () => {
+  router.replace({ query: { ...route.query, page: page.value } })
+  getApartment()
+}
+
+let searchTimer = null
+watch([search, number], () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    router.replace({
+      query: {
+        ...route.query,
+        page: 1,
+        search: search.value || undefined,
+        number: number.value || undefined
+      }
+    })
+    getApartment()
+  }, 500)
 })
 
 const refreshData = () => {
@@ -175,11 +207,29 @@ onMounted(() => {
 
 <template>
   <div class="h-full" style="overflow: auto;">
-    <div class="px-4 md:px-0 md:flex md:justify-between items-center w-full md:w-6/6 mt-5 md:px-28 ">
-      <div class="w-full md:w-1/3 mb-4 md:mb-0">
+    <div class="px-2 row pt-2  md:px-28">
+      <div class="col-12 px-2 pb-2">
         <q-select dense borderless v-model="unitType" :options="unitTypesOptions" emit-value map-options
           class="form__inputsTypeDepart" />
       </div>
+      <div class="col-6 px-2">
+        <q-input dense borderless v-model="search" placeholder="Buscar por propietario..." clearable
+          class="form__inputsTypeDepart">
+          <template v-slot:prepend>
+            <q-icon name="eva-search-outline" />
+          </template>
+        </q-input>
+      </div>
+      <div class="col-6 px-2">
+        <q-input dense borderless v-model="number" placeholder="Buscar por número de unidad..." clearable
+          class="form__inputsTypeDepart">
+          <template v-slot:prepend>
+            <q-icon name="eva-search-outline" />
+          </template>
+        </q-input>
+      </div>
+    </div>
+    <div class="px-4 md:px-0 md:flex md:justify-between items-center w-full md:w-6/6 mt-3 md:px-28 ">
       <div class="w-full md:w-auto">
         <q-btn color="primary" unelevated class="w-full createButton" style="border-radius: 0.5rem;"
           @click="goTo('/admin/department/form/add')">
@@ -190,6 +240,7 @@ onMounted(() => {
         </q-btn>
       </div>
     </div>
+   
     <div class="mt-5 md:mt-8 px-2 md:px-28  pb-5" style="overflow: auto;" v-if="ready">
       <template v-if="apartments.length > 0">
         <div class="px-2 pt-3 mt-4  apartamentContainer relative"
@@ -252,7 +303,7 @@ onMounted(() => {
         </div>
         <div class="flex justify-center mt-4">
           <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
-            @update:model-value="getApartment()" />
+            @update:model-value="onPageChange()" />
         </div>
       </template>
       <template v-else>

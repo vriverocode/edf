@@ -71,6 +71,22 @@ export const useIncidentStore = defineStore('Incidents', {
             reject(response?.data?.error || 'Error al crear la incidencia');
           });
       })
+    },
+    async updateIncident(id, data) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+
+        ApiService.post('/api/incidents/u/' + id, data)
+          .then(({ data }) => {
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al actualizar la incidencia');
+          });
+      })
     }
   },
 })

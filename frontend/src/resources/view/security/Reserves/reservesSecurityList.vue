@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useReserveStore } from '@/services/store/reserve.store';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import iconsApp from '@/assets/icons/index';
 import moment from 'moment';
 import cancelReserveModal from '@/components/reserves/cancelReserveModal.vue';
@@ -74,8 +74,17 @@ const getReserveWithFilter = (newFilter) => {
   getReserves();
 }
 
+const route = useRoute();
+
 const goTo = (url) => {
   router.push(url);
+}
+
+const goToDetail = (id) => {
+  router.push({
+    path: '/admin/reserves/view/' + id,
+    query: route.query,
+  });
 }
 
 const showDialog = (e) => {
@@ -184,7 +193,7 @@ onMounted(() => {
         <div v-if="reserves.length > 0" class="space-y-3 pt-3 md:px-5">
           <div v-for="reserve in reserves" :key="reserve.id"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4" style="position: relative;">
-            <div class="px-0 pb-4 pt-2 border-b border-dashed border-gray-300" @click="goTo('/client/reserves/view/'+reserve.id)">
+            <div class="px-0 pb-4 pt-2 border-b border-dashed border-gray-300" @click="goToDetail(reserve.id)">
               <div class="flex justify-between items-start mb-2 px-4">
                 <div class="flex-1">
                   <h3 class="text-lg font-bold text-gray-900 mb-0">
@@ -241,7 +250,7 @@ onMounted(() => {
                       <div v-html="iconsApp.optionsBook"></div>
                       <q-menu>
                       <q-list style="min-width: 150px">
-                        <q-item clickable v-close-popup @click="goTo('/client/reserves/view/'+reserve.id)">
+                        <q-item clickable v-close-popup @click="goToDetail(reserve.id)">
                           <q-item-section>Ver detalles</q-item-section>
                         </q-item>
                         <q-item clickable v-close-popup @click="openCancelReserve(reserve.id)" v-if="[1,2,3].includes(reserve.status)">

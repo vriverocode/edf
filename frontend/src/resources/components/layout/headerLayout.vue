@@ -108,7 +108,7 @@ onMounted(() => {
           Reservar
         </div>
         <div class="flex items-center pl-1">
-          <img :src="mediaUrl + '/images/icons/' + reserveInfo.icon " alt=""
+          <img class="cursor-pointer" :src="mediaUrl + '/images/icons/' + reserveInfo.icon " alt=""
             style="height:4.5rem; transform:translateX(-15px) translateY(-5px)">
           <div class="text-reserveData" style="transform:translateX(-15px);">
             {{ reserveInfo.name }}

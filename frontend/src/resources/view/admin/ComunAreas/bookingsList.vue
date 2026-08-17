@@ -7,6 +7,7 @@ import { useUserStore } from '@/services/store/users.store';
 import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
 import { useComunAreaStore } from '@//services/store/comunArea.store';
+import { usePaginationState } from '@/composables/usePaginationState';
 
 const emitter = inject('emitter')
 moment.locale('es', {
@@ -32,6 +33,16 @@ const dateTo = ref(today)
 const activeQuickFilter = ref('hoy')
 const selectedStatuses = ref([-1])
 const comunAreaStore = useComunAreaStore()
+
+const { restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  pageRef: page,
+  filters: [
+    { key: 'date_from', ref: dateFrom },
+    { key: 'date_to', ref: dateTo },
+    { key: 'quick', ref: activeQuickFilter },
+    { key: 'status', ref: selectedStatuses, parse: (v) => (Array.isArray(v) ? v.map(Number) : v ? [Number(v)] : []) }
+  ]
+})
 
 const quickDateFilters = [
   { key: 'hoy', label: 'Hoy' },
@@ -163,6 +174,13 @@ const goTo = (url) => {
   router.push(url)
 }
 
+const goToDetail = (id) => {
+  router.push({
+    path: '/admin/reserves/view/' + id,
+    query: route.query,
+  })
+}
+
 const formatTime = (time) => {
   return time
 }
@@ -204,10 +222,12 @@ const hasMaintenanceOnDate = (date) => {
 
 const onChangeFilter = () => {
   page.value = 1
+  syncToUrl()
   getReservesByArea()
 }
 
 onMounted(() => {
+  restoreFromQuery()
   getReservesByArea()
   loadMaintenances()
   getComunAreaById()
@@ -353,7 +373,7 @@ onMounted(() => {
                     <div v-html="iconsApp.optionsBook"></div>
                     <q-menu>
                       <q-list style="min-width: 150px">
-                        <q-item clickable v-close-popup @click="goTo('/client/reserves/view/' + reserve.id)">
+                        <q-item clickable v-close-popup @click="goToDetail(reserve.id)">
                           <q-item-section>Ver detalles</q-item-section>
                         </q-item>
                         <q-item clickable v-close-popup v-if="reserve.status == 2"
@@ -371,7 +391,7 @@ onMounted(() => {
 
           <div class="flex justify-center mt-4">
             <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
-              @update:model-value="getReservesByArea()" />
+              @update:model-value="onPageChange(getReservesByArea)" />
           </div>
         </div>
 

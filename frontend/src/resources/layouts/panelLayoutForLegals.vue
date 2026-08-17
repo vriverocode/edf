@@ -28,6 +28,8 @@ const $q = useQuasar()
 const prevUnread = ref(0)
 const lastShownId = ref(null)
 const transitionName = ref('slide-up');
+const lastRoutePath = ref(route.path);
+const lastRouteDepth = ref(route.meta.depth);
 const showFirstTimeModal = computed(() => user.value?.is_first_time === 1);
 const transitionName2 = ref('fade');
 const budgetBannerOffset = ref(0);
@@ -128,9 +130,15 @@ watch(() => notificationsStore.lastIncoming, (notif) => {
 
 
 watch(
-  () => route.meta.depth,
-  (toDepth, fromDepth) => {
-    transitionName.value = toDepth > fromDepth ? 'slide-up' : 'slide-down';
+  () => route.fullPath,
+  () => {
+    if (route.path === lastRoutePath.value) {
+      transitionName.value = '';
+      return;
+    }
+    lastRoutePath.value = route.path;
+    transitionName.value = route.meta.depth > lastRouteDepth.value ? 'slide-up' : 'slide-down';
+    lastRouteDepth.value = route.meta.depth;
   }
 );
 

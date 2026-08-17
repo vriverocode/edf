@@ -9,6 +9,7 @@ import moment from 'moment'
 import iconsApp from '@/assets/icons/index'
 import gastos from '@/assets/img/menu/gastos2.png'
 import expenseFilterModal from '@/components/expenses/expenseFilterModal.vue'
+import { usePaginationState } from '@/composables/usePaginationState'
 
 const router = useRouter()
 const expenseStore = useExpenseStore()
@@ -18,7 +19,6 @@ const serviceCategoryStore = useServiceCategoryStore()
 const loading = ref(false)
 const ready = ref(false)
 const showFilterDialog = ref(false)
-const page = ref(1)
 const lastPage = ref(1)
 const expenses = ref([])
 
@@ -34,6 +34,18 @@ const filter = ref({
   category_id: null,
   date_from: null,
   date_to: null
+})
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'month', get: () => filter.value.month, set: (v) => { filter.value.month = v === '' ? null : Number(v) } },
+    { key: 'year', get: () => filter.value.year, set: (v) => { filter.value.year = Number(v) } },
+    { key: 'status', get: () => filter.value.status, set: (v) => { filter.value.status = v === '' ? null : Number(v) } },
+    { key: 'provider_id', get: () => filter.value.provider_id, set: (v) => { filter.value.provider_id = v === '' ? null : Number(v) } },
+    { key: 'category_id', get: () => filter.value.category_id, set: (v) => { filter.value.category_id = v === '' ? null : Number(v) } },
+    { key: 'date_from', get: () => filter.value.date_from, set: (v) => { filter.value.date_from = v || null } },
+    { key: 'date_to', get: () => filter.value.date_to, set: (v) => { filter.value.date_to = v || null } }
+  ]
 })
 
 const monthOptions = [
@@ -134,12 +146,14 @@ const applyFilter = (newFilter) => {
   filter.value = { ...newFilter }
   page.value = 1
   showFilterDialog.value = false
+  syncToUrl()
   fetchExpenses()
 }
 
 const clearFilters = () => {
   filter.value = { month: null, year: now.getFullYear(), status: null, provider_id: null, category_id: null, date_from: null, date_to: null }
   page.value = 1
+  syncToUrl()
   fetchExpenses()
 }
 
@@ -168,6 +182,7 @@ const loadFilterOptions = async () => {
 }
 
 onMounted(() => {
+  restoreFromQuery()
   loadFilterOptions()
   fetchExpenses()
 })
@@ -290,7 +305,7 @@ onMounted(() => {
                 :max="lastPage"
                 :max-pages="4"
                 :boundary-numbers="false"
-                @update:model-value="fetchExpenses()"
+                @update:model-value="onPageChange(fetchExpenses)"
               />
             </div>
           </template>

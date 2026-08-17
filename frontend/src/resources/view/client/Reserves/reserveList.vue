@@ -4,8 +4,9 @@ import { useReserveStore } from '@/services/store/reserve.store';
 import { useAuthStore } from '@/services/store/auth.services';
 import { useRouter } from 'vue-router';
 import iconsApp from '@/assets/icons/index'
-import moment from 'moment';
+import moment from 'moment-timezone'
 import cancelReserveModal from '@/components/reserves/cancelReserveModal.vue';
+import { usePaginationState } from '@/composables/usePaginationState';
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -13,6 +14,7 @@ moment.locale('es', {
     '_'
   ),
 })
+moment.tz.setDefault('America/Lima')
 
 const reserveStore = useReserveStore();
 const authStore = useAuthStore();
@@ -37,6 +39,19 @@ const userFilters = ref({
   date_from: moment().format('YYYY-MM-DD'),
   date_to: '',
   only_residents: false,
+})
+
+const { restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  pageRef: page,
+  filters: [
+    { key: 'quick', ref: activeQuickFilter },
+    { key: 'status', get: () => userFilters.value.status, set: (v) => { userFilters.value.status = v || '' } },
+    { key: 'date_from', get: () => userFilters.value.date_from, set: (v) => { userFilters.value.date_from = v || '' } },
+    { key: 'date_to', get: () => userFilters.value.date_to, set: (v) => { userFilters.value.date_to = v || '' } },
+    { key: 'hideCanceled', get: () => userFilters.value.hideCanceled, set: (v) => { userFilters.value.hideCanceled = v === 'true' || v === '1' } },
+    { key: 'hidePast', get: () => userFilters.value.hidePast, set: (v) => { userFilters.value.hidePast = v === 'true' || v === '1' } },
+    { key: 'only_residents', get: () => userFilters.value.only_residents, set: (v) => { userFilters.value.only_residents = v === 'true' || v === '1' } }
+  ]
 })
 
 const activeFilterCount = computed(() => {
@@ -153,6 +168,7 @@ const setQuickFilter = (filter) => {
       break
   }
   page.value = 1
+  syncToUrl()
   getReserves()
 }
 
@@ -167,6 +183,7 @@ const resetFilters = () => {
   }
   activeQuickFilter.value = 'upcoming'
   page.value = 1
+  syncToUrl()
   getReserves()
 }
 
@@ -222,7 +239,13 @@ const isBookingInProgress = (booking) => {
 
 const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
+  restoreFromQuery()
   getReserves();
+
+  setInterval(() =>{
+    console.log(moment().format('YYYY-MM-DD HH:mm'))
+    
+  },1000)
 });
 
 const statusOptions = [
@@ -287,7 +310,7 @@ const statusOptions = [
               color="primary" 
               size="sm"
               class="text-primary self-center"
-              @update:model-value="page = 1; getReserves()" 
+              @update:model-value="page = 1; syncToUrl(); getReserves()" 
             />
       </div>
     </div>
@@ -462,7 +485,7 @@ const statusOptions = [
           <!-- Paginación -->
           <div v-if="lastPage > 1" class="flex justify-center mt-4">
             <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
-              @update:model-value="getReserves()" />
+              @update:model-value="onPageChange(getReserves)" />
           </div>
         </div>
 
@@ -529,7 +552,7 @@ const statusOptions = [
           <section class="pb-5">
             <div class="flex justify-evenly mt-2">
               <q-btn label="Limpiar" unelevated class="q-mx-sm" color="primary" outline style="border-radius: 0.8rem; padding:0px 2rem!important; font-size: 1rem;" @click="resetFilters()" />
-              <q-btn label="Aplicar" unelevated class="q-mx-sm" color="primary" style="border-radius: 0.8rem; padding:0px 2rem!important; font-size: 1rem;" @click="page = 1; getReserves()" v-close-popup />
+              <q-btn label="Aplicar" unelevated class="q-mx-sm" color="primary" style="border-radius: 0.8rem; padding:0px 2rem!important; font-size: 1rem;" @click="page = 1; syncToUrl(); getReserves()" v-close-popup />
             </div>
           </section>
         </div>

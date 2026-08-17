@@ -4,6 +4,7 @@ import { Notify } from 'quasar'
 import { useRouter } from 'vue-router'
 import iconsApp from '@/assets/icons/index'
 import { useWaterReadingsStore } from '@/services/store/waterReadings.store'
+import { usePaginationState } from '@/composables/usePaginationState'
 
 const router = useRouter()
 const waterReadingsStore = useWaterReadingsStore()
@@ -11,13 +12,19 @@ const waterReadingsStore = useWaterReadingsStore()
 const loading = ref(false)
 const ready = ref(false)
 
-const page = ref(1)
 const lastPage = ref(1)
 
 const now = new Date()
 const selectedMonth = ref(now.getMonth())
 const selectedYear = ref(now.getFullYear())
 const availableYears = ref([])
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'month', ref: selectedMonth, parse: Number },
+    { key: 'year', ref: selectedYear, parse: Number }
+  ]
+})
 
 const readings = ref([])
 
@@ -101,11 +108,13 @@ const progressText = computed(() => {
 
 const onChangeMonth = () => {
   page.value = 1
+  syncToUrl()
   fetchReadings()
 }
 
 const onChangeYear = () => {
   page.value = 1
+  syncToUrl()
   fetchReadings()
 }
 
@@ -114,6 +123,7 @@ const startSequential = () => {
 }
 
 onMounted(() => {
+  restoreFromQuery()
   fetchReadings()
 })
 </script>
@@ -184,7 +194,7 @@ onMounted(() => {
 
             <div class="flex justify-center mt-4">
               <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
-                @update:model-value="fetchReadings()" />
+                @update:model-value="onPageChange(fetchReadings)" />
             </div>
           </template>
 

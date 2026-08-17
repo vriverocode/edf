@@ -83,6 +83,24 @@ export const useEventStore = defineStore('Event', {
         
       })
     },
+    async getEventAttendance(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.get('/api/events/attendance/'+id)
+        .then(({data}) => {
+          if(data.code !=200) throw data;
+  
+          resolve(data);
+        }).catch(( {response}) => {
+          console.error(response)
+          reject(response.data.error);
+        });
+        
+      })
+    },
     async getEventsByArea(area){
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {

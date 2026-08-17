@@ -72,20 +72,17 @@ const setAssist = (type) => {
 }
 const yetAssist = () => {
   
- let assits = JSON.parse(eventData.value.assits ?? '[]')
- let notAssits = JSON.parse(eventData.value.not_assits ?? '[]')
+ let assits = eventData.value.assits ?? []
+ let notAssits = eventData.value.not_assits ?? []
 
- console.error(assits)
- console.error(notAssits)
- 
   if(assits.includes(user.value.id) || notAssits.includes(user.value.id)){
     confirmAssits.value = false 
   }
   youAssistVote()
 }
 const youAssistVote = () => {
-  let assits = JSON.parse(eventData.value.assits ?? '[]')
-  let notAssits = JSON.parse(eventData.value.not_assits ?? '[]')
+  let assits = eventData.value.assits ?? []
+  let notAssits = eventData.value.not_assits ?? []
  
   if(assits.includes(user.value.id)){
     assistVote.value = {

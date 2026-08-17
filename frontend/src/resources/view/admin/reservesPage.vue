@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useReserveStore } from '@/services/store/reserve.store';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import iconsApp from '@/assets/icons/index'
 import moment from 'moment';
 import cancelReserveModal from '@/components/reserves/cancelReserveModal.vue';
 import filterModal from '@/components/reserves/filterModal.vue';
+import { usePaginationState } from '@/composables/usePaginationState';
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -20,7 +21,6 @@ const reserveStore = useReserveStore();
 const router = useRouter();
 const dialog = ref('');
 const selectedReserve = ref({})
-const page = ref(1)
 const lastPage = ref(1)
 const perPage = ref(10)
 const pendingRefunds = ref([])
@@ -37,6 +37,18 @@ const filter = ref({
   amount_type: '',
   sort_by: 'date',
   sort_dir: 'asc'
+})
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'status', get: () => filter.value.status, set: (v) => { filter.value.status = Number(v) } },
+    { key: 'area_id', get: () => filter.value.area_id, set: (v) => { filter.value.area_id = v === '' ? '' : Number(v) } },
+    { key: 'date_from', get: () => filter.value.date_from, set: (v) => { filter.value.date_from = v || '' } },
+    { key: 'date_to', get: () => filter.value.date_to, set: (v) => { filter.value.date_to = v || '' } },
+    { key: 'amount_type', get: () => filter.value.amount_type, set: (v) => { filter.value.amount_type = v || '' } },
+    { key: 'sort_by', get: () => filter.value.sort_by, set: (v) => { filter.value.sort_by = v || 'date' } },
+    { key: 'sort_dir', get: () => filter.value.sort_dir, set: (v) => { filter.value.sort_dir = v || 'asc' } }
+  ]
 })
 
 const activeAmountFilter = ref('')
@@ -108,6 +120,7 @@ const getReserves = () => {
 const getReserveWithFilter = (newFilter) => {
   filter.value = { ...filter.value, ...newFilter };
   page.value = 1
+  syncToUrl()
   getReserves();
 }
 
@@ -115,11 +128,20 @@ const setAmountFilter = (value) => {
   activeAmountFilter.value = value
   filter.value.amount_type = value
   page.value = 1
+  syncToUrl()
   getReserves()
 }
 
+const route = useRoute();
 const goTo = (url) => {
   router.push(url);
+}
+
+const goToDetail = (id) => {
+  router.push({
+    path: '/admin/reserves/view/' + id,
+    query: route.query,
+  });
 }
 
 const showDialog = (e) => {
@@ -181,6 +203,7 @@ const toggleRefundFilter = () => {
 }
 
 onMounted(() => {
+  restoreFromQuery();
   getReserves();
   fetchPendingRefunds();
 });
@@ -244,7 +267,7 @@ onMounted(() => {
             style="position: relative;">
 
             <!-- Sección superior -->
-            <div class="px-0 pb-4 pt-2 border-b border-dashed border-gray-300 cursor-pointer" @click="goTo('/client/reserves/view/'+reserve.id)">
+            <div class="px-0 pb-4 pt-2 border-b border-dashed border-gray-300 cursor-pointer" @click="goToDetail(reserve.id)">
               <div class="flex justify-between items-start mb-2 px-4">
                 <div class="flex-1">
                   <h3 class="text-lg font-bold text-gray-900 mb-0">
@@ -332,7 +355,7 @@ onMounted(() => {
                     <div v-html="iconsApp.optionsBook"></div>
                     <q-menu>
                       <q-list style="min-width: 150px">
-                        <q-item clickable v-close-popup @click="goTo('/client/reserves/view/'+reserve.id)">
+                        <q-item clickable v-close-popup @click="goToDetail(reserve.id)">
                           <q-item-section>Ver detalles</q-item-section>
                         </q-item>
                         <q-item clickable v-close-popup @click="showDialog($event)" data-dialog="cancel" :data-reserve="reserve.id" v-if="reserve.status != 0">
@@ -350,7 +373,7 @@ onMounted(() => {
           <!-- Pagination -->
           <div v-if="!refundFilterActive" class="flex justify-center mt-4">
             <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
-              @update:model-value="getReserves()" />
+              @update:model-value="onPageChange(getReserves)" />
           </div>
         </div>
 

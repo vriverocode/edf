@@ -9,6 +9,7 @@ import moment from 'moment'
 import { Notify } from 'quasar'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@//services/store/auth.services'
+import { usePaginationState } from '@/composables/usePaginationState'
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -22,7 +23,6 @@ const userStore = useUserStore()
 
 const reserves = ref([])
 const loading = ref(true)
-const page = ref(1)
 const lastPage = ref(1)
 
 const exporting = ref(false)
@@ -41,6 +41,18 @@ const filters = ref({
 })
 
 const localFilters = ref({ ...filters.value })
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'status', get: () => filters.value.status, set: (v) => { filters.value.status = Number(v) } },
+    { key: 'area_id', get: () => filters.value.area_id, set: (v) => { filters.value.area_id = v === '' ? null : Number(v) } },
+    { key: 'date_from', get: () => filters.value.date_from, set: (v) => { filters.value.date_from = v || null } },
+    { key: 'date_to', get: () => filters.value.date_to, set: (v) => { filters.value.date_to = v || null } },
+    { key: 'user_id', get: () => filters.value.user_id, set: (v) => { filters.value.user_id = v === '' ? null : Number(v) } },
+    { key: 'sort_by', get: () => filters.value.sort_by, set: (v) => { filters.value.sort_by = v || 'created_at' } },
+    { key: 'sort_dir', get: () => filters.value.sort_dir, set: (v) => { filters.value.sort_dir = v || 'desc' } }
+  ]
+})
 
 const statusOptions = [
   { label: 'Todos', value: -1 },
@@ -143,6 +155,7 @@ const openFilter = () => {
 const applyFilters = () => {
   filters.value = { ...localFilters.value }
   page.value = 1
+  syncToUrl()
   getReserves()
   showFilter.value = false
 }
@@ -174,6 +187,7 @@ const handleExport = () => {
 }
 
 onMounted(() => {
+  restoreFromQuery()
   getReserves()
   loadAreas()
   loadUsers()
@@ -271,7 +285,7 @@ onMounted(() => {
 
           <div class="flex justify-center mt-4">
             <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
-              @update:model-value="getReserves()" />
+              @update:model-value="onPageChange(getReserves)" />
           </div>
         </div>
 

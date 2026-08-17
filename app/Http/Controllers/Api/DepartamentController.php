@@ -17,7 +17,14 @@ class DepartamentController extends Controller
     {
         // Por defecto busca tipo 1 (Departamentos)
         $type = $request->input('type', 1);
-        $departaments = Departament::with('owner')->where('type', $type)->paginate(15);
+        $search = trim((string) $request->query('search', ''));
+        $number = trim((string) $request->query('number', ''));
+
+        $departaments = Departament::with('owner')
+            ->where('type', $type)
+            ->when($number !== '', fn ($q) => $q->where('number', 'like', "%{$number}%"))
+            ->when($search !== '', fn ($q) => $q->whereHas('owner', fn ($o) => $o->where('name', 'like', "%{$search}%")))
+            ->paginate(15);
 
         return $this->returnSuccess(200, $departaments);
     }

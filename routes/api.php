@@ -96,7 +96,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/assign-property', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');
     });
-    
 
     // ── Apartments ───────────────────────────────────────────
     Route::prefix('apartments')->name('apartment.')->middleware('role_not:trabajador')->group(function () {
@@ -188,6 +187,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Read
         Route::get('/', [EventController::class, 'get']);
         Route::get('/byId/{id}', [EventController::class, 'show']);
+        Route::get('/attendance/{id}', [EventController::class, 'attendance'])->middleware('role:admin,super-admin');
         Route::post('/set-assists/{id}', [EventController::class, 'setAssist'])->middleware('throttle:write');
         // Write - admin only
         Route::post('/', [EventController::class, 'create'])->middleware('role:admin,super-admin', 'throttle:write');
@@ -397,7 +397,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [IncidentController::class, 'index']);
         Route::get('/byId/{id}', [IncidentController::class, 'show']);
         Route::post('/', [IncidentController::class, 'store'])->middleware('throttle:write');
-        Route::post('/u/{id}', [IncidentController::class, 'update'])->middleware('throttle:write');
+        Route::post('/u/{id}', [IncidentController::class, 'update'])->middleware('role:admin,super-admin,trabajador', 'throttle:write');
     });
 
     // ── Expenses ─────────────────────────────────────────────

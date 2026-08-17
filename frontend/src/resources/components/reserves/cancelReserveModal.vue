@@ -3,9 +3,12 @@ import { Notify } from 'quasar'
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useReserveStore } from '@/services/store/reserve.store';
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '@//services/store/auth.services';
 
 
 const emit = defineEmits(['closeModal', 'updateList'])
+const { user } = storeToRefs(useAuthStore())
 const reserveStore = useReserveStore()
 const props = defineProps({
   dialog: Boolean,
@@ -28,7 +31,10 @@ const updateList = () => {
 }
 
 const cancelBooking = () => {
-  if (!motive.value.trim()) return
+  if (user.value.rol_id == 1 && user.value.rol_id == 6){
+    showNotify('negative', 'Debes colocar un motivo') 
+    return
+  } 
   loading.value = true
   const request = props.viaMaintenance
     ? reserveStore.cancelBookingForMaintenance(props.reserve.id, motive.value)
@@ -78,8 +84,7 @@ watch(() => props.dialog, (newValue) => {
 
               <div class="mt-2">
                 <div>
-                  Motivo de cancelación<span v-if="!viaMaintenance" class="text-grey-6"> (opcional)</span><span
-                    v-else class="text-red-500"> *</span>:
+                  Motivo de cancelación:
                 </div>
                 <q-input v-model="motive" outlined type="textarea" class="form__inputsRs" />
 
@@ -94,7 +99,6 @@ watch(() => props.dialog, (newValue) => {
             style="border-radius: 0.8rem; padding:0px  2rem!important; font-size: 1rem;  " @click="hideModal()" />
           <q-btn label="Cancelar reserva" unelevated class="q-mx-sm mt-2" color="negative" outline
             style="border-radius: 0.8rem;  padding:0px  2rem!important; font-size: 1rem;  " :loading="loading"
-            :disable="viaMaintenance && !motive.trim()"
             @click="cancelBooking()" />
         </div>
       </section>

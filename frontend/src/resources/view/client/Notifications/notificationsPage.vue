@@ -1,11 +1,12 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useNotificationsStore } from '@/services/store/notifications.store'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Notify } from 'quasar'
 import iconsApp from '@/assets/icons/index'
 const notifications = useNotificationsStore()
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const ready = ref(false)
 
@@ -21,6 +22,11 @@ const load = async (page = 1) => {
     loading.value = false
     ready.value = true
   }
+}
+
+const onPageChange = (page) => {
+  router.replace({ query: { ...route.query, page } })
+  load(page)
 }
 
 const openItem = (item) => {
@@ -115,7 +121,8 @@ const descriptionByScreenSize = (item) => {
     : `${item.data?.message ? item.data?.message.substr(0, 30) : ''}...`
 }
 onMounted(() => {
-  load()
+  const page = route.query.page ? Number(route.query.page) : 1
+  load(page)
 })
 </script>
 
@@ -205,7 +212,7 @@ onMounted(() => {
         <div class="flex justify-end py-4">
           <q-pagination v-model="notifications.pagination.current_page"
             :max="Math.ceil(notifications.pagination.total / notifications.pagination.per_page) || 1"
-            @update:model-value="(p) => load(p)" color="primary" />
+            @update:model-value="(p) => onPageChange(p)" color="primary" />
         </div>
       </div>
       <div v-else>

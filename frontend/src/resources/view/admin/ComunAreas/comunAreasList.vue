@@ -5,10 +5,10 @@ import iconsApp from '@/assets/icons/index'
 import { useComunAreaStore } from '@/services/store/comunArea.store';
 import deleteAreaModal from '@/components/comunAreas/deleteAreaModal.vue';
 import toggleAreaStatusModal from '@/components/comunAreas/toggleAreaStatusModal.vue';
+import { usePaginationState } from '@/composables/usePaginationState';
 
 const comunAreaStore = useComunAreaStore()
 
-const page = ref(1)
 const search = ref('')
 const filter = ref(0)
 const lastPage = ref(1)
@@ -19,6 +19,13 @@ const materialIcons = inject('materialIcons')
 const goTo = (url) => {
   router.push(url)
 }
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'search', ref: search },
+    { key: 'filter', ref: filter, parse: Number }
+  ]
+})
 
 const comunAreas = ref([])
 const selectedArea = ref({})
@@ -64,6 +71,7 @@ const hideStatusModal = () => {
 }
 const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
+  restoreFromQuery()
   getComunArea()
 })
 </script>
@@ -171,7 +179,7 @@ onMounted(() => {
           </div>
           <div class="flex justify-center mt-4">
             <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
-              @update:model-value="getApartment()" />
+              @update:model-value="onPageChange(getComunArea)" />
           </div>
         </template>
         <template v-else>

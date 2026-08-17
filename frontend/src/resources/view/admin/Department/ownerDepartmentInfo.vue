@@ -37,8 +37,20 @@ const apartment = ref(null)
 const owner = ref(null)
 const ownerPays = ref([])
 const ownerReserves = ref([])
+const reservesPage = ref(1)
+const reservesPerPage = ref(5)
+const reservesTotal = ref(0)
 
 const ownerName = computed(() => owner.value?.name || 'Sin propietario asignado')
+
+const reservesMaxPage = computed(() =>
+  Math.max(1, Math.ceil(reservesTotal.value / reservesPerPage.value))
+)
+
+const paginatedReserves = computed(() => {
+  const start = (reservesPage.value - 1) * reservesPerPage.value
+  return ownerReserves.value.slice(start, start + reservesPerPage.value)
+})
 
 const loadOwnerInfo = async () => {
   loading.value = true
@@ -51,17 +63,22 @@ const loadOwnerInfo = async () => {
     if (!owner.value) {
       ownerPays.value = []
       ownerReserves.value = []
+      reservesTotal.value = 0
+      reservesPage.value = 1
       return
     }
 
     const [paysResponse, reservesResponse] = await Promise.all([
       payStore.getPaysByUser({}),
-      reserveStore.getReservesByUser({})
+      reserveStore.getReservesByUser({ user_id: owner.value.id, per_page: 100 })
     ])
-
     ownerPays.value = (paysResponse.data || []).filter((pay) => pay.user_id === owner.value.id)
-    ownerReserves.value = (reservesResponse.data || []).filter((booking) => booking.user_id === owner.value.id)
+    ownerReserves.value = reservesResponse.data?.data || []
+    reservesTotal.value = reservesResponse.data?.total || ownerReserves.value.length
+    reservesPage.value = 1
   } catch (error) {
+
+    console.log(error)
     Notify.create({
       type: 'negative',
       message: 'No se pudo cargar la información del propietario'
@@ -170,7 +187,7 @@ onMounted(() => {
     <q-card flat bordered>
       <q-card-section class="row items-center justify-between">
         <div class="text-subtitle1 text-weight-bold">Historial de reservas</div>
-        <q-badge color="deep-purple">{{ ownerReserves.length }}</q-badge>
+        <q-badge color="deep-purple">{{ reservesTotal }}</q-badge>
       </q-card-section>
       <q-separator />
       <q-card-section v-if="!loading && ownerReserves.length === 0" class="text-grey-7">
@@ -188,7 +205,7 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="booking in ownerReserves" :key="booking.id">
+            <tr v-for="booking in paginatedReserves" :key="booking.id">
               <td style="padding:0.8rem">#{{ booking.booking_number }}</td>
               <td style="padding:0.8rem">{{ booking.comun_area?.name || '-' }}</td>
               <td style="padding:0.8rem">{{ booking.date }}</td>
@@ -200,7 +217,7 @@ onMounted(() => {
           </tbody>
         </q-markup-table>
         <div class="mobileCards q-pa-sm">
-          <q-card v-for="booking in ownerReserves" :key="'m-res-' + booking.id" flat bordered class="q-mb-sm">
+          <q-card v-for="booking in paginatedReserves" :key="'m-res-' + booking.id" flat bordered class="q-mb-sm">
             <q-card-section>
               <div class="text-body2 text-weight-medium">#{{ booking.booking_number }}</div>
               <div class="text-caption text-grey-7">{{ booking.date }} | {{ booking.time_from }} - {{ booking.time_to }}
@@ -211,6 +228,16 @@ onMounted(() => {
           </q-card>
         </div>
       </q-card-section>
+      <q-separator v-if="reservesMaxPage > 1" />
+      <div v-if="reservesMaxPage > 1" class="flex flex-center q-pa-md">
+        <q-pagination
+          v-model="reservesPage"
+          :max="reservesMaxPage"
+          boundary-numbers
+          direction-links
+          color="primary"
+        />
+      </div>
     </q-card>
   </div>
 </template>

@@ -6,15 +6,22 @@ import { useUserStore } from '@/services/store/users.store';
 import iconsApp from '@/assets/icons/index'
 import deleteUserModal from '@//components/admin/deleteUserModal.vue';
 import userAvailableAreasStep from '@/components/admin/userAvailableAreasStep.vue';
+import { usePaginationState } from '@/composables/usePaginationState';
 const userStore = useUserStore()
 const filterRol = ref(2)
-const page = ref(1)
 const lastPage = ref(1)
 const search = ref('')
 const ready = ref(false)
 const modal = ref('')
 
 const router = useRouter()
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'rol', ref: filterRol, parse: Number },
+    { key: 'search', ref: search }
+  ]
+})
 
 const goTo = (url) => {
   router.push(url)
@@ -61,7 +68,10 @@ const openModal = (user, type) => {
 
 const getUsers = (resetPage = false) => {
   ready.value = false;
-  if (resetPage) page.value = 1
+  if (resetPage) {
+    page.value = 1
+    syncToUrl()
+  }
   const data = {
     page: page.value,
     per_page: 20,
@@ -102,6 +112,7 @@ const formatUnits = (user) => {
 }
 
 onMounted(() => {
+  restoreFromQuery()
   getUsers()
 })
 </script>
@@ -218,7 +229,7 @@ onMounted(() => {
       </div>
       <div v-if="lastPage > 1" class="flex justify-center q-py-md">
         <q-pagination v-model="page" :max="lastPage" :max-pages="7" boundary-numbers color="primary"
-          @update:model-value="getUsers()" />
+          @update:model-value="onPageChange(() => getUsers())" />
       </div>
     </div>
     <div v-if="Object.values(selectedUser).length > 0">

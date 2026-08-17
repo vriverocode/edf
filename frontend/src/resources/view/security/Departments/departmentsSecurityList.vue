@@ -3,10 +3,10 @@ import { onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import iconsApp from '@/assets/icons/index'
 import { useApartmentStore } from '@/services/store/apartment.store';
+import { usePaginationState } from '@/composables/usePaginationState';
 
 const apartmentStore = useApartmentStore()
 
-const page = ref(1)
 const lastPage = ref(1)
 const ready = ref(false)
 const router = useRouter()
@@ -15,6 +15,13 @@ const apartments = ref([])
 const searchNumber = ref('')
 const searchName = ref('')
 const searchTimeout = ref(null)
+
+const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
+  filters: [
+    { key: 'number', ref: searchNumber },
+    { key: 'name', ref: searchName }
+  ]
+})
 
 const getApartment = (needReload = true) => {
   ready.value = !needReload;
@@ -34,6 +41,7 @@ const onSearchInput = () => {
   clearTimeout(searchTimeout.value)
   searchTimeout.value = setTimeout(() => {
     page.value = 1
+    syncToUrl()
     getApartment(false)
   }, 400)
 }
@@ -42,7 +50,10 @@ const goToResidentsInfo = (apartmentId) => {
   router.push('/security/department/' + apartmentId + '/residents')
 }
 
-onMounted(() => { getApartment() })
+onMounted(() => {
+  restoreFromQuery()
+  getApartment()
+})
 </script>
 
 <template>
@@ -98,7 +109,7 @@ onMounted(() => { getApartment() })
         </div>
         <div class="flex justify-center mt-4">
           <q-pagination v-model="page" color="primary" :max="lastPage" :max-pages="4" :boundary-numbers="false"
-            @update:model-value="getApartment()" />
+            @update:model-value="onPageChange(getApartment)" />
         </div>
       </template>
       <template v-else>

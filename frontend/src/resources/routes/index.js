@@ -235,6 +235,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/reserves/view/:id',
+        component: () => import('@/view/admin/Reserves/viewReserve.vue'),
+        name: 'viewReserveAdmin',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalles de reserva',
+          depth: 3,
+          roles: ['admin', 'super-admin', 'trabajador'],
+        },
+      },
+      {
         path: '/reserves/transparency',
         component: () => import('@/view/client/Reserves/reservesTransparency.vue'),
         name: 'reservesTransparency',
@@ -464,6 +476,30 @@ const routes = [
         },
       },
       {
+        path: '/admin/incidents',
+        component: () => import('@/view/admin/Incidents/incidentsPage.vue'),
+        name: 'incidentsPageAdmin',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Incidencias',
+          roles: ['admin', 'super-admin', 'trabajador'],
+          depth: 2,
+        },
+      },
+      {
+        path: '/admin/incidents/:id/status',
+        component: () => import('@/view/admin/Incidents/changeIncidentStatus.vue'),
+        name: 'changeIncidentStatus',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Cambiar estado',
+          roles: ['admin', 'super-admin', 'trabajador'],
+          depth: 3,
+        },
+      },
+      {
         path: '/admin/pay/validate/:id',
         component: () => import('@/view/admin/Pays/validatePay.vue'),
         name: 'PayValidate',
@@ -564,6 +600,18 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Detalles de evento',
+          depth: 2,
+        },
+      },
+      {
+        path: '/admin/events/attendance/:id',
+        component: () => import('@/view/admin/Events/eventAttendance.vue'),
+        name: 'eventAttendance',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Asistencia al evento',
+          roles: ['admin', 'super-admin'],
           depth: 2,
         },
       },

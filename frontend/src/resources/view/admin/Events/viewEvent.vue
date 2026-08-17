@@ -155,14 +155,14 @@ onMounted(() => {
                <!-- Asistentes -->
                <div
                 class="flex justify-between items-center pb-2"
-                v-if="eventData.assists !== null || eventData.not_assits !== null"
+                v-if="(eventData.assits ?? []).length > 0 || (eventData.not_assits ?? []).length > 0"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);"
               >
                 <span class="text-gray-600 font-medium">Asistencia</span>
                 <span class="text-gray-900 font-semibold">
-                  {{ JSON.parse(eventData.assits).length}} asistirán
-                  <span v-if="eventData.not_assits !== null" class="text-gray-600 font-semibold">
-                    / {{ JSON.parse(eventData.not_assits).length}} no asistirán
+                  {{ (eventData.assits ?? []).length}} asistirán
+                  <span v-if="(eventData.not_assits ?? []).length > 0" class="text-gray-600 font-semibold">
+                    / {{ (eventData.not_assits ?? []).length}} no asistirán
                   </span>
                 </span>
               </div>

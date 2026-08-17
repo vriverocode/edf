@@ -63,7 +63,7 @@ export const useApartmentStore = defineStore('Apartment', {
         if (!ApiService.getToken()) throw ''
         ApiService.setHeader()
         // Agregamos el type a la petición GET
-        const url = `/api/apartments?page=${data.page}&search=${data.search}&searchType=${data.filter}&type=${data.type}`
+        const url = `/api/apartments?page=${data.page}&search=${data.search}&searchType=${data.filter}&type=${data.type}&number=${data.number}`
         ApiService.get(url)
           .then(({ data }) => {
             if (data.code != 200) throw data

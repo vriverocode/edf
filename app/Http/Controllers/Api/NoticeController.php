@@ -207,7 +207,7 @@ class NoticeController extends Controller
             Notification::send($users, new RealtimeNotification(
                 title: 'Nuevo aviso publicado',
                 message: $notice->title,
-                url: 'client/notice/view/'.$notice->id,
+                url: '/client/notice/view/'.$notice->id,
                 meta: [
                     'notice_id' => $notice->id,
                     'icon' => 'eva-bell-outline',
