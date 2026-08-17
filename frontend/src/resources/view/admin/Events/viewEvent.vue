@@ -217,7 +217,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .dateFact {
   border-bottom: 1px solid $primary;
   border-left: 1px solid $primary;

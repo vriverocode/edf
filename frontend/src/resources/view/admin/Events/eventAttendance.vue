@@ -102,7 +102,7 @@ onMounted(() => {
           <div class="row w-full mb-3 items-start ">
             <div class="col-12 text-right">
               <div class="flex justify-end md:pb-1">
-                <div class="px-4 py-2 dateFact text-primary text-md font-bold">
+                <div class="px-4 py-2 dateFactAtt text-primary text-md font-bold">
                   <span class="text-grey-7 font-medium text-md">Fecha:</span>
                   {{ moment(eventData.date).format('DD/MM/YYYY') }}
                 </div>
@@ -248,7 +248,7 @@ onMounted(() => {
 </template>
 
 <style lang="scss">
-.dateFact {
+.dateFactAtt {
   border-bottom: 1px solid $primary;
   border-left: 1px solid $primary;
   border-top: 1px solid $primary;
