@@ -164,13 +164,13 @@ class EventController extends Controller
         }
 
         $mapUsers = function ($ids) {
-            return User::with('units')->whereIn('id', $ids)->get()->map(function ($user) {
+            return User::with('apartaments')->whereIn('id', $ids)->get()->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
                     'phone' => $user->phone,
-                    'departments' => $user->units->map(function ($departament) {
+                    'departments' => $user->apartaments->map(function ($departament) {
                         return [
                             'number' => $departament->number,
                             'type_label' => $departament->type_label,

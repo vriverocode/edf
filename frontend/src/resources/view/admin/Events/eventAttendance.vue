@@ -3,11 +3,12 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEventStore } from '@/services/store/event.store'
 import moment from 'moment'
+import eventos from '@/assets/img/menu/eventos3.png'
 
 const route = useRoute()
 const router = useRouter()
 const eventStore = useEventStore()
-
+const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL 
 const eventData = ref(null)
 const assits = ref([])
 const notAssits = ref([])
@@ -56,9 +57,8 @@ const getInitials = (name) => {
 }
 
 const getUserDepartments = (user) => {
-  return (user.departments || [])
-    .map((d) => `${d.number}${d.type_label ? ' · ' + d.type_label : ''}`)
-    .join(', ')
+  console.log(user)
+  return user.departments[0].number
 }
 
 onMounted(() => {
@@ -72,7 +72,7 @@ onMounted(() => {
 
 <template>
   <div class="h-full relative overflow-hidden">
-    <div class="relative pt-8 pb-10 md:px-6 px-3 h-full" style="overflow: auto;">
+    <div class="relative pt-0 pb-10 md:px-6 px-0 h-full" style="overflow: auto;">
       <!-- Loading -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">
         <q-spinner-dots color="primary" size="4rem" />
@@ -80,7 +80,7 @@ onMounted(() => {
       </div>
 
       <!-- Error -->
-      <div v-else-if="error" class="flex flex-col items-center justify-center py-20">
+      <div v-else-if="error" class="flex flex-col items-center justify-center py-5">
         <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
           <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -97,9 +97,9 @@ onMounted(() => {
       </div>
 
       <!-- Asistencia cargada -->
-      <div v-else-if="eventData" class="flex flex-col items-center md:px-28 md:mx-28">
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col w-full">
-          <div class="row w-full mb-3 items-start">
+      <div v-else-if="eventData" class="flex flex-col items-center md:px-28">
+        <div class="bg-white flex flex-col w-full ">
+          <div class="row w-full mb-3 items-start ">
             <div class="col-12 text-right">
               <div class="flex justify-end md:pb-1">
                 <div class="px-4 py-2 dateFact text-primary text-md font-bold">
@@ -108,17 +108,22 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            <div class="flex items-center col-12 px-2 pt-3 flex-nowrap">
-              <div class="cursor-pointer" @click="goToEventsList">
-                <div class="bg-primary rounded-xl p-4">
-                  <q-icon name="eva-arrow-ios-back-outline" color="white" size="1.5rem" />
-                </div>
+            <div class="flex items-center col-12 px-4 pt-3 flex-nowrap">
+              <div class="cursor-pointer" style="height: 70px; width: 70px;">
+                <div class="bg-primary rounded-xl ">
+                  <img 
+                  v-if="eventData.booking?.comun_area?.icon"
+                  :src="urlMedia + '/images/icons/' + eventData.booking?.comun_area?.icon"
+                   alt="" class="md:w-auto h-4/5" >
+                  <img v-else :src="eventos" class="md:w-auto h-4/5" />
+
+                </div>    
               </div>
               <div class="">
                 <h1 class="text-xl font-bold text-gray-900 md:mb-2 pl-3">
                   {{ eventData.title || 'Evento' }}
                 </h1>
-                <p class="text-gray-600 mt-1 pl-3">{{ formatLocation(eventData) }}</p>
+                <p class="text-gray-600 mt-1 pl-3">{{ formatLocation(eventData  ) }}</p>
               </div>
             </div>
           </div>
@@ -127,7 +132,7 @@ onMounted(() => {
           <q-tabs
             v-model="tab"
             dense
-            class="text-primary"
+            class="text-primary py-2 pt-1"
             style="border-top: 1px solid lightgray;"
             align="justify"
           >
@@ -155,7 +160,7 @@ onMounted(() => {
                   class="bg-white rounded-xl shadow-md border border-gray-100 p-4 flex items-center space-x-4"
                 >
                   <div
-                    class="w-12 h-12 rounded-full bg-positive/10 text-positive flex items-center justify-center font-bold text-lg flex-shrink-0"
+                    class="w-12 h-12 rounded-full text-positive flex items-center justify-center font-bold text-lg flex-shrink-0" style="background-color: #04e20c0f;"
                   >
                     {{ getInitials(user.name) }}
                   </div>
@@ -163,10 +168,13 @@ onMounted(() => {
                     <div class="flex justify-between items-start">
                       <h3 class="text-base font-bold text-gray-900 truncate">{{ user.name }}</h3>
                     </div>
-                    <p v-if="user.email || user.phone" class="text-sm text-gray-600 truncate">
-                      {{ [user.email, user.phone].filter(Boolean).join(' · ') }}
+                    <p v-if="user.email" class="text-sm text-gray-600 truncate mt-1">
+                      {{ user.email }}
                     </p>
-                    <p v-if="getUserDepartments(user)" class="text-sm text-gray-700 truncate">
+                     <p v-if="user.phone" class="text-sm text-gray-600 truncate mt-1">
+                      {{ user.phone }}
+                    </p>
+                    <p v-if="getUserDepartments(user)" class="text-sm text-gray-700 truncate mt-1 flex items-center" style="text-transform: uppercase;">
                       <q-icon name="eva-home-outline" size="0.9rem" class="mr-1" />
                       {{ getUserDepartments(user) }}
                     </p>
@@ -243,7 +251,11 @@ onMounted(() => {
 .dateFact {
   border-bottom: 1px solid $primary;
   border-left: 1px solid $primary;
+  border-top: 1px solid $primary;
+
   width: fit-content;
   border-bottom-left-radius: 1rem;
+  border-top-left-radius: 1rem;
+
 }
 </style>

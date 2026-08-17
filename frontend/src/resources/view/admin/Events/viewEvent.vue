@@ -37,7 +37,7 @@ const reloadEvent = () => {
 }
 
 const goToEventsList = () => {
-  router.push('/admin/events')
+  router.go(-1)
 }
 
 const formatLocation = (event) => {
@@ -46,6 +46,9 @@ const formatLocation = (event) => {
   return location || '---'
 }
 
+const goTo = (url) => {
+  router.push(url)
+}
 onMounted(() => {
   if (eventId) {
     getEventById(eventId)
@@ -165,6 +168,10 @@ onMounted(() => {
                     / {{ (eventData.not_assits ?? []).length}} no asistirán
                   </span>
                 </span>
+              </div>
+
+              <div class="mt-5 w-full ">
+                <q-btn label="Ver lista de asistente" color="primary" class="w-full" unelevated  no-caps @click="goTo('/admin/events/attendance/' + eventData.id)" />
               </div>
             </div>
           </div>

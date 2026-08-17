@@ -65,7 +65,7 @@ cd frontend && npm run build   # outputs to frontend/dist/
 
 ### Key env vars
 - **Root `.env`**: `DB_HOST`, `DB_DATABASE=edf_app`, `PUSHER_*`, `FIREBASE_CREDENTIALS`
-- **`frontend/.env`**: `VITE_LARAVEL_API_URL` (must point to backend, e.g. `http://192.168.1.67:8030`), `VITE_SERVER_IP` (Vite HMR host), `VITE_LARAVEL_MEDIA_URL`
+- **`frontend/.env`**: `VITE_LARAVEL_API_URL` (must point to backend, e.g. `http://192.168.1.161:8030`), `VITE_SERVER_IP` (Vite HMR host), `VITE_LARAVEL_MEDIA_URL`
 
 ## Conventions
 
