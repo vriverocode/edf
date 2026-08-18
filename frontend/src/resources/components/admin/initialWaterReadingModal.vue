@@ -121,12 +121,12 @@ const submit = () => {
     showNotify('warning', 'Debes subir la foto del medidor.')
     return
   }
-  if (parseMaskedDecimal(formData.value.current_reading, 2) === null) {
+  if (parseMaskedDecimal(formData.value.current_reading, 3) === null) {
     showNotify('warning', 'La lectura actual es requerida.')
     return
   }
   const prev = Number(formData.value.previous_reading) || 0
-  const curr = parseMaskedDecimal(formData.value.current_reading, 2)
+  const curr = parseMaskedDecimal(formData.value.current_reading, 3)
   if (curr <= prev) {
     showNotify('warning', 'La lectura actual debe ser mayor a la lectura anterior.')
     return
@@ -138,8 +138,8 @@ const submit = () => {
   payload.append('departament_id', String(props.apartment?.id || ''))
   payload.append('month', String(formData.value.month?.value || ''))
   payload.append('year', String(Number(formData.value.year)))
-  payload.append('previous_reading', String(parseMaskedDecimal(formData.value.previous_reading, 2)))
-  payload.append('current_reading', String(parseMaskedDecimal(formData.value.current_reading, 2)))
+  payload.append('previous_reading', String(parseMaskedDecimal(formData.value.previous_reading, 3)))
+  payload.append('current_reading', String(parseMaskedDecimal(formData.value.current_reading, 3)))
   payload.append('is_initial', formData.value.is_initial ? '1' : '0')
   if (formData.value.photo) {
     payload.append('photo', formData.value.photo)
@@ -228,7 +228,7 @@ watch(dialogVisible, (open) => {
         borderless
         class="form__inputsR mt-1"
         color="primary"
-        mask="###.###.###,##"
+        mask="#######.###"
         reverse-fill-mask inputmode="decimal"
         :disable="true"
         :readonly="true"
@@ -242,10 +242,10 @@ watch(dialogVisible, (open) => {
         borderless
         class="form__inputsR mt-1"
         color="primary"
-        mask="###.###.###,##"
+        mask="#######.###"
         reverse-fill-mask inputmode="decimal"
-        :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura actual es requerida',
-        val => parseMaskedDecimal(val, 2) > parseMaskedDecimal(formData.previous_reading, 2) || 'La lectura actual debe ser mayor que la lectura anterior'
+        :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura actual es requerida',
+        val => parseMaskedDecimal(val, 3) > parseMaskedDecimal(formData.previous_reading, 3) || 'La lectura actual debe ser mayor que la lectura anterior'
         ]" 
       />
 

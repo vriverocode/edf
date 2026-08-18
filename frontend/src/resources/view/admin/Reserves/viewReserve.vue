@@ -278,7 +278,7 @@ const reloadBooking = () => {
           </div>
           <!-- Botones de acción -->
           <div class="w-full space-y-4">
-            <button @click="goToGuests"
+            <button @click="goToGuests" v-if="booking.comun_area.type == 4"
               class="w-full py-4 rounded-xl font-medium bg-primary text-white hover:bg-primary transition-colors flex items-center justify-center space-x-2">
               <q-icon name="eva-people-outline" size="1.2rem" />
               <span>Ver invitados</span>
@@ -291,11 +291,6 @@ const reloadBooking = () => {
                 </path>
               </svg>
               <span>Descargar Recibo</span>
-            </button>
-            <button @click="goBack"
-              class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
-              <q-icon name="eva-arrow-back-outline" size="1.2rem" />
-              <span>Volver</span>
             </button>
           </div>
         </div>

@@ -211,7 +211,7 @@ onMounted(() => {
 
         <div class="flex justify-end py-4">
           <q-pagination v-model="notifications.pagination.current_page"
-            :max="Math.ceil(notifications.pagination.total / notifications.pagination.per_page) || 1"
+            :max="5" direction-links
             @update:model-value="(p) => onPageChange(p)" color="primary" />
         </div>
       </div>
