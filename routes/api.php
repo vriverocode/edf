@@ -193,6 +193,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [EventController::class, 'create'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::delete('/{id}', [EventController::class, 'destroy'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/{id}', [EventController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/send-reminder/{id}', [EventController::class, 'sendReminderEvent'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Payments ─────────────────────────────────────────────

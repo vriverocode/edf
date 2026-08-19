@@ -115,7 +115,7 @@ class EventController extends Controller
         ]);
 
         if ($previousDate !== date('Y-m-d', strtotime($request->date))) {
-            $this->sendNotification($event, (int) $request->user()->id, true);
+            $this->sendNotification($event, (int) $request->user()->id, 2);
         }
 
         return $this->returnSuccess(200, 'ok');
@@ -146,6 +146,8 @@ class EventController extends Controller
         if (in_array($request->user()->id, $assits)) {
             return $this->returnSuccess(200, 'ok');
         }
+
+        $this->removeUserFromAssitsIfExist($request, $event);
         array_push($assits, $request->user()->id);
 
         $event->update([
@@ -240,15 +242,10 @@ class EventController extends Controller
         $booking->delete();
     }
 
-    private function sendNotification($event, ?int $creatorId = null, bool $modified = false)
+    private function sendNotification($event, ?int $creatorId = null, int $type = 1)
     {
         $users = User::whereIn('rol_id', [2, 3, 4, 5])->get();
-        $creator = User::find($creatorId);
-
-        if ($creator && $creator->rol_id != 1 && ! $users->contains('id', $creator->id)) {
-            $users->push($creator);
-        }
-        $dataNotificaction = $this->getDataToNotification($event, $modified);
+        $dataNotificaction = $this->getDataToNotification($event, $type);
 
         try {
             foreach ($users as $user) {
@@ -264,23 +261,39 @@ class EventController extends Controller
         }
     }
 
-    private function getDataToNotification($event, bool $modified = false)
+    private function getDataToNotification($event, int $type = 1)
     {
-        if ($modified) {
-            return [
-                'title' => 'Evento modificado',
-                'message' => 'El evento: '.$event->title.', fue modificado. Revisa la nueva fecha',
-                'url' => '/client/events/view/'.$event->id,
-                'meta' => ['event_id' => $event->id],
-            ];
-        }
+        switch ($type) {
+            case 1:
+                return [
+                    'title' => 'Nuevo evento programado',
+                    'message' => 'El evento: '.$event->title.', fue programado entra y confirma tu asistencia',
+                    'url' => '/client/events/view/'.$event->id,
+                    'meta' => ['event_id' => $event->id],
+                ];
+            case 2:
+                return [
+                    'title' => 'Evento modificado',
+                    'message' => 'El evento: '.$event->title.', fue modificado. Revisa la nueva fecha',
+                    'url' => '/client/events/view/'.$event->id,
+                    'meta' => ['event_id' => $event->id],
+                ];
 
-        return [
-            'title' => 'Nuevo evento programado',
-            'message' => 'El evento: '.$event->title.', fue programado entra y confirma tu asistencia',
-            'url' => '/client/events/view/'.$event->id,
-            'meta' => ['event_id' => $event->id],
-        ];
+            case 3:
+                return [
+                    'title' => 'Recordatorio de evento',
+                    'message' => 'El evento: '.$event->title.' esta proximo a comenzar, recuerda confirmar tu asistencia',
+                    'url' => '/client/events/view/'.$event->id,
+                    'meta' => ['event_id' => $event->id],
+                ];
+            default:
+                return [
+                    'title' => 'Nuevo evento programado',
+                    'message' => 'El evento: '.$event->title.', fue programado entra y confirma tu asistencia',
+                    'url' => '/client/events/view/'.$event->id,
+                    'meta' => ['event_id' => $event->id],
+                ];
+        }
     }
 
     private function selectTypeAssit($request, $event)
@@ -294,5 +307,33 @@ class EventController extends Controller
         }
 
         return $assit;
+    }
+    public function sendReminderEvent(Request $request, $id)
+    {
+        $user = $request->user();
+
+        if ($user->rol_id != 1) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+        $event = Event::with(['booking.comunArea'])->find($id);
+        $this->sendNotification($event, 1, 3);
+        return $this->returnSuccess(200, 'ok');
+    }
+    private function removeUserFromAssitsIfExist($request, $event)
+    {
+        $assits = $event->assits ?? [];
+        $notAssits = $event->not_assits ?? [];
+        if ($request->assitType == 0) {
+            $assits = array_diff($assits, [$request->user()->id]);
+            $event->update([
+                'assits' => $assits,
+            ]);
+        }
+        if ($request->assitType == 1) {
+            $notAssits = array_diff($notAssits, [$request->user()->id]);
+            $event->update([
+                'not_assits' => $notAssits,
+            ]);
+        }
     }
 }

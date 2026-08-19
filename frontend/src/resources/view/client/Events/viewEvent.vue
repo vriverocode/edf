@@ -16,6 +16,7 @@ const loading = ref(false)
 const loadingButton = ref(false)
 const error = ref(null)
 const confirmAssits = ref(true);
+const confirmNotAssits = ref(true);
 const eventId = route.params.id || route.query.id
 const assistVote = ref({})
 const getEventById = async (id) => {
@@ -75,8 +76,11 @@ const yetAssist = () => {
  let assits = eventData.value.assits ?? []
  let notAssits = eventData.value.not_assits ?? []
 
-  if(assits.includes(user.value.id) || notAssits.includes(user.value.id)){
+  if(assits.includes(user.value.id)){
     confirmAssits.value = false 
+  }
+  if (notAssits.includes(user.value.id)) {
+    confirmNotAssits.value = false
   }
   youAssistVote()
 }
@@ -91,7 +95,7 @@ const youAssistVote = () => {
       color: 'positive'
     }
   }
-  else{
+  if(notAssits.includes(user.value.id)){
     assistVote.value = {
       title: 'Haz marcado que no asistiras',
       icon: 'eva-close-outline',
@@ -210,42 +214,41 @@ onMounted(() => {
 
           <!-- Botones -->
           <div class="w-full pb-5 row">
-            <template v-if="confirmAssits">
-              <div class="col-12 col-md-6 mt-3 md:mt-0 px-5">
-                <q-btn
-                  @click="setAssist(0)"
-                  class="w-full flex flex-center py-3"
-                  outline
-                  color="primary"
-                  no-caps
-                  style="border-radius: 0.8rem;"
-                  :loading="loadingButton"
-                >
-                  <q-icon name="eva-bell-outline" class="mx-2" size="1.2rem" />
-                  <div>
-                    No voy a asistir
-                  </div>
-                </q-btn>
-              </div>
-              <div class="col-12 col-md-6 mt-5 md:mt-0 px-5">
-                <q-btn
-                  @click="setAssist(1)"
-                  class="w-full flex flex-center py-3" 
-                  unelevated
-                  color="primary"
-                  no-caps
-                  style="border-radius: 0.8rem;"
-                  :loading="loadingButton"
-                >
-                  <q-icon name="eva-bell-outline" class="mx-2" size="1.2rem" />
-                  <div>
-                    Voy a asistir
-                  </div>
-                </q-btn>
-              </div>
-            </template>
-            <template v-else>
-              <div class="flex flex-center col-12">
+            <div v-if="confirmNotAssits" class="col-12 col-md-6 mt-3 md:mt-0 px-5">
+              <q-btn
+                @click="setAssist(0)"
+                class="w-full flex flex-center py-3"
+                outline
+                color="primary"
+                no-caps
+                style="border-radius: 0.8rem;"
+                :loading="loadingButton"
+              >
+                <q-icon name="eva-bell-outline" class="mx-2" size="1.2rem" />
+                <div>
+                  No voy a asistir
+                </div>
+              </q-btn>
+            </div>
+            <div class="col-12 col-md-6 mt-5 md:mt-0 px-5" v-if="confirmAssits">
+              <q-btn
+                @click="setAssist(1)"
+                class="w-full flex flex-center py-3" 
+                unelevated
+                color="primary"
+                no-caps
+                style="border-radius: 0.8rem;"
+                :loading="loadingButton"
+              >
+                <q-icon name="eva-bell-outline" class="mx-2" size="1.2rem" />
+                <div>
+                  Voy a asistir
+                </div>
+              </q-btn>
+            </div>
+          
+            <template v-if="!confirmAssits || !confirmNotAssits">
+              <div class="flex flex-center col-12 mt-4">
                 <div class="flex flex-center py-3 px-14 assistVote" :class="`b-${assistVote.color}`">
                   <q-icon :name="assistVote.icon" :color="assistVote.color" size="1.5rem" class="text-bold"/>
                   <div :class="'text-'+assistVote.color" style="font-size: 1rem;" class="text-bold ml-2">{{assistVote.title}}</div>

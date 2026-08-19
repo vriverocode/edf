@@ -12,15 +12,15 @@ export const useEventStore = defineStore('Event', {
         const query = this.filterQuery(filters);
         const url = '/api/events' + (query ? `?${query}` : '');
         ApiService.get(url)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
+
       })
     },
     async createEvent(data) {
@@ -30,57 +30,57 @@ export const useEventStore = defineStore('Event', {
         }
         ApiService.setHeader();
         ApiService.post('/api/events', data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          if(response.data.code == 403){
-            reject(response.data);
-          }
-          reject(response.data.error);
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            if (response.data.code == 403) {
+              reject(response.data);
+            }
+            reject(response.data.error);
+          });
+
       })
 
     },
-    async createEventPay(postData){
+    async createEventPay(postData) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
         ApiService.post('/api/pays/events', postData)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
+
       })
 
     },
-     
+
     async getEventById(id) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/events/byId/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
-        
+        ApiService.get('/api/events/byId/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
+
       })
     },
     async getEventAttendance(id) {
@@ -89,34 +89,34 @@ export const useEventStore = defineStore('Event', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/events/attendance/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
-        
+        ApiService.get('/api/events/attendance/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
+
       })
     },
-    async getEventsByArea(area){
+    async getEventsByArea(area) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/events/byArea/'+area)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
-        
+        ApiService.get('/api/events/byArea/' + area)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
+
       })
     },
 
@@ -126,37 +126,37 @@ export const useEventStore = defineStore('Event', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/events/'+id, data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          if(response.data.code == 403){
-            reject(response.data);
-          }
-          reject(response.data.error);
-        });
-        
+        ApiService.post('/api/events/' + id, data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            if (response.data.code == 403) {
+              reject(response.data);
+            }
+            reject(response.data.error);
+          });
+
       })
 
     },
-    async getAvailableEventInDayByArea(data){
+    async getAvailableEventInDayByArea(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/events/availableBooking/'+data.idArea+'?date='+data.date+'&')
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
+        ApiService.get('/api/events/availableBooking/' + data.idArea + '?date=' + data.date + '&')
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
       })
 
     },
@@ -166,15 +166,15 @@ export const useEventStore = defineStore('Event', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.delete('/api/events/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
+        ApiService.delete('/api/events/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
       })
     },
     async cancelEvent(id) {
@@ -183,52 +183,69 @@ export const useEventStore = defineStore('Event', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/events/cancel/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
+        ApiService.post('/api/events/cancel/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
       })
     },
-    async getPendingEvent(){
+    async getPendingEvent() {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
         ApiService.get('/api/events/pendings')
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
       })
     },
-    async setAssitByData(id, data){
+    async setAssitByData(id, data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/events/set-assists/'+id, data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(response.data.error);
-        });
+        ApiService.post('/api/events/set-assists/' + id, data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
       })
     },
-    filterQuery(filter){
+    async sendReminderEvent(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.post('/api/events/send-reminder/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response.data.error);
+          });
+      })
+    },
+    filterQuery(filter) {
       try {
         const params = new URLSearchParams();
         if (!filter || typeof filter !== 'object') return '';
@@ -244,6 +261,6 @@ export const useEventStore = defineStore('Event', {
         return '';
       }
     }
-    
+
   },
 })

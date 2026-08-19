@@ -1,10 +1,13 @@
 <script setup>
-import { useAuthStore } from '@//services/store/auth.services'
+import { useAuthStore } from '@/services/store/auth.services'
 import iconsApp from '@/assets/icons/index'
 import moment from 'moment'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import eventos from '@/assets/img/menu/eventos3.png'
+import { useEventStore } from '@/services/store/event.store'
+import { useQuasar } from 'quasar'
+import { ref } from 'vue'
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -13,9 +16,12 @@ moment.locale('es', {
       '_'
     ),
 })
+const $q = useQuasar()
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const emit = defineEmits(['selectEvent'])
+const eventStore = useEventStore()
+const loadingSendReminder = ref(false)
 const props = defineProps({
   events: {
     type: Array,
@@ -39,7 +45,23 @@ const formatLocation = (event) => {
 const selectEvent = (eventId) => {
   emit('selectEvent', eventId)
 }
-
+const sendReminderEvent = (eventId) => {
+  loadingSendReminder.value = true
+  eventStore.sendReminderEvent(eventId).then(() => {
+    $q.notify({
+      type: 'positive',
+      message: 'Recordatorio enviado exitosamente'
+    })
+  }).catch((response) => {
+    console.log('response :>> ', response);
+    $q.notify({
+      type: 'negative',
+      message: 'Error al enviar recordatorio'
+    })
+  }).finally(() => {
+    loadingSendReminder.value = false
+  })
+}
 const getPaymentAmount = (booking) => {
   if (booking.amount > 0) {
     return `S/. ${booking.amount}`
@@ -105,16 +127,16 @@ const getPaymentAmount = (booking) => {
         </div>
 
         <!-- Contenido principal con imagen y detalles -->
-        <div class="flex items-center space-x-4" @click="goToDetail(event.id)">
+        <div class="flex items-center space-x-4" >
           <!-- Imagen del área -->
-          <div
+          <div @click="goToDetail(event.id)"
             class="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0"
           >
             <img :src="eventos" class="md:w-auto h-4/5" />
           </div>
 
           <!-- Detalles de la reserva -->
-          <div class="flex-1 space-y-2">
+          <div class="flex-1 space-y-2" @click="goToDetail(event.id)">
             <!-- Fechas -->
             <div class="flex items-center text-sm text-gray-700">
               <svg
@@ -155,6 +177,12 @@ const getPaymentAmount = (booking) => {
               <span class="font-medium">
                 {{ formatLocation(event) }}
               </span>
+            </div>
+          </div>
+          <div class="w-full flex justify-end">
+            <div v-if="user.rol_id == 1">
+              <q-btn icon="eva-paper-plane-outline" rounded size="sm"
+              color="primary" @click="sendReminderEvent(event.id)" :loading="loadingSendReminder" />
             </div>
           </div>
         </div>
