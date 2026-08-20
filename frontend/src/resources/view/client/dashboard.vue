@@ -15,6 +15,8 @@ import residentes from '@/assets/img/menu/residentes.png'
 import visitas from '@/assets/img/menu/visitas.png'
 import eventos from '@/assets/img/menu/eventos.svg'
 import mantenimientos from '@/assets/img/menu/worker.png'
+import booking from '@/assets/img/menu/reservas.png'
+
 
 const { user } = storeToRefs(useAuthStore());
 const router = useRouter();
@@ -40,7 +42,7 @@ const menu = computed(() => [
   {
     title: 'Reservas',
     icon: mis_reservas,
-    link: '/client/reserves',
+    link: '/client/reserves/list',
     roles: [2, 3, 4, 5]
   },
   {
@@ -115,6 +117,12 @@ const menu = computed(() => [
     link: '/admin/maintenances',
     roles: [6]
   },
+  {
+    title: 'Historial de reservas',
+    link: '/client/reserves/history',
+    icon: booking,
+    roles: [2, 3, 4, 5]
+  }
 ]);
 
 const menuByRol = computed(() => {
@@ -139,8 +147,8 @@ const goTo = (url) => {
             <div class="flex justify-center items-center h-full w-full p-1">
               <div v-html="item.icon" class="flex justify-center mt-0" v-if="user.rol_id == 6 && (item.title == 'Airbnb' || item.title == 'Visitas')" />
               <img :src="item.icon" class="w-auto md:w-auto " v-else
-                :class="{ 'h-3/5': item.icon.includes('visitas') || item.icon.includes('residentes') || item.title.includes('Mantenimientos'), 
-                'h-full': !item.icon.includes('visitas') && !item.icon.includes('residentes') && !item.title.includes('Mantenimientos')}" />
+                :class="{ 'h-3/5': item.icon.includes('visitas') || item.icon.includes('residentes') || item.title.includes('Mantenimientos') || item.link.includes('history'), 
+                'h-full': !item.icon.includes('visitas') && !item.icon.includes('residentes') && !item.title.includes('Mantenimientos') && !item.link.includes('history')}" />
             </div>
           </div>
         </div>

@@ -14,7 +14,7 @@ moment.locale('es', {
     '_'
   ),
 })
-moment.tz.setDefault('America/Lima')
+const nowInLima = () => moment.tz('America/Lima')
 
 const reserveStore = useReserveStore();
 const authStore = useAuthStore();
@@ -36,7 +36,7 @@ const userFilters = ref({
   hideCanceled: true,
   hidePast: true,
   status: '',
-  date_from: moment().format('YYYY-MM-DD'),
+  date_from: nowInLima().format('YYYY-MM-DD'),
   date_to: '',
   only_residents: false,
 })
@@ -77,7 +77,7 @@ const getApiParams = () => {
   }
 
   if (userFilters.value.hidePast) {
-    params.date_from = moment().format('YYYY-MM-DD')
+    params.date_from = nowInLima().format('YYYY-MM-DD')
   }
 
   if (userFilters.value.date_to) {
@@ -131,7 +131,7 @@ const setQuickFilter = (filter) => {
         hideCanceled: true,
         hidePast: true,
         status: '',
-        date_from: moment().format('YYYY-MM-DD'),
+        date_from: nowInLima().format('YYYY-MM-DD'),
         date_to: '',
         only_residents: false,
       }
@@ -177,7 +177,7 @@ const resetFilters = () => {
     hideCanceled: true,
     hidePast: true,
     status: '',
-    date_from: moment().format('YYYY-MM-DD'),
+    date_from: nowInLima().format('YYYY-MM-DD'),
     date_to: '',
     only_residents: false,
   }
@@ -230,9 +230,9 @@ const getPaymentAmount = (booking) => {
 }
 
 const isBookingInProgress = (booking) => {
-  const today = moment().format('YYYY-MM-DD')
+  const today = nowInLima().format('YYYY-MM-DD')
   if (booking.date !== today) return false
-  const now = moment()
+  const now = nowInLima()
   const startTime = moment(booking.time_from, 'HH:mm')
   return now.isSameOrAfter(startTime)
 }
@@ -241,11 +241,6 @@ const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
   restoreFromQuery()
   getReserves();
-
-  setInterval(() =>{
-    console.log(moment().format('YYYY-MM-DD HH:mm'))
-    
-  },1000)
 });
 
 const statusOptions = [
@@ -375,7 +370,7 @@ const statusOptions = [
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                       </path>
                     </svg>
-                    <span class="font-medium">{{ moment(reserve.date).format('DD MMM YYYY') }}</span>
+                    <span class="font-medium">{{ moment.tz(reserve.date, 'America/Lima').format('DD MMM YYYY') }}</span>
                   </div>
 
                   <!-- Horario -->

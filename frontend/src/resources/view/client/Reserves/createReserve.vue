@@ -9,7 +9,7 @@ import moment from 'moment';
 import { usePayMethodStore } from '@/services/store/payMethod.store';
 import culqiCheckout from '@/components/layout/culqiCheckout.vue';
 import conditionPayLaterModal from '@/components/reserves/conditionPayLaterModal.vue';
-import ruleDetailsModal from '@/components/reserves/ruleDetailsModal.vue'; // <-- AGREGAR ESTA LÍNEA
+import ruleDetailsModal from '@/components/reserves/ruleDetailsModal.vue';
 import { useAuthStore } from '@/services/store/auth.services';
 import { useMaintenanceStore } from '@/services/store/maintenance.store';
 
@@ -76,7 +76,7 @@ const formData = ref({
 })
 const toPayId = ref(null)
 const tapActive = ref(
-  moment().format('D') !== moment(formData.value.date).format('D')
+  moment().format('D') !== moment(formData.value.date, 'YYYY/MM/DD').format('D')
     ? 'ma'
     : moment().format('H') < 12
       ? 'ma' : moment().format('H') >= 12 && moment().format('H') < 18
@@ -114,7 +114,7 @@ const backButton = () => {
   }
   if (step.value == 3) {
     tapActive.value =
-      moment().format('D') !== moment(formData.value.date).format('D')
+      moment().format('D') !== moment(formData.value.date, 'YYYY/MM/DD').format('D')
         ? 'ma'
         : moment().format('H') < 12
           ? 'ma' : moment().format('H') >= 12 && moment().format('H') < 18
@@ -275,6 +275,8 @@ const validateStepForm = () => {
   return true
 }
 const getAvaibleBookingByDay = () => {
+  console.log('formData.value.date', formData.value.date);
+  
   const alreadyBlocked = blockedAreaIds.value.includes(selectedComunArea.value.id)
 
   // if (alreadyBlocked) {
@@ -619,7 +621,7 @@ const reservesByType = computed(() => {
 })
 const calculateDiffHour = computed(() => {
   const ahora = moment();
-  const fechaReserva = moment(formData.value.date);
+  const fechaReserva = moment(formData.value.date, 'YYYY/MM/DD');
   const diferenciaHoras = fechaReserva.diff(ahora, 'hours');
 
   return diferenciaHoras >= 24;
@@ -724,7 +726,7 @@ watch(step,
                 <div class="row w-full pt-2">
                   <template v-if="step == 2">
                     <div class="flex flex-center w-full q-px-md">
-                      <q-date color="tealedf" v-model="formData.date" minimal class="w-full calendarReserve custom-pins"
+                      <q-date color="tealedf" v-model="formData.date" minimal mask="YYYY/MM/DD" class="w-full calendarReserve custom-pins"
                         :options="daysAvailableForBook" @update:model-value="getAvaibleBookingByDay"
                         text-color="primary" :navigation-min-year-month="moment().format('YYYY/MM')" :locale="myLocale"
                         :events="dateEvents" :event-color="dateEventColor">
@@ -741,7 +743,7 @@ watch(step,
                         <div class="bg-primary mt-4 py-2 w-full textInfoContainer">
                           <div class="text-white dateInfoTitle text-center">Fecha seleccionada:</div>
                           <div class="text-white dateInfoContent text-center">
-                            {{ formData.date ? moment(formData.date).format('dddd DD [de] MMMM [del] YYYY') : '-----' }}
+                            {{ formData.date ? moment(formData.date, 'YYYY/MM/DD').format('dddd DD [de] MMMM [del] YYYY') : '-----' }}
                           </div>
                         </div>
                       </div>
@@ -753,7 +755,8 @@ watch(step,
                         <div>
                           <div class="text-dateBlockTitle">Fecha elegida</div>
                           <div class="text-primary text-bold text-dateBlock">
-                            {{ formData.date ? moment(formData.date).format('dddd DD') : '-----' }}
+                            {{ formData.date ? moment(formData.date, 'YYYY/MM/DD').format('dddd DD') : '-----' }}
+                             {{ formData.date ? moment(formData.date, 'YYYY/MM/DD').format('DD/mm/yyyy') : '-----' }}
                             - 
                             {{  hrsFormat(formData.typeOfReserve == 2 
                               ? selectedComunArea.max_time_reserve_exclusive 
@@ -829,8 +832,8 @@ watch(step,
                             Fecha y hora
                           </div>
                           <div class="text-grey-10 text-confirmDate">
-                            {{ formData.date ? moment(formData.date).format('ddd DD') : '-----' }}
-                            - {{ formData.time_from ? moment(formData.date + ' ' + formData.time_from).format('hh:mm A')
+                            {{ formData.date ? moment(formData.date, 'YYYY/MM/DD').format('ddd DD') : '-----' }}
+                            - {{ formData.time_from ? moment(formData.date + ' ' + formData.time_from, 'YYYY/MM/DD HH:mm').format('hh:mm A')
                               : '**:** **' }} - {{ selectedComunArea.max_time_reserve == 1
                               ? moment.duration(selectedComunArea.max_time_reserve, 'hours').asMinutes() + ' min'
                               : selectedComunArea.max_time_reserve + ' hrs'
@@ -1062,8 +1065,8 @@ watch(step,
                         <div class="col-12">
                           <div class="text-dateBlockTitle">Reserva</div>
                           <div class=" text-bold text-dateBlockBottom">
-                            {{ formData.date ? moment(formData.date).format('ddd DD') : '-----' }}
-                            - {{ formData.time_from ? moment(formData.date + ' ' + formData.time_from).format('hh:mm A')
+                            {{ formData.date ? moment(formData.date, 'YYYY/MM/DD').format('ddd DD') : '-----' }}
+                            - {{ formData.time_from ? moment(formData.date + ' ' + formData.time_from, 'YYYY/MM/DD HH:mm').format('hh:mm A')
                               : '**:** **' }}
                           </div>
                         </div>
