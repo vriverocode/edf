@@ -6,7 +6,7 @@ export const useNotificationsStore = defineStore('Notifications', {
     items: [],
     unreadCount: 0,
     loading: false,
-    pagination: { current_page: 1, per_page: 15, total: 0 },
+    pagination: { current_page: 1, per_page: 15, total: 0, last_page: 1 },
     lastIncoming: null
   }),
   actions: {
@@ -24,7 +24,8 @@ export const useNotificationsStore = defineStore('Notifications', {
             this.pagination = {
               current_page: page.current_page,
               per_page: page.per_page,
-              total: page.total
+              total: page.total,
+              last_page: page.last_page
             }
             resolve(data)
           }).catch(({ response }) => {
@@ -102,13 +103,13 @@ export const useNotificationsStore = defineStore('Notifications', {
       this.lastIncoming = notification
     },
     bindEchoListener(userId) {
-      
+
       try {
         if (!window.Echo || !userId) return
         window.Echo.private(`App.Models.User.${userId}`).notification((notification) => {
           this.onIncoming(notification)
         })
-      } catch (e) {}
+      } catch (e) { }
     },
     toQuery(filter) {
       try {

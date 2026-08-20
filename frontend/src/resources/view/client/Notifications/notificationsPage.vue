@@ -9,6 +9,7 @@ const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 const ready = ref(false)
+const lastPage = ref(0)
 
 const load = async (page = 1) => {
   loading.value = true
@@ -16,9 +17,8 @@ const load = async (page = 1) => {
   try {
     await notifications.fetch({ page, per_page: 15 })
     await notifications.fetchUnreadCount()
-
-    console.error(notifications.items)
   } finally {
+    lastPage.value = notifications.pagination.last_page
     loading.value = false
     ready.value = true
   }
@@ -210,10 +210,10 @@ onMounted(() => {
         </div>
 
         <div class="flex justify-end py-4">
-          <q-pagination v-model="notifications.pagination.current_page"
-            :max="5" direction-links
-            @update:model-value="(p) => onPageChange(p)" color="primary" />
-        </div>
+          <q-pagination v-model="notifications.pagination.current_page" :max="lastPage" :max-pages="5"
+            direction-links :ellipses="false" :boundary-numbers="false" @update:model-value="(p) => onPageChange(p)"
+            color="primary" />
+        </div>  
       </div>
       <div v-else>
         <div class="flex flex-center column empty-results px-4" style="min-height: 60vh;">
