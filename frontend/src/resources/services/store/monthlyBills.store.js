@@ -106,6 +106,28 @@ export const useMonthlyBillsStore = defineStore('MonthlyBills', {
       })
     },
 
+    async generateQuotas(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.post('/api/monthly-bills/generate-quotas/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            if (response?.data?.code == 403) {
+              reject(response.data)
+              return
+            }
+            reject(response?.data?.error || 'Error al emitir las cuotas')
+          })
+      })
+    },
+
     filterQuery(filter) {
       try {
         const params = new URLSearchParams()

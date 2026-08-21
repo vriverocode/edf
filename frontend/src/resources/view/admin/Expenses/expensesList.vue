@@ -83,9 +83,9 @@ const showNotify = (type, text) => {
 
 const formatDate = (value) => {
   if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return moment(date).format('DD/MM/YYYY')
+  const parsed = moment(value, 'YYYY-MM-DD', true)
+  if (!parsed.isValid()) return value
+  return parsed.format('DD/MM/YYYY')
 }
 
 const formatMoney = (value) => {

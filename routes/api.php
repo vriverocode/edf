@@ -318,6 +318,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Write - admin only
         Route::post('/', [MonthlyBillsController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/u/{id}', [MonthlyBillsController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/generate-quotas/{id}', [MonthlyBillsController::class, 'generateQuotas'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Water Readings ───────────────────────────────────────

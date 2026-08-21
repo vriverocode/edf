@@ -38,7 +38,6 @@ const setStatusBarStyleLight = async () => {
 const hideStatusBar = async () => {
   await StatusBar.hide();
 };
-
 const showStatusBar = async () => {
   await StatusBar.show();
 };

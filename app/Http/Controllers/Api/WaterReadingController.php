@@ -240,6 +240,6 @@ class WaterReadingController extends Controller
         }
         $photo->move($destination, $name);
 
-        return config('app.url')."/storage/images/water-readings/{$name}";
+        return "/public/storage/images/water-readings/{$name}";
     }
 }

@@ -198,6 +198,15 @@ const getBookingById = () => {
     })
 }
 const getQuotaById = () => {
+  const queryIds = route.query.quota_ids
+  const ids = queryIds
+    ? queryIds.split(',').map(Number).filter(Boolean)
+    : null
+
+  if (ids && ids.length > 1) {
+    return fetchAllQuotasByIds(ids)
+  }
+
   quotaStore.getQuotaById(route.params.id || route.query.id)
     .then((response) => {
       toPay.value = response.data
@@ -207,6 +216,40 @@ const getQuotaById = () => {
       console.error(response)
       ready.value = true
     })
+}
+
+const fetchAllQuotasByIds = async (ids) => {
+  try {
+    const results = await Promise.all(
+      ids.map(id => quotaStore.getQuotaById(id))
+    )
+    const quotas = results.map(r => r.data)
+
+    const totalAmount = quotas.reduce((sum, q) => sum + Number(q.amount || 0), 0)
+    const totalMaintenance = quotas.reduce((sum, q) => sum + Number(q.maintenance_amount || 0), 0)
+    const totalWater = quotas.reduce((sum, q) => sum + Number(q.water_amount || 0), 0)
+
+    const breakdown = quotas.map(q => ({
+      ...q,
+      participation: Number(q.departament?.participation_percentage ?? 0),
+      unit_number: q.departament?.number ?? q.number,
+      unit_type: q.type ?? 1,
+    }))
+
+    toPay.value = {
+      ...quotas[0],
+      amount: totalAmount,
+      maintenance_amount: totalMaintenance,
+      water_amount: totalWater,
+      consolidated_ids: ids,
+      breakdown,
+      _units_count: quotas.length,
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    ready.value = true
+  }
 }
 
 const selectPayMethod = (value) => {

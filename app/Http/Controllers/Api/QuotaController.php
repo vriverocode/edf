@@ -296,13 +296,13 @@ class QuotaController extends Controller
      */
     public function show($id)
     {
-        $quota = Quota::find($id);
+        $quota = Quota::with(['departament', 'waterReading'])->find($id);
         if (! $quota) {
             return $this->returnFail(404, 'Cuota no encontrada');
         }
         $user = request()->user();
         if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
-            $userDepartments = $user->apartaments()->pluck('id');
+            $userDepartments = $user->units()->pluck('id');
             if (! $userDepartments->contains($quota->departament_id)) {
                 return $this->returnFail(403, 'No autorizado');
             }

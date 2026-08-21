@@ -131,7 +131,7 @@ onMounted(() => {
 <template>
   <div class="h-full" style="overflow: hidden;">
     <div style="height: 100%; overflow: hidden;">
-      <div class="px-2 pb-6 pt-0 md:px-28 h-full">
+      <div class="px-2 pb-3 pt-0 md:px-28 h-full">
         <div class="flex justify-between md:pr-5 pr-1 items-center md:px-8" style="height: 8%;">
           <div class="row items-center w-full">
             <div class="col-7 col-md-4 pr-2">
@@ -221,21 +221,23 @@ onMounted(() => {
                 size="8px" class="q-mb-xs" style="border-radius: 4px;" />
               {{ progressText }}
             </div>
-            <div class="col-12 col-md-9 md:flex md:justify-end md:w-5/6">
-              <q-btn outline color="grey-7" size="sm" class="q-mr-sm"
-                @click="startSequential">
-                <q-icon name="eva-list-outline" class="q-mr-xs" />
-                Registro secuencial
-              </q-btn>
-              <q-btn color="primary" unelevated class="createButton" style="border-radius: 0.5rem;"
-                @click="goTo('/admin/water_readings/form/add')">
-                <div class="flex items-center py-1">
-                  <q-icon name="eva-plus-outline" />
-                  <div class="q-pt-xs text-bold pl-1">
-                    Registrar medición
+            <div class="col-12 row">
+              <div class="col-6 col-md-6 px-1 md:px-2">
+                <q-btn no-caps color="grey-6" unelevated class="createButton mt-2 md:mt-0"  style="border-radius: 0.5rem"
+                  @click="startSequential">
+                  Registro secuencial
+                </q-btn>
+              </div>
+              <div class="col-6 col-md-6 px-1 md:px-2">
+                <q-btn no-caps color="primary" unelevated class="createButton mt-2 md:mt-0"  style="border-radius: 0.5rem;"
+                  @click="goTo('/admin/water_readings/form/add')">
+                  <div class="flex items-center">
+                    <div class="q-pt-xs text-bold pl-1">
+                      Registrar medición
+                    </div>
                   </div>
-                </div>
-              </q-btn>
+                </q-btn>
+              </div>
             </div>
           </div>
         </div>

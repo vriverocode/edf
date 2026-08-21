@@ -7,6 +7,7 @@ use App\Jobs\SyncWaterReadingsFromMonthlyBillJob;
 use App\Models\Expense;
 use App\Models\MonthlyBills;
 use App\Models\Rol;
+use App\Services\MonthlyQuotaService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -208,5 +209,31 @@ class MonthlyBillsController extends Controller
         SyncWaterReadingsFromMonthlyBillJob::dispatch($monthlyBill->id);
 
         return $this->returnSuccess(200, $monthlyBill);
+    }
+
+    public function generateQuotas(int $id, MonthlyQuotaService $service)
+    {
+        $user = request()->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
+        $monthlyBill = MonthlyBills::find($id);
+        if (! $monthlyBill) {
+            return $this->returnFail(404, 'Presupuesto mensual no encontrado');
+        }
+
+        $result = $service->generateForPeriod((int) $monthlyBill->month, (int) $monthlyBill->year);
+
+        $monthlyBill->update([
+            'is_published' => true,
+            'generated_at' => now(),
+        ]);
+
+        return $this->returnSuccess(200, [
+            'generated' => $result['generated'],
+            'skipped' => $result['skipped'],
+            'monthly_bill' => $monthlyBill,
+        ]);
     }
 }

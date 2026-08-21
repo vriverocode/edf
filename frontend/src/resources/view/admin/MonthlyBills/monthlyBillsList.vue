@@ -15,9 +15,10 @@ const router = useRouter()
 const dialog = ref('')
 
 const lastPage = ref(1)
-const selectedBill = ref({});
+const selectedBill = ref({})
 const selectedYears = ref([])
 const availableYears = ref([])
+const generatingId = ref(null)
 
 const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
   filters: [
@@ -109,6 +110,40 @@ const clearFilters = () => {
   syncToUrl()
   fetchMonthlyBills()
 }
+const confirmDialog = computed({
+  get: () => dialog.value === 'confirm-quota',
+  set: (val) => {
+    if (!val) dialog.value = ''
+  }
+})
+
+const askEmitQuotas = (bill) => {
+  selectedBill.value = bill
+  dialog.value = 'confirm-quota'
+}
+
+const emitQuotas = async () => {
+  const bill = selectedBill.value
+  if (!bill?.id || generatingId.value !== null) return
+
+  generatingId.value = bill.id
+  dialog.value = ''
+  try {
+    const response = await monthlyBillsStore.generateQuotas(bill.id)
+    if (response?.code !== 200) throw response
+
+    const updated = response.data?.monthly_bill
+    if (updated) Object.assign(bill, updated)
+
+    const generated = response.data?.generated ?? 0
+    showNotify('positive', `Se emitieron ${generated} cuota${generated === 1 ? '' : 's'} de ${monthLabel(bill.month)} ${bill.year}`)
+  } catch (err) {
+    const apiError = err?.error || err?.message || 'No se pudieron emitir las cuotas'
+    showNotify('negative', apiError)
+  } finally {
+    generatingId.value = null
+  }
+}
 const goTo = (url) => {
   router.push(url)
 }
@@ -166,30 +201,60 @@ onMounted(() => {
                       </div>
                       
                     </div>
-                    <div flat rounded color="primary" size="sm" class="ml-3 cursor-pointer">
-                      <div v-html="iconsApp.optionsBook" />
-                      <q-menu>
-                        <q-list style="min-width: 150px">
-                          <q-item clickable v-close-popup @click="goTo('/admin/monthly_bills/view/' + bill.id)">
-                            <q-item-section>Ver detalles</q-item-section>
-                          </q-item>
-                          <q-item clickable v-close-popup @click="goTo('/admin/monthly_bills/edit/' + bill.id)" data-dialog="edit"
-                            :data-bills="bill.id" >
-                            <q-item-section>Modificar</q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-menu>
+                    <div class="flex items-center">
+                      <q-btn
+                        v-if="bill.generated_at"
+                        flat
+                        rounded
+                        color="positive"
+                        size="sm"
+                        disable
+                      >
+                        <div class="flex items-center">
+                          <q-icon name="eva-checkmark-circle-outline" class="q-pr-xs" />
+                          Emitidas
+                        </div>
+                      </q-btn>
+                      <q-btn
+                        v-else
+                        flat
+                        rounded
+                        color="primary"
+                        size="sm"
+                        :loading="generatingId === bill.id"
+                        :disable="generatingId !== null"
+                        @click="askEmitQuotas(bill)"
+                      >
+                        <div class="flex items-center">
+                          <q-icon name="eva-send-outline" class="q-pr-xs" />
+                          Emitir cuotas
+                        </div>
+                      </q-btn>
+                      <div flat rounded color="primary" size="sm" class="ml-3 cursor-pointer">
+                        <div v-html="iconsApp.optionsBook" />
+                        <q-menu>
+                          <q-list style="min-width: 150px">
+                            <q-item clickable v-close-popup @click="goTo('/admin/monthly_bills/view/' + bill.id)">
+                              <q-item-section>Ver detalles</q-item-section>
+                            </q-item>
+                            <q-item clickable v-close-popup @click="goTo('/admin/monthly_bills/edit/' + bill.id)" data-dialog="edit"
+                              :data-bills="bill.id" >
+                              <q-item-section>Modificar</q-item-section>
+                            </q-item>
+                          </q-list>
+                        </q-menu>
+                      </div>
                     </div>
                   </div>
 
                   <div class="row px-4 pt-1">
                     <div class="col-8 col-md-6">
                       <div class="text-sm text-gray-700 mt-1">
-                        Presupuesto mantenimiento: <div class="font-medium">S/. {{ bill.total_maintenance_budget }}</div>
+                        Presupuesto mantenimiento: <div class="font-medium">S/ {{ bill.total_maintenance_budget }}</div>
                       </div>
                     </div>
                     <div class="col-4 col-md-6 text-sm text-gray-700 mt-1  flex column items-end">
-                      Agua (S/. total): <div class="font-medium">{{ bill.total_water_bill_amount ?? '-' }}</div>
+                      Agua (S/. total): <div class="font-medium">S/ {{ bill.total_water_bill_amount ?? '-' }}</div>
                     </div>
                     <div class="col-6 col-md-6 text-sm text-gray-700 mt-2 ">
                       Consumo (m3): <div class="font-medium">{{ bill.total_water_consumption_m3 ?? '-' }}</div>
@@ -256,6 +321,23 @@ onMounted(() => {
       @closeModal="dialog = ''"
       @updateList="updateListWithFilter"
     />
+
+    <q-dialog v-model="confirmDialog" persistent>
+      <q-card style="min-width: 320px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Emitir cuotas</div>
+          <q-space />
+          <q-btn icon="eva-close-outline" flat round dense v-close-popup />
+        </q-card-section>
+        <q-card-section>
+          ¿Seguro que deseas emitir las cuotas de {{ monthLabel(selectedBill?.month) }} {{ selectedBill?.year }}?
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" color="grey-7" v-close-popup />
+          <q-btn unelevated label="Emitir" color="primary" :loading="generatingId !== null" @click="emitQuotas" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <style lang="scss">

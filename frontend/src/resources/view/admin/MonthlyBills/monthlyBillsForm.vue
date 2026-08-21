@@ -268,7 +268,7 @@ const submit = async () => {
             </div>
           </q-linear-progress>
           <div class="text-caption text-grey-6 q-mt-xs">
-            S/. {{ formatMaskedMoney(previousSelectedTotal) }} de S/. {{ formatMaskedMoney(parseMaskedMoney(formData.value.total_maintenance_budget) || 0) }}
+            S/. {{ formatMaskedMoney(previousSelectedTotal) }} de S/. {{ formatMaskedMoney(parseMaskedMoney(formData.total_maintenance_budget) || 0) }}
           </div>
         </div>
         <div class="col-md-6 col-12 mt-4 px-2 md:px-12">

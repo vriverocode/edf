@@ -42,12 +42,17 @@ const getQuotas = () => {
 }
 
 const goTo = (quota) => {
-  let view = quota.status == 2 || quota.status ==  3  ? 'pay/quotas/view' : 'quota/pay';
-  let targetId = 
-   quota.status == 2 || quota.status ==  3 
-   ? quota.pay
-   : quota.details ? quota.details[0].id : quota.id;
-  router.push(`/client/${view}/${targetId}`);
+  if (quota.status == 2 || quota.status == 3) {
+    router.push(`/client/pay/quotas/view/${quota.pay}`)
+    return
+  }
+  const ids = quota.details
+    ? quota.details.map(d => d.id)
+    : [quota.id]
+  router.push({
+    path: `/client/quota/pay/${ids[0]}`,
+    query: ids.length > 1 ? { quota_ids: ids.join(',') } : {}
+  })
 }
 
 const showDialog = () => {
