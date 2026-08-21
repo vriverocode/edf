@@ -22,7 +22,7 @@ class AirbnbRent extends Model
             'Pendiente',
             'Confirmada',
             'Terminada',
-            'Eliminada'
+            'Eliminada',
         ];
 
         return $statusLabels[$this->status];

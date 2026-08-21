@@ -137,6 +137,16 @@ class Quota extends Model
 
                 $details = $group->values()->all();
 
+                usort($details, function ($a, $b) {
+                    $typeA = $a['departament']['type'] ?? 0;
+                    $typeB = $b['departament']['type'] ?? 0;
+                    if ($typeA !== $typeB) {
+                        return $typeA <=> $typeB;
+                    }
+
+                    return ($a['departament']['inter_number'] ?? 0) <=> ($b['departament']['inter_number'] ?? 0);
+                });
+
                 foreach ($details as &$detail) {
                     if (isset($detail['responsible_pivot']) && $detail['responsible_pivot']?->user) {
                         $detail['responsible_name'] = $detail['responsible_pivot']['user']['name'];

@@ -8,11 +8,35 @@ import includeExpensesModal from '@/components/monthlyBills/includeExpensesModal
 
 const loading = ref(false)
 const monthlyBillsStore = useMonthlyBillsStore()
+const now = new Date()
 const router = useRouter();
 const showExpensesModal = ref(false)
 const selectedExpenseIds = ref([])
 const selectedExpensesData = ref([])
 const previousSelectedTotal = ref(0)
+const monthOptions = [
+  { value: 1, name: 'Enero' },
+  { value: 2, name: 'Febrero' },
+  { value: 3, name: 'Marzo' },
+  { value: 4, name: 'Abril' },
+  { value: 5, name: 'Mayo' },
+  { value: 6, name: 'Junio' },
+  { value: 7, name: 'Julio' },
+  { value: 8, name: 'Agosto' },
+  { value: 9, name: 'Septiembre' },
+  { value: 10, name: 'Octubre' },
+  { value: 11, name: 'Noviembre' },
+  { value: 12, name: 'Diciembre' }
+]
+
+const formData = ref({
+  month: monthOptions[now.getMonth() - 1],
+  year: now.getFullYear(),
+  total_maintenance_budget: '',
+  total_water_bill_amount: '',
+  total_water_consumption_m3: null,
+  water_price_per_m3: ''
+})
 const parseMaskedMoney = (value) => {
   if (value === null || value === undefined) return null
   const raw = String(value).trim()
@@ -33,7 +57,6 @@ const formatMaskedMoney = (value, decimals = 2) => {
   return `${withThousands},${decPart}`
 }
 
-const now = new Date()
 const previousBill = ref(null)
 const loadingPrev = ref(false)
 
@@ -72,29 +95,7 @@ const progressPercent = computed(() => {
 
 watch(() => formData.value.month, loadPreviousMonthData)
 
-const monthOptions = [
-  { value: 1, name: 'Enero' },
-  { value: 2, name: 'Febrero' },
-  { value: 3, name: 'Marzo' },
-  { value: 4, name: 'Abril' },
-  { value: 5, name: 'Mayo' },
-  { value: 6, name: 'Junio' },
-  { value: 7, name: 'Julio' },
-  { value: 8, name: 'Agosto' },
-  { value: 9, name: 'Septiembre' },
-  { value: 10, name: 'Octubre' },
-  { value: 11, name: 'Noviembre' },
-  { value: 12, name: 'Diciembre' }
-]
 
-const formData = ref({
-  month: monthOptions[now.getMonth() - 1],
-  year: now.getFullYear(),
-  total_maintenance_budget: '',
-  total_water_bill_amount: '',
-  total_water_consumption_m3: null,
-  water_price_per_m3: ''
-})
 
 const hasWaterTotals = computed(() => {
   const amount = parseMaskedMoney(formData.value.total_water_bill_amount)

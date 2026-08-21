@@ -222,17 +222,19 @@ onMounted(() => {
               {{ progressText }}
             </div>
             <div class="col-12 row">
-              <div class="col-6 col-md-6 px-1 md:px-2">
+              <div class="col-6 col-md-6 px-1 md:px-2 flex flex-center">
                 <q-btn no-caps color="grey-6" unelevated class="createButton mt-2 md:mt-0"  style="border-radius: 0.5rem"
                   @click="startSequential">
-                  Registro secuencial
+                   <div class="  pl-1 py-1 md:py-0">
+                     Registro secuencial
+                   </div>
                 </q-btn>
               </div>
-              <div class="col-6 col-md-6 px-1 md:px-2">
+              <div class="col-6 col-md-6 px-1 md:px-2 flex flex-center">
                 <q-btn no-caps color="primary" unelevated class="createButton mt-2 md:mt-0"  style="border-radius: 0.5rem;"
                   @click="goTo('/admin/water_readings/form/add')">
                   <div class="flex items-center">
-                    <div class="q-pt-xs text-bold pl-1">
+                    <div class=" text-bold pl-1 py-1 md:py-0">
                       Registrar medición
                     </div>
                   </div>

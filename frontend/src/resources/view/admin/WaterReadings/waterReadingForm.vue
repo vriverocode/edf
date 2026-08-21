@@ -225,14 +225,14 @@ onMounted(() => {
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Lectura anterior</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.previous_reading"
-            mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
+            mask="###.###.###,###" reverse-fill-mask inputmode="decimal"
             :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura anterior es requerida']" />
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Lectura actual</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.current_reading"
-            mask="###.###.###,##" reverse-fill-mask inputmode="decimal" :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura actual es requerida',
+            mask="###.###.###,###" reverse-fill-mask inputmode="decimal" :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura actual es requerida',
             val => parseMaskedDecimal(val, 2) > parseMaskedDecimal(formData.previous_reading, 2) || 'La lectura actual debe ser mayor que la lectura anterior'
             ]" />
         </div>
@@ -280,14 +280,17 @@ onMounted(() => {
           </q-banner>
         </div>
 
-        <div class="col-12 mb-2 px-2 md:px-12 flex items-center justify-end mt-4 q-gutter-sm">
-          <q-btn v-if="sequential && hasPrev" flat color="grey-7" @click="navigateDept('prev')"
+        <div class="col-12 mb-2 px-2 md:px-12 flex items-center justify-between mt-4 ">
+          <q-btn outline v-if="sequential && hasPrev" style="border-radius: 0.5rem;" class="px-2" color="grey-7" @click="navigateDept('prev')"
             :disable="loading || navigatingNext">
-            <q-icon name="eva-arrow-back-outline" class="q-mr-xs" />
-            Anterior
+            <div class="px-4">
+              Anterior
+            </div>
           </q-btn>
-          <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
-            <div class="px-10 py-1">{{ sequential && hasNext ? 'Guardar y siguiente' : 'Guardar' }}</div>
+          <q-btn color="primary" 
+          :class="{'w-full':sequential && !hasPrev}" 
+          style="border-radius: 0.5rem;" type="submit" :loading="loading">
+            <div class="px-2 py-1 ">{{ sequential && hasNext ? 'Guardar y siguiente' : 'Guardar' }}</div>
           </q-btn>
         </div>
       </div>

@@ -34,7 +34,7 @@ class Provider extends Model
         return $statusLabels[$this->status] ?? '—';
     }
 
-    public function category()
+    public function serviceCategory()
     {
         return $this->belongsTo(ServiceCategory::class, 'service_category_id');
     }

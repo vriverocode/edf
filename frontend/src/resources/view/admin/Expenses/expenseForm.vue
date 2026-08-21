@@ -246,6 +246,9 @@ const submit = async () => {
 const goBack = () => {
   step.value = 1
 }
+const setServicesType = (value) => {
+  formData.value.service_category = serviceCategories.value.find((c) => c.id === value?.service_category_id) || null
+}
 
 onMounted(async () => {
   loadingData.value = true
@@ -301,7 +304,7 @@ onMounted(async () => {
                 :options="providers"
                 option-label="name"
                 :rules="[val => !!val || 'El proveedor es requerido']"
-                lazy-rules
+                @update:model-value="setServicesType"
               />
             </div>
             <div class="col-auto">
@@ -445,6 +448,28 @@ onMounted(async () => {
             lazy-rules
           />
         </div>
+        <div class="col-12 mt-3 px-2 md:px-12">
+          <div class="row q-col-gutter-sm items-center">
+            <div class="col">
+              <div class="text-subtitle2 text-black">Categoría de servicio</div>
+              <q-select
+                dense
+                borderless
+                class="form__inputsR mt-1"
+                v-model="formData.service_category"
+                :options="serviceCategories"
+                option-label="name"
+                clearable
+              />
+            </div>
+            <div class="col-auto">
+              <q-btn flat dense round color="primary" type="button" @click="createCategoryDialog = true">
+                <q-icon name="eva-plus-outline" />
+                <q-tooltip>Nueva categoría</q-tooltip>
+              </q-btn>
+            </div>
+          </div>
+        </div>
 
         <div class="col-md-6 col-12 mt-3 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Ámbito / ubicación</div>
@@ -470,54 +495,40 @@ onMounted(async () => {
           />
         </div>
 
-        <div class="col-12 mt-3 px-2 md:px-12">
-          <div class="row q-col-gutter-sm items-center">
-            <div class="col">
-              <div class="text-subtitle2 text-black">Categoría de servicio</div>
-              <q-select
-                dense
-                borderless
-                class="form__inputsR mt-1"
-                v-model="formData.service_category"
-                :options="serviceCategories"
-                option-label="name"
-                clearable
-              />
-            </div>
-            <div class="col-auto">
-              <q-btn flat dense round color="primary" type="button" @click="createCategoryDialog = true">
-                <q-icon name="eva-plus-outline" />
-                <q-tooltip>Nueva categoría</q-tooltip>
-              </q-btn>
-            </div>
-          </div>
-        </div>
+        
       </div>
 
-      <div class="col-12 mb-2 px-2 md:px-12 flex justify-end mt-4 gap-2">
-        <q-btn
-          v-if="step === 2"
-          outline
-          color="grey-7"
-          style="border-radius: 0.5rem;"
-          type="button"
-          @click="goBack"
-        >
-          <div class="px-6 py-1">Atrás</div>
-        </q-btn>
-        <q-btn
-          v-else
-          outline
-          color="grey-7"
-          style="border-radius: 0.5rem;"
-          type="button"
-          @click="router.go(-1)"
-        >
-          <div class="px-6 py-1">Cancelar</div>
-        </q-btn>
-        <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading && step === 2">
-          <div class="px-10 py-1">{{ step === 1 ? 'Siguiente' : 'Guardar' }}</div>
-        </q-btn>
+      <div class="col-12 mb-2 px-2 md:px-12 flex justify-end  mt-5 row">
+        <div class="col-6">
+          <q-btn
+            v-if="step === 2"
+            outline
+            color="grey-7"
+            style="border-radius: 0.5rem;"
+            type="button"
+            @click="goBack"
+          >
+            <div class="px-6 py-1">Atrás</div>
+          </q-btn>
+          <q-btn
+            v-else
+            outline
+            color="grey-7"
+            style="border-radius: 0.5rem;"
+            type="button"
+            @click="router.go(-1)"
+          >
+            <div class="px-6 py-1">Cancelar</div>
+          </q-btn>
+        </div>
+        <div class="col-6 flex justify-end">
+          <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading && step === 2">
+            <div class="px-10 py-1">{{ step === 1 ? 'Siguiente' : 'Guardar' }}</div>
+          </q-btn>
+        </div>
+        
+        
+        
       </div>
     </q-form>
 

@@ -48,7 +48,7 @@ class ExpenseController extends Controller
         $providers = Provider::query()
             ->where('status', 1)
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'service_category_id']);
 
         $monthlyBills = MonthlyBills::query()
             ->orderBy('year', 'desc')

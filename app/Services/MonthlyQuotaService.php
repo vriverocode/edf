@@ -65,7 +65,7 @@ class MonthlyQuotaService
         try {
             $activeTenantPivot = $this->findActiveTenantPivot($departament);
 
-            $maintenanceAmount = $budgetConfig->total_maintenance_budget * $departament->participation_percentage;
+            $maintenanceAmount = (intval($budgetConfig->total_maintenance_budget) * floatval($departament->participation_percentage)) / 100;
 
             $waterReading = WaterReading::where('departament_id', $departament->id)
                 ->where('month', $month)
@@ -78,7 +78,7 @@ class MonthlyQuotaService
             if ($waterReading) {
                 $waterReadingId = $waterReading->id;
                 $consumption = $waterReading->current_reading - $waterReading->previous_reading;
-                $waterAmount = max(0, $consumption) * $budgetConfig->water_price_per_m3;
+                $waterAmount = max(0, $consumption) * floatval($budgetConfig->water_price_per_m3);
             }
 
             $totalAmount = $maintenanceAmount + $waterAmount;

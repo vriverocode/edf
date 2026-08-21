@@ -308,6 +308,7 @@ class EventController extends Controller
 
         return $assit;
     }
+
     public function sendReminderEvent(Request $request, $id)
     {
         $user = $request->user();
@@ -317,8 +318,10 @@ class EventController extends Controller
         }
         $event = Event::with(['booking.comunArea'])->find($id);
         $this->sendNotification($event, 1, 3);
+
         return $this->returnSuccess(200, 'ok');
     }
+
     private function removeUserFromAssitsIfExist($request, $event)
     {
         $assits = $event->assits ?? [];
