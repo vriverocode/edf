@@ -43,7 +43,10 @@ const getQuotas = () => {
 
 const goTo = (quota) => {
   if (quota.status == 2 || quota.status == 3) {
-    router.push(`/client/pay/quotas/view/${quota.pay}`)
+    const payId = quota.pay || (quota.details && quota.details[0] && quota.details[0].pays && quota.details[0].pays[0] && quota.details[0].pays[0].id)
+    if (payId) {
+      router.push(`/client/pay/quotas/view/${payId}`)
+    }
     return
   }
   const ids = quota.details

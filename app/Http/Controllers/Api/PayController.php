@@ -164,6 +164,19 @@ class PayController extends Controller
             $quotaIdsForPay = $consolidatedIdsForStore;
         }
 
+        if ((int) $request->type === 1 && ! empty($quotaIdsForPay)) {
+            $tenantQuotas = Quota::whereIn('id', $quotaIdsForPay)
+                ->whereNotNull('peoples_x_departments_id')
+                ->with('responsiblePivot')
+                ->get();
+
+            foreach ($tenantQuotas as $tq) {
+                if ($tq->responsiblePivot?->user_id !== $request->user()->id) {
+                    return $this->returnFail(403, 'Esta cuota está asignada a un inquilino. El propietario no puede realizar el pago.');
+                }
+            }
+        }
+
         $authUser = $request->user();
         $user = $authUser;
         if ($request->has('user_id') && in_array($authUser->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
@@ -304,8 +317,7 @@ class PayController extends Controller
                 /** En este sistema el estado pagado efectivo es 3 ("Exitoso") */
                 Quota::query()->whereIn('id', $quotaIds)->update(['status' => 3]);
 
-                // Enviar recibos por correo después de aprobar el pago
-                $this->billInvoiceService->sendBillInvoicesForPay($pay);
+                $shouldSendInvoice = true;
             } elseif ((int) $pay->type === 2 && $pay->booking_id) {
                 $this->approveBooking($pay);
             }
@@ -341,6 +353,10 @@ class PayController extends Controller
             DB::commit();
 
             $pay->refresh()->loadMissing(['financialTransaction', 'payMethod']);
+
+            if ((int) $pay->type === 1 && isset($shouldSendInvoice) && $shouldSendInvoice) {
+                $this->billInvoiceService->sendBillInvoicesForPay($pay);
+            }
 
             if ((int) $pay->type === 2) {
                 $this->sendReserveNotification($pay);

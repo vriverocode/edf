@@ -113,6 +113,75 @@ class Quota extends Model
             ->where('due_date', '<=', now()->subMonths($months));
     }
 
+    public static function groupConsolidatedByMonth(Collection $quotas): Collection
+    {
+        return $quotas
+            ->groupBy(function ($quota) {
+                $year = $quota->due_date
+                    ? Carbon::parse($quota->due_date)->year
+                    : now()->year;
+
+                return $quota->month.'_'.$year;
+            })
+            ->map(function ($group) {
+                $firstQuota = $group->first();
+                $owner = $firstQuota->departament->owner ?? null;
+
+                if ($group->contains(fn ($q) => (int) $q->status === 1)) {
+                    $status = 1;
+                } elseif ($group->contains(fn ($q) => (int) $q->status === 2)) {
+                    $status = 2;
+                } elseif ($group->contains(fn ($q) => (int) $q->status === 3)) {
+                    $status = 3;
+                } else {
+                    $status = 0;
+                }
+
+                $details = $group->values()->all();
+
+                usort($details, function ($a, $b) {
+                    $typeA = $a['departament']['type'] ?? 0;
+                    $typeB = $b['departament']['type'] ?? 0;
+                    if ($typeA !== $typeB) {
+                        return $typeA <=> $typeB;
+                    }
+
+                    return ($a['departament']['inter_number'] ?? 0) <=> ($b['departament']['inter_number'] ?? 0);
+                });
+
+                foreach ($details as &$detail) {
+                    if (isset($detail['responsible_pivot']) && $detail['responsible_pivot']?->user) {
+                        $detail['responsible_name'] = $detail['responsible_pivot']['user']['name'];
+                        $detail['responsible_id'] = $detail['responsible_pivot']['user']['id'];
+                    }
+                }
+
+                return [
+                    'id' => 'month-'.$firstQuota->month.'_'.$firstQuota->due_date,
+                    'month' => $firstQuota->month,
+                    'due_date' => $firstQuota->due_date,
+                    'description' => 'Cuota Consolidada ('.$group->count().' unidades asignadas)',
+                    'owner_name' => $owner ? $owner->name : 'Desconocido',
+                    'owner_id' => $owner?->id,
+                    'departament_number' => $firstQuota->departament->number ?? '',
+                    'maintenance_amount' => $group->sum('maintenance_amount'),
+                    'water_amount' => $group->sum('water_amount'),
+                    'amount' => $group->sum('amount'),
+                    'status' => $status,
+                    'created_at' => $firstQuota->created_at,
+                    'details' => $details,
+                ];
+            })
+            ->sortByDesc(function ($group) {
+                $year = $group['due_date']
+                    ? Carbon::parse($group['due_date'])->year
+                    : now()->year;
+
+                return $year * 100 + $group['month'];
+            })
+            ->values();
+    }
+
     public static function groupConsolidatedByOwner(Collection $quotas): Collection
     {
         return $quotas

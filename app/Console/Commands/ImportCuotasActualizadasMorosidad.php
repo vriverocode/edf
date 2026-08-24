@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Departament;
 use App\Models\Quota;
 use App\Models\User;
+use App\Services\MonthlyQuotaService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -222,6 +223,7 @@ class ImportCuotasActualizadasMorosidad extends Command
 
         Quota::create([
             'departament_id' => $departament->id,
+            'peoples_x_departments_id' => MonthlyQuotaService::findActiveTenantPivotId($departament->id),
             'maintenance_amount' => $amount,
             'water_amount' => 0,
             'amount' => $amount,

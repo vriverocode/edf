@@ -8,6 +8,7 @@ use App\Models\MonthlyBills;
 use App\Models\Pay;
 use App\Models\Quota;
 use App\Models\Rol;
+use App\Services\MonthlyQuotaService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
@@ -54,7 +55,7 @@ class QuotaController extends Controller
             });
         }
 
-        $groupedQuotas = Quota::groupConsolidatedByOwner($query->get());
+        $groupedQuotas = Quota::groupConsolidatedByMonth($query->get());
 
         return $this->returnSuccess(200, $groupedQuotas);
     }
@@ -283,8 +284,11 @@ class QuotaController extends Controller
                 continue;
             }
 
+            $tenantPivotId = MonthlyQuotaService::findActiveTenantPivotId($departament->id);
+
             Quota::create([
                 'departament_id' => $departament->id,
+                'peoples_x_departments_id' => $tenantPivotId,
                 'month' => $month,
                 'due_date' => $dueDate,
                 'maintenance_amount' => $maintenanceAmount,

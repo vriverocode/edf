@@ -6,6 +6,7 @@ use App\Models\Departament;
 use App\Models\Pay;
 use App\Models\Quota;
 use App\Models\User;
+use App\Services\MonthlyQuotaService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -220,6 +221,7 @@ class ImportCuotasAlDia extends Command
 
         $quota = Quota::create([
             'departament_id' => $departament->id,
+            'peoples_x_departments_id' => MonthlyQuotaService::findActiveTenantPivotId($departament->id),
             'amount' => $q['amount'],
             'month' => $q['month'],
             'due_date' => $q['due_date'],

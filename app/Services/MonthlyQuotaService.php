@@ -116,6 +116,16 @@ class MonthlyQuotaService
             ->firstWhere(fn ($p) => $p->user && (int) $p->user->status !== 3 && ! $p->user->trashed());
     }
 
+    public static function findActiveTenantPivotId(int $departamentId): ?int
+    {
+        $pivot = PeoplesXDepartaments::where('departament_id', $departamentId)
+            ->where('type', Rol::INQUILINO)
+            ->whereHas('user', fn ($q) => $q->where('status', '!=', 3)->whereNull('deleted_at'))
+            ->first();
+
+        return $pivot?->id;
+    }
+
     private function checkIfNoPayQuota($departamentId, $month, $year)
     {
         return ! Quota::where('departament_id', $departamentId)
