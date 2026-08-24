@@ -1,48 +1,97 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { Notify } from 'quasar'
+import { ref, computed, onMounted } from 'vue'
+import { Notify, useQuasar } from 'quasar'
+import { useReportStore } from '@/services/store/report.store'
 import { useQuotaStore } from '@/services/store/quota.store'
-import { useQuasar } from 'quasar'
 
-const quotaStore = useQuotaStore()
 const $q = useQuasar()
+const reportStore = useReportStore()
+const quotaStore = useQuotaStore()
 
 const loading = ref(false)
-const delinquents = ref([])
+const loadingMetrics = ref(false)
+const exporting = ref(false)
+const rows = ref([])
+const metrics = ref({ total_delinquents: 0, total_debt: 0, total_overdue_quotas: 0 })
+const pagination = ref({ page: 1, rowsNumber: 0, rowsPerPage: 15 })
+const search = ref('')
+const searchTimeout = ref(null)
 const expandedRows = ref({})
-const selectedRows = ref([])
-const sendingReminder = ref(false)
-const showReminderDialog = ref(false)
-const reminderMessage = ref('')
+const sendingForUser = ref(null)
 
-const totalDelinquentAmount = computed(() => {
-  return delinquents.value.reduce((sum, d) => sum + (Number(d.total_debt) || 0), 0)
+const stats = computed(() => [
+  { label: 'Total Morosos', value: metrics.value.total_delinquents, color: 'text-negative', icon: 'eva-person-remove-outline' },
+  { label: 'Deuda Total', value: formatMoney(metrics.value.total_debt), color: 'text-warning', icon: 'eva-alert-triangle-outline' },
+  { label: 'Cuotas Vencidas >2m', value: metrics.value.total_overdue_quotas, color: 'text-orange-8', icon: 'eva-clock-outline' },
+])
+
+const totalPages = computed(() => {
+  const total = Number(pagination.value.rowsNumber) || 0
+  const perPage = Number(pagination.value.rowsPerPage) || 15
+  return Math.max(1, Math.ceil(total / perPage))
 })
 
-const totalDelinquentsCount = computed(() => delinquents.value.length)
+function onPageChange(newPage) {
+  pagination.value.page = newPage
+  loadData()
+}
 
-const selectedCount = computed(() => selectedRows.value.length)
+function onSearchChange() {
+  clearTimeout(searchTimeout.value)
+  searchTimeout.value = setTimeout(() => {
+    pagination.value.page = 1
+    loadData()
+  }, 400)
+}
 
-const fetchDelinquents = async () => {
+async function loadData() {
   loading.value = true
   try {
-    const response = await quotaStore.getDelinquentsReport()
-    if (response?.code === 200) {
-      delinquents.value = response.data || []
-      selectedRows.value = []
+    const params = {
+      search: search.value || null,
+      per_page: pagination.value.rowsPerPage,
+      page: pagination.value.page,
     }
-  } catch (e) {
-    delinquents.value = []
-    selectedRows.value = []
-    Notify.create({ color: 'negative', message: 'Error al cargar morosos' })
+    const res = await reportStore.getDelinquents(params)
+    const data = res.data
+    rows.value = data.data
+    pagination.value.page = data.current_page
+    pagination.value.rowsNumber = data.total
+    pagination.value.rowsPerPage = data.per_page
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err || 'Error al cargar morosos' })
   } finally {
     loading.value = false
   }
 }
 
+async function loadMetrics() {
+  loadingMetrics.value = true
+  try {
+    const res = await reportStore.getDelinquentsMetrics()
+    metrics.value = res.data
+  } catch {
+    metrics.value = { total_delinquents: 0, total_debt: 0, total_overdue_quotas: 0 }
+  } finally {
+    loadingMetrics.value = false
+  }
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    await reportStore.exportDelinquents({ search: search.value || null })
+    $q.notify({ type: 'positive', message: 'Reporte exportado exitosamente' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err || 'Error al exportar' })
+  } finally {
+    exporting.value = false
+  }
+}
+
 const formatMoney = (v) => `S/. ${(Number(v) || 0).toFixed(2)}`
 
-const getTypeLabels = (types) => {
+const getTypeLabel = (types) => {
   const labels = {
     user_status: 'Estado: Moroso',
     overdue_quotas: 'Cuotas >2 meses',
@@ -50,7 +99,7 @@ const getTypeLabels = (types) => {
   return types.map(t => labels[t] || t).join(' · ')
 }
 
-const getTypeColors = (types) => {
+const getTypeColor = (types) => {
   if (types.includes('user_status') && types.includes('overdue_quotas')) return 'orange-8'
   if (types.includes('user_status')) return 'negative'
   if (types.includes('overdue_quotas')) return 'warning'
@@ -60,272 +109,197 @@ const getTypeColors = (types) => {
 const getQuotaDetail = (row) => {
   if (row.quotas_count === 1 && row.quotas.length === 1) {
     const q = row.quotas[0]
-    return `${q.department} - ${q.month_label} (${formatMoney(q.amount)}) - Vence: ${q.due_date}`
+    return `${q.department} - ${q.month_label}`
   }
   return null
 }
 
-const toggleExpand = (row) => {
-  expandedRows.value = { ...expandedRows.value, [row.user_id]: !expandedRows.value[row.user_id] }
+const toggleExpand = (userId) => {
+  expandedRows.value = { ...expandedRows.value, [userId]: !expandedRows.value[userId] }
 }
 
-const isExpanded = (row) => expandedRows.value[row.user_id] === true
+const isExpanded = (userId) => expandedRows.value[userId] === true
 
-const toggleSelectAll = () => {
-  if (selectedRows.value.length === delinquents.value.length) {
-    selectedRows.value = []
-  } else {
-    selectedRows.value = delinquents.value.map(d => d.user_id)
-  }
-}
-
-const toggleSelectRow = (userId) => {
-  const idx = selectedRows.value.indexOf(userId)
-  if (idx === -1) {
-    selectedRows.value.push(userId)
-  } else {
-    selectedRows.value.splice(idx, 1)
-  }
-}
-
-const isSelected = (userId) => selectedRows.value.includes(userId)
-
-const openReminderDialog = () => {
-  if (selectedRows.value.length === 0) {
-    Notify.create({ color: 'warning', message: 'Seleccione al menos un moroso' })
-    return
-  }
-  reminderMessage.value = ''
-  showReminderDialog.value = true
-}
-
-const sendReminder = async () => {
-  if (selectedRows.value.length === 0) return
-  
-  sendingReminder.value = true
-  try {
-    const response = await quotaStore.sendDelinquentReminder(selectedRows.value, reminderMessage.value || null)
-    if (response?.code === 200) {
-      Notify.create({ color: 'positive', message: response.data.message || 'Recordatorios enviados correctamente' })
-      showReminderDialog.value = false
-      selectedRows.value = []
+function confirmReminder(row) {
+  $q.dialog({
+    title: 'Enviar recordatorio',
+    message: `¿Enviar recordatorio de cuotas pendientes a ${row.name}?`,
+    prompt: {
+      model: '',
+      type: 'text',
+      label: 'Mensaje personalizado (opcional)',
+    },
+    cancel: { label: 'Cancelar', flat: true, color: 'primary' },
+    ok: { label: 'Enviar', color: 'primary' },
+  }).onOk(async (customMessage) => {
+    sendingForUser.value = row.user_id
+    try {
+      const response = await quotaStore.sendDelinquentReminder(
+        [row.user_id],
+        customMessage || null
+      )
+      if (response?.code === 200) {
+        $q.notify({ type: 'positive', message: response.data.message || 'Recordatorio enviado' })
+      }
+    } catch (e) {
+      $q.notify({ type: 'negative', message: e || 'Error al enviar recordatorio' })
+    } finally {
+      sendingForUser.value = null
     }
-  } catch (e) {
-    Notify.create({ color: 'negative', message: e || 'Error al enviar recordatorios' })
-  } finally {
-    sendingReminder.value = false
-  }
+  })
 }
 
-onMounted(fetchDelinquents)
+onMounted(() => {
+  loadData()
+  loadMetrics()
+})
 </script>
 
 <template>
-  <div class="md:px-36 px-2 pb-10 h-full" style="overflow: auto;">
-    <div class="row q-mb-md justify-between items-center">
-      <div class="text-black text-h5 text-bold">Reporte de Morosos</div>
-      <div class="row items-center q-gutter-sm">
-        <q-btn v-if="selectedCount > 0" label="Enviar recordatorio" color="primary" icon="eva-mail-outline" @click="openReminderDialog" />
-        <q-btn label="Actualizar" color="primary" @click="fetchDelinquents" :loading="loading" />
+  <div class="q-py-md md:px-36 px-2">
+    <div class="row q-mb-md q-col-gutter-sm items-center">
+      <div class="col-12 col-md-4">
+        <q-input v-model="search" dense borderless class="form__inputsRDelinquents" label="Buscar por nombre, DNI o departamento..."
+          clearable color="primary" @update:model-value="onSearchChange">
+          <template #prepend>
+            <q-icon name="eva-search-outline" />
+          </template>
+        </q-input>
+      </div>
+      <div class="col-md-3 col-6">
+        <q-btn color="green" unelevated label="Exportar Excel" icon="eva-download-outline"
+          class="full-width" :loading="exporting" @click="handleExport" />
+      </div>
+      <div class="col-md-2 col-6">
+        <q-btn color="primary" unelevated label="Actualizar" icon="eva-refresh-outline"
+          class="full-width" :loading="loading" @click="loadData(); loadMetrics()" />
       </div>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-10">
-      <q-spinner-dots color="primary" size="3rem" />
+    <div v-if="!loadingMetrics" class="row md:pb-5 pb-2">
+      <div class="col-4 px-2 my-1 md:my-0 col-md" v-for="stat in stats" :key="stat.label">
+        <q-card flat bordered class="q-pa-sm text-center">
+          <div class="text-h5 text-weight-bold" :class="stat.color">{{ stat.value }}</div>
+          <div class="text-caption text-grey-7">{{ stat.label }}</div>
+        </q-card>
+      </div>
     </div>
 
-    <div v-else>
-      <div v-if="delinquents.length > 0" class="row q-mb-md">
-        <div class="col-12 col-md-4 mt-3 px-3">
-          <q-card flat bordered class="bg-negative text-white">
-            <q-card-section>
-              <div class="text-caption">Total Morosos</div>
-              <div class="text-h4 text-bold">{{ totalDelinquentsCount }}</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-12 col-md-4 mt-3 px-3">
-          <q-card flat bordered class="bg-warning text-white">
-            <q-card-section>
-              <div class="text-caption">Total Deuda Pendiente</div>
-              <div class="text-h4 text-bold">{{ formatMoney(totalDelinquentAmount) }}</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-12 col-md-4 mt-3 px-3">
-          <q-card flat bordered class="bg-orange-8 text-white">
-            <q-card-section>
-              <div class="text-caption">Con Cuotas Vencidas >2m</div>
-              <div class="text-h4 text-bold">{{ delinquents.filter(d => d.types.includes('overdue_quotas')).length }}</div>
-            </q-card-section>
-          </q-card>
-        </div>
+    <div class="text-grey-9 my-3 text-title-squad text-bold">Listado de morosos</div>
+    <div class="pb-12 relative-position">
+
+      <q-inner-loading :showing="loading" color="primary" class="z-top">
+        <q-spinner-dots size="50px" color="primary" />
+      </q-inner-loading>
+
+      <div v-if="!loading && rows.length === 0" class="text-center q-pa-lg w-full">
+        <q-icon name="eva-checkmark-circle-2" size="48px" color="positive" />
+        <div class="text-grey-6 q-mt-sm">No se encontraron morosos</div>
       </div>
 
-      <div v-if="delinquents.length === 0" class="text-center text-grey-6 q-py-xl">
-        <q-icon name="eva-checkmark-circle-2" size="4rem" color="positive" />
-        <div class="text-h6 q-mt-sm">¡No hay morosos registrados!</div>
-      </div>
+      <div v-if="rows.length > 0" class="repbok-wrapper">
+        <div class="repbok-table">
 
-<!-- Tabla estilo repbok (igual que reportBookings) -->
-          <div v-else class="repbok-wrapper">
-            <div class="repbok-table">
-              <!-- Header -->
-              <div class="repbok-row repbok-header">
-                <div class="repbok-cell" style="width: 50px" data-title="Seleccionar">
-                  <q-checkbox dense :model-value="selectedCount === delinquents.length && delinquents.length > 0" @update:model-value="toggleSelectAll" />
-                </div>
-                <div class="repbok-cell" style="width: 40px" data-title="Acciones">
-                  <q-tooltip content="Expandir/colapsar detalle de cuotas" />
-                </div>
-                <div class="repbok-cell" data-title="Propietario / Inquilino">
-                  Propietario / Inquilino
-                  <q-tooltip content="Nombre del propietario o inquilino moroso" />
-                </div>
-                <div class="repbok-cell" data-title="DNI">
-                  DNI
-                  <q-tooltip content="Documento de identidad" />
-                </div>
-                <div class="repbok-cell" data-title="Contacto">
-                  Contacto
-                  <q-tooltip content="Email y teléfono de contacto" />
-                </div>
-                <div class="repbok-cell" data-title="Departamentos">
-                  Departamentos
-                  <q-tooltip content="Departamentos asociados al moroso" />
-                </div>
-                <div class="repbok-cell" data-title="Tipo Morosidad">
-                  Tipo Morosidad
-                  <q-tooltip content="Causa de la morosidad: estado de usuario y/o cuotas vencidas >2 meses" />
-                </div>
-                <div class="repbok-cell" data-title="Deuda Total" style="text-align: right">
-                  Deuda Total
-                  <q-tooltip content="Suma total de deuda pendiente en soles" />
-                </div>
-                <div class="repbok-cell" data-title="N° Cuotas" style="text-align: center">
-                  N° Cuotas
-                  <q-tooltip content="Cantidad de cuotas pendientes de pago" />
-                </div>
-              </div>
-
-              <!-- Filas de datos -->
-              <div class="repbok-row" v-for="row in delinquents" :key="row.user_id" :class="{ 'repbok-selected': isSelected(row.user_id) }">
-                <div class="repbok-cell" style="width: 50px" data-title="Seleccionar">
-                  <q-checkbox dense :model-value="isSelected(row.user_id)" @update:model-value="val => toggleSelectRow(row.user_id)" />
-                </div>
-                <div class="repbok-cell" style="width: 40px" data-title="Acciones">
-                  <q-btn flat dense :icon="isExpanded(row) ? 'eva-chevron-up' : 'eva-chevron-down'" @click="toggleExpand(row)" aria-label="Expandir" />
-                </div>
-                <div class="repbok-cell" data-title="Propietario / Inquilino">
-                  <div class="text-weight-bold">{{ row.name }}</div>
-                </div>
-                <div class="repbok-cell" data-title="DNI">{{ row.dni || '—' }}</div>
-                <div class="repbok-cell" data-title="Contacto">
-                  <div v-if="row.email" class="text-caption">{{ row.email }}</div>
-                  <div v-if="row.phone" class="text-caption">{{ row.phone }}</div>
-                </div>
-                <div class="repbok-cell" data-title="Departamentos">
-                  <q-chip v-for="dept in row.departments" :key="dept" size="sm" color="primary" text-color="white" class="q-mr-xs q-mb-xs">{{ dept }}</q-chip>
-                  <div v-if="!row.departments.length" class="text-grey-6 text-caption">—</div>
-                </div>
-                <div class="repbok-cell" data-title="Tipo Morosidad">
-                  <q-chip :color="getTypeColors(row.types)" size="sm" text-color="white" class="q-mb-xs">{{ getTypeLabels(row.types) }}</q-chip>
-                </div>
-                <div class="repbok-cell" data-title="Deuda Total" style="text-align: right; font-weight: bold">{{ formatMoney(row.total_debt) }}</div>
-                <div class="repbok-cell" data-title="N° Cuotas" style="text-align: center">
-                  <div>{{ row.quotas_count }}</div>
-                  <div v-if="getQuotaDetail(row)" class="text-caption text-grey-7 q-mt-xs" style="font-size: 11px;">{{ getQuotaDetail(row) }}</div>
-                </div>
-              </div>
-
-              <!-- Filas expandidas (detalle de cuotas) -->
-              <div 
-                class="repbok-row repbok-expanded" 
-                v-for="row in delinquents" 
-                :key="'expand-' + row.user_id"
-                v-show="isExpanded(row)"
-              >
-                <div class="repbok-cell" style="padding: 20px; text-align: center;" colspan="8">
-                  <div v-if="row.types.includes('overdue_quotas') && row.quotas.length">
-                    <div class="text-h6 q-mb-md" style="text-align: left;">Detalle de Cuotas Pendientes (>2 meses)</div>
-                    <q-table
-                      flat
-                      bordered
-                      :rows="row.quotas"
-                      row-key="id"
-                      virtual-scroll
-                      style="width: 100%; display: inline-table;"
-                    >
-                      <template v-slot:header="hprops">
-                        <q-tr :props="hprops">
-                          <q-th key="dept" :props="hprops">Departamento</q-th>
-                          <q-th key="month" :props="hprops" class="text-center">Mes</q-th>
-                          <q-th key="due" :props="hprops" class="text-center">Fecha Vencimiento</q-th>
-                          <q-th key="amount" :props="hprops" class="text-right">Monto</q-th>
-                        </q-tr>
-                      </template>
-                      <template v-slot:body="hprops">
-                        <q-tr :props="hprops">
-                          <q-td key="dept">{{ hprops.row.department }}</q-td>
-                          <q-td key="month" class="text-center">{{ hprops.row.month_label }}</q-td>
-                          <q-td key="due" class="text-center">{{ hprops.row.due_date }}</q-td>
-                          <q-td key="amount" class="text-right text-weight-bold">{{ formatMoney(hprops.row.amount) }}</q-td>
-                        </q-tr>
-                      </template>
-                    </q-table>
-                  </div>
-                  <div v-else class="text-grey-6 text-center q-py-md">Sin detalle de cuotas vencidas</div>
-                </div>
-              </div>
-
-            </div>
+          <div class="repbok-row repbok-header">
+            <div class="repbok-cell" style="width: 40px"></div>
+            <div class="repbok-cell">Nombre</div>
+            <div class="repbok-cell">DNI</div>
+            <div class="repbok-cell">Contacto</div>
+            <div class="repbok-cell">Departamentos</div>
+            <div class="repbok-cell">Tipo Morosidad</div>
+            <div class="repbok-cell" style="text-align: right">Deuda Total</div>
+            <div class="repbok-cell" style="text-align: center">N° Cuotas</div>
+            <div class="repbok-cell" style="text-align: center">Acciones</div>
           </div>
 
-      <!-- Paginación (si se necesita en el futuro) -->
-      <!-- <div class="row justify-end q-mt-lg" style="display: flex !important;">
-        <q-pagination v-model="pagination.page" :max="totalPages" color="primary" @update:model-value="onPageChange" />
-      </div> -->
+          <template v-for="row in rows" :key="row.user_id">
+            <div class="repbok-row">
+              <div class="repbok-cell" style="width: 40px" data-title="">
+                <q-btn v-if="row.types.includes('overdue_quotas') && row.quotas.length"
+                  flat dense :icon="isExpanded(row.user_id) ? 'eva-chevron-up' : 'eva-chevron-down'"
+                  @click="toggleExpand(row.user_id)" />
+              </div>
+              <div class="repbok-cell" data-title="Nombre">
+                <div class="text-weight-bold">{{ row.name }}</div>
+              </div>
+              <div class="repbok-cell" data-title="DNI">{{ row.dni || '—' }}</div>
+              <div class="repbok-cell" data-title="Contacto">
+                <div v-if="row.email" class="text-caption">{{ row.email }}</div>
+                <div v-if="row.phone" class="text-caption">{{ row.phone }}</div>
+                <div v-if="!row.email && !row.phone" class="text-grey-6">—</div>
+              </div>
+              <div class="repbok-cell" data-title="Departamentos">
+                <q-chip v-for="dept in row.departments" :key="dept" size="sm" color="primary" text-color="white" class="q-mr-xs q-mb-xs">{{ dept }}</q-chip>
+                <div v-if="!row.departments.length" class="text-grey-6 text-caption">—</div>
+              </div>
+              <div class="repbok-cell" data-title="Tipo Morosidad">
+                <q-chip :color="getTypeColor(row.types)" size="sm" text-color="white" class="q-mb-xs">{{ getTypeLabel(row.types) }}</q-chip>
+              </div>
+              <div class="repbok-cell" data-title="Deuda Total" style="text-align: right; font-weight: bold">{{ formatMoney(row.total_debt) }}</div>
+              <div class="repbok-cell" data-title="N° Cuotas" style="text-align: center">
+                <div>{{ row.quotas_count }}</div>
+                <div v-if="getQuotaDetail(row)" class="text-caption text-grey-7" style="font-size: 11px;">{{ getQuotaDetail(row) }}</div>
+              </div>
+              <div class="repbok-cell" data-title="Acciones" style="text-align: center">
+                <q-btn round size="xs" icon="eva-bell-outline" color="primary"
+                  :loading="sendingForUser === row.user_id"
+                  @click="confirmReminder(row)">
+                  <q-tooltip>Enviar recordatorio</q-tooltip>
+                </q-btn>
+              </div>
+            </div>
+
+            <div v-if="isExpanded(row.user_id) && row.types.includes('overdue_quotas') && row.quotas.length"
+              class="repbok-detail-wrapper">
+              <div class="repbok-detail-content">
+                <div class="text-subtitle2 q-mb-sm" style="text-align: left;">Detalle de Cuotas Pendientes (&gt;2 meses)</div>
+                <div class="repbok-detail-table">
+                  <div class="repbok-detail-header">
+                    <div class="repbok-detail-cell">Departamento</div>
+                    <div class="repbok-detail-cell repbok-detail-center">Mes</div>
+                    <div class="repbok-detail-cell repbok-detail-center">Vencimiento</div>
+                    <div class="repbok-detail-cell repbok-detail-right">Monto</div>
+                  </div>
+                  <div class="repbok-detail-row" v-for="q in row.quotas" :key="q.id">
+                    <div class="repbok-detail-cell" data-label="Departamento">{{ q.department }}</div>
+                    <div class="repbok-detail-cell repbok-detail-center" data-label="Mes">{{ q.month_label }}</div>
+                    <div class="repbok-detail-cell repbok-detail-center" data-label="Vencimiento">{{ q.due_date }}</div>
+                    <div class="repbok-detail-cell repbok-detail-right text-weight-bold" data-label="Monto">{{ formatMoney(q.amount) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+        </div>
+      </div>
+
+      <div v-if="rows.length > 0" class="row justify-end q-mt-lg" style="display: flex !important;">
+        <q-pagination
+          v-model="pagination.page"
+          :max="totalPages"
+          :max-pages="6"
+          boundary-numbers
+          direction-links
+          color="primary"
+          @update:model-value="onPageChange"
+        />
+      </div>
 
     </div>
   </div>
-
-  <!-- Dialog Enviar Recordatorio -->
-  <q-dialog v-model="showReminderDialog" persistent>
-    <q-card style="min-width: 500px;">
-      <q-card-section>
-        <div class="text-h6">Enviar recordatorio a {{ selectedCount }} moroso{{ selectedCount > 1 ? 's' : '' }}</div>
-      </q-card-section>
-
-      <q-card-section class="q-pt-none">
-        <q-input
-          v-model="reminderMessage"
-          type="textarea"
-          label="Mensaje personalizado (opcional)"
-          hint="Si deja vacío, se enviará un mensaje predeterminado con el detalle de la deuda"
-          rows="5"
-        />
-      </q-card-section>
-
-      <q-card-actions align="right">
-        <q-btn flat label="Cancelar" color="primary" v-close-popup />
-        <q-btn 
-          label="Enviar" 
-          color="primary" 
-          :loading="sendingReminder" 
-          @click="sendReminder" 
-        />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
 </template>
 
 <style>
-.rounded-borders { border-radius: 0.5rem; }
+.form__inputsRDelinquents .q-field__inner {
+  box-shadow: 0px 3px 4px 0px #bfbfbf48;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(223, 223, 223);
+  padding: 0px 1rem;
+}
 </style>
 
 <style scoped lang="scss">
-/* Estilos adaptados con el prefijo repbok- (igual que reportBookings) */
-
 .repbok-wrapper {
   margin: 0 auto;
   width: 100%;
@@ -361,20 +335,8 @@ onMounted(fetchDelinquents)
   background: $primary;
 }
 
-.repbok-row.repbok-green {
-  background: #27ae60;
-}
-
-.repbok-row.repbok-blue {
-  background: #2980b9;
-}
-
 .repbok-row.repbok-expanded {
   background: #fafafa;
-}
-
-.repbok-row.repbok-selected {
-  background: #e3f2fd !important;
 }
 
 @media screen and (max-width: 580px) {
@@ -382,20 +344,20 @@ onMounted(fetchDelinquents)
     padding: 14px 0 7px;
     display: block !important;
   }
-  
+
   .repbok-row.repbok-header {
     padding: 0;
     height: 6px;
   }
-  
+
   .repbok-row.repbok-header .repbok-cell {
     display: none;
   }
-  
+
   .repbok-row .repbok-cell {
     margin-bottom: 10px;
   }
-  
+
   .repbok-row .repbok-cell:before {
     margin-bottom: 3px;
     content: attr(data-title);
@@ -419,6 +381,91 @@ onMounted(fetchDelinquents)
   .repbok-cell {
     padding: 2px 16px;
     display: block;
+  }
+}
+
+.repbok-detail-wrapper {
+  width: 100%;
+  background: #fafafa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.repbok-detail-content {
+  padding: 16px 20px;
+}
+
+.repbok-detail-table {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.repbok-detail-header {
+  display: table-row;
+  background: #f5f5f5;
+}
+
+.repbok-detail-header .repbok-detail-cell {
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #666;
+  padding: 8px 12px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.repbok-detail-row {
+  display: table-row;
+  background: #fff;
+}
+
+.repbok-detail-row:nth-of-type(even) {
+  background: #fafafa;
+}
+
+.repbok-detail-row .repbok-detail-cell {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+}
+
+.repbok-detail-cell {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.repbok-detail-center {
+  text-align: center;
+}
+
+.repbok-detail-right {
+  text-align: right;
+}
+
+@media screen and (max-width: 580px) {
+  .repbok-detail-header,
+  .repbok-detail-row {
+    display: block;
+  }
+
+  .repbok-detail-header .repbok-detail-cell {
+    display: none;
+  }
+
+  .repbok-detail-cell {
+    display: block;
+    padding: 4px 12px;
+  }
+
+  .repbok-detail-cell:before {
+    content: attr(data-label);
+    font-weight: bold;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #999;
+    display: block;
+    margin-bottom: 2px;
   }
 }
 </style>

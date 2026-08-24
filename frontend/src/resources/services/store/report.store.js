@@ -77,6 +77,67 @@ export const useReportStore = defineStore('Report', {
       })
     },
 
+    async getDelinquents(filters) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        const query = this.filterQuery(filters)
+        const url = '/api/reports/delinquents' + (query ? `?${query}` : '')
+        ApiService.get(url)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al cargar reporte de morosos')
+          })
+      })
+    },
+
+    async getDelinquentsMetrics() {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.get('/api/reports/delinquents/metrics')
+          .then(({ data }) => {
+            if (data.code !== 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al cargar métricas de morosos')
+          })
+      })
+    },
+
+    async exportDelinquents(filters) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        const token = ApiService.getToken()
+        const query = this.filterQuery(filters)
+        const url = import.meta.env.VITE_LARAVEL_API_URL + '/api/reports/delinquents/export' + (query ? `?${query}` : '')
+        fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+          .then((res) => {
+            if (!res.ok) throw new Error('Error al exportar')
+            return res.blob()
+          })
+          .then((blob) => {
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            a.download = 'reporte-morosos.xlsx'
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+            resolve(true)
+          })
+          .catch((err) => {
+            console.error(err)
+            reject('Error al descargar el archivo')
+          })
+      })
+    },
+
     filterQuery(filter) {
       console.log(filter)
       try {

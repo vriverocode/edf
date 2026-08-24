@@ -334,20 +334,6 @@ export const useQuotaStore = defineStore('Quota', {
           });
       })
     },
-    async getDelinquentsReport() {
-      return await new Promise((resolve, reject) => {
-        if (!ApiService.getToken()) throw '';
-        ApiService.setHeader();
-        ApiService.get('/api/reports/delinquents')
-          .then(({ data }) => {
-            if (data.code !== 200) throw data;
-            resolve(data);
-          })
-          .catch(({ response }) => {
-            reject(response?.data?.error || 'Error al cargar reporte de morosos');
-          });
-      });
-    },
     async sendDelinquentReminder(userIds, message = null) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw '';

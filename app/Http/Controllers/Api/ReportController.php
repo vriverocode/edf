@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Exports\BookingsExport;
+use App\Exports\DelinquentsExport;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Departament;
@@ -14,8 +15,8 @@ use App\Models\User;
 use App\Notifications\RealtimeNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -282,6 +283,8 @@ class ReportController extends Controller
 
     public function delinquents(Request $request): JsonResponse
     {
+        $perPage = (int) $request->query('per_page', 15);
+        $search = $request->query('search');
         $twoMonthsAgo = now()->subMonths(2);
 
         $morosoUsers = User::where('status', 2)
@@ -367,7 +370,30 @@ class ReportController extends Controller
             })
             ->values();
 
-        return $this->returnSuccess(200, $all);
+        if ($search) {
+            $searchLower = strtolower($search);
+            $all = $all->filter(function ($row) use ($searchLower) {
+                $nameMatch = str_contains(strtolower($row['name'] ?? ''), $searchLower);
+                $deptMatch = collect($row['departments'] ?? [])
+                    ->contains(fn ($d) => str_contains(strtolower($d), $searchLower));
+                $dniMatch = str_contains(strtolower($row['dni'] ?? ''), $searchLower);
+                return $nameMatch || $deptMatch || $dniMatch;
+            })->values();
+        }
+
+        $total = $all->count();
+        $currentPage = (int) $request->query('page', 1);
+        $items = $all->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        $paginator = new LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $currentPage,
+            ['path' => $request->url()]
+        );
+
+        return $this->returnSuccess(200, $paginator);
     }
 
     public function sendReminderDelinquents(Request $request): JsonResponse
@@ -441,5 +467,142 @@ class ReportController extends Controller
             'failed' => $failed,
             'message' => "Recordatorios enviados: {$sent}. Fallidos: {$failed}.",
         ]);
+    }
+
+    public function delinquentsMetrics(): JsonResponse
+    {
+        $twoMonthsAgo = now()->subMonths(2);
+
+        $totalOverdue = Quota::where('status', 1)
+            ->where('due_date', '<=', $twoMonthsAgo)
+            ->count();
+
+        $totalDebt = Quota::where('status', 1)
+            ->where('due_date', '<=', $twoMonthsAgo)
+            ->sum('amount');
+
+        $uniqueDelinquents = User::where(function ($q) {
+                $q->where('status', 2)
+                    ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL]);
+            })
+            ->orWhereHas('quotas', function ($q) use ($twoMonthsAgo) {
+                $q->where('status', 1)->where('due_date', '<=', $twoMonthsAgo);
+            })
+            ->count();
+
+        return $this->returnSuccess(200, [
+            'total_delinquents' => $uniqueDelinquents,
+            'total_debt' => round($totalDebt, 2),
+            'total_overdue_quotas' => $totalOverdue,
+        ]);
+    }
+
+    public function exportDelinquents(Request $request): BinaryFileResponse
+    {
+        $data = $this->getDelinquentsData($request);
+
+        $filename = 'reporte-morosos-'.now()->format('Y-m-d-His').'.xlsx';
+
+        return Excel::download(new DelinquentsExport($data), $filename);
+    }
+
+    private function getDelinquentsData(Request $request)
+    {
+        $search = $request->query('search');
+        $twoMonthsAgo = now()->subMonths(2);
+
+        $morosoUsers = User::where('status', 2)
+            ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL])
+            ->with(['units:id,number,user_id', 'departmentsInquilino.departament:id,number'])
+            ->get(['id', 'name', 'email', 'phone', 'dni', 'status', 'rol_id'])
+            ->map(function ($user) {
+                $departments = $user->units->pluck('number')->merge(
+                    $user->departmentsInquilino->pluck('departament.number')
+                )->filter()->unique()->values();
+
+                return [
+                    'type' => 'user_status',
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'dni' => $user->dni,
+                    'status_label' => 'Moroso (estado usuario)',
+                    'departments' => $departments,
+                    'total_debt' => 0,
+                    'quotas_count' => 0,
+                    'quotas' => [],
+                ];
+            });
+
+        $overdueQuotas = Quota::where('status', 1)
+            ->where('due_date', '<=', $twoMonthsAgo)
+            ->with(['departament.owner:id,name,email,phone,dni', 'responsiblePivot.user:id,name,email,phone,dni'])
+            ->get()
+            ->groupBy(function ($quota) {
+                return $quota->responsiblePivot?->user_id ?? $quota->departament->user_id;
+            })
+            ->map(function ($quotas, $userId) {
+                $firstQuota = $quotas->first();
+                $owner = $firstQuota->responsiblePivot?->user ?? $firstQuota->departament->owner;
+
+                $departments = $quotas->pluck('departament.number')->unique()->values();
+                $totalAmount = $quotas->sum('amount');
+
+                return [
+                    'type' => 'overdue_quotas',
+                    'user_id' => $owner?->id,
+                    'name' => $owner?->name ?? 'Sin propietario',
+                    'email' => $owner?->email,
+                    'phone' => $owner?->phone,
+                    'dni' => $owner?->dni,
+                    'status_label' => 'Cuotas pendientes >2 meses',
+                    'departments' => $departments,
+                    'total_debt' => round($totalAmount, 2),
+                    'quotas_count' => $quotas->count(),
+                    'quotas' => $quotas->map(fn ($q) => [
+                        'id' => $q->id,
+                        'department' => $q->departament->number,
+                        'amount' => (float) $q->amount,
+                        'due_date' => $q->due_date,
+                        'month' => $q->month,
+                        'month_label' => $q->month_label,
+                    ])->values()->all(),
+                ];
+            });
+
+        $all = $morosoUsers->concat($overdueQuotas)
+            ->groupBy('user_id')
+            ->map(function ($group) {
+                $first = $group->first();
+                $types = $group->pluck('type')->unique()->values()->all();
+
+                return [
+                    'user_id' => $first['user_id'],
+                    'name' => $first['name'],
+                    'email' => $first['email'],
+                    'phone' => $first['phone'],
+                    'dni' => $first['dni'],
+                    'types' => $types,
+                    'departments' => $group->pluck('departments')->flatten()->unique()->values()->all(),
+                    'total_debt' => $group->sum('total_debt'),
+                    'quotas_count' => $group->sum('quotas_count'),
+                    'quotas' => $group->pluck('quotas')->flatten()->values()->all(),
+                ];
+            })
+            ->values();
+
+        if ($search) {
+            $searchLower = strtolower($search);
+            $all = $all->filter(function ($row) use ($searchLower) {
+                $nameMatch = str_contains(strtolower($row['name'] ?? ''), $searchLower);
+                $deptMatch = collect($row['departments'] ?? [])
+                    ->contains(fn ($d) => str_contains(strtolower($d), $searchLower));
+                $dniMatch = str_contains(strtolower($row['dni'] ?? ''), $searchLower);
+                return $nameMatch || $deptMatch || $dniMatch;
+            })->values();
+        }
+
+        return $all;
     }
 }
