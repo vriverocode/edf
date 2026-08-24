@@ -98,7 +98,6 @@ class MonthlyBillsController extends Controller
         if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
-        try {
             $validated = $request->validate([
                 'month' => ['required', 'integer', 'between:1,12',
                     Rule::unique('monthly_bills', 'month')->where(function ($query) use ($request) {
@@ -106,7 +105,8 @@ class MonthlyBillsController extends Controller
                     }),
                 ],
                 'year' => ['required', 'integer'],
-                'total_maintenance_budget' => ['required', 'numeric'],
+                'monthly_budget' => ['required', 'numeric', 'min:0'],
+                'total_maintenance_budget' => ['required', 'numeric', 'min:0'],
                 'water_price_per_m3' => ['required', 'numeric'],
                 'total_water_bill_amount' => ['nullable', 'numeric'],
                 'total_water_consumption_m3' => ['nullable', 'numeric'],
@@ -119,8 +119,12 @@ class MonthlyBillsController extends Controller
                 'month.unique' => 'Ya existe un presupuesto registrado para ese mes y año.',
                 'year.required' => 'El año es requerido.',
                 'year.integer' => 'El año debe ser un número entero.',
+                'monthly_budget.required' => 'El presupuesto mensual base es requerido.',
+                'monthly_budget.numeric' => 'El presupuesto mensual base debe ser numérico.',
+                'monthly_budget.min' => 'El presupuesto mensual base no puede ser negativo.',
                 'total_maintenance_budget.required' => 'El presupuesto total a distribuir es requerido.',
                 'total_maintenance_budget.numeric' => 'El presupuesto total a distribuir debe ser numérico.',
+                'total_maintenance_budget.min' => 'El presupuesto total a distribuir no puede ser negativo.',
                 'water_price_per_m3.required' => 'El costo unitario de agua por m3 es requerido.',
                 'water_price_per_m3.numeric' => 'El costo unitario de agua por m3 debe ser numérico.',
                 'total_water_bill_amount.numeric' => 'El monto total del recibo de agua debe ser numérico.',
@@ -129,17 +133,23 @@ class MonthlyBillsController extends Controller
                 'expense_ids.*.integer' => 'Cada ID de gasto debe ser un número entero.',
                 'expense_ids.*.exists' => 'Uno o más gastos seleccionados no son válidos.',
             ]);
-        } catch (ValidationException $e) {
-            return $this->returnFail(422, $e->validator->errors()->first());
-        }
+        
 
         $expenseIds = $validated['expense_ids'] ?? [];
         unset($validated['expense_ids']);
 
+        $expensesTotal = Expense::whereIn('id', $expenseIds)->sum('amount');
+        $calculatedTotal = $validated['monthly_budget'] + $expensesTotal;
+
+        if (abs($calculatedTotal - $validated['total_maintenance_budget']) > 0.01) {
+            return $this->returnFail(422, 'El total a distribuir no coincide: Presupuesto base + Gastos = '.number_format($calculatedTotal, 2));
+        }
+
         $monthlyBill = MonthlyBills::create([
             'month' => $validated['month'],
             'year' => $validated['year'],
-            'total_maintenance_budget' => $validated['total_maintenance_budget'],
+            'monthly_budget' => $validated['monthly_budget'],
+            'total_maintenance_budget' => $calculatedTotal,
             'water_price_per_m3' => $validated['water_price_per_m3'],
             'total_water_bill_amount' => $validated['total_water_bill_amount'] ?? null,
             'total_water_consumption_m3' => $validated['total_water_consumption_m3'] ?? null,
@@ -175,7 +185,8 @@ class MonthlyBillsController extends Controller
                         ->ignore($monthlyBill->id),
                 ],
                 'year' => ['required', 'integer'],
-                'total_maintenance_budget' => ['required', 'numeric'],
+                'monthly_budget' => ['required', 'numeric', 'min:0'],
+                'total_maintenance_budget' => ['required', 'numeric', 'min:0'],
                 'water_price_per_m3' => ['required', 'numeric'],
                 'total_water_bill_amount' => ['nullable', 'numeric'],
                 'total_water_consumption_m3' => ['nullable', 'numeric'],
@@ -186,8 +197,12 @@ class MonthlyBillsController extends Controller
                 'month.unique' => 'Ya existe un presupuesto registrado para ese mes y año.',
                 'year.required' => 'El año es requerido.',
                 'year.integer' => 'El año debe ser un número entero.',
+                'monthly_budget.required' => 'El presupuesto mensual base es requerido.',
+                'monthly_budget.numeric' => 'El presupuesto mensual base debe ser numérico.',
+                'monthly_budget.min' => 'El presupuesto mensual base no puede ser negativo.',
                 'total_maintenance_budget.required' => 'El presupuesto total a distribuir es requerido.',
                 'total_maintenance_budget.numeric' => 'El presupuesto total a distribuir debe ser numérico.',
+                'total_maintenance_budget.min' => 'El presupuesto total a distribuir no puede ser negativo.',
                 'water_price_per_m3.required' => 'El costo unitario de agua por m3 es requerido.',
                 'water_price_per_m3.numeric' => 'El costo unitario de agua por m3 debe ser numérico.',
                 'total_water_bill_amount.numeric' => 'El monto total del recibo de agua debe ser numérico.',
@@ -197,10 +212,19 @@ class MonthlyBillsController extends Controller
             return $this->returnFail(422, $e->validator->errors()->first());
         }
 
+        $expenseIds = $monthlyBill->expenses()->pluck('id')->toArray();
+        $expensesTotal = Expense::whereIn('id', $expenseIds)->sum('amount');
+        $calculatedTotal = $validated['monthly_budget'] + $expensesTotal;
+
+        if (abs($calculatedTotal - $validated['total_maintenance_budget']) > 0.01) {
+            return $this->returnFail(422, 'El total a distribuir no coincide: Presupuesto base + Gastos = '.number_format($calculatedTotal, 2));
+        }
+
         $monthlyBill->update([
             'month' => $validated['month'],
             'year' => $validated['year'],
-            'total_maintenance_budget' => $validated['total_maintenance_budget'],
+            'monthly_budget' => $validated['monthly_budget'],
+            'total_maintenance_budget' => $calculatedTotal,
             'water_price_per_m3' => $validated['water_price_per_m3'],
             'total_water_bill_amount' => $validated['total_water_bill_amount'] ?? null,
             'total_water_consumption_m3' => $validated['total_water_consumption_m3'] ?? null,

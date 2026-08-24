@@ -32,6 +32,7 @@ const monthOptions = [
 const formData = ref({
   month: monthOptions[now.getMonth() - 1],
   year: now.getFullYear(),
+  monthly_budget: '',
   total_maintenance_budget: '',
   total_water_bill_amount: '',
   total_water_consumption_m3: null,
@@ -86,14 +87,24 @@ const loadPreviousMonthData = async () => {
   }
 }
 
-const progressPercent = computed(() => {
-  const total = parseMaskedMoney(formData.value.total_maintenance_budget) || 0
-  if (total === 0) return 0
-  const spent = previousSelectedTotal.value
-  return Math.min(100, Math.round((spent / total) * 100))
+const includedExpensesTotal = computed(() => previousSelectedTotal.value)
+
+const formattedIncludedExpenses = computed(() => formatMaskedMoney(includedExpensesTotal.value))
+
+const calculatedTotal = computed(() => {
+  const budget = parseMaskedMoney(formData.value.monthly_budget) || 0
+  const expenses = includedExpensesTotal.value
+  return budget + expenses
+})
+
+const formattedCalculatedTotal = computed(() => formatMaskedMoney(calculatedTotal.value))
+
+watch(calculatedTotal, (val) => {
+  formData.value.total_maintenance_budget = formatMaskedMoney(val)
 })
 
 watch(() => formData.value.month, loadPreviousMonthData)
+
 
 
 
@@ -127,10 +138,6 @@ const showNotify = (type, text) => {
 }
 
 const onExpensesSelected = ({ totalAmount, expenseIds, expenses }) => {
-  const currentBudget = parseMaskedMoney(formData.value.total_maintenance_budget) || 0
-  const diff = totalAmount - previousSelectedTotal.value
-  const newBudget = currentBudget + diff
-  formData.value.total_maintenance_budget = formatMaskedMoney(newBudget)
   selectedExpenseIds.value = expenseIds
   selectedExpensesData.value = expenses
   previousSelectedTotal.value = totalAmount
@@ -139,6 +146,7 @@ const onExpensesSelected = ({ totalAmount, expenseIds, expenses }) => {
 const submit = async () => {
   loading.value = true
   try {
+    const monthlyBudget = parseMaskedMoney(formData.value.monthly_budget)
     const totalMaintenanceBudget = parseMaskedMoney(formData.value.total_maintenance_budget)
     const totalWaterBillAmount = parseMaskedMoney(formData.value.total_water_bill_amount)
     const waterPricePerM3 = parseMaskedMoney(formData.value.water_price_per_m3)
@@ -161,6 +169,7 @@ const submit = async () => {
     const payload = {
       month: formData.value.month?.value,
       year: Number(formData.value.year),
+      monthly_budget: monthlyBudget,
       total_maintenance_budget: totalMaintenanceBudget,
       total_water_bill_amount: totalWaterBillAmount,
       total_water_consumption_m3: waterConsumption,
@@ -184,7 +193,6 @@ const submit = async () => {
   }
 }
 </script>
-
 <template>
   <div class="md:px-20 px-2  pb-10 h-full" style="overflow: auto;">
     <div class="text-center text-black text-h5 text-bold  my-2">
@@ -205,14 +213,30 @@ const submit = async () => {
             v-model.number="formData.year" :rules="[val => !!val || 'El año es requerido']" />
         </div>
 
+        <!-- 1. Presupuesto mensual base (EDITABLE) -->
         <div class="col-12 mt-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-black">Presupuesto total a distribuir (S/.)</div>
+          <div class="text-subtitle2 text-black">Presupuesto mensual base (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
-            v-model="formData.total_maintenance_budget" mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
+            v-model="formData.monthly_budget" mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
             :rules="[
-              val => parseMaskedMoney(val) !== null || 'El presupuesto total es requerido'
+              val => parseMaskedMoney(val) !== null || 'El presupuesto base es requerido'
             ]" />
         </div>
+
+        <!-- 2. Gastos incluidos (READONLY) -->
+        <div v-if="selectedExpensesData.length > 0" class="col-12 mt-1 px-2 md:px-12">
+          <div class="text-subtitle2 text-black">Gastos incluidos (S/.)</div>
+          <q-input dense borderless class="form__inputsR mt-1" color="grey-4" readonly
+            v-model="formattedIncludedExpenses" />
+        </div>
+
+        <!-- 3. Total a distribuir (READONLY, RESALTADO) -->
+        <div class="col-12 mt-3 px-2 md:px-12">
+          <div class="text-subtitle2 text-black text-weight-bold">Total a distribuir (S/.)</div>
+          <q-input dense borderless class="form__inputsR mt-1" color="primary" readonly
+            v-model="formattedCalculatedTotal" />
+        </div>
+
         <div class="w-full flex justify-end">
           <q-btn
               flat
@@ -227,7 +251,7 @@ const submit = async () => {
 
         <div v-if="selectedExpensesData.length > 0" class="col-12 px-2 md:px-12 mt-2">
           <div class="expenses-summary q-pa-sm">
-            <div class="text-caption text-grey-7 q-mb-xs">Gastos incluidos:</div>
+            <div class="text-caption text-grey-7 q-mb-xs">Detalle de gastos incluidos:</div>
             <div
               v-for="expense in selectedExpensesData"
               :key="expense.id"
@@ -260,18 +284,6 @@ const submit = async () => {
             </div>
           </q-banner>
         </div>
-        <div v-if="progressPercent > 0" class="col-12 mt-2 px-2 md:px-12">
-          <div class="text-subtitle2 text-black q-mb-xs">Avance del presupuesto</div>
-          <q-linear-progress :value="progressPercent / 100" color="primary" class="q-mt-xs" size="24px"
-            style="border-radius: 4px;">
-            <div class="absolute-full flex flex-center text-white text-bold text-body2">
-              {{ progressPercent }}%
-            </div>
-          </q-linear-progress>
-          <div class="text-caption text-grey-6 q-mt-xs">
-            S/. {{ formatMaskedMoney(previousSelectedTotal) }} de S/. {{ formatMaskedMoney(parseMaskedMoney(formData.total_maintenance_budget) || 0) }}
-          </div>
-        </div>
         <div class="col-md-6 col-12 mt-4 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Monto total recibo de agua (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
@@ -289,7 +301,7 @@ const submit = async () => {
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" mask="###.###.###,####"
             reverse-fill-mask inputmode="decimal" :rules="[
               val => parseMaskedMoney(val) !== null || 'El costo unitario de agua es requerido'
-            ]" v-model="formData.water_price_per_m3" :readonly="waterPriceReadonly"
+            ]" v-model="formData.water_price_per_m3" 
             :hint="waterPriceReadonly ? 'Calculado automáticamente (Monto / Consumo)' : 'Ingresa el costo unitario si no registras los totales'" />
         </div>
 

@@ -51,6 +51,7 @@ const billId = computed(() => route.params.id || route.query.id)
 const formData = ref({
   month: null,
   year: new Date().getFullYear(),
+  monthly_budget: '',
   total_maintenance_budget: '',
   total_water_bill_amount: '',
   total_water_consumption_m3: null,
@@ -94,6 +95,7 @@ const loadBill = async () => {
 
     formData.value.month = monthOptions.find(m => m.value === bill.month) || null
     formData.value.year = bill.year
+    formData.value.monthly_budget = bill.monthly_budget !== null && bill.monthly_budget !== undefined ? formatMaskedMoney(bill.monthly_budget) : ''
     formData.value.total_maintenance_budget = formatMaskedMoney(bill.total_maintenance_budget)
     formData.value.total_water_bill_amount = bill.total_water_bill_amount === null ? '' : formatMaskedMoney(bill.total_water_bill_amount)
     formData.value.total_water_consumption_m3 = bill.total_water_consumption_m3
@@ -112,6 +114,7 @@ const submit = async () => {
     const payload = {
       month: formData.value.month?.value,
       year: Number(formData.value.year),
+      monthly_budget: parseMaskedMoney(formData.value.monthly_budget),
       total_maintenance_budget: parseMaskedMoney(formData.value.total_maintenance_budget),
       total_water_bill_amount: parseMaskedMoney(formData.value.total_water_bill_amount),
       total_water_consumption_m3:
@@ -162,11 +165,19 @@ onMounted(() => {
             v-model.number="formData.year" :rules="[val => !!val || 'El año es requerido']" />
         </div>
 
+        <!-- 1. Presupuesto mensual base (EDITABLE) -->
         <div class="col-12 mt-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-black">Presupuesto total a distribuir (S/.)</div>
+          <div class="text-subtitle2 text-black">Presupuesto mensual base (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
-            v-model="formData.total_maintenance_budget" mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
-            :rules="[val => parseMaskedMoney(val) !== null || 'El presupuesto total es requerido']" />
+            v-model="formData.monthly_budget" mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
+            :rules="[val => parseMaskedMoney(val) !== null || 'El presupuesto base es requerido']" />
+        </div>
+
+        <!-- 2. Total a distribuir (READONLY, RESALTADO) -->
+        <div class="col-12 mt-1 px-2 md:px-12">
+          <div class="text-subtitle2 text-black text-weight-bold">Total a distribuir (S/.)</div>
+          <q-input dense borderless class="form__inputsR mt-1" color="primary" readonly
+            v-model="formData.total_maintenance_budget" />
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
@@ -177,7 +188,8 @@ onMounted(() => {
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Consumo total de agua (m³)</div>
-          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number" step="0.001"
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number" 
+           step="0.001"
             v-model.number="formData.total_water_consumption_m3" />
         </div>
 
@@ -185,7 +197,6 @@ onMounted(() => {
           <div class="text-subtitle2 text-black">Costo unitario de agua por m³ (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
             v-model="formData.water_price_per_m3" mask="###.###.###,####" reverse-fill-mask inputmode="decimal"
-            :readonly="waterPriceReadonly"
             :rules="[val => parseMaskedMoney(val) !== null || 'El costo unitario de agua es requerido']"
             :hint="waterPriceReadonly ? 'Calculado automáticamente (Monto / Consumo)' : 'Ingresa el costo unitario si no registras los totales'" />
         </div>

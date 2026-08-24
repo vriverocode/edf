@@ -16,7 +16,7 @@ class ImportCuotasActualizadasMorosidad extends Command
     protected $signature = 'import:cuotas-actualizadas-morosidad
                             {file? : Ruta al archivo .xlsm (por defecto referencias/cuotasActualizadas.xlsm)}';
 
-    protected $description = 'Importa la hoja REPORTE DE MOROSIDAD de cuotasActualizadas.xlsm a la tabla quotas (positivos=status 4, negativos=status 3)';
+    protected $description = 'Importa la hoja REPORTE DE MOROSIDAD de cuotasActualizadas.xlsm a la tabla quotas (positivos=status 1, negativos=status 3)';
 
     private const SHEET_NAME = 'REPORTE DE MOROSIDAD';
 
@@ -45,7 +45,7 @@ class ImportCuotasActualizadasMorosidad extends Command
         'departments_not_found' => 0,
         'users_found' => 0,
         'users_not_found' => 0,
-        'status_4' => 0,
+        'status_1' => 0,
         'status_3' => 0,
         'omitted' => 0,
     ];
@@ -217,7 +217,7 @@ class ImportCuotasActualizadasMorosidad extends Command
             return;
         }
 
-        $status = $amount < 0 ? 3 : 4;
+        $status = $amount < 0 ? 3 : 1;
         $description = 'Cuota '.$meta['label'].' - '.$departament->number;
 
         Quota::create([
@@ -235,8 +235,8 @@ class ImportCuotasActualizadasMorosidad extends Command
 
         $this->stats['quotas_created']++;
 
-        if ($status === 4) {
-            $this->stats['status_4']++;
+        if ($status === 1) {
+            $this->stats['status_1']++;
         } else {
             $this->stats['status_3']++;
         }
@@ -327,7 +327,7 @@ class ImportCuotasActualizadasMorosidad extends Command
                 ['Propietarios encontrados', $this->stats['users_found']],
                 ['Propietarios NO encontrados', $this->stats['users_not_found']],
                 ['Cuotas creadas', $this->stats['quotas_created']],
-                ['  - status 4 (Vencida)', $this->stats['status_4']],
+                ['  - status 1 (Pago pendiente)', $this->stats['status_1']],
                 ['  - status 3 (Pagada)', $this->stats['status_3']],
                 ['Cuotas omitidas por duplicado', $this->stats['quotas_duplicated']],
                 ['Filas omitidas', $this->stats['omitted']],

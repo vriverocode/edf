@@ -9,9 +9,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Departament;
 use App\Models\Quota;
+use App\Models\Rol;
+use App\Models\User;
+use App\Notifications\RealtimeNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -271,7 +275,171 @@ class ReportController extends Controller
             'date_to' => null,
             'sort_by' => 'created_at',
             'sort_dir' => 'desc',
+            'per_page' => 25,
             'include_cancelled' => false,
         ], $validFilters);
+    }
+
+    public function delinquents(Request $request): JsonResponse
+    {
+        $twoMonthsAgo = now()->subMonths(2);
+
+        $morosoUsers = User::where('status', 2)
+            ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL])
+            ->with(['units:id,number,user_id', 'departmentsInquilino.departament:id,number'])
+            ->get(['id', 'name', 'email', 'phone', 'dni', 'status', 'rol_id'])
+            ->map(function ($user) {
+                $departments = $user->units->pluck('number')->merge(
+                    $user->departmentsInquilino->pluck('departament.number')
+                )->filter()->unique()->values();
+
+                return [
+                    'type' => 'user_status',
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'dni' => $user->dni,
+                    'status_label' => 'Moroso (estado usuario)',
+                    'departments' => $departments,
+                    'total_debt' => 0,
+                    'quotas_count' => 0,
+                    'quotas' => [],
+                ];
+            });
+
+        $overdueQuotas = Quota::where('status', 1)
+            ->where('due_date', '<=', $twoMonthsAgo)
+            ->with(['departament.owner:id,name,email,phone,dni', 'responsiblePivot.user:id,name,email,phone,dni'])
+            ->get()
+            ->groupBy(function ($quota) {
+                return $quota->responsiblePivot?->user_id ?? $quota->departament->user_id;
+            })
+            ->map(function ($quotas, $userId) {
+                $firstQuota = $quotas->first();
+                $owner = $firstQuota->responsiblePivot?->user ?? $firstQuota->departament->owner;
+
+                $departments = $quotas->pluck('departament.number')->unique()->values();
+                $totalAmount = $quotas->sum('amount');
+                $oldestDueDate = $quotas->min('due_date');
+
+                return [
+                    'type' => 'overdue_quotas',
+                    'user_id' => $owner?->id,
+                    'name' => $owner?->name ?? 'Sin propietario',
+                    'email' => $owner?->email,
+                    'phone' => $owner?->phone,
+                    'dni' => $owner?->dni,
+                    'status_label' => 'Cuotas pendientes >2 meses',
+                    'departments' => $departments,
+                    'total_debt' => round($totalAmount, 2),
+                    'oldest_due_date' => $oldestDueDate,
+                    'quotas_count' => $quotas->count(),
+                    'quotas' => $quotas->map(fn ($q) => [
+                        'id' => $q->id,
+                        'department' => $q->departament->number,
+                        'amount' => (float) $q->amount,
+                        'due_date' => $q->due_date,
+                        'month' => $q->month,
+                        'month_label' => $q->month_label,
+                    ])->values()->all(),
+                ];
+            });
+
+        $all = $morosoUsers->concat($overdueQuotas)
+            ->groupBy('user_id')
+            ->map(function ($group) {
+                $first = $group->first();
+                $types = $group->pluck('type')->unique()->values()->all();
+
+                return [
+                    'user_id' => $first['user_id'],
+                    'name' => $first['name'],
+                    'email' => $first['email'],
+                    'phone' => $first['phone'],
+                    'dni' => $first['dni'],
+                    'types' => $types,
+                    'departments' => $group->pluck('departments')->flatten()->unique()->values()->all(),
+                    'total_debt' => $group->sum('total_debt'),
+                    'quotas_count' => $group->sum('quotas_count'),
+                    'quotas' => $group->pluck('quotas')->flatten()->values()->all(),
+                ];
+            })
+            ->values();
+
+        return $this->returnSuccess(200, $all);
+    }
+
+    public function sendReminderDelinquents(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+
+        $validated = $request->validate([
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
+            'message' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $twoMonthsAgo = now()->subMonths(2);
+
+        $delinquentUsers = User::whereIn('id', $validated['user_ids'])
+            ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL])
+            ->get(['id', 'name', 'email', 'phone']);
+
+        $sent = 0;
+        $failed = 0;
+
+        foreach ($delinquentUsers as $delinquent) {
+            try {
+                $overdueQuotas = Quota::where('status', 1)
+                    ->where('due_date', '<=', $twoMonthsAgo)
+                    ->whereHas('departament', function ($q) use ($delinquent) {
+                        $q->where(function ($q2) use ($delinquent) {
+                            $q2->where('user_id', $delinquent->id)
+                                ->orWhereHas('peoples', fn ($p) => $p->where('user_id', $delinquent->id)->where('type', Rol::INQUILINO));
+                        });
+                    })
+                    ->with('departament')
+                    ->get();
+
+                $totalDebt = $overdueQuotas->sum('amount');
+                $quotasCount = $overdueQuotas->count();
+                $oldestDue = $overdueQuotas->min('due_date');
+
+                $defaultMessage = "Estimado {$delinquent->name},\n\n";
+                $defaultMessage .= "Le recordamos que tiene {$quotasCount} cuota(s) pendiente(s) de pago con vencimiento superior a 2 meses.\n";
+                $defaultMessage .= "Deuda total: S/ " . number_format($totalDebt, 2) . "\n";
+                $defaultMessage .= "Cuota más antigua: " . \Carbon\Carbon::parse($oldestDue)->format('d/m/Y') . "\n\n";
+                $defaultMessage .= "Por favor regularice su situación a la brevedad.\n\n";
+                $defaultMessage .= "Administración EDF";
+
+                $message = $validated['message'] ?? $defaultMessage;
+
+                $delinquent->notify(new RealtimeNotification(
+                    title: 'Recordatorio de cuotas pendientes',
+                    message: $message,
+                    url: '/client/quotas',
+                    meta: [
+                        'type' => 'delinquent_reminder',
+                        'total_debt' => $totalDebt,
+                        'quotas_count' => $quotasCount,
+                    ],
+                ));
+
+                $sent++;
+            } catch (\Throwable $e) {
+                $failed++;
+                \Log::error("Error enviando recordatorio a usuario {$delinquent->id}: " . $e->getMessage());
+            }
+        }
+
+        return $this->returnSuccess(200, [
+            'sent' => $sent,
+            'failed' => $failed,
+            'message' => "Recordatorios enviados: {$sent}. Fallidos: {$failed}.",
+        ]);
     }
 }

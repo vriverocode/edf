@@ -46,7 +46,7 @@ export const useQuotaStore = defineStore('Quota', {
           });
       });
     },
-    async getAdminGroupedByOwnerForMonth(month, { year, status } = {}) {
+    async getAdminGroupedByOwnerForMonth(month, { year, status, ownerSearch, deptSearch } = {}) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
@@ -57,6 +57,8 @@ export const useQuotaStore = defineStore('Quota', {
         if (status !== undefined && status !== null && status !== '' && Number(status) !== 4) {
           params.set('status', String(status));
         }
+        if (ownerSearch) params.set('owner_search', String(ownerSearch));
+        if (deptSearch) params.set('dept_search', String(deptSearch));
         const qs = params.toString();
         const url = `/api/quotas/admin/by-month/${month}` + (qs ? `?${qs}` : '');
         ApiService.get(url)
@@ -331,6 +333,34 @@ export const useQuotaStore = defineStore('Quota', {
             reject(response.data.error);
           });
       })
+    },
+    async getDelinquentsReport() {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.get('/api/reports/delinquents')
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al cargar reporte de morosos');
+          });
+      });
+    },
+    async sendDelinquentReminder(userIds, message = null) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.post('/api/reports/delinquents/send-reminder', { user_ids: userIds, message })
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al enviar recordatorios');
+          });
+      });
     },
     async generateMonthlyQuotas(month, year) {
       return await new Promise((resolve, reject) => {

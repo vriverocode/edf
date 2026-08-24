@@ -7,9 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ComunArea;
 use App\Models\ComunAreaSchedule;
+use App\Models\Departament;
 use App\Models\Event;
 use App\Models\Maintenance;
 use App\Models\PeoplesXDepartaments;
+use App\Models\Quota;
 use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
@@ -67,6 +69,10 @@ class BookingController extends Controller
 
             if (! $allowedIds->contains((int) $departament_id)) {
                 return $this->returnFail(403, 'No tienes permisos para crear reservas en este departamento');
+            }
+
+            if ($this->hasOverdueQuotas($user->id, $departament_id)) {
+                return $this->returnFail(403, 'No puede reservar: tiene cuotas pendientes o vencidas de dos o más meses.');
             }
 
             $allowedAreas = $user->availableComunAreas()->pluck('comun_area_id')->toArray();
@@ -789,6 +795,10 @@ class BookingController extends Controller
             return $this->returnFail(400, 'Ya se solicitó una extensión para esta reserva');
         }
 
+        if ($this->hasOverdueQuotas($originalBooking->user_id, $originalBooking->departament_id)) {
+            return $this->returnFail(403, 'No puede extender: tiene cuotas pendientes o vencidas de dos o más meses.');
+        }
+
         $hours = Carbon::parse($validated['time_to'])->diffInHours(Carbon::parse($validated['time_from']));
         $amount = $area->extension_price;
 
@@ -1159,5 +1169,37 @@ class BookingController extends Controller
             ->where('status', '>', 0)
             ->where('note', 'like', '%'.$booking->booking_number.'%')
             ->exists();
+    }
+
+    private function hasOverdueQuotas(int $userId, int $departamentId): bool
+    {
+        if (Quota::where('departament_id', $departamentId)
+            ->overdueOrPendingOlderThan(2)
+            ->exists()) {
+            return true;
+        }
+
+        $ownerDeptIds = Departament::where('user_id', $userId)->pluck('id');
+        if ($ownerDeptIds->isNotEmpty() && Quota::whereIn('departament_id', $ownerDeptIds)
+            ->overdueOrPendingOlderThan(2)
+            ->exists()) {
+            return true;
+        }
+
+        $tenantDeptIds = PeoplesXDepartaments::where('user_id', $userId)->pluck('departament_id');
+        if ($tenantDeptIds->isNotEmpty() && Quota::whereIn('departament_id', $tenantDeptIds)
+            ->overdueOrPendingOlderThan(2)
+            ->exists()) {
+            return true;
+        }
+
+        $pivotIds = PeoplesXDepartaments::where('user_id', $userId)->pluck('id');
+        if ($pivotIds->isNotEmpty() && Quota::whereIn('peoples_x_departments_id', $pivotIds)
+            ->overdueOrPendingOlderThan(2)
+            ->exists()) {
+            return true;
+        }
+
+        return false;
     }
 }

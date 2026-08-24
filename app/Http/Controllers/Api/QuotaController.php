@@ -122,6 +122,20 @@ class QuotaController extends Controller
             }
         }
 
+        $ownerSearch = $request->query('owner_search');
+        if ($ownerSearch) {
+            $query->whereHas('departament.owner', function ($q) use ($ownerSearch) {
+                $q->where('name', 'like', "%{$ownerSearch}%");
+            });
+        }
+
+        $deptSearch = $request->query('dept_search');
+        if ($deptSearch) {
+            $query->whereHas('departament', function ($q) use ($deptSearch) {
+                $q->where('number', 'like', "%{$deptSearch}%");
+            });
+        }
+
         $quotas = $query->get();
 
         $grouped = Quota::groupConsolidatedByOwner($quotas);

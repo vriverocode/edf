@@ -61,6 +61,10 @@ const goToValidate = (quota) => {
   }
 };
 
+const goToEdit = (quota) => {
+  router.push(`/admin/quota/edit/${quota.id}`);
+};
+
 const openVoucher = (pay, event) => {
   event?.stopPropagation();
   if (!pay?.vaucher) return;
@@ -158,7 +162,7 @@ onMounted(() => {
                     <div class="flex items-center text-sm text-gray-700 col-6 col-md-3 mt-2 md:mt-0">
                       <q-icon name="eva-droplet-outline" size="20px" class="mr-1 text-gray-500" />
                       <span class="font-medium">
-                        <template v-if="quota.type !== 1">Agua S/. {{ formatMoney(quota.water_amount) }}</template>
+                        <template v-if="quota.type = 1">Agua S/. {{ formatMoney(quota.water_amount) }}</template>
                         <template v-else>Agua —</template>
                       </span>
                     </div>
@@ -237,9 +241,11 @@ onMounted(() => {
                 </div>
               </div>
 
-              <div v-if="canValidateQuota(quota)" class="px-4 py-3 bg-warning border-t flex justify-center">
-                <q-btn unelevated rounded color="white" text-color="warning" label="Validar pago"
-                  icon="eva-checkmark-circle-2-outline" @click="goToValidate(quota)" />
+              <div v-if="isAdminRoute" class="px-4 py-3 bg-primary border-t flex justify-center gap-2">
+                <q-btn icon="eva-edit-outline" rounded size="sm" color="white" text-color="primary"
+                  @click="goToEdit(quota)" />
+                <q-btn v-if="canValidateQuota(quota)" unelevated rounded color="white" text-color="warning"
+                  label="Validar pago" icon="eva-checkmark-circle-2-outline" @click="goToValidate(quota)" />
               </div>
             </div>
           </div>

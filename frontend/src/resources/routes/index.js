@@ -881,6 +881,18 @@ const routes = [
           depth: 2,
         },
       },
+      {
+        path: '/admin/quota/edit/:id',
+        component: () => import('@/view/admin/Quotas/quotaEditForm.vue'),
+        name: 'quotaEdit',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Editar cuota',
+          roles: ['admin'],
+          depth: 3,
+        },
+      },
 
       // ---- client Routes -----
 

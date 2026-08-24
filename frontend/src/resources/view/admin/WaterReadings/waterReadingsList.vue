@@ -131,8 +131,8 @@ onMounted(() => {
 <template>
   <div class="h-full" style="overflow: hidden;">
     <div style="height: 100%; overflow: hidden;">
-      <div class="px-2 pb-3 pt-0 md:px-28 h-full">
-        <div class="flex justify-between md:pr-5 pr-1 items-center md:px-8" style="height: 8%;">
+      <div class="px-2 pt-0 md:px-28 h-full">
+        <div class="flex justify-between md:pr-5 pr-1 items-center md:px-8" style="height: 10%;">
           <div class="row items-center w-full">
             <div class="col-7 col-md-4 pr-2">
               <q-select dense borderless class="form__inputsR" v-model="selectedMonth" :options="monthOptions"
@@ -144,12 +144,41 @@ onMounted(() => {
             </div>
           </div>
         </div>
+        <div v-if="!loading && ready" style="height: 10%;" class="flex items-center w-full">
+          <div class="row items-center px-2 md:px-0 w-full h-full">
+            <div v-if="progressText" class="col-12 col-md-3 text-caption text-grey-7 q-mb-xs q-mb-md-0">
+              <q-linear-progress :value="totalDepartments > 0 ? totalReadings / totalDepartments : 0" color="primary"
+                size="8px" class="q-mb-xs" style="border-radius: 4px;" />
+              {{ progressText }}
+            </div>
+            <div class="col-12 row h-full items-center px-5">
+              <div class="col-6 col-md-6 px-1 md:px-2 flex flex-center h-full">
+                <q-btn no-caps color="grey-6" unelevated class="createButton mt-2 md:mt-0 w-full"  style="border-radius: 0.5rem"
+                  @click="startSequential">
+                   <div class="md:py-2 md:px-7 py-1 md:py-0">
+                     Registro secuencial
+                   </div>
+                </q-btn>
+              </div>
+              <div class="col-6 col-md-6 px-1 md:px-2 flex flex-center h-full">
+                <q-btn no-caps color="primary" unelevated class="createButton mt-2 md:mt-0 w-full"  style="border-radius: 0.5rem;"
+                  @click="goTo('/admin/water_readings/form/add')">
+                  <div class="flex items-center">
+                    <div class=" text-bold md:py-2 md:px-7 py-1 md:py-0">
+                      Registrar medición
+                    </div>
+                  </div>
+                </q-btn>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <div v-if="loading && !ready" class="flex justify-center items-center py-20" style="height: 93%;">
+        <div v-if="loading && !ready" class="flex justify-center items-center py-20" style="height: 90%;">
           <q-spinner-dots color="primary" size="7rem" />
         </div>
 
-        <div v-else class="pt-4 md:px-5 pb-8" style="height: 82%; overflow: auto;">
+        <div v-else class="pt-4 md:px-5 pb-8" style="height: 80%; overflow: auto;">
           <template v-if="readings.length > 0">
             <div class="mb-1">
               <div v-for="r in readings" :key="r.id" class="bg-white bills__container mb-5" style="position: relative;">
@@ -214,35 +243,7 @@ onMounted(() => {
           </template>
         </div>
 
-        <div v-if="!loading && ready" style="height: 10%;">
-          <div class="row items-center q-mt-sm q-mb-xs px-2 md:px-0">
-            <div v-if="progressText" class="col-12 col-md-3 text-caption text-grey-7 q-mb-xs q-mb-md-0">
-              <q-linear-progress :value="totalDepartments > 0 ? totalReadings / totalDepartments : 0" color="primary"
-                size="8px" class="q-mb-xs" style="border-radius: 4px;" />
-              {{ progressText }}
-            </div>
-            <div class="col-12 row">
-              <div class="col-6 col-md-6 px-1 md:px-2 flex flex-center">
-                <q-btn no-caps color="grey-6" unelevated class="createButton mt-2 md:mt-0"  style="border-radius: 0.5rem"
-                  @click="startSequential">
-                   <div class="  pl-1 py-1 md:py-0">
-                     Registro secuencial
-                   </div>
-                </q-btn>
-              </div>
-              <div class="col-6 col-md-6 px-1 md:px-2 flex flex-center">
-                <q-btn no-caps color="primary" unelevated class="createButton mt-2 md:mt-0"  style="border-radius: 0.5rem;"
-                  @click="goTo('/admin/water_readings/form/add')">
-                  <div class="flex items-center">
-                    <div class=" text-bold pl-1 py-1 md:py-0">
-                      Registrar medición
-                    </div>
-                  </div>
-                </q-btn>
-              </div>
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>
   </div>

@@ -473,7 +473,7 @@ const showModal = () => {
                   <tr v-for="q in pay.consolidated_quotas" :key="q.id">
                     <td>{{ q.departament?.number ?? '—' }}</td>
                     <td class="text-right">{{ q.month_label }}</td>
-                    <td class="text-right">S/. {{ q.amount }}</td>
+                    <td class="text-right">S/. {{ q.amount.toFixed(2) }}</td>
                   </tr>
                 </tbody>
               </q-markup-table>
@@ -490,7 +490,7 @@ const showModal = () => {
         </div>
 
         <!-- Refund section -->
-        <div v-if="refundList.length > 0 && pay.booking.status == 5" class="q-mt-md">
+        <div v-if="refundList.length > 0 && pay.booking?.status == 5" class="q-mt-md">
           <div class="text-subtitle1 text-bold text-black q-mb-sm">Devoluciones pendientes</div>
           <div v-for="b in refundList" :key="b.id"
             class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden q-mb-sm q-pa-md">

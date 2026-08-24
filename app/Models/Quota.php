@@ -107,16 +107,22 @@ class Quota extends Model
             ->count();
     }
 
+    public function scopeOverdueOrPendingOlderThan(Builder $query, int $months): Builder
+    {
+        return $query->whereIn('status', [1, 4])
+            ->where('due_date', '<=', now()->subMonths($months));
+    }
+
     public static function groupConsolidatedByOwner(Collection $quotas): Collection
     {
         return $quotas
             ->groupBy(function ($quota) {
-                $userId = $quota->departament->user_id ?? '0';
+                $departamentId = $quota->departament->id ?? '0';
                 $year = $quota->due_date
                     ? Carbon::parse($quota->due_date)->year
                     : now()->year;
 
-                return $userId.'_'.$quota->month.'_'.$year;
+                return $departamentId.'_'.$quota->month.'_'.$year;
             })
             ->map(function ($group) {
                 $firstQuota = $group->first();
@@ -161,6 +167,8 @@ class Quota extends Model
                     'description' => 'Cuota Consolidada ('.$group->count().' unidades asignadas)',
                     'owner_name' => $owner ? $owner->name : 'Desconocido',
                     'owner_id' => $owner?->id,
+                    'departament_number' => $firstQuota->departament->number ?? '',
+                    'departament_inter_number' => $firstQuota->departament->inter_number ?? 0,
                     'maintenance_amount' => $group->sum('maintenance_amount'),
                     'water_amount' => $group->sum('water_amount'),
                     'amount' => $group->sum('amount'),
@@ -171,6 +179,9 @@ class Quota extends Model
                     'pending_validation' => $payStatus === 1,
                     'details' => $details,
                 ];
+            })
+            ->sortBy(function ($group) {
+                return $group['departament_inter_number'] ?? 0;
             })
             ->values();
     }

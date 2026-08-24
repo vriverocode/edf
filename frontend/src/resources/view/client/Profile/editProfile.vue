@@ -95,7 +95,7 @@ const onSubmit = () => {
             :rules="[val => val && val.length >= 8 || 'Por favor ingresa un DNI valido']"
           >
             <template v-slot:prepend>
-              <q-icon name="eva-phone-outline" color="grey-7" />
+              <q-icon name="eva-person-outline" color="grey-7" />
             </template>
           </q-input>
         </div>

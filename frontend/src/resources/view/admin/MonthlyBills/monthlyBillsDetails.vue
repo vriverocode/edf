@@ -111,6 +111,18 @@ onMounted(() => {
       <div v-else-if="bill" class="flex flex-col items-center md:px-28 md:mx-28">
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col items-center w-full">
           <div class="row w-full mb-3 items-start">
+            <div class="col-12 row pt-3">
+              <div class="col-md-2 col-6 px-4">
+                <q-btn color="positive" rounded unelevated :loading="generating" @click="generateQuotas">
+                  Generar quotas
+                </q-btn>
+              </div>
+              <div class="col-md-2 col-4 px-4">
+                <q-btn color="primary" class="rounded-lg" outline @click="goToEdit">
+                  <q-icon  name="eva-edit-2-outline" />
+                </q-btn>
+              </div>
+            </div>
             <div class="flex flex-col items-start col-md-8 col-7 md:pl-5 pl-3">
               <div class="mb-3 pt-5">
                 <div class="text-2xl font-bold text-gray-900">
@@ -121,14 +133,7 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            <div class="col-md-4 col-5 text-right md:pr-5 pr-3 pt-5 q-gutter-x-sm">
-              <q-btn color="positive" class="rounded-lg" unelevated :loading="generating" @click="generateQuotas">
-                Generar cuotas
-              </q-btn>
-              <q-btn color="primary" class="rounded-lg" outline @click="goToEdit">
-                Editar
-              </q-btn>
-            </div>
+            
           </div>
 
           <div class="w-full md:p-5 px-4 pt-5 pb-7" style="border-top: 1px solid lightgray;">

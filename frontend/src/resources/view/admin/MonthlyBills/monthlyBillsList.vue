@@ -159,7 +159,7 @@ onMounted(() => {
   <div class="h-full" style="overflow: hidden;">
     <div style="height: 100%; overflow: hidden;">
       <div class="px-2 pb-6 pt-0 md:px-28 h-full" >
-        <div class="flex justify-end md:pr-5 pr-1 items-center" style="height: 7%;">
+        <div class="flex justify-end md:pr-5 pr-1 items-center" style="height: 10%;">
           <q-btn
             outline
             color="primary"
@@ -179,12 +179,26 @@ onMounted(() => {
             </q-tooltip>
           </q-btn>
         </div>
+        <div v-if="!loading && ready" style="height: 10%;">
+          <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-full">
+            <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton " style="border-radius: 0.5rem;"
+              @click="goTo('/admin/monthly_bills/form/add')">
+              <div class="flex items-center py-1">
+                <q-icon name="eva-plus-outline" />
+                <div class="q-pt-xs text-bold pl-1">
+                  Crear nuevo
+                </div>
+              </div>
+            </q-btn>
+          </div>
+  
+        </div>
 
-        <div v-if="loading && !ready" class="flex justify-center items-center py-20" style="height: 93%;">
+        <div v-if="loading && !ready" class="flex justify-center items-center py-20" style="height: 90%;">
           <q-spinner-dots color="primary" size="7rem" />
         </div>
 
-        <div v-else class="pt-3 md:px-5 pb-8" style="height: 83%; overflow:auto">
+        <div v-else class="pt-3 md:px-5 pb-8" style="height: 80%; overflow:auto">
           <template v-if="bills.length > 0">
             <div class="">
               <div
@@ -297,20 +311,7 @@ onMounted(() => {
           </template>
 
         </div>
-        <div v-if="!loading && ready" style="height: 10%;">
-          <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6">
-            <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton " style="border-radius: 0.5rem;"
-              @click="goTo('/admin/monthly_bills/form/add')">
-              <div class="flex items-center py-1">
-                <q-icon name="eva-plus-outline" />
-                <div class="q-pt-xs text-bold pl-1">
-                  Crear nuevo
-                </div>
-              </div>
-            </q-btn>
-          </div>
-  
-        </div>
+        
       </div>
     </div>
 

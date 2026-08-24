@@ -4,6 +4,7 @@ import { useQuotaStore } from '@/services/store/quota.store';
 import { useRoute, useRouter } from 'vue-router';
 import moment from 'moment';
 import appIcons from '@/assets/icons';
+import ApiService from '@/services/axios';
 
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
@@ -16,6 +17,10 @@ const quotas = ref([]);
 const loading = ref(true);
 const quotaStore = useQuotaStore();
 const statusFilter = ref(4);
+const searchName = ref('');
+const selectedDept = ref(null);
+const deptOptions = ref([]);
+const allDeptOptions = ref([]);
 
 const month = computed(() => Number(route.params.month));
 const year = computed(() => Number(route.params.year));
@@ -39,6 +44,12 @@ const getQuotas = () => {
   if (statusFilter.value !== 4) {
     filters.status = statusFilter.value;
   }
+  if (searchName.value) {
+    filters.ownerSearch = searchName.value;
+  }
+  if (selectedDept.value) {
+    filters.deptSearch = selectedDept.value;
+  }
   quotaStore
     .getAdminGroupedByOwnerForMonth(month.value, filters)
     .then((response) => {
@@ -57,8 +68,47 @@ const onChangeStatus = () => {
   getQuotas();
 };
 
+const onChangeDept = () => {
+  getQuotas();
+};
+
+let searchTimeout = null;
+const onSearchName = (val) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    searchName.value = val;
+  }, 400);
+};
+
+const filterDept = (val, update) => {
+  update(() => {
+    const needle = val.toLowerCase();
+    deptOptions.value = allDeptOptions.value.filter(
+      (opt) => opt.label.toLowerCase().includes(needle)
+    );
+  });
+};
+
+const fetchDepartments = () => {
+  ApiService.setHeader();
+  ApiService.get('/api/apartments/byFind')
+    .then(({ data }) => {
+      if (data.code !== 200) throw data;
+      allDeptOptions.value = (data.data || [])
+        .filter((d) => d.type === 1)
+        .sort((a, b) => a.inter_number - b.inter_number)
+        .map((d) => ({ label: d.number, value: d.number }));
+      deptOptions.value = allDeptOptions.value;
+    })
+    .catch(() => {});
+};
+
 watch(statusFilter, () => {
-  onChangeStatus();
+  getQuotas();
+});
+
+watch(searchName, () => {
+  getQuotas();
 });
 
 const goBack = () => {
@@ -128,24 +178,48 @@ const unitsInQuota = (quota) => {
 
 onMounted(() => {
   getQuotas();
+  fetchDepartments();
 });
 </script>
 
 <template>
   <div class="h-full" style="overflow: hidden;">
     <div class="h-full" style="overflow: auto;">
+       <div class="flex items-center q-mb-md md:px-32">
+        <h2 class="text-h6 text-weight-bold q-ml-sm q-mb-none">{{ pageTitle }}</h2>
+      </div>
+      <div class=" items-center q-mb-md md:px-32 w-full row">
+        <div class="col-md-4 col-6 px-2">
+          <q-select dense borderless v-model="statusFilter" :options="statusOptions" emit-value map-options
+          class="form__inputsStatus" />
+        </div>
+        <div class="col-md-4 col-6 px-2">
+          <q-input dense borderless v-model="searchName" placeholder="Buscar propietario/inquilino"
+            class="form__inputsStatus" @update:model-value="onSearchName">
+            <template v-slot:prepend>
+              <q-icon name="eva-search-outline" size="xs" />
+            </template>
+          </q-input>
+        </div>
+        <div class="col-md-4 col-12 px-2 mt-3">
+          <q-select dense borderless v-model="selectedDept" :options="deptOptions" emit-value map-options
+          use-input input-debounce="400" @filter="filterDept" placeholder="Departamento"
+          class="form__inputsStatus" clearable @update:model-value="onChangeDept">
+            <template v-slot:prepend>
+              <q-icon name="eva-home-outline" size="xs" />
+            </template>
+          </q-select>
+        </div>
+        
+        
+        
+      </div>
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />
       </div>
 
       <div v-else class="px-4 pt-0 md:px-28 pb-20">
-        <div class="flex items-center q-mb-md md:px-5">
-          <h2 class="text-h6 text-weight-bold q-ml-sm q-mb-none">{{ pageTitle }}</h2>
-        </div>
-        <div class="flex items-center q-mb-md md:px-5 w-full">
-          <q-select dense borderless v-model="statusFilter" :options="statusOptions" emit-value map-options
-            class="form__inputsStatus w-full" />
-        </div>
+       
         <div v-if="quotas.length > 0" class=" md:px-5 row">
           <div v-for="quota in quotas" :key="quota.id" class="col-md-4 col-12 md:px-2 mb-5 md:mb-4">
             <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 col-md-4 col-12"
@@ -495,7 +569,8 @@ onMounted(() => {
     border: 1px solid rgb(223, 223, 223);
     padding: 0px 1rem;
     background: white;
-    min-width: 200px;
   }
 }
+
+
 </style>
