@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { Switch, showToast } from 'vant';
 import iconsApp from '@/assets/icons/index'
 import { useApartmentStore } from '@/services/store/apartment.store'
 import moment from 'moment';
@@ -15,6 +16,7 @@ const { user } = storeToRefs(useAuthStore())
 const apartmentStore = useApartmentStore()
 const ready = ref(false)
 const apartments = ref([])
+const updatingId = ref(null)
 
 const getApartaments = () => {
   apartmentStore.getApartmentByUser()
@@ -28,6 +30,29 @@ const getApartaments = () => {
       ready.value = true
     })
 }
+
+const toggleTenantPaysQuota = async (apartment) => {
+  updatingId.value = apartment.id
+  try {
+    const newValue = !apartment.tenant_pays_quota
+    await apartmentStore.updateApartment(apartment.id, {
+      ...apartment,
+      tenant_pays_quota: newValue,
+    })
+    apartment.tenant_pays_quota = newValue
+    showToast({
+      message: newValue
+        ? 'El inquilino será responsable del pago'
+        : 'El propietario será responsable del pago',
+      position: 'bottom',
+    })
+  } catch (e) {
+    showToast({ message: 'Error al actualizar', position: 'bottom', type: 'fail' })
+  } finally {
+    updatingId.value = null
+  }
+}
+
 const expanded = ref(false)
 const showPick = (id) => {
   console.error('Pick apartment:' + id)
@@ -185,6 +210,20 @@ onMounted(() => {
                     <div class="flex my-2">
                       <div class="text-black font-medium">Responsable de la unidad:</div>
                       <div class="ml-1 text-black font-medium">{{ apartment.owner.name }}</div>
+                    </div>
+                    <div class="flex items-center my-3 p-3 bg-gray-50 rounded-lg">
+                      <div class="flex-1">
+                        <div class="text-black font-medium text-sm">¿Quién paga la cuota?</div>
+                        <div class="text-gray-500 text-xs mt-0.5">
+                          {{ apartment.tenant_pays_quota ? 'El inquilino es responsable del pago' : 'El propietario es responsable del pago' }}
+                        </div>
+                      </div>
+                      <van-switch
+                        :model-value="apartment.tenant_pays_quota"
+                        :loading="updatingId === apartment.id"
+                        size="24px"
+                        @change="toggleTenantPaysQuota(apartment)"
+                      />
                     </div>
                     <div class="flex my-2">
                       <div class="text-black font-medium">Descripción:</div>

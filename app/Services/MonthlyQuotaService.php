@@ -138,8 +138,9 @@ class MonthlyQuotaService
     {
         $periodYear = (int) Carbon::parse($quota->due_date)->format('Y');
         $monthLabel = $this->labelMonth($quota->month);
+        $tenantPays = $quota->departament->tenant_pays_quota ?? false;
 
-        if ($activeTenantPivot) {
+        if ($activeTenantPivot && $tenantPays) {
             $this->notifyUser(
                 $activeTenantPivot->user,
                 "Cuota general mes: $monthLabel",

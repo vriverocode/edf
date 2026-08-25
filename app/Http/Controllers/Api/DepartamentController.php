@@ -144,6 +144,7 @@ class DepartamentController extends Controller
             'description' => $request->description,
             'participation_percentage' => $request->participation_percentage,
             'type' => $request->type,
+            'tenant_pays_quota' => $request->boolean('tenant_pays_quota'),
         ]);
 
         return $this->returnSuccess(200, $apartment);
