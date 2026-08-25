@@ -107,6 +107,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Write - admin only
         Route::post('/', [DepartamentController::class, 'storeApartment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/u/{id}', [DepartamentController::class, 'updateApartment'])->middleware('role:admin,super-admin', 'throttle:write');
+        // Propietario puede alternar quién paga la cuota de su propia unidad
+        Route::post('/toggle-tenant-quota/{id}', [DepartamentController::class, 'toggleTenantPaysQuota'])->middleware('role:propietario,parcial,admin,super-admin', 'throttle:write');
     });
 
     // ── Comun Areas ──────────────────────────────────────────

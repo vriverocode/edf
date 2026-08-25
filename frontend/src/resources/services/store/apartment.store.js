@@ -106,6 +106,20 @@ export const useApartmentStore = defineStore('Apartment', {
           })
       })
     },
+    async toggleTenantPaysQuota(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.post('/api/apartments/toggle-tenant-quota/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error)
+          })
+      })
+    },
     async getOwnersWithoutApartment() {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw ''

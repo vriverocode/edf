@@ -110,7 +110,7 @@ onMounted(() => {
         <div class="col-12 mb-2 px-2 md:px-12 flex justify-end mt-4">
           <q-btn color="primary " style="border-radius: 0.5rem;" type="submit" :loading="loading">
             <div class="px-10 py-1">
-              Siguiente
+              Crear
             </div>
           </q-btn>
         </div>

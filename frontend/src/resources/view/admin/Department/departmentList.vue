@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { Notify } from 'quasar';
 import iconsApp from '@/assets/icons/index'
@@ -30,14 +30,16 @@ const changeOwnerModal = ref(false)
 const selectedApartment = ref(null)
 const selectedOwner = ref(null)
 const modalLoading = ref(false)
-const ownerSearch = ref('')
+const filteredOwners = ref([])
 
-const filteredOwners = computed(() => {
-  const q = ownerSearch.value.toLowerCase()
-  return ownersWithoutApartment.value.filter(o =>
-    o.name?.toLowerCase().includes(q)
-  )
-})
+const filterOwners = (val, update) => {
+  const q = val.toLowerCase()
+  update(() => {
+    filteredOwners.value = ownersWithoutApartment.value.filter(o =>
+      o.name?.toLowerCase().includes(q)
+    )
+  })
+}
 const unitType = ref(Number(route.query.type) || 1)
 const unitTypesOptions = [
   { label: 'Departamentos', value: 1 },
@@ -94,13 +96,14 @@ const getApartment = () => {
 const openChangeOwnerModal = async (apartment) => {
   selectedApartment.value = apartment
   selectedOwner.value = null
-  ownerSearch.value = ''
+  filteredOwners.value = []
   changeOwnerModal.value = true
   modalLoading.value = true
   try {
     const response = await apartmentStore.getOwnersWithoutApartment()
     if (response.code !== 200) throw response
     ownersWithoutApartment.value = response.data
+    filteredOwners.value = response.data
   } catch (error) {
     Notify.create({
       type: 'negative',
@@ -324,11 +327,10 @@ onMounted(() => {
           <div class="text-subtitle2 q-mb-sm" v-if="selectedApartment" style="text-transform: uppercase;">
             Unidad #{{ selectedApartment.number }}
           </div>
-          <q-input dense borderless v-model="ownerSearch" placeholder="Buscar propietario..."
-            class="form__inputsTypeDepart q-mb-sm" color="primary" clearable />
           <q-select dense borderless v-model="selectedOwner" :options="filteredOwners" option-label="name"
             option-value="id" emit-value map-options class="form__inputsTypeDepart" :loading="modalLoading"
-            :disable="modalLoading" use-input input-debounce="0" @filter="(val, update) => update()"
+            :disable="modalLoading" use-input input-debounce="300" @filter="filterOwners"
+            placeholder="Buscar propietario..."
             no-option-label="No hay propietarios sin departamento" />
         </q-card-section>
         <q-card-actions align="right">

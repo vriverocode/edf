@@ -2,7 +2,7 @@ import App from '@/App.vue'
 import { createApp } from 'vue';
 import quasarIconSet from 'quasar/icon-set/eva-icons'
 import { createPinia } from 'pinia'
-
+import { Switch } from 'vant';
 import router from '@/routes'
 import '@quasar/extras/material-icons-outlined/material-icons-outlined.css'
 import {
@@ -62,6 +62,7 @@ myApp.use(router)
 
 myApp.provide('emitter', emitter)
 myApp.provide('materialIcons', materialIcons)
+myApp.use(Switch)
 
 myApp.mount('#app')
 

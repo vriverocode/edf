@@ -591,7 +591,7 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'comun_area_ids' => ['required', 'array'],
+            'comun_area_ids' => ['nullable', 'array'],
             'comun_area_ids.*' => ['integer', 'exists:comun_areas,id'],
         ]);
 
@@ -600,8 +600,17 @@ class UserController extends Controller
         }
 
         try {
-            $areaIds = collect($request->comun_area_ids)->filter()->values()->all();
-            $user->availableComunAreas()->sync($areaIds, ['created_by' => $request->user()->id]);
+            $areaIds = $request->input('comun_area_ids');
+
+            if (is_array($areaIds) && empty($areaIds)) {
+                // Array vacío = sin restricciones, puede usar todas las áreas
+                $user->availableComunAreas()->detach();
+            } elseif (! empty($areaIds)) {
+                $user->availableComunAreas()->sync(
+                    collect($areaIds)->filter()->values()->all(),
+                    ['created_by' => $request->user()->id]
+                );
+            }
         } catch (Exception $e) {
             return $this->returnFail(500, $e->getMessage());
         }

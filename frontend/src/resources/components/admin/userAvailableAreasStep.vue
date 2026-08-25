@@ -103,7 +103,7 @@ onMounted(() => {
           </q-item-section>
           <q-item-section>
             <q-item-label class="text-bold">{{ area.name }}</q-item-label>
-            <q-item-label caption>
+            <q-item-label caption class="moreLineHeigth">
               {{ area.type_label || 'Tipo no definido' }}
               <span v-if="area.capacity"> · Capacidad: {{ area.capacity }}</span>
               <span v-if="area.price > 0"> · S/. {{ area.price }}</span>
@@ -115,3 +115,9 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style lang="scss">
+.moreLineHeigth {
+  line-height: 1.5rem !important;
+}
+</style>

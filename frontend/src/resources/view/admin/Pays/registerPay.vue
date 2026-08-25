@@ -210,7 +210,7 @@ loadPayMethods()
               input-debounce="300"
               clearable
               dense
-              class="form__inputsR"
+              class="form__inputsR_registePay"
               @filter="(search, update) => { userSearch = search; loadUsers(search); update() }"
               @filter-abort="loadUsers('')"
             >
@@ -241,7 +241,7 @@ loadPayMethods()
               placeholder="Seleccionar tipo"
               clearable
               dense
-              class="form__inputsR"
+              class="form__inputsR_registePay"
             />
           </div>
         </div>
@@ -260,7 +260,7 @@ loadPayMethods()
               placeholder="Seleccionar mes"
               clearable
               dense
-              class="form__inputsR"
+              class="form__inputsR_registePay"
             />
           </div>
           <div>
@@ -275,7 +275,7 @@ loadPayMethods()
               :placeholder="String(currentYear)"
               clearable
               dense
-              class="form__inputsR"
+              class="form__inputsR_registePay"
             />
           </div>
         </div>
@@ -349,7 +349,7 @@ loadPayMethods()
                 step="0.01"
                 placeholder="0.00"
                 dense
-                class="form__inputsR"
+                class="form__inputsR_registePay"
                 prefix="S/."
               />
             </div>
@@ -365,7 +365,7 @@ loadPayMethods()
                 placeholder="Seleccionar método"
                 clearable
                 dense
-                class="form__inputsR"
+                class="form__inputsR_registePay"
               />
             </div>
             <div>
@@ -374,7 +374,7 @@ loadPayMethods()
                 v-model="paymentForm.pay_date"
                 type="date"
                 dense
-                class="form__inputsR"
+                class="form__inputsR_registePay"
               />
             </div>
             <div>
@@ -383,7 +383,7 @@ loadPayMethods()
                 v-model="paymentForm.reference"
                 placeholder="000000"
                 dense
-                class="form__inputsR"
+                class="form__inputsR_registePay"
               />
             </div>
           </div>
@@ -394,7 +394,7 @@ loadPayMethods()
               label="Seleccionar imagen"
               accept="image/*"
               dense
-              class="form__inputsR"
+              class="form__inputsR_registePay"
               clearable
             >
               <template v-slot:prepend>
@@ -427,17 +427,16 @@ loadPayMethods()
 </template>
 
 <style lang="scss">
-.form__inputsR {
+.form__inputsR_registePay {
   & .q-field__inner {
     box-shadow: 0px 3px 4px 0px #bfbfbf48;
     border-radius: 0.5rem;
-    border: 1px solid rgb(223, 223, 223);
     padding: 0px 1rem;
   }
 }
 
 @media (max-width: 780px) {
-  .form__inputsR {
+  .form__inputsR_registePay {
     & .q-field__inner {
       padding: 0.1rem 1rem;
     }

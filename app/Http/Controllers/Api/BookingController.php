@@ -42,7 +42,7 @@ class BookingController extends Controller
                 return $this->returnFail(400, ['Usuario no valido', $user]);
             }
             if ($user->status !== 1) {
-                return $this->returnFail(400, ['Usuario inactivo', $user]);
+                return $this->returnFail(400, ['El usuario se encuentra moroso o inactivo', $user]);
             }
             $departament_id = $request->departament_id;
 

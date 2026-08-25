@@ -121,19 +121,19 @@ onMounted(() => {
               </div>
             </div>
           </div>
+          <!-- Paginación -->
+          <div v-if="pagination.lastPage > 1" class="flex justify-center mt-4">
+            <q-pagination
+              v-model="pagination.page"
+              :max="pagination.lastPage"
+              :max-pages="6"
+              boundary-numbers
+              direction-links
+              @update:model-value="onPageChange"
+            />
+          </div>
         </div>
-
-        <!-- Paginación -->
-        <div v-if="pagination.lastPage > 1" class="flex justify-center mt-4">
-          <q-pagination
-            v-model="pagination.page"
-            :max="pagination.lastPage"
-            :max-pages="6"
-            boundary-numbers
-            direction-links
-            @update:model-value="onPageChange"
-          />
-        </div>
+        
 
         <!-- Estado vacío -->
         <div v-else class="flex flex-col items-center justify-center py-20">

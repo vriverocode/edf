@@ -1,17 +1,20 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Switch, showToast } from 'vant';
 import iconsApp from '@/assets/icons/index'
 import { useApartmentStore } from '@/services/store/apartment.store'
 import moment from 'moment';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@//services/store/auth.services';
+import { useQuasar } from 'quasar';
+
 moment.locale('es', {
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split(
     '_'
   ),
 })
+const $q = useQuasar()
+const loaginSwitch = ref(false)
 const { user } = storeToRefs(useAuthStore())
 const apartmentStore = useApartmentStore()
 const ready = ref(false)
@@ -21,7 +24,7 @@ const updatingId = ref(null)
 const getApartaments = () => {
   apartmentStore.getApartmentByUser()
     .then((data) => {
-      apartments.value = data.data
+      apartments.value = setToggleValue(data.data)
     })
     .catch((response) => {
 
@@ -32,27 +35,39 @@ const getApartaments = () => {
 }
 
 const toggleTenantPaysQuota = async (apartment) => {
-  updatingId.value = apartment.id
-  try {
-    const newValue = !apartment.tenant_pays_quota
-    await apartmentStore.updateApartment(apartment.id, {
-      ...apartment,
-      tenant_pays_quota: newValue,
-    })
-    apartment.tenant_pays_quota = newValue
-    showToast({
-      message: newValue
-        ? 'El inquilino será responsable del pago'
-        : 'El propietario será responsable del pago',
-      position: 'bottom',
-    })
-  } catch (e) {
-    showToast({ message: 'Error al actualizar', position: 'bottom', type: 'fail' })
-  } finally {
-    updatingId.value = null
-  }
+  loaginSwitch.value = true
+  apartmentStore.toggleTenantPaysQuota(apartment.id)
+  .then((response) => { 
+    apartment.tenant_pays_quota = response.data.tenant_pays_quota
+    showNotify('positive', apartment.tenant_pays_quota
+      ? 'El inquilino será responsable del pago'
+      : 'El propietario será responsable del pago')
+  }).catch((e)=>{
+    console.log(e)
+    showNotify('negative', 'Error al actualizar')
+  }) .finally(()=>{
+    loaginSwitch.value = false
+  })
 }
+const setToggleValue = (apartmentsToFormat) => {
+  apartmentsToFormat.forEach(apartment => {
+    apartment.toggleTenant = apartment.tenant_pays_quota ? true:false
+  });
 
+  return apartmentsToFormat
+}
+const showNotify = (type, message) => {
+  $q.notify({
+    type,
+    message,
+    position: 'bottom',
+    color: type === 'negative' ? 'red' : 'green',
+  })
+}
+const hasTenant = (apartment) => {
+  const tenant = apartment.peoples.find(people => people.type === 3)
+  return tenant
+}
 const expanded = ref(false)
 const showPick = (id) => {
   console.error('Pick apartment:' + id)
@@ -162,7 +177,7 @@ onMounted(() => {
                     <div class="flex items-center">
                       <q-btn flat rounded size="sm" class="ml-3" @click="showPick(apartment.number)">
                         <q-tooltip class="bg-primary  text-white text-body2" :offset="[10, 10]">
-                          Ver detalles
+                          Ver detallesss
                         </q-tooltip>
                         <q-icon name="eva-arrow-ios-downward-outline" size="md" />
                       </q-btn>
@@ -209,22 +224,9 @@ onMounted(() => {
                     </div>
                     <div class="flex my-2">
                       <div class="text-black font-medium">Responsable de la unidad:</div>
-                      <div class="ml-1 text-black font-medium">{{ apartment.owner.name }}</div>
+                      <div class="ml-1 text-black font-medium">{{apartment.tenant_pays_quota ? hasTenant(apartment).user.name : apartment.owner.name }}</div>
                     </div>
-                    <div class="flex items-center my-3 p-3 bg-gray-50 rounded-lg">
-                      <div class="flex-1">
-                        <div class="text-black font-medium text-sm">¿Quién paga la cuota?</div>
-                        <div class="text-gray-500 text-xs mt-0.5">
-                          {{ apartment.tenant_pays_quota ? 'El inquilino es responsable del pago' : 'El propietario es responsable del pago' }}
-                        </div>
-                      </div>
-                      <van-switch
-                        :model-value="apartment.tenant_pays_quota"
-                        :loading="updatingId === apartment.id"
-                        size="24px"
-                        @change="toggleTenantPaysQuota(apartment)"
-                      />
-                    </div>
+                    
                     <div class="flex my-2">
                       <div class="text-black font-medium">Descripción:</div>
                       <div class="ml-1 text-black font-medium">{{ apartment.description }}</div>
@@ -250,6 +252,37 @@ onMounted(() => {
                     <div class="flex my-2">
                       <div class="text-black font-medium">Nro. Piso:</div>
                       <div class="ml-1 text-black font-medium">{{ apartment.floor}}</div>
+                    </div>
+                    <template v-if="hasTenant(apartment)">
+                      <div class="flex my-2">
+                        <div class="text-black font-medium">Propiedad alquilada:</div>
+                        <div class="ml-1 text-black font-medium">Si</div>
+                      </div>
+                      <div class="flex my-2">
+                        <div class="text-black font-medium">Nombre del inquilino:</div>
+                        <div class="ml-1 text-black font-medium">{{ hasTenant(apartment).user.name }}</div>
+                      </div>
+                    </template>
+                  </div>
+                  <div class="col-12 " v-if="hasTenant(apartment)">
+                    <div class="row my-3 p-3 bg-gray-50 rounded-lg">
+                      <div class="col-12 col-md-6">
+                        <div class="text-black font-medium text-sm text-center md:text-left">¿Quién paga la cuota?</div>
+                        <div class="text-gray-500  font-small text-sm mt-1 text-center md:text-left">Activa esta opción si deseas que el inquilino sea el responsable del pago de la cuota</div>
+
+                      </div>
+                      <div class="col-12 col-md-6 pt-5  flex column items-end justify-center">
+                        <van-switch
+                          v-model="apartment.toggleTenant"
+                          :loading="loaginSwitch"
+                          size="24px"
+                          @change="toggleTenantPaysQuota(apartment)"
+                        />
+  
+                        <div class="text-gray-500 text-xs mt-2">
+                         Estado actual: {{ apartment.tenant_pays_quota ? 'El inquilino es responsable del pago' : 'El propietario es responsable del pago' }}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

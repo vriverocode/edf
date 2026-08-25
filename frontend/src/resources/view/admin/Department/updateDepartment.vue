@@ -29,6 +29,7 @@ const getApartmentData = async () => {
         address: response.data.address,
         block: response.data.block,
         area: response.data.area,
+        type: response.data.type,
         description: response.data.description,
         floor: response.data.floor,
         participation_percentage: response.data.participation_percentage

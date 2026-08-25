@@ -59,6 +59,11 @@ class Departament extends Model
             ->first();
     }
 
+    public function getActiveTenantPivotAttribute()
+    {
+        return $this->activeTenantPivot()?->load('user');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by', 'id');

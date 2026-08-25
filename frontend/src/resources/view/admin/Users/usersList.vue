@@ -236,7 +236,7 @@ onMounted(() => {
       <deleteUserModal :dialog="(modal == 'delete')" :user="selectedUser" @close-modal="modal = ''" @update-list="getUsers()" />
     </div>
     <q-dialog v-model="areasDialog">
-      <q-card style="max-width: 40rem; width: 100%;" class="q-pa-md">
+      <q-card style="max-width: 40rem; width: 100%;" class="q-py-md">
         <q-card-section>
           <div class="text-h6 text-primary text-bold">
             Áreas que puede reservar

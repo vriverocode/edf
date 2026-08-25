@@ -107,7 +107,7 @@ class DepartamentController extends Controller
 
     public function getApartmentsByUser(Request $request)
     {
-        $apartments = Departament::with(['owner', 'dueQuotas'])->where('user_id', $request->user()->id)->get();
+        $apartments = Departament::with(['owner', 'dueQuotas', 'peoples.user:name,id'])->where('user_id', $request->user()->id)->get();
 
         if (! $apartments) {
             return $this->returnFail(400, 'Departamentos no encontrados');
@@ -252,5 +252,31 @@ class DepartamentController extends Controller
         $validator = Validator::make($inputs, $rules);
 
         return $validator->errors()->all();
+    }
+
+    /**
+     * Permite al propietario de la unidad alternar quién paga la cuota
+     * (el propietario o el inquilino), sin pasar por el update general de admin.
+     */
+    public function toggleTenantPaysQuota(Request $request, $id)
+    {
+        $apartment = Departament::find($id);
+
+        if (! $apartment) {
+            return $this->returnFail(404, 'Departamento no encontrado');
+        }
+
+        // Solo el propietario de la unidad puede alternar este campo
+        if ($apartment->user_id !== $request->user()->id) {
+            return $this->returnFail(403, 'No tienes permisos para modificar este departamento');
+        }
+
+        $apartment->update([
+            'tenant_pays_quota' => ! $apartment->tenant_pays_quota,
+        ]);
+
+        return $this->returnSuccess(200, [
+            'tenant_pays_quota' => $apartment->tenant_pays_quota,
+        ]);
     }
 }
