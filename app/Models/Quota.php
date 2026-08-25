@@ -14,6 +14,12 @@ class Quota extends Model
 {
     use SoftDeletes;
 
+    protected $casts = [
+        'amount' => 'float',
+        'maintenance_amount' => 'float',
+        'water_amount' => 'float',
+    ];
+
     protected $fillable = [
         'departament_id',
         'peoples_x_departments_id',

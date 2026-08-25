@@ -25,6 +25,7 @@ class Departament extends Model
     protected $fillable = [
         'number',
         'type',
+        'tenant_pays_quota',
         'address',
         'block',
         'area',

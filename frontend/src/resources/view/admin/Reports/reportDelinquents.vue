@@ -114,6 +114,16 @@ const getQuotaDetail = (row) => {
   return null
 }
 
+const getPaymentResponsible = (row) => {
+  if (!row.quotas.length) return null
+  const roles = [...new Set(row.quotas.map(q => q.payment_responsible_role))]
+  if (roles.length === 1) {
+    const name = row.quotas[0].payment_responsible_name
+    return { role: roles[0], name }
+  }
+  return { role: 'Mixto', name: null }
+}
+
 const toggleExpand = (userId) => {
   expandedRows.value = { ...expandedRows.value, [userId]: !expandedRows.value[userId] }
 }
@@ -207,6 +217,7 @@ onMounted(() => {
             <div class="repbok-cell">Contacto</div>
             <div class="repbok-cell">Departamentos</div>
             <div class="repbok-cell">Tipo Morosidad</div>
+            <div class="repbok-cell">Responsable Pago</div>
             <div class="repbok-cell" style="text-align: right">Deuda Total</div>
             <div class="repbok-cell" style="text-align: center">N° Cuotas</div>
             <div class="repbok-cell" style="text-align: center">Acciones</div>
@@ -235,6 +246,15 @@ onMounted(() => {
               <div class="repbok-cell" data-title="Tipo Morosidad">
                 <q-chip :color="getTypeColor(row.types)" size="sm" text-color="white" class="q-mb-xs">{{ getTypeLabel(row.types) }}</q-chip>
               </div>
+              <div class="repbok-cell" data-title="Responsable Pago">
+                <template v-if="getPaymentResponsible(row)">
+                  <q-chip :color="getPaymentResponsible(row).role === 'Inquilino' ? 'teal' : 'orange'" size="sm" text-color="white" class="q-mb-xs">
+                    {{ getPaymentResponsible(row).role }}
+                  </q-chip>
+                  <div v-if="getPaymentResponsible(row).name" class="text-caption text-grey-7" style="font-size: 11px;">{{ getPaymentResponsible(row).name }}</div>
+                </template>
+                <div v-else class="text-grey-6 text-caption">—</div>
+              </div>
               <div class="repbok-cell" data-title="Deuda Total" style="text-align: right; font-weight: bold">{{ formatMoney(row.total_debt) }}</div>
               <div class="repbok-cell" data-title="N° Cuotas" style="text-align: center">
                 <div>{{ row.quotas_count }}</div>
@@ -248,30 +268,37 @@ onMounted(() => {
                 </q-btn>
               </div>
             </div>
-
-            <div v-if="isExpanded(row.user_id) && row.types.includes('overdue_quotas') && row.quotas.length"
-              class="repbok-detail-wrapper">
-              <div class="repbok-detail-content">
-                <div class="text-subtitle2 q-mb-sm" style="text-align: left;">Detalle de Cuotas Pendientes (&gt;2 meses)</div>
-                <div class="repbok-detail-table">
-                  <div class="repbok-detail-header">
-                    <div class="repbok-detail-cell">Departamento</div>
-                    <div class="repbok-detail-cell repbok-detail-center">Mes</div>
-                    <div class="repbok-detail-cell repbok-detail-center">Vencimiento</div>
-                    <div class="repbok-detail-cell repbok-detail-right">Monto</div>
-                  </div>
-                  <div class="repbok-detail-row" v-for="q in row.quotas" :key="q.id">
-                    <div class="repbok-detail-cell" data-label="Departamento">{{ q.department }}</div>
-                    <div class="repbok-detail-cell repbok-detail-center" data-label="Mes">{{ q.month_label }}</div>
-                    <div class="repbok-detail-cell repbok-detail-center" data-label="Vencimiento">{{ q.due_date }}</div>
-                    <div class="repbok-detail-cell repbok-detail-right text-weight-bold" data-label="Monto">{{ formatMoney(q.amount) }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </template>
 
         </div>
+
+        <template v-for="row in rows" :key="'detail-' + row.user_id">
+          <div v-if="isExpanded(row.user_id) && row.types.includes('overdue_quotas') && row.quotas.length"
+            class="repbok-detail-wrapper">
+            <div class="repbok-detail-content">
+              <div class="text-subtitle2 q-mb-sm" style="text-align: left;">Detalle de Cuotas Pendientes (&gt;2 meses)</div>
+              <div class="repbok-detail-table">
+                <div class="repbok-detail-header">
+                  <div class="repbok-detail-cell">Departamento</div>
+                  <div class="repbok-detail-cell repbok-detail-center">Mes</div>
+                  <div class="repbok-detail-cell repbok-detail-center">Vencimiento</div>
+                  <div class="repbok-detail-cell">Responsable</div>
+                  <div class="repbok-detail-cell repbok-detail-right">Monto</div>
+                </div>
+                <div class="repbok-detail-row" v-for="q in row.quotas" :key="q.id">
+                  <div class="repbok-detail-cell" data-label="Departamento">{{ q.department }}</div>
+                  <div class="repbok-detail-cell repbok-detail-center" data-label="Mes">{{ q.month_label }}</div>
+                  <div class="repbok-detail-cell repbok-detail-center" data-label="Vencimiento">{{ q.due_date }}</div>
+                  <div class="repbok-detail-cell" data-label="Responsable">
+                    <span class="text-caption">{{ q.payment_responsible_name }}</span>
+                    <q-chip :color="q.tenant_pays_quota ? 'teal' : 'orange'" size="xs" text-color="white" class="q-ml-xs">{{ q.payment_responsible_role }}</q-chip>
+                  </div>
+                  <div class="repbok-detail-cell repbok-detail-right text-weight-bold" data-label="Monto">{{ formatMoney(q.amount) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
 
       <div v-if="rows.length > 0" class="row justify-end q-mt-lg" style="display: flex !important;">

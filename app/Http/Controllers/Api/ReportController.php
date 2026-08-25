@@ -13,6 +13,7 @@ use App\Models\Quota;
 use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -313,6 +314,10 @@ class ReportController extends Controller
 
         $overdueQuotas = Quota::where('status', 1)
             ->where('due_date', '<=', $twoMonthsAgo)
+            ->where('amount', '>', 0)
+            ->whereHas('departament.owner', function ($q) {
+                $q->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL]);
+            })
             ->with(['departament.owner:id,name,email,phone,dni', 'responsiblePivot.user:id,name,email,phone,dni'])
             ->get()
             ->groupBy(function ($quota) {
@@ -326,6 +331,25 @@ class ReportController extends Controller
                 $totalAmount = $quotas->sum('amount');
                 $oldestDueDate = $quotas->min('due_date');
 
+                $quotasDetail = $quotas->map(function ($q) {
+                    $tenantPays = $q->departament->tenant_pays_quota ?? false;
+                    $responsible = $tenantPays && $q->responsiblePivot?->user
+                        ? $q->responsiblePivot->user
+                        : $q->departament->owner;
+
+                    return [
+                        'id' => $q->id,
+                        'department' => $q->departament->number,
+                        'amount' => (float) $q->amount,
+                        'due_date' => $q->due_date,
+                        'month' => $q->month,
+                        'month_label' => $q->month_label,
+                        'tenant_pays_quota' => $tenantPays,
+                        'payment_responsible_name' => $responsible?->name ?? 'Sin asignar',
+                        'payment_responsible_role' => $tenantPays ? 'Inquilino' : 'Propietario',
+                    ];
+                })->values()->all();
+
                 return [
                     'type' => 'overdue_quotas',
                     'user_id' => $owner?->id,
@@ -338,14 +362,7 @@ class ReportController extends Controller
                     'total_debt' => round($totalAmount, 2),
                     'oldest_due_date' => $oldestDueDate,
                     'quotas_count' => $quotas->count(),
-                    'quotas' => $quotas->map(fn ($q) => [
-                        'id' => $q->id,
-                        'department' => $q->departament->number,
-                        'amount' => (float) $q->amount,
-                        'due_date' => $q->due_date,
-                        'month' => $q->month,
-                        'month_label' => $q->month_label,
-                    ])->values()->all(),
+                    'quotas' => $quotasDetail,
                 ];
             });
 
@@ -377,6 +394,7 @@ class ReportController extends Controller
                 $deptMatch = collect($row['departments'] ?? [])
                     ->contains(fn ($d) => str_contains(strtolower($d), $searchLower));
                 $dniMatch = str_contains(strtolower($row['dni'] ?? ''), $searchLower);
+
                 return $nameMatch || $deptMatch || $dniMatch;
             })->values();
         }
@@ -437,10 +455,10 @@ class ReportController extends Controller
 
                 $defaultMessage = "Estimado {$delinquent->name},\n\n";
                 $defaultMessage .= "Le recordamos que tiene {$quotasCount} cuota(s) pendiente(s) de pago con vencimiento superior a 2 meses.\n";
-                $defaultMessage .= "Deuda total: S/ " . number_format($totalDebt, 2) . "\n";
-                $defaultMessage .= "Cuota más antigua: " . \Carbon\Carbon::parse($oldestDue)->format('d/m/Y') . "\n\n";
+                $defaultMessage .= 'Deuda total: S/ '.number_format($totalDebt, 2)."\n";
+                $defaultMessage .= 'Cuota más antigua: '.Carbon::parse($oldestDue)->format('d/m/Y')."\n\n";
                 $defaultMessage .= "Por favor regularice su situación a la brevedad.\n\n";
-                $defaultMessage .= "Administración EDF";
+                $defaultMessage .= 'Administración EDF';
 
                 $message = $validated['message'] ?? $defaultMessage;
 
@@ -458,7 +476,7 @@ class ReportController extends Controller
                 $sent++;
             } catch (\Throwable $e) {
                 $failed++;
-                \Log::error("Error enviando recordatorio a usuario {$delinquent->id}: " . $e->getMessage());
+                \Log::error("Error enviando recordatorio a usuario {$delinquent->id}: ".$e->getMessage());
             }
         }
 
@@ -473,20 +491,31 @@ class ReportController extends Controller
     {
         $twoMonthsAgo = now()->subMonths(2);
 
+        $roleExcluded = function ($q) {
+            $q->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL]);
+        };
+
         $totalOverdue = Quota::where('status', 1)
             ->where('due_date', '<=', $twoMonthsAgo)
+            ->where('amount', '>', 0)
+            ->whereHas('departament.owner', $roleExcluded)
             ->count();
 
         $totalDebt = Quota::where('status', 1)
             ->where('due_date', '<=', $twoMonthsAgo)
+            ->where('amount', '>', 0)
+            ->whereHas('departament.owner', $roleExcluded)
             ->sum('amount');
 
         $uniqueDelinquents = User::where(function ($q) {
-                $q->where('status', 2)
-                    ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL]);
-            })
-            ->orWhereHas('quotas', function ($q) use ($twoMonthsAgo) {
-                $q->where('status', 1)->where('due_date', '<=', $twoMonthsAgo);
+            $q->where('status', 2)
+                ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL]);
+        })
+            ->orWhereHas('quotas', function ($q) use ($twoMonthsAgo, $roleExcluded) {
+                $q->where('status', 1)
+                    ->where('due_date', '<=', $twoMonthsAgo)
+                    ->where('amount', '>', 0)
+                    ->whereHas('departament.owner', $roleExcluded);
             })
             ->count();
 
@@ -537,6 +566,10 @@ class ReportController extends Controller
 
         $overdueQuotas = Quota::where('status', 1)
             ->where('due_date', '<=', $twoMonthsAgo)
+            ->where('amount', '>', 0)
+            ->whereHas('departament.owner', function ($q) {
+                $q->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL]);
+            })
             ->with(['departament.owner:id,name,email,phone,dni', 'responsiblePivot.user:id,name,email,phone,dni'])
             ->get()
             ->groupBy(function ($quota) {
@@ -549,6 +582,25 @@ class ReportController extends Controller
                 $departments = $quotas->pluck('departament.number')->unique()->values();
                 $totalAmount = $quotas->sum('amount');
 
+                $quotasDetail = $quotas->map(function ($q) {
+                    $tenantPays = $q->departament->tenant_pays_quota ?? false;
+                    $responsible = $tenantPays && $q->responsiblePivot?->user
+                        ? $q->responsiblePivot->user
+                        : $q->departament->owner;
+
+                    return [
+                        'id' => $q->id,
+                        'department' => $q->departament->number,
+                        'amount' => (float) $q->amount,
+                        'due_date' => $q->due_date,
+                        'month' => $q->month,
+                        'month_label' => $q->month_label,
+                        'tenant_pays_quota' => $tenantPays,
+                        'payment_responsible_name' => $responsible?->name ?? 'Sin asignar',
+                        'payment_responsible_role' => $tenantPays ? 'Inquilino' : 'Propietario',
+                    ];
+                })->values()->all();
+
                 return [
                     'type' => 'overdue_quotas',
                     'user_id' => $owner?->id,
@@ -560,14 +612,7 @@ class ReportController extends Controller
                     'departments' => $departments,
                     'total_debt' => round($totalAmount, 2),
                     'quotas_count' => $quotas->count(),
-                    'quotas' => $quotas->map(fn ($q) => [
-                        'id' => $q->id,
-                        'department' => $q->departament->number,
-                        'amount' => (float) $q->amount,
-                        'due_date' => $q->due_date,
-                        'month' => $q->month,
-                        'month_label' => $q->month_label,
-                    ])->values()->all(),
+                    'quotas' => $quotasDetail,
                 ];
             });
 
@@ -599,6 +644,7 @@ class ReportController extends Controller
                 $deptMatch = collect($row['departments'] ?? [])
                     ->contains(fn ($d) => str_contains(strtolower($d), $searchLower));
                 $dniMatch = str_contains(strtolower($row['dni'] ?? ''), $searchLower);
+
                 return $nameMatch || $deptMatch || $dniMatch;
             })->values();
         }

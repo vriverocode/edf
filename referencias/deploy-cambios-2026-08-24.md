@@ -20,7 +20,28 @@
 ### 4. Limpieza de archivos .env
 - Eliminados: `public/.env`, `referencias/.env`, `frontend/.env.old2`
 - `public/.env` agregado a `.gitignore`
-- **Causa raíz:** `public/.env` tenía `MAIL_MAILER=log`,_Bluehost leía ese archivo en vez del `.env` raíz
+- **Causa raíz:** `public/.env` tenía `MAIL_MAILER=log`, Bluehost leía ese archivo en vez del `.env` raíz
+
+### 5. Reporte de morosos (reconstrucción completa)
+- **Archivo:** `app/Http/Controllers/Api/ReportController.php` — métodos `delinquents()`, `getDelinquentsData()`, `delinquentsMetrics()`, `exportDelinquents()`, `sendReminderDelinquents()`
+- **Archivo:** `app/Exports/DelinquentsExport.php` — clase de exportación Excel (nuevo)
+- **Archivo:** `routes/api.php` — rutas `GET /delinquents`, `GET /delinquents/export`, `GET /delinquents/metrics`, `POST /delinquents/send-reminder`
+- **Archivo:** `frontend/.../reportDelinquents.vue` — reconstruido con paginación server-side, búsqueda, métricas, exportación Excel, campanita de recordatorio
+- **Archivo:** `frontend/.../report.store.js` — métodos `getDelinquents`, `getDelinquentsMetrics`, `exportDelinquents`
+- **Resultado:** Tabla con paginación, búsqueda por nombre/DNI/departamento, 3 tarjetas de métricas, exportación Excel, envío de recordatorios
+
+### 6. Flag `tenant_pays_quota` (propietario decide quién paga)
+- **Archivo:** `database/migrations/2026_08_24_203955_add_tenant_pays_quota_to_departaments_table.php` — nueva columna boolean (default `false`)
+- **Archivo:** `app/Models/Departament.php` — agregado `tenant_pays_quota` a `$fillable`
+- **Archivo:** `app/Http/Controllers/Api/DepartamentController.php` — incluido en `updateApartment()`
+- **Archivo:** `app/Services/MonthlyQuotaService.php` — `sendNotifications()` respeta el flag: si `true` notifica al inquilino, si `false` notifica al propietario
+- **Archivo:** `frontend/.../myUnit.vue` — switch Vant por departamento para configurar quién paga
+- **Resultado:** El propietario configura desde su panel si él o el inquilino paga la cuota
+
+### 7. Filtros y mejoras en reporte de morosos
+- **Archivo:** `app/Http/Controllers/Api/ReportController.php` — excluye usuarios admin/super-admin/trabajador/parcial, excluye cuotas con `amount = 0`
+- **Archivo:** `app/Models/Quota.php` — agregado `$casts` para `amount`, `maintenance_amount`, `water_amount` como `float`
+- **Archivo:** `app/Models/Quota.php` — `due_date` usa último día del mes (Carbon `endOfMonth()`)
 
 ---
 
@@ -45,7 +66,7 @@ php artisan route:clear
 php artisan view:clear
 ```
 
-### Paso 4: Ejecutar migraciones (si hay nuevas)
+### Paso 4: Ejecutar migraciones (incluye la nueva `tenant_pays_quota`)
 ```bash
 php artisan migrate --force
 ```
@@ -72,8 +93,8 @@ exit
 - Revisar bandeja de entrada de `frovic.ve@gmail.com`
 - Si no llega, revisar spam
 - Si no llega en ningún lado, verificar en Bluehost:
-  - Panel →>Email →>Email Routing → debe estar en "Local Mail Exchanger"
-  - Panel →Email →MX Entry → debe tener el registro MX correcto
+  - Panel → Email → Email Routing → debe estar en "Local Mail Exchanger"
+  - Panel → Email → MX Entry → debe tener el registro MX correcto
 
 ### Paso 8: Probar flujo completo de cuota
 1. Login como admin
@@ -88,6 +109,21 @@ exit
 1. Login como propietario que tenga un inquilino asignado
 2. Intentar pagar una cuota que tiene inquilino
 3. Debe recibir error 403
+
+### Paso 10: Probar flag `tenant_pays_quota`
+1. Login como propietario → `/client/department/my-unit`
+2. Verificar que el switch "¿Quién paga la cuota?" aparece por cada departamento
+3. Hacer toggle y verificar que se guarda (toast de confirmación)
+4. Verificar que la cuota generada notifica al destinatario correcto
+
+### Paso 11: Probar reporte de morosos
+1. Login como admin → `/admin/reports/delinquents`
+2. Verificar que las 3 tarjetas de métricas muestran datos correctos
+3. Buscar por nombre, DNI o departamento
+4. Verificar que la columna "Responsable Pago" muestra Inquilino/Propietario
+5. Expandir una fila y verificar que el detalle muestra responsable por cuota
+6. Probar exportación Excel
+7. Probar envío de recordatorio (campanita)
 
 ---
 
@@ -106,4 +142,11 @@ ls -la public/.env 2>/dev/null && echo "PELIGRO: public/.env existe" || echo "OK
 
 # Verificar destinatarios de correos recientes
 grep "BillInvoiceService" storage/logs/laravel.log | tail -5
+
+# Verificar que la columna tenant_pays_quota existe
+php artisan tinker --execute="dd(DB::getSchemaBuilder()->hasColumn('departaments', 'tenant_pays_quota'))"
+# Debe decir: true
+
+# Verificar que la ruta del reporte de morosos existe
+php artisan route:list --path=delinquents
 ```
