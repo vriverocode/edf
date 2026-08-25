@@ -218,30 +218,30 @@ onMounted(() => {
                 <q-spinner-dots color="primary" size="7rem" />
             </div>
         </template>
+        <q-dialog v-model="areasDialog">
+            <q-card style="max-width: 40rem; width: 100%;" class="q-pa-md">
+                <q-card-section>
+                    <div class="text-h6 text-primary text-bold">
+                        Áreas que puede reservar
+                    </div>
+                    <div class="text-body2 text-grey-7 q-mt-xs">
+                        {{ areasUser.name }} — Si no seleccionas ninguna área, el usuario podrá reservar todas las disponibles.
+                    </div>
+                </q-card-section>
+                <q-card-section class="scroll" style="max-height: 55vh;">
+                    <userAvailableAreasStep v-model="selectedAreas" :userId="areasUser.id" />
+                </q-card-section>
+                <q-card-actions align="right" class="q-px-md q-pb-md">
+                    <q-btn flat color="grey-7" @click="areasDialog = false">
+                        Cancelar
+                    </q-btn>
+                    <q-btn color="primary" :loading="areasLoading" @click="saveAreas">
+                        Guardar
+                    </q-btn>
+                </q-card-actions>
+            </q-card>
+        </q-dialog>
     </div>
-    <q-dialog v-model="areasDialog">
-        <q-card style="max-width: 40rem; width: 100%;" class="q-pa-md">
-            <q-card-section>
-                <div class="text-h6 text-primary text-bold">
-                    Áreas que puede reservar
-                </div>
-                <div class="text-body2 text-grey-7 q-mt-xs">
-                    {{ areasUser.name }} — Si no seleccionas ninguna área, el usuario podrá reservar todas las disponibles.
-                </div>
-            </q-card-section>
-            <q-card-section class="scroll" style="max-height: 55vh;">
-                <userAvailableAreasStep v-model="selectedAreas" :userId="areasUser.id" />
-            </q-card-section>
-            <q-card-actions align="right" class="q-px-md q-pb-md">
-                <q-btn flat color="grey-7" @click="areasDialog = false">
-                    Cancelar
-                </q-btn>
-                <q-btn color="primary" :loading="areasLoading" @click="saveAreas">
-                    Guardar
-                </q-btn>
-            </q-card-actions>
-        </q-card>
-    </q-dialog>
 </template>
 <style lang="scss">
 .userListContainer {
