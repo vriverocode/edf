@@ -7,9 +7,10 @@ import { storeToRefs } from 'pinia'
 import moment from 'moment'
 
 const route = useRoute()
-const router = useRouter()
+
 const quotaStore = useQuotaStore()
 const { currencySymbol } = storeToRefs(useAuthStore())
+const urlMedia = import.meta.env.VITE_LARAVEL_API_URL
 
 const detail = ref(null)
 const loading = ref(false)
@@ -26,7 +27,11 @@ const monthLabel = (month) => {
   }
   return months[month] || `Mes ${month}`
 }
-
+const photoUrl = computed(() => {
+  const r = detail.value
+  if (!r) return ''
+  return urlMedia + (r.photo || r.meter_photo || r.proof_photo || '')
+})
 const loadDetail = async () => {
   try {
     loading.value = true
@@ -102,7 +107,7 @@ onMounted(() => {
           <div class="rounded-lg overflow-hidden border border-gray-200 bg-grey-2 flex flex-col items-center justify-center"
             style="min-height: 220px;">
             <template v-if="detail.photo && !imageBroken">
-              <q-img :src="detail.photo" fit="contain" style="max-height: 360px;" spinner-color="primary"
+              <q-img :src="photoUrl" fit="contain" style="max-height: 360px;" spinner-color="primary"
                 @error="imageBroken = true" />
             </template>
             <template v-else>
@@ -112,10 +117,6 @@ onMounted(() => {
               </p>
             </template>
           </div>
-        </div>
-
-        <div class="mt-6">
-          <q-btn color="primary" outline @click="router.back()">Volver</q-btn>
         </div>
       </div>
     </div>

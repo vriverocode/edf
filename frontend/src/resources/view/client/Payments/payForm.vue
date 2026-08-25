@@ -74,8 +74,8 @@ const isQuotaPayment = computed(() => typePay() === 'quota')
 const safeAmount = (value) => Number(value ?? 0)
 const maintenanceAmount = computed(() => safeAmount(toPay.value?.maintenance_amount))
 const waterAmount = computed(() => safeAmount(toPay.value?.water_amount))
-const waterConsumptionM3 = computed(() => safeAmount(toPay.value?.water_consumption_m3))
-const waterPricePerM3 = computed(() => safeAmount(toPay.value?.water_price_per_m3))
+const waterConsumptionM3 = computed(() => safeAmount( parseFloat(toPay.value?.water_reading?.current_reading ?? 0) - parseFloat(toPay.value?.water_reading?.previous_reading ?? 0)))
+const waterPricePerM3 = computed(() => safeAmount(toPay.value?.water_reading?.m3_price))
 const maintenanceParticipation = computed(() => safeAmount(
   toPay.value?.maintenance_participation_percentage ?? toPay.value?.departament?.participation_percentage
 ))

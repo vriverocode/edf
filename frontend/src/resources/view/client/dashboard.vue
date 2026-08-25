@@ -61,13 +61,13 @@ const menu = computed(() => [
     title: 'Anuncios',
     icon: anuncios,
     link: '/client/notices/list',
-    roles: [2]
+    roles: [2, 3, 4, 5]
   },
   {
     title: 'Atención',
     icon: atencion,
     link: '/client/incidents',
-    roles: [2]
+    roles: [2, 3, 4, 5]
   },
   {
     title: 'Residentes',
@@ -79,7 +79,7 @@ const menu = computed(() => [
     title: 'Visitas',
     icon: visitas,
     link: '/client/visit/list',
-    roles: [2]
+    roles: [2, 3, 4, 5]
   },
   {
     title: 'Reservas',

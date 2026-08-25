@@ -85,14 +85,14 @@ class Departament extends Model
 
     public function getTypeLabelAttribute()
     {
-        $type = [
+        $types = [
             '',
             'Departamento',
             'Estacionamiento',
             'Deposito',
         ];
 
-        return $type[$this->type];
+        return $types[$this->type ?? 1];
     }
 
     protected function pendingAmountQuota(): Attribute
