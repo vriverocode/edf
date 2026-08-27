@@ -64,6 +64,7 @@ class MonthlyQuotaService
 
         try {
             $activeTenantPivot = $this->findActiveTenantPivot($departament);
+            $tenantPays = $departament->tenant_pays_quota ?? false;
 
             $maintenanceAmount = (intval($budgetConfig->total_maintenance_budget) * floatval($departament->participation_percentage)) / 100;
 
@@ -85,7 +86,7 @@ class MonthlyQuotaService
 
             $quota = Quota::create([
                 'departament_id' => $departament->id,
-                'peoples_x_departments_id' => $activeTenantPivot?->id,
+                'peoples_x_departments_id' => ($tenantPays && $activeTenantPivot) ? $activeTenantPivot->id : null,
                 'water_reading_id' => $waterReadingId,
                 'maintenance_amount' => $maintenanceAmount,
                 'water_amount' => $waterAmount,
@@ -98,7 +99,7 @@ class MonthlyQuotaService
                 'status' => 1,
             ]);
             if ($quota) {
-                $this->sendNotifications($quota, $activeTenantPivot);
+                $this->sendNotifications($quota, $activeTenantPivot, $tenantPays);
             }
 
             return true;
@@ -134,11 +135,10 @@ class MonthlyQuotaService
             ->exists();
     }
 
-    private function sendNotifications($quota, $activeTenantPivot = null)
+    private function sendNotifications($quota, $activeTenantPivot = null, bool $tenantPays = false)
     {
         $periodYear = (int) Carbon::parse($quota->due_date)->format('Y');
         $monthLabel = $this->labelMonth($quota->month);
-        $tenantPays = $quota->departament->tenant_pays_quota ?? false;
 
         if ($activeTenantPivot && $tenantPays) {
             $this->notifyUser(

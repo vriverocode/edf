@@ -126,8 +126,9 @@ class Quota extends Model
                 $year = $quota->due_date
                     ? Carbon::parse($quota->due_date)->year
                     : now()->year;
+                $tenantPays = $quota->departament->tenant_pays_quota ?? false;
 
-                return $quota->month.'_'.$year;
+                return $quota->month.'_'.$year.'_'.$tenantPays;
             })
             ->map(function ($group) {
                 $firstQuota = $group->first();

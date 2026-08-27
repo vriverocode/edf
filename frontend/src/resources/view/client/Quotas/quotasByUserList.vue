@@ -76,6 +76,11 @@ const getMonthName = (monthNumber) => {
   return months[monthNumber - 1] || '';
 }
 
+const hasTenantPays = (quota) => {
+  if (!quota.details || !quota.details.length) return false
+  return quota.details.some(d => d.departament?.tenant_pays_quota === true)
+}
+
 const getTitleQuota = (quota) => {
   // Utilizamos el mes que viene en la agrupación
   return 'Mensualidad: ' + getMonthName(quota.month);
@@ -122,6 +127,11 @@ onMounted(() => {
                 <div class="flex-1">
                   <h3 class="text-lg font-bold text-gray-900 mb-1">
                     {{ getTitleQuota(quota) }}
+                    <span v-if="hasTenantPays(quota)"
+                      class="ml-2 inline-flex items-center bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-md">
+                      <q-icon name="eva-person-outline" size="0.85rem" class="mr-0.5" />
+                      Inquilino paga
+                    </span>
                     <span v-if="quota.created_at && moment(quota.created_at).isAfter(moment().subtract(7, 'days'))"
                       class="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-md">
                       Nuevo

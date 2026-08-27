@@ -285,10 +285,11 @@ class QuotaController extends Controller
             }
 
             $tenantPivotId = MonthlyQuotaService::findActiveTenantPivotId($departament->id);
+            $tenantPays = $departament->tenant_pays_quota ?? false;
 
             Quota::create([
                 'departament_id' => $departament->id,
-                'peoples_x_departments_id' => $tenantPivotId,
+                'peoples_x_departments_id' => ($tenantPays && $tenantPivotId) ? $tenantPivotId : null,
                 'month' => $month,
                 'due_date' => $dueDate,
                 'maintenance_amount' => $maintenanceAmount,
