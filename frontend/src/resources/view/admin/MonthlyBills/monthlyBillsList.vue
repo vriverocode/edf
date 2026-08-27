@@ -147,6 +147,9 @@ const emitQuotas = async () => {
 const goTo = (url) => {
   router.push(url)
 }
+const gotToQuotas = (bill) => {
+  router.push(`/admin/quotas/maintenance/list/${bill.year}/${bill.month}`)
+}
 showDialog
 
 onMounted(() => {
@@ -240,8 +243,21 @@ onMounted(() => {
                         @click="askEmitQuotas(bill)"
                       >
                         <div class="flex items-center">
-                          <q-icon name="eva-send-outline" class="q-pr-xs" />
+                          <q-icon name="eva-bell-outline" class="q-pr-xs" />
                           Emitir cuotas
+                        </div>
+                      </q-btn>
+                      <q-btn
+                        v-if="bill.generated_at"
+                        flat
+                        rounded
+                        color="priamary"
+                        size="sm"
+                        @click="gotToQuotas(bill)"
+                      >
+                        <div class="flex items-center">
+                          <q-icon name="eva-file-text-outline" class="q-pr-xs" />
+                          Ver cuotas
                         </div>
                       </q-btn>
                       <div flat rounded color="primary" size="sm" class="ml-3 cursor-pointer">
