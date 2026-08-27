@@ -46,6 +46,7 @@ const navigatingNext = ref(false)
 
 const formData = ref({
   departament: null,
+  is_common: false,
   month: sequential.value
     ? monthOptions.find(m => m.value === Number(route.query.month)) || monthOptions[now.getMonth() - 1]
     : monthOptions[now.getMonth() - 1],
@@ -103,7 +104,10 @@ const submit = async () => {
   loading.value = true
   try {
     const payload = new FormData()
-    payload.append('departament_id', String(formData.value.departament?.value || ''))
+    if (!formData.value.is_common) {
+      payload.append('departament_id', String(formData.value.departament?.value || ''))
+    }
+    payload.append('is_common', formData.value.is_common ? '1' : '0')
     payload.append('month', String(formData.value.month?.value || ''))
     payload.append('year', String(Number(formData.value.year)))
     payload.append('previous_reading', String(parseMaskedDecimal(formData.value.previous_reading, 2) ?? ''))
@@ -204,6 +208,10 @@ onMounted(() => {
     <q-form @submit="submit()">
       <div class="row w-full">
         <div class="col-12 mt-1 px-2 md:px-12">
+          <q-toggle v-model="formData.is_common" label="Es lectura de áreas comunes" color="primary" />
+        </div>
+
+        <div v-if="!formData.is_common" class="col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Departamento</div>
           <q-select dense borderless class="form__inputsR mt-1" v-model="formData.departament"
             :options="departamentOptions" option-label="label" option-value="value" :loading="deptLoading"

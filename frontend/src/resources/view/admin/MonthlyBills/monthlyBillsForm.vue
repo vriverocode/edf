@@ -41,6 +41,7 @@ const formData = ref({
   total_maintenance_budget: '',
   total_water_bill_amount: '',
   total_water_consumption_m3: null,
+  common_water_consumption_m3: null,
   water_price_per_m3: ''
 })
 const parseMaskedMoney = (value) => {
@@ -117,10 +118,19 @@ const includedExpensesTotal = computed(() => previousSelectedTotal.value)
 
 const formattedIncludedExpenses = computed(() => formatMaskedMoney(includedExpensesTotal.value))
 
+const commonWaterCost = computed(() => {
+  const commonConsumption = Number(formData.value.common_water_consumption_m3) || 0
+  const price = parseMaskedMoney(formData.value.water_price_per_m3) || 0
+  return Math.round(commonConsumption * price * 100) / 100
+})
+
+const formattedCommonWaterCost = computed(() => formatMaskedMoney(commonWaterCost.value))
+
 const calculatedTotal = computed(() => {
   const budget = parseMaskedMoney(formData.value.monthly_budget) || 0
   const expenses = includedExpensesTotal.value
-  return budget + expenses
+  const commonWater = commonWaterCost.value
+  return budget + expenses + commonWater
 })
 
 const formattedCalculatedTotal = computed(() => formatMaskedMoney(calculatedTotal.value))
@@ -144,19 +154,23 @@ watch(() => formData.value.year, () => {
 const hasWaterTotals = computed(() => {
   const amount = parseMaskedMoney(formData.value.total_water_bill_amount)
   const consumption = Number(formData.value.total_water_consumption_m3)
-  return amount !== null && amount > 0 && Number.isFinite(consumption) && consumption > 0
+  const commonConsumption = Number(formData.value.common_water_consumption_m3) || 0
+  const totalConsumption = consumption + commonConsumption
+  return amount !== null && amount > 0 && Number.isFinite(totalConsumption) && totalConsumption > 0
 })
 
 const waterPriceReadonly = computed(() => hasWaterTotals.value)
 
 watch(
-  () => [formData.value.total_water_bill_amount, formData.value.total_water_consumption_m3],
+  () => [formData.value.total_water_bill_amount, formData.value.total_water_consumption_m3, formData.value.common_water_consumption_m3],
   () => {
     if (!hasWaterTotals.value) return
     const amount = parseMaskedMoney(formData.value.total_water_bill_amount)
-    const consumption = Number(formData.value.total_water_consumption_m3)
-    if (amount === null || !Number.isFinite(consumption) || consumption <= 0) return
-    const computedPrice = amount / consumption
+    const consumption = Number(formData.value.total_water_consumption_m3) || 0
+    const commonConsumption = Number(formData.value.common_water_consumption_m3) || 0
+    const totalConsumption = consumption + commonConsumption
+    if (amount === null || totalConsumption <= 0) return
+    const computedPrice = amount / totalConsumption
 
     formData.value.water_price_per_m3 = Number.isFinite(computedPrice) ? formatMaskedMoney(computedPrice, 4) : ''
   }
@@ -206,6 +220,7 @@ const submit = async () => {
       total_maintenance_budget: totalMaintenanceBudget,
       total_water_bill_amount: totalWaterBillAmount,
       total_water_consumption_m3: waterConsumption,
+      common_water_consumption_m3: formData.value.common_water_consumption_m3 ? Number(formData.value.common_water_consumption_m3) : null,
       water_price_per_m3: waterPricePerM3
     }
 
@@ -338,13 +353,28 @@ const submit = async () => {
           </div>
         </div>
 
+        <div class="col-md-6 col-12 mt-4 px-2 md:px-12">
+          <div class="text-subtitle2 text-black">Consumo áreas comunes (m³)</div>
+          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number" step="0.001"
+            v-model.number="formData.common_water_consumption_m3" />
+        </div>
+
+        <div v-if="commonWaterCost > 0" class="col-12 mt-1 px-2 md:px-12">
+          <q-banner class="bg-blue-1 rounded-borders">
+            <div class="text-caption text-blue-8">
+              Costo agua áreas comunes: <strong>S/ {{ formattedCommonWaterCost }}</strong> ({{ formData.common_water_consumption_m3 }} m³ × S/ {{ formData.water_price_per_m3 }})
+              — se suma al total a distribuir
+            </div>
+          </q-banner>
+        </div>
+
         <div class="col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Costo unitario de agua por m³ (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" mask="###.###.###,####"
             reverse-fill-mask inputmode="decimal" :rules="[
               val => parseMaskedMoney(val) !== null || 'El costo unitario de agua es requerido'
             ]" v-model="formData.water_price_per_m3" 
-            :hint="waterPriceReadonly ? 'Calculado automáticamente (Monto / Consumo)' : 'Ingresa el costo unitario si no registras los totales'" />
+            :hint="waterPriceReadonly ? 'Calculado automáticamente (Monto / Consumo dept + Común)' : 'Ingresa el costo unitario si no registras los totales'" />
         </div>
 
         <div class="col-12 mb-2 px-2 md:px-12 flex justify-end mt-4">

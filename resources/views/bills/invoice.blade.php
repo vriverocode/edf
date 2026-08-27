@@ -407,6 +407,31 @@
         </table>
         @endif
 
+        {{-- Common Area Water Cost --}}
+        @if($commonWaterConsumption > 0)
+        <div class="section-title">COSTO AGUA ÁREAS COMUNES</div>
+        <table class="consumption-table">
+            <thead>
+                <tr>
+                    <th>CONCEPTO</th>
+                    <th>U. MEDIDA</th>
+                    <th>CONSUMO</th>
+                    <th>COSTO UNITARIO</th>
+                    <th style="text-align: right;">MONTO TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Agua - Áreas Comunes</td>
+                    <td>M3</td>
+                    <td>{{ number_format($commonWaterConsumption, 2) }}</td>
+                    <td>{{ number_format($waterPricePerM3, 2) }}</td>
+                    <td class="number">{{ number_format($commonWaterCost, 2) }}</td>
+                </tr>
+            </tbody>
+        </table>
+        @endif
+
         {{-- Payment History --}}
         @if(count($paymentHistory) > 0)
         <div class="section-title">ULTIMOS {{ count($paymentHistory) }} ABONOS</div>

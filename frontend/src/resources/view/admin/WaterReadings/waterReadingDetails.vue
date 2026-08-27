@@ -94,13 +94,14 @@ onMounted(() => {
             <div class="flex flex-col items-start col-md-8 col-7 md:pl-5 pl-3">
               <div class="mb-3 pt-5">
                 <div class="text-2xl font-bold text-gray-900">
-                  Dpt: {{ reading.departament?.number ?? reading.departament_id }} ·
-                  {{ reading.month_label }} {{ reading.year }}
+                  <span v-if="reading.is_common" class="text-amber-600">Área Común</span>
+                  <span v-else>Dpt: {{ reading.departament?.number ?? reading.departament_id }}</span>
+                  · {{ reading.month_label }} {{ reading.year }}
                 </div>
                 <div class="text-grey-7 mt-1">
                   Registrado: {{ moment(reading.created_at).format('DD/MM/YYYY HH:mm') }}
                 </div>
-                <div v-if="reading.departament?.owner?.name" class="text-grey-7 mt-1">
+                <div v-if="!reading.is_common && reading.departament?.owner?.name" class="text-grey-7 mt-1">
                   Propietario: {{ reading.departament.owner.name }}
                 </div>
               </div>

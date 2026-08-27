@@ -55,6 +55,7 @@ const departamentOptions = ref([])
 
 const formData = ref({
   departament: null,
+  is_common: false,
   month: null,
   year: new Date().getFullYear(),
   previous_reading: '',
@@ -93,8 +94,11 @@ const loadReading = async () => {
     const response = await waterReadingsStore.getWaterReadingById(readingId)
     const r = response.data
 
-    await searchDepartaments(r.departament?.number || '')
-    formData.value.departament = { label: r.departament?.number ?? String(r.departament_id), value: r.departament_id }
+    formData.value.is_common = !!r.is_common
+    if (!formData.value.is_common) {
+      await searchDepartaments(r.departament?.number || '')
+      formData.value.departament = { label: r.departament?.number ?? String(r.departament_id), value: r.departament_id }
+    }
     formData.value.month = monthOptions.find(m => m.value === r.month) || null
     formData.value.year = r.year
     formData.value.previous_reading = formatMaskedDecimal(r.previous_reading, 2)
@@ -111,7 +115,10 @@ const submit = async () => {
   loading.value = true
   try {
     const payload = new FormData()
-    payload.append('departament_id', String(formData.value.departament?.value || ''))
+    if (!formData.value.is_common) {
+      payload.append('departament_id', String(formData.value.departament?.value || ''))
+    }
+    payload.append('is_common', formData.value.is_common ? '1' : '0')
     payload.append('month', String(formData.value.month?.value || ''))
     payload.append('year', String(Number(formData.value.year)))
     payload.append('previous_reading', String(parseMaskedDecimal(formData.value.previous_reading, 2) ?? ''))
@@ -178,7 +185,11 @@ onMounted(() => {
 
     <q-form v-else @submit="submit()">
       <div class="row w-full">
-        <div class="col-12 mt-1  px-2 md:px-12">
+        <div class="col-12 mt-1 px-2 md:px-12">
+          <q-toggle v-model="formData.is_common" label="Es lectura de áreas comunes" color="primary" />
+        </div>
+
+        <div v-if="!formData.is_common" class="col-12 mt-1  px-2 md:px-12">
           <div class="text-subtitle2 text-black">Departamento</div>
           <q-select dense borderless class="form__inputsR mt-1" v-model="formData.departament"
             :options="departamentOptions" option-label="label" option-value="value" use-input input-debounce="250"

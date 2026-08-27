@@ -20,6 +20,7 @@ class WaterReadingController extends Controller
                 'month' => ['required', 'integer', 'between:1,12'],
                 'year' => ['nullable', 'integer'],
                 'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+                'is_common' => ['nullable', 'boolean'],
             ]);
         } catch (ValidationException $e) {
             return $this->returnFail(422, $e->validator->errors()->first());
@@ -32,7 +33,12 @@ class WaterReadingController extends Controller
         $query = WaterReading::with(['departament.owner'])
             ->where('month', $month)
             ->where('year', $year)
+            ->orderBy('is_common', 'asc')
             ->orderBy('departament_id', 'asc');
+
+        if (isset($validated['is_common'])) {
+            $query->where('is_common', (bool) $validated['is_common']);
+        }
 
         $paginator = $query->paginate($perPage);
 
@@ -94,14 +100,16 @@ class WaterReadingController extends Controller
         $readings = WaterReading::with('departament')
             ->where('month', $month)
             ->where('year', $year)
+            ->orderBy('is_common', 'asc')
             ->orderBy('departament_id', 'asc')
             ->get()
             ->map(function ($reading) {
                 return [
-                    'department_name' => $reading->departament->nombre ?? 'Sin departamento',
+                    'department_name' => $reading->is_common ? 'Área Común' : ($reading->departament->nombre ?? 'Sin departamento'),
                     'previous_reading' => (float) $reading->previous_reading,
                     'current_reading' => (float) $reading->current_reading,
                     'consumption' => $reading->consumption,
+                    'is_common' => (bool) $reading->is_common,
                 ];
             });
 
@@ -119,32 +127,26 @@ class WaterReadingController extends Controller
         if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
-        $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
-        ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
-        : 0;
-        // $priceWater = 0;
 
+        $isCommon = (bool) $request->input('is_common', false);
         $isInitial = (bool) $request->input('is_initial', false);
 
+        $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
+            ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
+            : 0;
+
         try {
-            $validated = $request->validate([
-                'departament_id' => ['required', 'integer', 'exists:departaments,id',
-                    Rule::unique('water_readings', 'departament_id')->where(function ($query) use ($request) {
-                        return $query
-                            ->where('month', $request->input('month'))
-                            ->where('year', $request->input('year'));
-                    }),
-                ],
+            $rules = [
                 'month' => ['required', 'integer', 'between:1,12'],
                 'year' => ['required', 'integer'],
                 'previous_reading' => $isInitial ? ['nullable', 'numeric', 'min:0'] : ['required', 'numeric', 'min:0'],
                 'current_reading' => ['required', 'numeric', 'gt:previous_reading'],
                 'm3_price' => ['nullable', 'numeric', 'min:0'],
                 'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            ], [
-                'departament_id.required' => 'El departamento es requerido.',
-                'departament_id.exists' => 'El departamento no existe.',
-                'departament_id.unique' => 'Ya existe una medición para ese departamento en el mes y año seleccionados.',
+                'is_common' => ['nullable', 'boolean'],
+            ];
+
+            $messages = [
                 'month.required' => 'El mes es requerido.',
                 'month.between' => 'El mes debe estar entre 1 y 12.',
                 'year.required' => 'El año es requerido.',
@@ -153,7 +155,30 @@ class WaterReadingController extends Controller
                 'current_reading.gt' => 'La lectura actual debe ser mayor a la lectura anterior.',
                 'photo.required' => 'La foto comprobante del medidor es requerida.',
                 'photo.image' => 'El archivo debe ser una imagen válida.',
-            ]);
+            ];
+
+            if ($isCommon) {
+                $rules['departament_id'] = ['nullable'];
+                $rules[Rule::unique('water_readings')->where(function ($query) use ($request) {
+                    return $query
+                        ->where('is_common', true)
+                        ->where('month', $request->input('month'))
+                        ->where('year', $request->input('year'));
+                })] = ['unique:water_readings'];
+            } else {
+                $rules['departament_id'] = ['required', 'integer', 'exists:departaments,id',
+                    Rule::unique('water_readings', 'departament_id')->where(function ($query) use ($request) {
+                        return $query
+                            ->where('month', $request->input('month'))
+                            ->where('year', $request->input('year'));
+                    }),
+                ];
+                $messages['departament_id.required'] = 'El departamento es requerido.';
+                $messages['departament_id.exists'] = 'El departamento no existe.';
+                $messages['departament_id.unique'] = 'Ya existe una medición para ese departamento en el mes y año seleccionados.';
+            }
+
+            $validated = $request->validate($rules, $messages);
         } catch (ValidationException $e) {
             return $this->returnFail(422, $e->validator->errors()->first());
         }
@@ -162,7 +187,7 @@ class WaterReadingController extends Controller
 
         $photoUrl = $this->storePhoto($request);
         $payload = [
-            'departament_id' => $validated['departament_id'],
+            'departament_id' => $validated['departament_id'] ?? null,
             'month' => $validated['month'],
             'year' => $validated['year'],
             'previous_reading' => $previousReading,
@@ -170,6 +195,7 @@ class WaterReadingController extends Controller
             'm3_price' => $priceWater->water_price_per_m3 ?? $validated['m3_price'] ?? 0,
             'amount' => ($validated['current_reading'] - $previousReading) * ($priceWater->water_price_per_m3 ?? $validated['m3_price'] ?? 0),
             'is_initial' => $isInitial,
+            'is_common' => $isCommon,
         ];
 
         $photoColumn = $this->resolvePhotoColumn();
@@ -188,56 +214,74 @@ class WaterReadingController extends Controller
         if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
-        $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
-        ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
-        : 0;
-        // $priceWater = 0;
 
         $reading = WaterReading::find($id);
         if (! $reading) {
             return $this->returnFail(404, 'Medición de agua no encontrada');
         }
 
+        $isCommon = (bool) $request->input('is_common', $reading->is_common);
+
+        $priceWater = MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->exists()
+            ? MonthlyBills::where('month', $request->input('month'))->where('year', $request->input('year'))->first()
+            : 0;
+
         try {
-            $validated = $request->validate([
-                'departament_id' => ['required', 'integer', 'exists:departaments,id',
-                    Rule::unique('water_readings', 'departament_id')->where(function ($query) use ($request) {
-                        return $query
-                            ->where('month', $request->input('month'))
-                            ->where('year', $request->input('year'));
-                    })->ignore($reading->id),
-                ],
+            $rules = [
                 'month' => ['required', 'integer', 'between:1,12'],
                 'year' => ['required', 'integer'],
                 'previous_reading' => ['required', 'numeric', 'min:0'],
                 'current_reading' => ['required', 'numeric', 'gt:previous_reading'],
                 'm3_price' => ['nullable', 'numeric', 'min:0'],
                 'photo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            ], [
-                'departament_id.required' => 'El departamento es requerido.',
-                'departament_id.exists' => 'El departamento no existe.',
-                'departament_id.unique' => 'Ya existe una medición para ese departamento en el mes y año seleccionados.',
+                'is_common' => ['nullable', 'boolean'],
+            ];
+
+            $messages = [
                 'month.required' => 'El mes es requerido.',
                 'month.between' => 'El mes debe estar entre 1 y 12.',
                 'year.required' => 'El año es requerido.',
                 'previous_reading.required' => 'La lectura anterior es requerida.',
                 'current_reading.required' => 'La lectura actual es requerida.',
                 'current_reading.gt' => 'La lectura actual debe ser mayor a la lectura anterior.',
-            ]);
+            ];
+
+            if ($isCommon) {
+                $rules['departament_id'] = ['nullable'];
+                $rules[Rule::unique('water_readings')->where(function ($query) use ($request) {
+                    return $query
+                        ->where('is_common', true)
+                        ->where('month', $request->input('month'))
+                        ->where('year', $request->input('year'));
+                })->ignore($reading->id)] = ['unique:water_readings'];
+            } else {
+                $rules['departament_id'] = ['required', 'integer', 'exists:departaments,id',
+                    Rule::unique('water_readings', 'departament_id')->where(function ($query) use ($request) {
+                        return $query
+                            ->where('month', $request->input('month'))
+                            ->where('year', $request->input('year'));
+                    })->ignore($reading->id),
+                ];
+                $messages['departament_id.required'] = 'El departamento es requerido.';
+                $messages['departament_id.exists'] = 'El departamento no existe.';
+                $messages['departament_id.unique'] = 'Ya existe una medición para ese departamento en el mes y año seleccionados.';
+            }
+
+            $validated = $request->validate($rules, $messages);
         } catch (ValidationException $e) {
             return $this->returnFail(422, $e->validator->errors()->first());
         }
 
         $payload = [
-            'departament_id' => $validated['departament_id'],
+            'departament_id' => $validated['departament_id'] ?? null,
             'month' => $validated['month'],
             'year' => $validated['year'],
             'previous_reading' => $validated['previous_reading'],
             'current_reading' => $validated['current_reading'],
             'm3_price' => $validated['m3_price'] ?? $reading->m3_price ?? 0,
             'amount' => ($validated['current_reading'] - $validated['previous_reading']) * ($priceWater->water_price_per_m3 ?? $validated['m3_price'] ?? 0),
+            'is_common' => $isCommon,
         ];
-        // dd($payload);
 
         $photoUrl = $this->storePhoto($request);
         $photoColumn = $this->resolvePhotoColumn();

@@ -17,6 +17,7 @@ class MonthlyBills extends Model
         'water_price_per_m3',
         'total_water_bill_amount',
         'total_water_consumption_m3',
+        'common_water_consumption_m3',
         'is_published',
         'generated_at',
     ];
@@ -27,6 +28,7 @@ class MonthlyBills extends Model
         'water_price_per_m3' => 'decimal:4',
         'total_water_bill_amount' => 'decimal:2',
         'total_water_consumption_m3' => 'decimal:2',
+        'common_water_consumption_m3' => 'decimal:2',
     ];
 
     public function expenses()

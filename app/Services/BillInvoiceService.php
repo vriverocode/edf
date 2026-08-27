@@ -190,6 +190,8 @@ class BillInvoiceService
             'totalAmount' => $totalAmount,
             'waterConsumption' => $waterConsumption,
             'waterPricePerM3' => $waterPricePerM3,
+            'commonWaterConsumption' => $monthlyBill->common_water_consumption_m3 ?? 0,
+            'commonWaterCost' => round(($monthlyBill->common_water_consumption_m3 ?? 0) * $waterPricePerM3, 2),
             'previousMonthLabel' => self::MONTH_NAMES[$previousMonth],
             'waterYear' => $waterYear,
             'emissionDate' => $emissionDate,

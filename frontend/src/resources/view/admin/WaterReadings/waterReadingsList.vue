@@ -179,7 +179,9 @@ onMounted(() => {
                   <div class="flex justify-between items-center pb-1 px-4" style="border-bottom: 1px solid lightgrey">
                     <div class="text-lg font-bold text-gray-900 mb-0" style="text-decoration: underline;"
                       @click="goTo('/admin/water_readings/view/' + r.id)">
-                      Dpt: {{ r.departament?.number ?? r.departament_id }} • {{ r.month_label }} {{ r.year }}
+                      <span v-if="r.is_common" class="text-amber-600">Área Común</span>
+                      <span v-else>Dpt: {{ r.departament?.number ?? r.departament_id }}</span>
+                      • {{ r.month_label }} {{ r.year }}
                     </div>
                     <div flat rounded color="primary" size="sm" class="ml-3 cursor-pointer">
                       <div v-html="iconsApp.optionsBook" />
