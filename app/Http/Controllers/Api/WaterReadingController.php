@@ -97,12 +97,11 @@ class WaterReadingController extends Controller
             ->orderBy('departament_id', 'asc')
             ->get()
             ->map(function ($reading) {
-                $consumption = round((float) $reading->current_reading - (float) $reading->previous_reading, 3);
                 return [
                     'department_name' => $reading->departament->nombre ?? 'Sin departamento',
                     'previous_reading' => (float) $reading->previous_reading,
                     'current_reading' => (float) $reading->current_reading,
-                    'consumption' => $consumption,
+                    'consumption' => $reading->consumption,
                 ];
             });
 

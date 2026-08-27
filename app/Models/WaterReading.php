@@ -11,7 +11,7 @@ class WaterReading extends Model
 
     protected $fillable = ['departament_id', 'month', 'year', 'previous_reading', 'current_reading', 'm3_price', 'photo', 'amount', 'is_initial'];
 
-    public $appends = ['month_label'];
+    public $appends = ['month_label', 'consumption'];
 
     public function getMonthLabelAttribute()
     {
@@ -32,6 +32,11 @@ class WaterReading extends Model
         ];
 
         return $monthOptions[$this->month];
+    }
+
+    public function getConsumptionAttribute()
+    {
+        return round((float) $this->current_reading - (float) $this->previous_reading, 3);
     }
 
     public function departament()

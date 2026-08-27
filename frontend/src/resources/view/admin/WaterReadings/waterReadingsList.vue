@@ -53,15 +53,8 @@ const showNotify = (type, text) => {
 
 const selectedMonthObj = computed(() => monthOptions.find(m => m.value === selectedMonth.value) || monthOptions[0])
 
-const consumption = (r) => {
-  const prev = Number(r.previous_reading)
-  const cur = Number(r.current_reading)
-  if (!Number.isFinite(prev) || !Number.isFinite(cur)) return null
-  return Number((cur - prev).toFixed(2))
-}
-
 const subtotal = (r) => {
-  const cons = consumption(r)
+  const cons = r.consumption
   const price = Number(r.m3_price)
   if (cons === null || !Number.isFinite(price)) return null
   return Number((cons * price).toFixed(2))
@@ -214,7 +207,7 @@ onMounted(() => {
                     </div>
                     <div class="col-6 text-sm text-gray-700 mt-2">
                       Consumo (m³):
-                      <div class="font-medium">{{ consumption(r) ?? '-' }}</div>
+                      <div class="font-medium">{{ r.consumption ?? '-' }}</div>
                     </div>
                   </div>
                 </div>

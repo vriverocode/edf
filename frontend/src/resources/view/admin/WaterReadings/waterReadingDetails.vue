@@ -24,16 +24,13 @@ const photoUrl = computed(() => {
 const consumptionM3 = computed(() => {
   const r = reading.value
   if (!r) return null
-  const prev = Number(r.previous_reading)
-  const cur = Number(r.current_reading)
-  if (!Number.isFinite(prev) || !Number.isFinite(cur)) return null
-  return Number((cur - prev).toFixed(2))
+  return r.consumption
 })
 
 const subtotalSoles = computed(() => {
   const r = reading.value
-  const cons = consumptionM3.value
-  if (!r || cons === null) return null
+  if (!r) return null
+  const cons = r.consumption
   const price = Number(r.m3_price)
   if (!Number.isFinite(price)) return null
   return Number((cons * price).toFixed(2))
