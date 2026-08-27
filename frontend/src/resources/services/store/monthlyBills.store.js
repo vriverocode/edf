@@ -128,6 +128,27 @@ export const useMonthlyBillsStore = defineStore('MonthlyBills', {
       })
     },
 
+    async getWaterConsumptionByMonth(month, year) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        const params = new URLSearchParams()
+        params.set('month', String(month))
+        params.set('year', String(year))
+        ApiService.get('/api/water-readings/consumption-by-month?' + params.toString())
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al cargar consumo de agua')
+          })
+      })
+    },
+
     filterQuery(filter) {
       try {
         const params = new URLSearchParams()

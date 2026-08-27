@@ -329,6 +329,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [WaterReadingController::class, 'index'])->middleware('role:admin,super-admin');
         Route::get('/byId/{id}', [WaterReadingController::class, 'show'])->middleware('role:admin,super-admin');
         Route::get('/last-by-department/{departmentId}', [WaterReadingController::class, 'getLastByDepartment'])->middleware('role:admin,super-admin');
+        Route::get('/consumption-by-month', [WaterReadingController::class, 'consumptionByMonth'])->middleware('role:admin,super-admin');
         // Write - admin only
         Route::post('/', [WaterReadingController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/u/{id}', [WaterReadingController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');

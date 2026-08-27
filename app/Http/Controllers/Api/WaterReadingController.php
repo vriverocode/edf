@@ -77,6 +77,43 @@ class WaterReadingController extends Controller
         return $this->returnSuccess(200, $reading);
     }
 
+    public function consumptionByMonth(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'month' => ['required', 'integer', 'between:1,12'],
+                'year' => ['required', 'integer'],
+            ]);
+        } catch (ValidationException $e) {
+            return $this->returnFail(422, $e->validator->errors()->first());
+        }
+
+        $month = (int) $validated['month'];
+        $year = (int) $validated['year'];
+
+        $readings = WaterReading::with('departament')
+            ->where('month', $month)
+            ->where('year', $year)
+            ->orderBy('departament_id', 'asc')
+            ->get()
+            ->map(function ($reading) {
+                $consumption = round((float) $reading->current_reading - (float) $reading->previous_reading, 3);
+                return [
+                    'department_name' => $reading->departament->nombre ?? 'Sin departamento',
+                    'previous_reading' => (float) $reading->previous_reading,
+                    'current_reading' => (float) $reading->current_reading,
+                    'consumption' => $consumption,
+                ];
+            });
+
+        $totalConsumption = round($readings->sum('consumption'), 3);
+
+        return $this->returnSuccess(200, [
+            'readings' => $readings,
+            'total_consumption' => $totalConsumption,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $user = request()->user();

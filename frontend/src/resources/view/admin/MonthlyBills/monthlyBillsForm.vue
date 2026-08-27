@@ -4,6 +4,7 @@ import { Notify } from 'quasar'
 import { useMonthlyBillsStore } from '@/services/store/monthlyBills.store'
 import { useRouter } from 'vue-router'
 import includeExpensesModal from '@/components/monthlyBills/includeExpensesModal.vue'
+import waterReadingsModal from '@/components/monthlyBills/waterReadingsModal.vue'
 
 
 const loading = ref(false)
@@ -14,6 +15,10 @@ const showExpensesModal = ref(false)
 const selectedExpenseIds = ref([])
 const selectedExpensesData = ref([])
 const previousSelectedTotal = ref(0)
+const showWaterReadingsModal = ref(false)
+const waterReadingsData = ref([])
+const totalWaterConsumption = ref(0)
+const loadingConsumption = ref(false)
 const monthOptions = [
   { value: 1, name: 'Enero' },
   { value: 2, name: 'Febrero' },
@@ -87,6 +92,27 @@ const loadPreviousMonthData = async () => {
   }
 }
 
+const loadWaterConsumption = async () => {
+  if (!formData.value.month?.value || !formData.value.year) return
+  loadingConsumption.value = true
+  try {
+    const response = await monthlyBillsStore.getWaterConsumptionByMonth(
+      formData.value.month.value,
+      formData.value.year
+    )
+    if (response?.code === 200) {
+      waterReadingsData.value = response.data?.readings || []
+      totalWaterConsumption.value = response.data?.total_consumption || 0
+      formData.value.total_water_consumption_m3 = totalWaterConsumption.value
+    }
+  } catch (e) {
+    waterReadingsData.value = []
+    totalWaterConsumption.value = 0
+  } finally {
+    loadingConsumption.value = false
+  }
+}
+
 const includedExpensesTotal = computed(() => previousSelectedTotal.value)
 
 const formattedIncludedExpenses = computed(() => formatMaskedMoney(includedExpensesTotal.value))
@@ -103,7 +129,14 @@ watch(calculatedTotal, (val) => {
   formData.value.total_maintenance_budget = formatMaskedMoney(val)
 })
 
-watch(() => formData.value.month, loadPreviousMonthData)
+watch(() => formData.value.month, () => {
+  loadPreviousMonthData()
+  loadWaterConsumption()
+})
+
+watch(() => formData.value.year, () => {
+  loadWaterConsumption()
+})
 
 
 
@@ -292,8 +325,17 @@ const submit = async () => {
 
         <div class="col-md-6 col-12 mt-4 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Consumo total de agua (m³)</div>
-          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number" step="0.001"
-            v-model.number="formData.total_water_consumption_m3" />
+          <div class="row items-center">
+            <div class="col">
+              <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" type="number" step="0.001"
+                v-model.number="formData.total_water_consumption_m3" :loading="loadingConsumption" />
+            </div>
+            <div class="col-auto" v-if="waterReadingsData.length > 0">
+              <q-btn flat round dense icon="eva-list-outline" color="primary" @click="showWaterReadingsModal = true">
+                <q-tooltip>Ver detalle de lecturas</q-tooltip>
+              </q-btn>
+            </div>
+          </div>
         </div>
 
         <div class="col-12 mt-2 px-2 md:px-12">
@@ -320,6 +362,15 @@ const submit = async () => {
       :previously-selected-ids="selectedExpenseIds"
       @close-modal="showExpensesModal = false"
       @expenses-selected="onExpensesSelected"
+    />
+
+    <waterReadingsModal
+      :dialog="showWaterReadingsModal"
+      :readings="waterReadingsData"
+      :total-consumption="totalWaterConsumption"
+      :current-month="formData.month?.value || now.getMonth() + 1"
+      :current-year="formData.year"
+      @close-modal="showWaterReadingsModal = false"
     />
   </div>
 </template>
