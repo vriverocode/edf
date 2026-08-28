@@ -43,6 +43,20 @@
 - **Archivo:** `app/Models/Quota.php` — agregado `$casts` para `amount`, `maintenance_amount`, `water_amount` como `float`
 - **Archivo:** `app/Models/Quota.php` — `due_date` usa último día del mes (Carbon `endOfMonth()`)
 
+### 8. Tipo de departamento: Lavandería (TYPE_LAV = 4)
+- **Archivo:** `app/Models/Departament.php` — nuevo `TYPE_LAV = 4` + `Lavandería` en `getTypeLabelAttribute()`
+- **Archivo:** `app/Http/Controllers/Api/DepartamentController.php` — validación `type` actualizada a `in:1,2,3,4`
+- **Archivo:** `frontend/.../Department/createUnit.vue` — opción `🧺 Lavandería` (value: 4)
+- **Archivo:** `frontend/.../Department/departmentList.vue` — filtro `Lavanderías` (value: 4)
+- **Archivo:** `frontend/.../Payments/viewPayOfQuotas.vue` — `getUnitInfo()` maneja type 4 → `Lavandería`
+- **Resultado:** Se pueden crear y filtrar departamentos tipo Lavandería (ej: LAV-001)
+
+### 9. Filtro por departamento en lecturas de agua
+- **Archivo:** `app/Http/Controllers/Api/WaterReadingController.php` — `index()` acepta `departament_id` (validación + query constraint)
+- **Archivo:** `frontend/.../store/waterReadings.store.js` — `filterQuery()` maneja `departament_id`
+- **Archivo:** `frontend/.../WaterReadings/waterReadingsList.vue` — dropdown "Departamento" con opciones cargadas desde `getApartmentsByFind('allWithUser')`, default "Todos"
+- **Resultado:** Filtrar lecturas de agua por departamento específico o ver todas
+
 ---
 
 ## Pasos para deploy en Bluehost
@@ -124,6 +138,19 @@ exit
 5. Expandir una fila y verificar que el detalle muestra responsable por cuota
 6. Probar exportación Excel
 7. Probar envío de recordatorio (campanita)
+
+### Paso 12: Probar tipo Lavandería
+1. Login como admin → `/admin/departments/list`
+2. Filtrar por "Lavanderías" → verificar que muestra LAV-001 (si existe)
+3. Crear nuevo departamento tipo Lavandería → verificar que se guarda con type=4
+4. Verificar que `type_label` muestra "Lavandería"
+
+### Paso 13: Probar filtro por departamento en lecturas de agua
+1. Login como admin → `/admin/water_readings`
+2. Verificar que aparece el dropdown "Departamento" con opción "Todos" selected
+3. Seleccionar un departamento específico → verificar que solo muestra lecturas de ese dept
+4. Volver a "Todos" → verificar que muestra todas las lecturas
+5. Cambiar mes/año + departamento → verificar que ambos filtros funcionan juntos
 
 ---
 
