@@ -238,7 +238,7 @@ watch(() => user.value?.units, calculateTotalParticipation, { immediate: true })
         <div v-else class="flex flex-col items-center justify-center py-20">
           <div class="w-28 h-28 bg-blue-100 rounded-full flex items-center justify-center mb-6"
             v-html="iconsApp.building" />
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Aparatamento no asignado 🤔</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Departamento no asignado 🤔</h3>
           <p class="text-gray-600 text-center mb-6 px-8">Todavia no tienes departamentos asignado, comunicate con el
             administrador o el personal de soporte</p>
         </div>

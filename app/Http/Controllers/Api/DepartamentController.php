@@ -45,7 +45,7 @@ class DepartamentController extends Controller
             $departaments->where('user_id', '!=', null);
         }
         if ($request->find == 'allDepartmentWithoutReadingThisMonth') {
-            $departaments->where('type', 1)->with(['waterReadings'])->whereDoesntHave('waterReadings');
+            $departaments->whereIn('type', [4,1])->with(['waterReadings'])->whereDoesntHave('waterReadings');
         }
 
         return $this->returnSuccess(200, $departaments->get());
@@ -230,7 +230,7 @@ class DepartamentController extends Controller
         $isDepartment = isset($inputs['type']) && $inputs['type'] == 1;
 
         $rules = [
-            'type' => ['required', 'in:1,2,3'],
+            'type' => ['required', 'in:1,2,3,4'],
             'number' => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\\-]+$/i'],
             'participation_percentage' => ['required', 'numeric'],
             'description' => ['nullable', 'regex:/^[a-z a-z 0-9 A-Z-À-ÿ ., \\-]+$/i'],

@@ -20,6 +20,8 @@ class Departament extends Model
 
     const TYPE_DEPOSITO = 3;
 
+    const TYPE_LAV = 4;
+
     public $appends = ['inter_number', 'pending_amount_quota', 'type_label'];
 
     protected $fillable = [
@@ -96,6 +98,7 @@ class Departament extends Model
             'Departamento',
             'Estacionamiento',
             'Deposito',
+            'Lavandería',
         ];
 
         return $types[$this->type ?? 1];

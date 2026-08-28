@@ -68,7 +68,7 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
           })
           .catch(({ response }) => {
             console.error(response)
-            reject(response?.data?.error || 'Error al registrar medición de agua')
+            reject(response?.data || 'Error al registrar medición de agua')
           })
       })
     },
@@ -109,6 +109,27 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
       })
     },
 
+    async getLastCommonReading(month, year) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        const params = new URLSearchParams()
+        params.set('month', String(month))
+        params.set('year', String(year))
+        ApiService.get('/api/water-readings/last-common?' + params.toString())
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al obtener la última medición de áreas comunes')
+          })
+      })
+    },
+
     filterQuery(filter) {
       try {
         const params = new URLSearchParams()
@@ -117,6 +138,7 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
         if (filter.per_page) params.set('per_page', String(filter.per_page))
         if (filter.month) params.set('month', String(filter.month))
         if (filter.year) params.set('year', String(filter.year))
+        if (filter.departament_id) params.set('departament_id', String(filter.departament_id))
         return params.toString()
       } catch (e) {
         return ''

@@ -27,6 +27,7 @@ const amountPrefix = computed(() => currencySymbol.value || 'S/');
 const getUnitInfo = (type) => {
   if (type === 2) return { label: 'Estacionamiento' };
   if (type === 3) return { label: 'Depósito' };
+  if (type === 4) return { label: 'Lavandería' };
   return { label: 'Departamento' };
 }
 

@@ -21,6 +21,7 @@ class WaterReadingController extends Controller
                 'year' => ['nullable', 'integer'],
                 'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
                 'is_common' => ['nullable', 'boolean'],
+                'departament_id' => ['nullable', 'integer', 'exists:departaments,id'],
             ]);
         } catch (ValidationException $e) {
             return $this->returnFail(422, $e->validator->errors()->first());
@@ -38,6 +39,10 @@ class WaterReadingController extends Controller
 
         if (isset($validated['is_common'])) {
             $query->where('is_common', (bool) $validated['is_common']);
+        }
+
+        if (isset($validated['departament_id'])) {
+            $query->where('departament_id', (int) $validated['departament_id']);
         }
 
         $paginator = $query->paginate($perPage);
@@ -83,6 +88,27 @@ class WaterReadingController extends Controller
         return $this->returnSuccess(200, $reading);
     }
 
+    public function getLastCommonReading(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'month' => ['required', 'integer', 'between:1,12'],
+                'year' => ['required', 'integer'],
+            ]);
+        } catch (ValidationException $e) {
+            return $this->returnFail(422, $e->validator->errors()->first());
+        }
+
+        $reading = WaterReading::where('is_common', true)
+            ->where('month', $validated['month'])
+            ->where('year', $validated['year'])
+            ->orderBy('year', 'desc')
+            ->orderBy('month', 'desc')
+            ->first();
+
+        return $this->returnSuccess(200, $reading);
+    }
+
     public function consumptionByMonth(Request $request)
     {
         try {
@@ -105,7 +131,7 @@ class WaterReadingController extends Controller
             ->get()
             ->map(function ($reading) {
                 return [
-                    'department_name' => $reading->is_common ? 'Área Común' : ($reading->departament->nombre ?? 'Sin departamento'),
+                    'department_name' => $reading->is_common ? 'Área Común' : ($reading->departament->number ?? 'Sin departamento'),
                     'previous_reading' => (float) $reading->previous_reading,
                     'current_reading' => (float) $reading->current_reading,
                     'consumption' => $reading->consumption,
@@ -140,7 +166,7 @@ class WaterReadingController extends Controller
                 'month' => ['required', 'integer', 'between:1,12'],
                 'year' => ['required', 'integer'],
                 'previous_reading' => $isInitial ? ['nullable', 'numeric', 'min:0'] : ['required', 'numeric', 'min:0'],
-                'current_reading' => ['required', 'numeric', 'gt:previous_reading'],
+                'current_reading' => ['required', 'numeric', 'gte:previous_reading'],
                 'm3_price' => ['nullable', 'numeric', 'min:0'],
                 'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
                 'is_common' => ['nullable', 'boolean'],
@@ -159,12 +185,12 @@ class WaterReadingController extends Controller
 
             if ($isCommon) {
                 $rules['departament_id'] = ['nullable'];
-                $rules[Rule::unique('water_readings')->where(function ($query) use ($request) {
+                $rules['is_common'][] = Rule::unique('water_readings', 'is_common')->where(function ($query) use ($request) {
                     return $query
-                        ->where('is_common', true)
                         ->where('month', $request->input('month'))
                         ->where('year', $request->input('year'));
-                })] = ['unique:water_readings'];
+                });
+                $messages['is_common.unique'] = 'Ya existe una medición de las areas comunes en el mes y año seleccionados.';
             } else {
                 $rules['departament_id'] = ['required', 'integer', 'exists:departaments,id',
                     Rule::unique('water_readings', 'departament_id')->where(function ($query) use ($request) {
@@ -231,7 +257,7 @@ class WaterReadingController extends Controller
                 'month' => ['required', 'integer', 'between:1,12'],
                 'year' => ['required', 'integer'],
                 'previous_reading' => ['required', 'numeric', 'min:0'],
-                'current_reading' => ['required', 'numeric', 'gt:previous_reading'],
+                'current_reading' => ['required', 'numeric', 'gte:previous_reading'],
                 'm3_price' => ['nullable', 'numeric', 'min:0'],
                 'photo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
                 'is_common' => ['nullable', 'boolean'],
@@ -248,12 +274,12 @@ class WaterReadingController extends Controller
 
             if ($isCommon) {
                 $rules['departament_id'] = ['nullable'];
-                $rules[Rule::unique('water_readings')->where(function ($query) use ($request) {
+                $rules['is_common'][] = Rule::unique('water_readings', 'is_common')->where(function ($query) use ($request) {
                     return $query
-                        ->where('is_common', true)
                         ->where('month', $request->input('month'))
                         ->where('year', $request->input('year'));
-                })->ignore($reading->id)] = ['unique:water_readings'];
+                })->ignore($reading->id);
+                $messages['is_common.unique'] = 'Ya existe una medición de las areas comunes en el mes y año seleccionados.';
             } else {
                 $rules['departament_id'] = ['required', 'integer', 'exists:departaments,id',
                     Rule::unique('water_readings', 'departament_id')->where(function ($query) use ($request) {

@@ -4,10 +4,12 @@ import { Notify } from 'quasar'
 import { useRouter } from 'vue-router'
 import iconsApp from '@/assets/icons/index'
 import { useWaterReadingsStore } from '@/services/store/waterReadings.store'
+import { useApartmentStore } from '@/services/store/apartment.store'
 import { usePaginationState } from '@/composables/usePaginationState'
 
 const router = useRouter()
 const waterReadingsStore = useWaterReadingsStore()
+const apartmentStore = useApartmentStore()
 
 const loading = ref(false)
 const ready = ref(false)
@@ -27,6 +29,8 @@ const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
 })
 
 const readings = ref([])
+const selectedDept = ref(null)
+const deptOptions = ref([])
 
 const monthOptions = [
   { value: 1, name: 'Enero' },
@@ -64,12 +68,15 @@ const fetchReadings = async () => {
   loading.value = true
   ready.value = false
   try {
-    const response = await waterReadingsStore.getWaterReadings({
+    const params = {
       page: page.value,
       per_page: 12,
       month: selectedMonth.value,
       year: selectedYear.value
-    })
+    }
+    if (selectedDept.value) params.departament_id = selectedDept.value
+
+    const response = await waterReadingsStore.getWaterReadings(params)
     if (response?.code !== 200) throw response
 
     const payload = response.data || {}
@@ -111,12 +118,33 @@ const onChangeYear = () => {
   fetchReadings()
 }
 
+const onChangeDept = () => {
+  page.value = 1
+  syncToUrl()
+  fetchReadings()
+}
+
+const loadDepartments = async () => {
+  try {
+    const response = await apartmentStore.getApartmentsByFind('allWithUser')
+    if (response?.code === 200) {
+      deptOptions.value = [
+        { label: 'Todos', value: null },
+        ...(response.data || []).map(d => ({ label: d.number, value: d.id }))
+      ]
+    }
+  } catch {
+    deptOptions.value = [{ label: 'Todos', value: null }]
+  }
+}
+
 const startSequential = () => {
   goTo('/admin/water_readings/form/add?sequential=1&month=' + selectedMonth.value + '&year=' + selectedYear.value)
 }
 
 onMounted(() => {
   restoreFromQuery()
+  loadDepartments()
   fetchReadings()
 })
 </script>
@@ -127,13 +155,17 @@ onMounted(() => {
       <div class="px-2 pt-0 md:px-28 h-full">
         <div class="flex justify-between md:pr-5 pr-1 items-center md:px-8" style="height: 10%;">
           <div class="row items-center w-full">
-            <div class="col-7 col-md-4 pr-2">
+            <div class="col-4 col-md-4 pr-2">
               <q-select dense borderless class="form__inputsR" v-model="selectedMonth" :options="monthOptions"
                 option-label="name" option-value="value" emit-value map-options @update:model-value="onChangeMonth" />
             </div>
-            <div class="col-5 col-md-2">
+            <div class="col-4 col-md-4 px-1">
               <q-input dense borderless class="form__inputsR" type="number" v-model.number="selectedYear"
                 @update:model-value="onChangeYear" />
+            </div>
+            <div class="col-4 col-md-4 pl-2 md:pt-0">
+              <q-select dense borderless class="form__inputsR" v-model="selectedDept" :options="deptOptions"
+                option-label="label" option-value="value" emit-value map-options @update:model-value="onChangeDept" />
             </div>
           </div>
         </div>

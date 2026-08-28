@@ -105,6 +105,11 @@ const loadWaterConsumption = async () => {
       waterReadingsData.value = response.data?.readings || []
       totalWaterConsumption.value = response.data?.total_consumption || 0
       formData.value.total_water_consumption_m3 = totalWaterConsumption.value
+
+      const commonReading = waterReadingsData.value.find(r => r.is_common)
+      if (commonReading) {
+        formData.value.common_water_consumption_m3 = commonReading.consumption
+      }
     }
   } catch (e) {
     waterReadingsData.value = []

@@ -44,7 +44,8 @@ const unitType = ref(Number(route.query.type) || 1)
 const unitTypesOptions = [
   { label: 'Departamentos', value: 1 },
   { label: 'Estacionamientos', value: 2 },
-  { label: 'Depósitos', value: 3 }
+  { label: 'Depósitos', value: 3 },
+  { label: 'Lavanderías', value: 4 }
 ]
 
 const initialReadingDialog = ref(false)

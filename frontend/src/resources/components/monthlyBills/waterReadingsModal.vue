@@ -46,7 +46,7 @@ const monthOptions = [
 const formatNumber = (value) => {
   const n = Number(value)
   if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return n.toLocaleString('en-Us', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
 }
 
 const close = () => {

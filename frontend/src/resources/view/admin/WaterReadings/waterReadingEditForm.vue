@@ -101,8 +101,8 @@ const loadReading = async () => {
     }
     formData.value.month = monthOptions.find(m => m.value === r.month) || null
     formData.value.year = r.year
-    formData.value.previous_reading = formatMaskedDecimal(r.previous_reading, 2)
-    formData.value.current_reading = formatMaskedDecimal(r.current_reading, 2)
+    formData.value.previous_reading = formatMaskedDecimal(r.previous_reading, 3)
+    formData.value.current_reading = formatMaskedDecimal(r.current_reading, 3)
     formData.value.currentPhotoUrl = r.photo || r.meter_photo || r.proof_photo || ''
   } catch (err) {
     showNotify('negative', err?.error || err?.message || 'No se pudo cargar la medición')
@@ -121,8 +121,8 @@ const submit = async () => {
     payload.append('is_common', formData.value.is_common ? '1' : '0')
     payload.append('month', String(formData.value.month?.value || ''))
     payload.append('year', String(Number(formData.value.year)))
-    payload.append('previous_reading', String(parseMaskedDecimal(formData.value.previous_reading, 2) ?? ''))
-    payload.append('current_reading', String(parseMaskedDecimal(formData.value.current_reading, 2) ?? ''))
+    payload.append('previous_reading', String(parseMaskedDecimal(formData.value.previous_reading, 3) ?? ''))
+    payload.append('current_reading', String(parseMaskedDecimal(formData.value.current_reading, 3) ?? ''))
     if (formData.value.photo) {
       payload.append('photo', formData.value.photo)
     }
@@ -212,15 +212,15 @@ onMounted(() => {
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Lectura anterior</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.previous_reading"
-            mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
-            :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura anterior es requerida']" />
+            mask="###.###.###,###" reverse-fill-mask inputmode="decimal"
+            :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura anterior es requerida']" />
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Lectura actual</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.current_reading"
-            mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
-            :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura actual es requerida']" />
+            mask="###.###.###,###" reverse-fill-mask inputmode="decimal"
+            :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura actual es requerida']" />
         </div>
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class=" photoContainer mt-0 px-3 w-full py-2">

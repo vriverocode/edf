@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { Notify } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import { useApartmentStore } from '@/services/store/apartment.store'
@@ -12,6 +12,7 @@ const waterReadingsStore = useWaterReadingsStore()
 
 const loading = ref(false)
 const deptLoading = ref(false)
+const loadingCommon = ref(false)
 
 const parseMaskedDecimal = (value, decimals) => {
   if (value === null || value === undefined) return null
@@ -21,6 +22,16 @@ const parseMaskedDecimal = (value, decimals) => {
   const n = Number.parseFloat(normalized)
   if (!Number.isFinite(n)) return null
   return Number(n.toFixed(decimals))
+}
+
+const formatMaskedDecimal = (value, decimals = 3) => {
+  if (value === null || value === undefined) return ''
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return ''
+  const fixed = n.toFixed(decimals)
+  const [intPart, decPart] = fixed.split('.')
+  const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `${withThousands},${decPart}`
 }
 
 const monthOptions = [
@@ -73,6 +84,28 @@ const hasPrev = computed(() => {
   return idx > 0
 })
 
+const loadCommonReading = async () => {
+  if (!formData.value.month?.value || !formData.value.year) return
+  loadingCommon.value = true
+  try {
+    const response = await waterReadingsStore.getLastCommonReading(
+      formData.value.month.value,
+      formData.value.year
+    )
+    const reading = response?.data
+    if (reading) {
+      formData.value.previous_reading = formatMaskedDecimal(reading.current_reading, 3)
+      showNotify('positive', 'Lectura anterior del área común cargada')
+    } else {
+      formData.value.previous_reading = ''
+    }
+  } catch (e) {
+    formData.value.previous_reading = ''
+  } finally {
+    loadingCommon.value = false
+  }
+}
+
 const showNotify = (type, text) => {
   Notify.create({
     color: type,
@@ -110,8 +143,8 @@ const submit = async () => {
     payload.append('is_common', formData.value.is_common ? '1' : '0')
     payload.append('month', String(formData.value.month?.value || ''))
     payload.append('year', String(Number(formData.value.year)))
-    payload.append('previous_reading', String(parseMaskedDecimal(formData.value.previous_reading, 2) ?? ''))
-    payload.append('current_reading', String(parseMaskedDecimal(formData.value.current_reading, 2) ?? ''))
+    payload.append('previous_reading', String(parseMaskedDecimal(formData.value.previous_reading, 3) ?? ''))
+    payload.append('current_reading', String(parseMaskedDecimal(formData.value.current_reading, 3) ?? ''))
     if (formData.value.photo) {
       payload.append('photo', formData.value.photo)
     }
@@ -141,6 +174,7 @@ const submit = async () => {
     }
     router.go(-1)
   } catch (err) {
+    console.log(err)
     showNotify('negative', err?.error || err?.message || 'No se pudo registrar la medición')
   } finally {
     loading.value = false
@@ -188,6 +222,26 @@ const navigateDept = (direction) => {
   }
 }
 
+watch(
+  () => formData.value.is_common,
+  (isCommon) => {
+    if (isCommon) {
+      loadCommonReading()
+    } else {
+      formData.value.previous_reading = ''
+    }
+  }
+)
+
+watch(
+  () => [formData.value.month, formData.value.year],
+  () => {
+    if (formData.value.is_common) {
+      loadCommonReading()
+    }
+  }
+)
+
 onMounted(() => {
   searchDepartaments('')
   if (sequential.value && route.query.department_id) {
@@ -234,14 +288,17 @@ onMounted(() => {
           <div class="text-subtitle2 text-black">Lectura anterior</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.previous_reading"
             mask="###.###.###,###" reverse-fill-mask inputmode="decimal"
-            :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura anterior es requerida']" />
+            :loading="loadingCommon"
+            :disable="loadingCommon"
+            :hint="formData.is_common && loadingCommon ? 'Cargando lectura del área común...' : ''"
+            :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura anterior es requerida']" />
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Lectura actual</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.current_reading"
-            mask="###.###.###,###" reverse-fill-mask inputmode="decimal" :rules="[val => parseMaskedDecimal(val, 2) !== null || 'La lectura actual es requerida',
-            val => parseMaskedDecimal(val, 2) > parseMaskedDecimal(formData.previous_reading, 2) || 'La lectura actual debe ser mayor que la lectura anterior'
+            mask="###.###.###,###" reverse-fill-mask inputmode="decimal" :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura actual es requerida',
+            val => parseMaskedDecimal(val, 2) > parseMaskedDecimal(formData.previous_reading, 3) || 'La lectura actual debe ser mayor que la lectura anterior'
             ]" />
         </div>
 
