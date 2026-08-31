@@ -160,7 +160,7 @@ watch(() => props.dialog, (newValue) => {
         </q-card-section>
         <section class="content__modalSectionRifa md:mt-5 py-0 ">
           <div class="row w-full px-4" >
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+            <div class=" col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
                 Titulo *
               </div>
@@ -174,7 +174,7 @@ watch(() => props.dialog, (newValue) => {
                   :rules="[ val => val && val.length > 0 || 'Titulo del anuncio es obligatorio']"
                 />
             </div>
-            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+            <div class="col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
                 Descripción *
               </div>
@@ -191,7 +191,7 @@ watch(() => props.dialog, (newValue) => {
                 ]"
                 />
             </div>
-            <div class="col-md-6 col-12 mt-2 px-2 md:px-12"> 
+            <div class="col-12 mt-2 px-2 md:px-12"> 
               <div class="text-subtitle2 text-black">
                 Adjuntar imagen
               </div>
