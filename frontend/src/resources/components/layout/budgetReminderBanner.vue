@@ -18,9 +18,10 @@ const dismissed = ref(false)
 
 const isAdmin = computed(() => (user.value?.rol_id ?? 0) === 1)
 
-const isFirstDayOfMonth = computed(() => {
-  const now = new Date()
-  return now.getDate() === 1
+const dayOfMonth = computed(() => new Date().getDate())
+const daysUntilDeadline = computed(() => 20 - dayOfMonth.value)
+const isReminderWindow = computed(() => {
+  return dayOfMonth.value >= 15 && dayOfMonth.value <= 19
 })
 
 const month = computed(() => new Date().getMonth() + 1)
@@ -38,7 +39,7 @@ const storageDismissKey = computed(
 )
 
 const shouldCheck = computed(
-  () => isAdmin.value && isFirstDayOfMonth.value
+  () => isAdmin.value && isReminderWindow.value
 )
 
 const showBanner = computed(
@@ -121,8 +122,9 @@ watch(
           </div>
           <div class="col-md-6 col-11 text-center">
             <div class="text-white text-weight-medium text-caption md:text-body2">
-              Es el primer día del mes: recuerda cargar el <strong>presupuesto mensual</strong>
-              (gastos y mantenimiento) para {{ monthName }} {{ year }}.
+              Faltan <strong>{{ daysUntilDeadline }} día{{ daysUntilDeadline !== 1 ? 's' : '' }}</strong>
+              para la fecha límite (20 de {{ monthName }}): recuerda cargar el
+              <strong>presupuesto mensual</strong> (gastos y mantenimiento) para {{ monthName }} {{ year }}.
             </div>
           </div>
           <div class="col-md-5 col-12 justify-center pt-3 md:pt-0 row items-center q-gutter-sm no-wrap">
