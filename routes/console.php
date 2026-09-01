@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schedule;
 // Artisan::command('inspire', function () {
 //     $this->comment(Inspiring::quote());
 // })->purpose('Display an inspiring quote')->hourly();
-Schedule::command('app:monthly-quota')->everyMinute();
+Schedule::command('app:monthly-quota')->dailyAt('08:00')->when(fn () => now()->day === 20);
 Schedule::command('app:booking-pending-pay-reminders')->everyThirtyMinutes();
 Schedule::command('app:auto-complete-bookings')->everyThirtyMinutes();
 // Schedule::command('app:active-ordesactive-air-bnb-users')->dailyAt('10:00');

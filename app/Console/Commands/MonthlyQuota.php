@@ -4,14 +4,13 @@ namespace App\Console\Commands;
 
 use App\Models\MonthlyBills;
 use App\Services\MonthlyQuotaService;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class MonthlyQuota extends Command
 {
     protected $signature = 'app:monthly-quota';
 
-    protected $description = 'Genera las cuotas del mes anterior (ej. ejecutado el 5 de mayo cobra abril)';
+    protected $description = 'Genera las cuotas del mes actual el día 20';
 
     public function handle(MonthlyQuotaService $service)
     {
@@ -24,7 +23,7 @@ class MonthlyQuota extends Command
             ->first();
 
         if (! $budgetConfig) {
-            $this->error("No se encontró presupuesto configurado (CondoBudget) para el mes $month/$year. Abortando.");
+            $this->error("No se encontró presupuesto configurado para el mes $month/$year. Abortando.");
 
             return;
         }
@@ -36,11 +35,9 @@ class MonthlyQuota extends Command
 
     private function getBillingPeriod(): array
     {
-        $billing = Carbon::now()->subMonth();
-
         return [
-            'month' => (int) $billing->format('n'),
-            'year' => (int) $billing->format('Y'),
+            'month' => (int) now()->format('n'),
+            'year' => (int) now()->format('Y'),
         ];
     }
 }
