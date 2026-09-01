@@ -26,7 +26,7 @@ export const useConfigStore = defineStore('config', {
             // Ajusta esta condición si la respuesta es directa
             const versionData = data.data || data
 
-            if (versionData && versionData.version_code > this.currentAppVersionCode) {
+            if (versionData && versionData.version_code > this.currentAppVersionCode && this.isNative()) {
               this.versionInfo = versionData
               this.updateAvailable = true
             }
@@ -59,6 +59,35 @@ export const useConfigStore = defineStore('config', {
         this.downloadProgress = 100
 
         // 2. Abrir el archivo
+        await FileOpener.openFile({
+          path: downloadResult.path,
+          mimeType: 'application/vnd.android.package-archive',
+        })
+      } catch (error) {
+        console.error('Error en la descarga/instalación:', error)
+      } finally {
+        this.isDownloading = false
+      }
+    },
+
+    // 3. Descarga directa desde una URL (usado en la vista de actualización)
+    async downloadFromUrl(apkUrl) {
+      if (!this.isNative()) return
+
+      this.isDownloading = true
+      this.downloadProgress = 50
+
+      try {
+        const fileName = 'pacifik_update.apk'
+
+        const downloadResult = await Filesystem.downloadFile({
+          url: apkUrl,
+          path: fileName,
+          directory: Directory.Cache,
+        })
+
+        this.downloadProgress = 100
+
         await FileOpener.openFile({
           path: downloadResult.path,
           mimeType: 'application/vnd.android.package-archive',

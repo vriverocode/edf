@@ -61,6 +61,7 @@ const fileName = (url) => {
 
 const goBack = () => router.go(-1)
 const goToEdit = () => router.push('/admin/expenses/edit/' + expenseId.value)
+const goToPay = () => router.push('/admin/expenses/pay/' + expenseId.value)
 const openAttachment = () => {
   if (expense.value?.attachment_url) {
     window.open(expense.value.attachment_url, '_blank')
@@ -120,8 +121,8 @@ onMounted(() => {
       <div v-else-if="expense" class="flex flex-col items-center md:px-28 md:mx-28">
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full">
 
-          <div class="row w-full items-start q-pa-md" style="border-bottom: 1px solid lightgray;">
-            <div class="col-md-8 col-8">
+          <div class="row w-full items-start q-pa-md-md q-pa-sm"  style="border-bottom: 1px solid lightgray;">
+            <div class="col-md-8 col-7">
               <div class="text-2xl font-bold text-gray-900">
                 {{ expense.provider?.name || 'Proveedor' }}
               </div>
@@ -129,14 +130,22 @@ onMounted(() => {
                 {{ expense.service_category?.name || 'Sin categoría' }}
               </div>
             </div>
-            <div class="col-md-4 col-4 text-right">
-              <span
-                :class="statusClass(expense.status)"
-                class="inline-block px-3 py-1 text-xs font-bold text-white rounded-full q-mr-sm"
-              >
-                {{ expense.status_label }}
-              </span>
-              <q-btn color="primary" round outline @click="goToEdit" icon="eva-edit-2-outline" />
+            <div class="col-md-4 col-5 text-right">
+              <div class="mx-1">
+                <span
+                  :class="statusClass(expense.status)"
+                  class="inline-block px-3 py-1 text-xs font-bold text-white rounded-full q-mr-sm"
+                >
+                  {{ expense.status_label }}
+                </span>
+              </div>
+              <div class="mt-2 flex justify-end">
+                <q-btn color="primary"  class=" mx-1 md:px-12" rounded outline @click="goToEdit" icon="eva-edit-2-outline" />
+                <q-btn color="secondary"  class=" mx-1 md:px-12" rounded outline @click="goToPay" >
+                 <svg width="2rem" height="1.5rem" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="#c8a34b"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="Layer_2" data-name="Layer 2"> <g id="invisible_box" data-name="invisible box"> <rect width="48" height="48" fill="none"></rect> </g> <g id="Icons"> <g> <path d="M42.2,31.7a4.6,4.6,0,0,0-4-1.1l-9.9,1.7A4.7,4.7,0,0,0,26.9,29l-7.1-7H5a2,2,0,0,0,0,4H18.2l5.9,5.9a.8.8,0,0,1,0,1.1.9.9,0,0,1-1.2,0l-3.5-3.5a2.1,2.1,0,0,0-2.8,0,2.1,2.1,0,0,0,0,2.9l3.5,3.4a4.5,4.5,0,0,0,3.4,1.4,5.7,5.7,0,0,0,1.8-.3h0l13.6-2.4a1,1,0,0,1,.8.2,1.1,1.1,0,0,1,.3.7,1,1,0,0,1-.8,1L20.6,39.8,9.7,30.9H5a2,2,0,0,0,0,4H8.3L19.4,44l20.5-3.7A4.9,4.9,0,0,0,44,35.4,4.6,4.6,0,0,0,42.2,31.7Z"></path> <path d="M34.3,20.1h0a6.7,6.7,0,0,1-4.1-1.3,2,2,0,0,0-2.8.6,1.8,1.8,0,0,0,.3,2.6A10.9,10.9,0,0,0,32,23.8V26a2,2,0,0,0,4,0V23.8a6.3,6.3,0,0,0,3-1.3,4.9,4.9,0,0,0,2-4h0c0-3.7-3.4-4.9-6.3-5.5s-3.5-1.3-3.5-1.8.2-.6.5-.9a3.4,3.4,0,0,1,1.8-.4,6.3,6.3,0,0,1,3.3.9,1.8,1.8,0,0,0,2.7-.5,1.9,1.9,0,0,0-.4-2.8A9.1,9.1,0,0,0,36,6.3V4a2,2,0,0,0-4,0V6.2c-3,.5-5,2.5-5,5.2s3.3,4.9,6.5,5.5,3.3,1.3,3.3,1.8S35.7,20.1,34.3,20.1Z"></path> </g> </g> </g> </g></svg>
+                </q-btn>
+              </div>
+
             </div>
           </div>
 

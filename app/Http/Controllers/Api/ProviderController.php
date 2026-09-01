@@ -31,7 +31,7 @@ class ProviderController extends Controller
         $perPage = $validated['per_page'] ?? 12;
 
         $paginator = Provider::query()
-            ->with('category:id,name')
+            ->with('serviceCategory:id,name')
             ->when($validated['search'] ?? null, function ($q, $search) {
                 $q->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -53,7 +53,7 @@ class ProviderController extends Controller
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
-        $provider = Provider::with('category:id,name')->find($id);
+        $provider = Provider::with('serviceCategory:id,name')->find($id);
 
         if (! $provider) {
             return $this->returnFail(404, 'Proveedor no encontrado');
@@ -132,7 +132,7 @@ class ProviderController extends Controller
 
         $provider->update($validated);
 
-        return $this->returnSuccess(200, $provider->load('category:id,name'));
+        return $this->returnSuccess(200, $provider->load('serviceCategory:id,name'));
     }
 
     public function destroy(int $id)

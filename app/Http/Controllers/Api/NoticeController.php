@@ -222,7 +222,7 @@ class NoticeController extends Controller
     {
         $rules = [
             'title' => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\-]+$/i'],
-            'description' => ['required', 'regex:/^[a-z a-z 0-9 A-Z-À-ÿ !+?¡¿:., \- \r \n  &]+$/i'],
+            'description' => ['required'],
             'group' => ['required', 'numeric'],
             'category' => ['required', 'numeric'],
             'type' => ['required', 'numeric'],

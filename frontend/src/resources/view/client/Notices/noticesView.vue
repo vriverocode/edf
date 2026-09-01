@@ -92,7 +92,7 @@ onMounted(() => {
             {{ notice.status_label }}
           </div>
         </div>
-        <div class="mt-4 text-sm text-stone-600 whitespace-pre-line" style="line-height: 1.5;">
+        <div class="mt-4 text-sm text-stone-600 whitespace-pre-line" style="line-height: 1.5; overflow-wrap: break-word; white-space: pre-wrap;">
           {{ notice.description }}
         </div>
         <div v-if="attachImages?.length > 0" class="row md:mt-5">

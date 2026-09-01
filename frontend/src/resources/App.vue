@@ -49,7 +49,9 @@ onMounted(async () => {
   // setupStatusBar()
   // setStatusBarStyleDark()
   // showStatusBar()
-  await updateStore.checkForUpdates();
+  if (Capacitor.isNativePlatform()) {
+    await updateStore.checkForUpdates();
+  }
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) {
       router.go(-1);

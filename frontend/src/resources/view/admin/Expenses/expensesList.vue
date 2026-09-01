@@ -239,7 +239,7 @@ onMounted(() => {
             >
               <div class="pb-4 pt-2">
                 <div class="flex justify-between items-center pb-1 px-4" style="border-bottom: 1px solid lightgrey">
-                  <div>
+                  <div @click="goTo('/admin/expenses/details/' + expense.id)" class="cursor-pointer">
                     <div class="text-lg font-bold text-gray-900 mb-0">
                       {{ expense.provider?.name || 'Proveedor' }}
                     </div>
@@ -276,8 +276,7 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-
-                <div class="row px-4 pt-2">
+                <div class="row px-4 pt-2 cursor-pointer" @click="goTo('/admin/expenses/details/' + expense.id)" >
                   <div class="col-12 col-md-6 text-sm text-gray-700 mt-1">
                     Tipo: <span class="font-medium">{{ expense.expense_type_label }}</span>
                   </div>

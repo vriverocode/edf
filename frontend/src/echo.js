@@ -11,7 +11,7 @@ window.Echo = new Echo({
   forceTLS: true,
   authEndpoint: import.meta.env.VITE_LARAVEL_API_URL + '/broadcasting/auth',
   // authEndpoint: 'http://192.168.31.117:8030/broadcasting/auth',
-  // authEndpoint: 'http://192.168.1.35/broadcasting/auth',
+  // authEndpoint: 'http://192.168.1.134/broadcasting/auth',
 
 
   auth: {

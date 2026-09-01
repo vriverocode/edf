@@ -98,25 +98,44 @@ class CheckUserMorosos extends Command
 
     private function restoreAlDia(array $currentDebtorIds): void
     {
-        if (empty($currentDebtorIds)) {
-            $allMorosos = User::where('status', 2)->pluck('id')->toArray();
-        } else {
-            $allMorosos = User::where('status', 2)
-                ->whereNotIn('id', $currentDebtorIds)
-                ->pluck('id')
-                ->toArray();
-        }
+        $cutoff = Carbon::now()->subMonthsNoOverflow(2);
+
+        // Collect all users currently marked as moroso
+        $allMorosos = User::where('status', 2)->pluck('id')->toArray();
 
         if (empty($allMorosos)) {
             return;
         }
 
-        $restored = User::whereIn('id', $allMorosos)->update(['status' => 1]);
+        // A moroso can only be restored if they have zero old pending/overdue quotas.
+        // We verify directly against the DB so that quotas that moved to status=3
+        // (approved/paid) are correctly excluded from "still has debt" check.
+        $stillInDebt = Quota::whereIn('status', [1, 4])
+            ->where('due_date', '<', $cutoff)
+            ->where(function ($query) {
+                // Quota linked via responsiblePivot OR via departament owner
+                $query->whereHas('responsiblePivot.user', fn ($q) => $q->where('users.status', 2))
+                      ->orWhereHas('departament.owner', fn ($q) => $q->where('users.status', 2));
+            })
+            ->get()
+            ->map(fn ($q) => $q->responsiblePivot?->user?->id ?? $q->departament?->owner?->id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $toRestore = array_values(array_diff($allMorosos, $stillInDebt));
+
+        if (empty($toRestore)) {
+            return;
+        }
+
+        $restored = User::whereIn('id', $toRestore)->update(['status' => 1]);
         $this->stats['users_restored_al_dia'] = $restored;
 
         if ($restored > 0) {
             Log::info('[CheckUserMorosos] Restaurados a Pagos al día', [
-                'user_ids' => $allMorosos,
+                'user_ids' => $toRestore,
             ]);
         }
     }

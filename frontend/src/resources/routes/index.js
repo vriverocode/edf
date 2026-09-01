@@ -1032,6 +1032,17 @@ const routes = [
         },
       },
       {
+        path: '/client/app-update',
+        component: () => import('@/view/client/AppUpdate/appUpdatePage.vue'),
+        name: 'appUpdatePage',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Actualización disponible',
+          pagTitle: 'Actualizar app',
+          depth: 2,
+        },
+      },
+      {
         path: '/client/pays/menu',
         component: () => import('@/view/client/Payments/paymentsMenu.vue'),
         name: 'paymentMenu',
