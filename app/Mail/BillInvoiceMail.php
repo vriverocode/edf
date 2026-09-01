@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Services\BillInvoiceService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -44,6 +46,25 @@ class BillInvoiceMail extends Mailable
 
     public function attachments(): array
     {
-        return [];
+        $quota = $this->invoiceData['quota'] ?? null;
+        if (! $quota) {
+            return [];
+        }
+
+        $service = app(BillInvoiceService::class);
+        $receiptData = $service->buildReceiptData($quota);
+
+        $pdf = Pdf::loadView('bills.receipt', $receiptData)
+            ->setPaper('letter')
+            ->setOption('isRemoteEnabled', true);
+
+        $filename = 'recibo-mantenimiento-'.
+            $receiptData['departament']->number.
+            '-'.strtolower($receiptData['monthLabel']).
+            '-'.$receiptData['year'].'.pdf';
+
+        return [
+            $this->attachData($pdf->output(), $filename),
+        ];
     }
 }

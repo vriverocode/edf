@@ -194,14 +194,14 @@ onMounted(() => {
           class="form__inputsStatus" />
         </div>
         <div class="col-md-4 col-6 px-2">
-          <q-input dense borderless v-model="searchName" placeholder="Buscar propietario/inquilino"
+          <q-input dense borderless v-model="searchName" placeholder="Buscar por nombre..."
             class="form__inputsStatus" @update:model-value="onSearchName">
             <template v-slot:prepend>
               <q-icon name="eva-search-outline" size="xs" />
             </template>
           </q-input>
         </div>
-        <div class="col-md-4 col-12 px-2 mt-3">
+        <div class="col-md-4 col-12 px-2 mt-3 md:mt-0">
           <q-select dense borderless v-model="selectedDept" :options="deptOptions" emit-value map-options
           use-input input-debounce="400" @filter="filterDept" placeholder="Departamento"
           class="form__inputsStatus" clearable @update:model-value="onChangeDept">
@@ -209,10 +209,7 @@ onMounted(() => {
               <q-icon name="eva-home-outline" size="xs" />
             </template>
           </q-select>
-        </div>
-        
-        
-        
+        </div>       
       </div>
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />
@@ -240,7 +237,7 @@ onMounted(() => {
                       </span>
                     </h3>
                     <div class="row">
-                      <div class="flex items-center text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-4 pl-1 ">
+                      <div class="flex items-center text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-8 pl-1 ">
                         <svg style="transform: translateX(-3px);" width="15px" height="15px" viewBox="0 0 24 24"
                           fill="none" xmlns="http://www.w3.org/2000/svg">
                           <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -251,9 +248,9 @@ onMounted(() => {
                               stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                           </g>
                         </svg>
-                        <span class="font-medium">{{ quota.owner_name }}</span>
+                        <span class="font-medium">{{ quota.responsible_name }}</span>
                       </div>
-                      <div class="flex items-center md:justify-end text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-8 ">
+                      <div class="flex items-center md:justify-end text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-4 ">
                         <svg style="transform: translateX(-3px);" width="23px" height="23px" viewBox="0 0 64 64"
                           xmlns="http://www.w3.org/2000/svg" stroke-width="2" stroke="#374151" fill="none">
                           <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

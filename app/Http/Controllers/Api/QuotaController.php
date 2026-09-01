@@ -125,8 +125,12 @@ class QuotaController extends Controller
 
         $ownerSearch = $request->query('owner_search');
         if ($ownerSearch) {
-            $query->whereHas('departament.owner', function ($q) use ($ownerSearch) {
-                $q->where('name', 'like', "%{$ownerSearch}%");
+            $query->where(function ($q) use ($ownerSearch) {
+                $q->whereHas('departament.owner', function ($q2) use ($ownerSearch) {
+                    $q2->where('name', 'like', "%{$ownerSearch}%");
+                })->orWhereHas('responsiblePivot.user', function ($q3) use ($ownerSearch) {
+                    $q3->where('name', 'like', "%{$ownerSearch}%");
+                });
             });
         }
 

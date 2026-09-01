@@ -786,6 +786,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/expenses/details/:id',
+        component: () => import('@/view/admin/Expenses/expenseDetails.vue'),
+        name: 'ExpenseDetails',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalle del gasto',
+          roles: ['admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/admin/providers/list',
         component: () => import('@/view/admin/Expenses/providerList.vue'),
         name: 'providerList',

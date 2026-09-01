@@ -92,6 +92,40 @@ class BillInvoiceController extends Controller
         return $pdf->download($filename);
     }
 
+    public function downloadReceipt(Request $request, int $quotaId)
+    {
+        $user = request()->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
+        $quota = Quota::with([
+            'departament.owner',
+            'waterReading',
+        ])->find($quotaId);
+
+        if (! $quota) {
+            return $this->returnFail(404, 'Cuota no encontrada');
+        }
+
+        if ((int) $quota->status !== 3) {
+            return $this->returnFail(403, 'El recibo solo está disponible para cuotas pagadas');
+        }
+
+        $receiptData = $this->billInvoiceService->buildReceiptData($quota);
+
+        $pdf = Pdf::loadView('bills.receipt', $receiptData)
+            ->setPaper('letter')
+            ->setOption('isRemoteEnabled', true);
+
+        $filename = 'recibo-mantenimiento-'.
+            $receiptData['departament']->number.
+            '-'.strtolower($receiptData['monthLabel']).
+            '-'.$receiptData['year'].'.pdf';
+
+        return $pdf->download($filename);
+    }
+
     public function clientDownloadPdf(Request $request, int $quotaId)
     {
         $user = request()->user();

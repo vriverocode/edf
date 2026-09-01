@@ -8,6 +8,7 @@ use App\Mail\BillInvoiceMail;
 use App\Models\Departament;
 use App\Models\MonthlyBills;
 use App\Models\Pay;
+use App\Models\PayMethod;
 use App\Models\Quota;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -207,6 +208,90 @@ class BillInvoiceService
             'totalParticipation' => $totalParticipation,
             'paymentHistory' => $paymentHistory,
             'monthlyBill' => $monthlyBill,
+        ];
+    }
+
+    public function buildReceiptData(Quota $quota): array
+    {
+        $quota->load([
+            'departament.owner',
+            'responsiblePivot.user',
+            'waterReading',
+        ]);
+
+        $departament = $quota->departament;
+        $owner = $departament->owner;
+        $waterReading = $quota->waterReading;
+
+        $month = (int) $quota->month;
+        $year = $quota->due_date ? Carbon::parse($quota->due_date)->year : now()->year;
+
+        $maintenanceAmount = (float) $quota->maintenance_amount;
+        $waterAmount = (float) $quota->water_amount;
+        $totalAmount = (float) $quota->amount;
+
+        $waterConsumption = 0;
+        $waterPricePerM3 = 0;
+        if ($waterReading) {
+            $waterConsumption = max(0, (float) $waterReading->current_reading - (float) $waterReading->previous_reading);
+            $waterPricePerM3 = (float) $waterReading->m3_price;
+        }
+
+        $monthlyBill = MonthlyBills::query()
+            ->where('month', $month)
+            ->where('year', $year)
+            ->latest('id')
+            ->first();
+
+        $expenses = $monthlyBill
+            ? $monthlyBill->expenses()->with(['provider', 'serviceCategory'])->get()
+            : collect();
+        $totalExpenses = $expenses->sum('amount');
+
+        $units = Departament::where('user_id', $owner->id ?? 0)->get();
+        $totalParticipation = $units->where('tenant_pays_quota', false)->sum('participation_percentage');
+
+        $emissionDate = now()->format('d/m/Y');
+        $dueDateFormatted = $quota->due_date
+            ? Carbon::parse($quota->due_date)->format('d/m/Y')
+            : now()->addDays(15)->format('d/m/Y');
+
+        $initialBalance = Quota::where('departament_id', $departament->id)
+            ->whereIn('status', [1, 4])
+            ->where('id', '!=', $quota->id)
+            ->sum('amount');
+
+        $payMethod = PayMethod::find(1);
+        $bankData = $payMethod ? json_decode($payMethod->data, true) : [];
+
+        $collectionRate = $monthlyBill && $monthlyBill->total_maintenance_budget > 0
+            ? round(($monthlyBill->monthly_budget / $monthlyBill->total_maintenance_budget) * 100, 4)
+            : 0;
+
+        return [
+            'quota' => $quota,
+            'departament' => $departament,
+            'owner' => $owner,
+            'waterReading' => $waterReading,
+            'monthLabel' => self::MONTH_NAMES[$month],
+            'year' => $year,
+            'maintenanceAmount' => $maintenanceAmount,
+            'waterAmount' => $waterAmount,
+            'totalAmount' => $totalAmount,
+            'waterConsumption' => $waterConsumption,
+            'waterPricePerM3' => $waterPricePerM3,
+            'expenses' => $expenses,
+            'totalExpenses' => $totalExpenses,
+            'units' => $units,
+            'totalParticipation' => $totalParticipation,
+            'totalArea' => $units->sum('area'),
+            'emissionDate' => $emissionDate,
+            'dueDate' => $dueDateFormatted,
+            'amountInWords' => $this->numberToWords($totalAmount),
+            'initialBalance' => $initialBalance,
+            'bankData' => $bankData,
+            'monthlyBill' => $monthlyBill,
+            'collectionRate' => $collectionRate,
         ];
     }
 

@@ -340,6 +340,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('bill-invoices')->name('bill-invoice.')->middleware('role:admin,super-admin')->group(function () {
         Route::get('/by-quota/{quotaId}', [BillInvoiceController::class, 'show']);
         Route::get('/download/{quotaId}', [BillInvoiceController::class, 'downloadPdf'])->name('download');
+        Route::get('/receipt/{quotaId}', [BillInvoiceController::class, 'downloadReceipt'])->name('download-receipt');
         Route::get('/preview/{quotaId}', [BillInvoiceController::class, 'previewHtml']);
         Route::post('/send-email/{quotaId}', [BillInvoiceController::class, 'sendEmail'])->middleware('throttle:write');
         Route::post('/send-bulk/{monthlyBillId}', [BillInvoiceController::class, 'sendBulkEmails'])->middleware('throttle:write');

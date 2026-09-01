@@ -193,16 +193,23 @@ class Quota extends Model
     {
         return $quotas
             ->groupBy(function ($quota) {
-                $departamentId = $quota->departament->id ?? '0';
+                $tenantPays = $quota->departament->tenant_pays_quota ?? false;
+                $responsibleId = $tenantPays
+                    ? ($quota->responsiblePivot->user->id ?? null)
+                    : ($quota->departament->user_id ?? null);
                 $year = $quota->due_date
                     ? Carbon::parse($quota->due_date)->year
                     : now()->year;
 
-                return $departamentId.'_'.$quota->month.'_'.$year;
+                return ($responsibleId ?? 'unknown').'_'.$quota->month.'_'.$year;
             })
             ->map(function ($group) {
                 $firstQuota = $group->first();
                 $owner = $firstQuota->departament->owner ?? null;
+                $tenantPays = $firstQuota->departament->tenant_pays_quota ?? false;
+                $responsibleUser = $tenantPays
+                    ? ($firstQuota->responsiblePivot->user ?? null)
+                    : $owner;
                 $pay = $firstQuota->pays->first();
                 $payId = $pay?->id;
                 $payStatus = $pay !== null ? (int) $pay->status : null;
@@ -241,6 +248,8 @@ class Quota extends Model
                     'month' => $firstQuota->month,
                     'due_date' => $firstQuota->due_date,
                     'description' => 'Cuota Consolidada ('.$group->count().' unidades asignadas)',
+                    'responsible_name' => $responsibleUser ? $responsibleUser->name : 'Desconocido',
+                    'responsible_id' => $responsibleUser?->id,
                     'owner_name' => $owner ? $owner->name : 'Desconocido',
                     'owner_id' => $owner?->id,
                     'departament_number' => $firstQuota->departament->number ?? '',

@@ -265,6 +265,9 @@ onMounted(() => {
                       <div v-html="iconsApp.optionsBook" />
                       <q-menu>
                         <q-list style="min-width: 150px">
+                          <q-item clickable v-close-popup @click="goTo('/admin/expenses/details/' + expense.id)">
+                            <q-item-section>Ver detalles</q-item-section>
+                          </q-item>
                           <q-item clickable v-close-popup @click="goTo('/admin/expenses/edit/' + expense.id)">
                             <q-item-section>Modificar</q-item-section>
                           </q-item>

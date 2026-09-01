@@ -57,9 +57,13 @@ class MonthlyBillsController extends Controller
             return $this->returnFail(404, 'Presupuesto mensual no encontrado');
         }
 
-        $totalExpenses = (float) Expense::where('monthly_bill_id', $monthlyBill->id)->sum('amount');
+        $expenses = Expense::where('monthly_bill_id', $monthlyBill->id)
+            ->with(['provider:id,name', 'serviceCategory:id,name'])
+            ->get();
+        $totalExpenses = (float) $expenses->sum('amount');
 
         $data = $monthlyBill->toArray();
+        $data['expenses'] = $expenses;
         $data['total_expenses'] = $totalExpenses;
 
         return $this->returnSuccess(200, $data);
@@ -98,22 +102,22 @@ class MonthlyBillsController extends Controller
         if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
-            $validated = $request->validate([
-                'month' => ['required', 'integer', 'between:1,12',
-                    Rule::unique('monthly_bills', 'month')->where(function ($query) use ($request) {
-                        return $query->where('year', $request->input('year'));
-                    }),
-                ],
-                'year' => ['required', 'integer'],
-                'monthly_budget' => ['required', 'numeric', 'min:0'],
-                'total_maintenance_budget' => ['required', 'numeric', 'min:0'],
-                'water_price_per_m3' => ['required', 'numeric'],
-                'total_water_bill_amount' => ['nullable', 'numeric'],
-                'total_water_consumption_m3' => ['nullable', 'numeric'],
-                'common_water_consumption_m3' => ['nullable', 'numeric', 'min:0'],
-                'expense_ids' => ['nullable', 'array'],
-                'expense_ids.*' => ['integer', 'exists:expenses,id'],
-            ], [
+        $validated = $request->validate([
+            'month' => ['required', 'integer', 'between:1,12',
+                Rule::unique('monthly_bills', 'month')->where(function ($query) use ($request) {
+                    return $query->where('year', $request->input('year'));
+                }),
+            ],
+            'year' => ['required', 'integer'],
+            'monthly_budget' => ['required', 'numeric', 'min:0'],
+            'total_maintenance_budget' => ['required', 'numeric', 'min:0'],
+            'water_price_per_m3' => ['required', 'numeric'],
+            'total_water_bill_amount' => ['nullable', 'numeric'],
+            'total_water_consumption_m3' => ['nullable', 'numeric'],
+            'common_water_consumption_m3' => ['nullable', 'numeric', 'min:0'],
+            'expense_ids' => ['nullable', 'array'],
+            'expense_ids.*' => ['integer', 'exists:expenses,id'],
+        ], [
                 'month.required' => 'El mes es requerido.',
                 'month.integer' => 'El mes debe ser un número entero.',
                 'month.between' => 'El mes debe estar entre 1 y 12.',
@@ -136,7 +140,6 @@ class MonthlyBillsController extends Controller
                 'expense_ids.*.integer' => 'Cada ID de gasto debe ser un número entero.',
                 'expense_ids.*.exists' => 'Uno o más gastos seleccionados no son válidos.',
             ]);
-        
 
         $expenseIds = $validated['expense_ids'] ?? [];
         unset($validated['expense_ids']);
@@ -198,6 +201,8 @@ class MonthlyBillsController extends Controller
                 'total_water_bill_amount' => ['nullable', 'numeric'],
                 'total_water_consumption_m3' => ['nullable', 'numeric'],
                 'common_water_consumption_m3' => ['nullable', 'numeric', 'min:0'],
+                'expense_ids' => ['nullable', 'array'],
+                'expense_ids.*' => ['integer', 'exists:expenses,id'],
             ], [
                 'month.required' => 'El mes es requerido.',
                 'month.integer' => 'El mes debe ser un número entero.',
@@ -217,12 +222,26 @@ class MonthlyBillsController extends Controller
                 'total_water_consumption_m3.numeric' => 'El consumo total de agua debe ser numérico.',
                 'common_water_consumption_m3.numeric' => 'El consumo de áreas comunes debe ser numérico.',
                 'common_water_consumption_m3.min' => 'El consumo de áreas comunes no puede ser negativo.',
+                'expense_ids.array' => 'Los IDs de gastos deben ser un arreglo.',
+                'expense_ids.*.integer' => 'Cada ID de gasto debe ser un número entero.',
+                'expense_ids.*.exists' => 'Uno o más gastos seleccionados no son válidos.',
             ]);
         } catch (ValidationException $e) {
             return $this->returnFail(422, $e->validator->errors()->first());
         }
 
-        $expenseIds = $monthlyBill->expenses()->pluck('id')->toArray();
+        $expenseIds = $validated['expense_ids'] ?? [];
+        unset($validated['expense_ids']);
+
+        Expense::where('monthly_bill_id', $monthlyBill->id)
+            ->whereNotIn('id', $expenseIds)
+            ->update(['monthly_bill_id' => null]);
+
+        if (count($expenseIds) > 0) {
+            Expense::whereIn('id', $expenseIds)
+                ->update(['monthly_bill_id' => $monthlyBill->id]);
+        }
+
         $expensesTotal = Expense::whereIn('id', $expenseIds)->sum('amount');
         $commonWaterConsumption = floatval($validated['common_water_consumption_m3'] ?? 0);
         $waterPricePerM3 = floatval($validated['water_price_per_m3']);

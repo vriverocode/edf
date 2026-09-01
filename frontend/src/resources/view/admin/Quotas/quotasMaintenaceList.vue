@@ -101,7 +101,7 @@ onMounted(() => {
                 </div>
               </div>
 
-              <div class="flex flex-wrap gap-2 text-sm text-gray-600 pt-3">
+              <div class="flex flex-wrap gap-2 text-sm text-gray-600 pt-3 md:pt-0">
                 <span>{{ row.units_count }} unidad(es)</span> -
                 <span>{{ row.owners_count }} propietario(s)</span>
                 <span v-if="row.due_date">Fecha límite: {{ formatDate(row.due_date) }}</span>
