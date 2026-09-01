@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AppUpdateController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\BillInvoiceController;
@@ -41,6 +42,7 @@ Route::middleware('throttle:public')->group(function () {
     Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
 });
 Route::get('/app-version', [ConfigController::class, 'getAppVersion']);
+Route::post('/notify-update-app', [AppUpdateController::class, 'notifyUpdateApp']);
 
 // ─── TEST ROUTES (kept per user request) ─────────────────────
 Route::post('/pruebaCorreo', [PayController::class, 'claimsByPay']);
