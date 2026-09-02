@@ -9,6 +9,8 @@ use App\Exports\DelinquentsExport;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Departament;
+use App\Models\Expense;
+use App\Models\Provider;
 use App\Models\Quota;
 use App\Models\Rol;
 use App\Models\User;
@@ -650,5 +652,70 @@ class ReportController extends Controller
         }
 
         return $all;
+    }
+
+    private const MONTH_LABELS = [
+        1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr', 5 => 'May', 6 => 'Jun',
+        7 => 'Jul', 8 => 'Ago', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dic',
+    ];
+
+    private const MONTH_NAMES = [
+        1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio',
+        7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
+    ];
+
+    public function expenseMatrix(Request $request): JsonResponse
+    {
+        $year = (int) $request->query('year', now()->year);
+        if ($year < 2000) {
+            return $this->returnFail(422, ['message' => 'Año inválido']);
+        }
+
+        $expenses = Expense::with(['provider:id,name', 'serviceCategory:id,name', 'monthlyBill:id,month,year'])
+            ->whereYear('issue_date', $year)
+            ->orderBy('provider_id')
+            ->orderBy('issue_date')
+            ->get();
+
+        $providers = Provider::pluck('name', 'id');
+
+        $data = $expenses->map(function ($expense) use ($providers) {
+            $month = $expense->monthlyBill ? (int) $expense->monthlyBill->month : null;
+            $year = $expense->monthlyBill ? (int) $expense->monthlyBill->year : null;
+
+            return [
+                'id' => $expense->id,
+                'provider_id' => $expense->provider_id,
+                'provider_name' => $providers[$expense->provider_id] ?? 'Desconocido',
+                'category' => $expense->serviceCategory?->name ?? '—',
+                'month' => $month,
+                'month_label' => $month ? self::MONTH_NAMES[$month] ?? '—' : '—',
+                'month_short' => $month ? self::MONTH_LABELS[$month] ?? '—' : '—',
+                'year' => $year,
+                'invoice_number' => $expense->invoice_number ?? '—',
+                'amount' => (float) $expense->amount,
+                'status' => (int) $expense->status,
+                'status_label' => $expense->status_label,
+                'description' => $expense->description ?? '—',
+                'monthly_bill_id' => $expense->monthly_bill_id,
+                'expense_type' => (int) $expense->expense_type,
+                'expense_type_label' => $expense->expense_type_label,
+            ];
+        });
+
+        $totals = [
+            'total' => round($expenses->sum('amount'), 2),
+            'paid' => round($expenses->where('status', 3)->sum('amount'), 2),
+            'pending' => round($expenses->whereIn('status', [1, 2])->sum('amount'), 2),
+            'count' => $expenses->count(),
+            'paid_count' => $expenses->where('status', 3)->count(),
+            'pending_count' => $expenses->whereIn('status', [1, 2])->count(),
+        ];
+
+        return $this->returnSuccess(200, [
+            'year' => $year,
+            'expenses' => $data,
+            'totals' => $totals,
+        ]);
     }
 }

@@ -31,6 +31,12 @@ const menu = [
     subtitle: 'Matriz de pagos por unidad y mes',
     link: '/admin/reports/monthly-pays',
   },
+  {
+    title: 'Gastos por proveedor',
+    icon: gastos2,
+    subtitle: 'Matriz de gastos por proveedor y mes',
+    link: '/admin/reports/expense-matrix',
+  },
 ];
 
 const goTo = (url) => {

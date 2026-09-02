@@ -431,5 +431,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/delinquents/export', [ReportController::class, 'exportDelinquents']);
         Route::get('/delinquents/metrics', [ReportController::class, 'delinquentsMetrics']);
         Route::post('/delinquents/send-reminder', [ReportController::class, 'sendReminderDelinquents']);
+        Route::get('/expense-matrix', [ReportController::class, 'expenseMatrix']);
     });
 });

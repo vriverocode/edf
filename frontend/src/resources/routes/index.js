@@ -1489,6 +1489,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/reports/expense-matrix',
+        component: () => import('@/view/admin/Reports/reportExpenseMatrix.vue'),
+        name: 'reportExpenseMatrix',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Reporte de gastos por proveedor',
+          pagTitle: 'Reporte de gastos por proveedor',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/client/profile/edit',
         component: () => import('@/view/client/Profile/editProfile.vue'),
         name: 'editProfile',

@@ -76,6 +76,23 @@ export const useExpenseStore = defineStore('Expenses', {
       })
     },
 
+    async getExpenseMatrix(year) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.get(`/api/reports/expense-matrix?year=${year}`)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al cargar reporte de gastos')
+          })
+      })
+    },
+
     async createExpense(payload) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
