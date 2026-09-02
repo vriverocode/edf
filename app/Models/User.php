@@ -98,6 +98,11 @@ class User extends Authenticatable
         return $this->hasMany(Departament::class);
     }
 
+    public function quotas()
+    {
+        return $this->hasManyThrough(Quota::class, Departament::class, 'user_id', 'departament_id');
+    }
+
     public function departments()
     {
         return $this->hasMany(PeoplesXDepartaments::class)->withPivot('created_by') // Declarar el campo extra

@@ -45,7 +45,7 @@ class DepartamentController extends Controller
             $departaments->where('user_id', '!=', null);
         }
         if ($request->find == 'allDepartmentWithoutReadingThisMonth') {
-            $departaments->whereIn('type', [4,1])->with(['waterReadings'])->whereDoesntHave('waterReadings');
+            $departaments->whereIn('type', [4, 1])->with(['waterReadings'])->whereDoesntHave('waterReadings');
         }
 
         return $this->returnSuccess(200, $departaments->get());

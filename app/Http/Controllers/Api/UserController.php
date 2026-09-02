@@ -512,7 +512,7 @@ class UserController extends Controller
     {
         $rules = [
             'name' => ['required', 'regex:/^[a-zA-Z-À-ÿ .]+$/i'],
-            'email' => [ 'nullable','email', Rule::unique('users', 'email')->whereNull('deleted_at')],
+            'email' => ['nullable', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'username' => ['required', Rule::unique('users', 'username')->whereNull('deleted_at'), 'regex:/^[a-zA-Z-À-ÿ0-9 .]+$/i'],
             'password' => ['required', 'min:8'],
 

@@ -129,7 +129,8 @@ onMounted(() => {
               {{ badgeCount(item.badgeKey) }}
             </div>
             <div class="flex justify-center items-center h-full w-full p-1">
-              <img :src="item.icon" class="md:w-auto h-3/5" />
+              <img :src="item.icon" class="md:w-auto" :class="{ 'h-3/5': !item.title.includes('Incidencias') , 
+                'h-full pt-1': item.title.includes('Incidencias')}" />
             </div>
           </div>
           <div class="text-center mt-2 text-title-squad ellipsis">{{ item.title }}</div>

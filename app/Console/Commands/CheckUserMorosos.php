@@ -26,7 +26,7 @@ class CheckUserMorosos extends Command
     {
         $cutoff = Carbon::now()->subMonthsNoOverflow(2);
 
-        $this->info('Fecha de corte: ' . $cutoff->toDateString());
+        $this->info('Fecha de corte: '.$cutoff->toDateString());
 
         $oldQuotas = $this->getOldPendingQuotas($cutoff);
         $this->stats['old_quotas_found'] = $oldQuotas->count();
@@ -69,6 +69,7 @@ class CheckUserMorosos extends Command
 
             if ((int) $user->status === 2) {
                 $this->stats['already_moroso']++;
+
                 continue;
             }
 
@@ -115,7 +116,7 @@ class CheckUserMorosos extends Command
             ->where(function ($query) {
                 // Quota linked via responsiblePivot OR via departament owner
                 $query->whereHas('responsiblePivot.user', fn ($q) => $q->where('users.status', 2))
-                      ->orWhereHas('departament.owner', fn ($q) => $q->where('users.status', 2));
+                    ->orWhereHas('departament.owner', fn ($q) => $q->where('users.status', 2));
             })
             ->get()
             ->map(fn ($q) => $q->responsiblePivot?->user?->id ?? $q->departament?->owner?->id)

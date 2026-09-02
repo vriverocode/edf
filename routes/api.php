@@ -419,6 +419,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Write - admin only
         Route::post('/', [ExpenseController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/u/{id}', [ExpenseController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
+        // Payment - admin only
+        Route::post('/{id}/pay', [PayController::class, 'storeExpensePay'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Reports ──────────────────────────────────────────────

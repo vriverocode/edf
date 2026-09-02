@@ -17,6 +17,7 @@ class Pay extends Model
         'user_id',
         'booking_id',
         'quota_id',
+        'expense_id',
         'consolidated_ids',
         'type',
         'amount',
@@ -37,6 +38,11 @@ class Pay extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class, 'booking_id', 'id');
+    }
+
+    public function expense(): BelongsTo
+    {
+        return $this->belongsTo(Expense::class);
     }
 
     public function quotas(): BelongsToMany
@@ -117,9 +123,10 @@ class Pay extends Model
             '',
             'Pago de Cuota',
             'Pago de Reserva',
+            'Pago de Gasto',
         ];
 
-        return $payMethod[$this->type];
+        return $payMethod[$this->type] ?? '—';
     }
 
     public function getStatusColorAttribute()

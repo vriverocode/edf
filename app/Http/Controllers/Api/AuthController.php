@@ -25,7 +25,7 @@ class AuthController extends Controller
         if (! $user || ! Hash::check(request()->password, $user->password)) {
             return $this->returnFail(505, 'Credenciales no validas');
         }
-        if ($user->status  == 3) {
+        if ($user->status == 3) {
             return $this->returnFail(505, 'Usuario Inactivo');
         }
 

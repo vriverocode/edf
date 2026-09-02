@@ -201,13 +201,8 @@ onMounted(async () => {
             </template>
 
             <div class="col-12 row mb-2 px-2 md:px-12 pt-8 pb-8">
-              <div class="col-6 px-5">
-                <q-btn color="grey-7" style="border-radius: 0.5rem;" @click="goBack">
-                  <div class="px-6 py-1">Volver</div>
-                </q-btn>
-              </div>
-              <div class="col-6 px-5">
-                <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="submitting">
+              <div class="col-12 px-0 md:px-5">
+                <q-btn color="primary" class="w-full" style="border-radius: 0.5rem;" type="submit" :loading="submitting">
                   <div class="px-6 py-1">Guardar</div>
                 </q-btn>
               </div>

@@ -2,14 +2,14 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Notify, date } from 'quasar'
-import { useUserStore } from '@/services/store/users.store'
+import { useApartmentStore } from '@/services/store/apartment.store'
 import { useReserveStore } from '@/services/store/reserve.store'
 import { useQuotaStore } from '@/services/store/quota.store'
 import { usePayStore } from '@/services/store/pay.store'
 import { usePayMethodStore } from '@/services/store/payMethod.store'
 
 const router = useRouter()
-const userStore = useUserStore()
+const apartmentStore = useApartmentStore()
 const reserveStore = useReserveStore()
 const quotaStore = useQuotaStore()
 const payStore = usePayStore()
@@ -18,15 +18,18 @@ const payMethodStore = usePayMethodStore()
 const loading = ref(false)
 const submitting = ref(false)
 
-// Step 1: User & Type
-const selectedUser = ref(null)
+// Step 1: Department/Unit & Type
+const selectedDept = ref(null)
 const selectedType = ref(null)
-const users = ref([])
-const userSearch = ref('')
+const departments = ref([])
+const deptSearch = ref('')
 const typeOptions = [
   { label: 'Cuota de mantenimiento', value: 1 },
   { label: 'Reserva de área común', value: 2 },
 ]
+
+// Derived user from selected department owner
+const selectedUser = computed(() => selectedDept.value?.owner || null)
 
 // Step 2a: Month/Year for quotas
 const selectedMonth = ref(null)
@@ -60,18 +63,25 @@ const payMethods = ref([])
 const isQuotaType = computed(() => Number(selectedType.value) === 1)
 const isReserveType = computed(() => Number(selectedType.value) === 2)
 
-const userFilterFn = (usersList, searchTerm) => usersList.filter(
-  (u) => u.name?.toLowerCase().includes(searchTerm.toLowerCase())
-)
-
-const loadUsers = async (search) => {
+const loadDepartments = async () => {
   try {
-    const res = await userStore.getUsers({ page: 1, search: search || '', rol: 2 })
-    users.value = res.data?.data || res.data || []
+    const res = await apartmentStore.getApartmentsByFind('allWithUser')
+    departments.value = res.data || []
   } catch {
-    users.value = []
+    departments.value = []
   }
 }
+
+const filteredDepts = computed(() => {
+  if (!deptSearch.value) return departments.value
+  const q = deptSearch.value.toLowerCase()
+  return departments.value.filter(
+    (d) =>
+      String(d.number).toLowerCase().includes(q) ||
+      d.block?.toLowerCase().includes(q) ||
+      d.owner?.name?.toLowerCase().includes(q),
+  )
+})
 
 const loadPayMethods = async () => {
   try {
@@ -113,7 +123,7 @@ const loadPendingBookings = async () => {
   }
 }
 
-watch(selectedUser, () => {
+watch(selectedDept, () => {
   selectedItem.value = null
   if (isQuotaType.value && selectedMonth.value) loadPendingQuotas()
   if (isReserveType.value) loadPendingBookings()
@@ -186,6 +196,7 @@ const submitPay = async () => {
   }
 }
 
+loadDepartments()
 loadPayMethods()
 </script>
 
@@ -195,37 +206,44 @@ loadPayMethods()
       <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-3xl p-6 mx-auto my-6">
         <h2 class="text-lg font-bold text-gray-900 mb-6">Registrar pago</h2>
 
-        <!-- Step 1: User & Type -->
+        <!-- Step 1: Department/Unit & Type -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <div class="text-sm font-medium text-gray-700 mb-1">Propietario</div>
+            <div class="text-sm font-medium text-gray-700 mb-1">Departamento / Unidad</div>
             <q-select
-              v-model="selectedUser"
-              :options="users"
-              option-label="name"
+              v-model="selectedDept"
+              :options="filteredDepts"
+              option-label="number"
               option-value="id"
-              label="Buscar propietario..."
+              placeholder="Buscar por número o propietario..."
               use-input
               fill-input
-              input-debounce="300"
+              hide-selected
+              behavior="menu"
               clearable
               dense
-              class="form__inputsR_registePay"
-              @filter="(search, update) => { userSearch = search; loadUsers(search); update() }"
-              @filter-abort="loadUsers('')"
+              borderless
+              class="form__inputsR"
+              @filter="(val, update) => { deptSearch = val; update() }"
+              @filter-abort="() => { deptSearch = '' }"
             >
               <template v-slot:option="{ itemProps, opt }">
-                <q-item v-bind="itemProps" dense>
-                  <q-item-section avatar class="min-w-[36px]">
-                    <q-avatar size="28px" color="primary" text-color="white" class="text-xs font-bold">
-                      {{ (opt.name || '?')[0] }}
+                <q-item v-bind="itemProps" dense style="border-bottom: 1px solid lightgrey;" class=" my-1 py-1">
+                  <q-item-section avatar class="min-w-[36px]" >
+                    <q-avatar size="28px" color="teal" text-color="white" class="text-xs font-bold">
+                      {{ String(opt.number || '?')[0] }}
                     </q-avatar>
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label class="text-sm">{{ opt.name }}</q-item-label>
-                    <q-item-label caption class="text-xs">{{ opt.email }}</q-item-label>
+                    <q-item-label class="text-sm font-semibold">
+                      {{ opt.number }}<span v-if="opt.block" class="text-grey-6 font-normal"> · Bloque {{ opt.block }}</span>
+                    </q-item-label>
+                    <q-item-label caption class="text-xs">{{ opt.owner?.name || 'Sin propietario' }}</q-item-label>
                   </q-item-section>
                 </q-item>
+              </template>
+              <template v-slot:selected-item="{ opt }">
+                <span>{{ opt.number }}<span v-if="opt.block"> · Bloque {{ opt.block }}</span></span>
               </template>
             </q-select>
           </div>
@@ -237,11 +255,12 @@ loadPayMethods()
               option-label="label"
               option-value="value"
               emit-value
+              borderless
               map-options
               placeholder="Seleccionar tipo"
               clearable
               dense
-              class="form__inputsR_registePay"
+              class="form__inputsR"
             />
           </div>
         </div>
@@ -257,10 +276,11 @@ loadPayMethods()
               option-value="value"
               emit-value
               map-options
+              borderless
               placeholder="Seleccionar mes"
               clearable
               dense
-              class="form__inputsR_registePay"
+              class="form__inputsR"
             />
           </div>
           <div>
@@ -271,11 +291,12 @@ loadPayMethods()
               option-label="label"
               option-value="value"
               emit-value
+              borderless
               map-options
               :placeholder="String(currentYear)"
               clearable
               dense
-              class="form__inputsR_registePay"
+              class="form__inputsR"
             />
           </div>
         </div>
@@ -330,11 +351,11 @@ loadPayMethods()
         </div>
 
         <!-- Empty states -->
-        <div v-if="isQuotaType && selectedUser && selectedMonth && !pendingQuotas.length && !loading" class="text-center py-6 text-gray-400 text-sm">
-          No hay cuotas pendientes para este propietario y mes.
+        <div v-if="isQuotaType && selectedDept && selectedMonth && !pendingQuotas.length && !loading" class="text-center py-6 text-gray-400 text-sm">
+          No hay cuotas pendientes para esta unidad y mes.
         </div>
-        <div v-if="isReserveType && selectedUser && !pendingBookings.length && !loading" class="text-center py-6 text-gray-400 text-sm">
-          No hay reservas pendientes de pago para este propietario.
+        <div v-if="isReserveType && selectedDept && !pendingBookings.length && !loading" class="text-center py-6 text-gray-400 text-sm">
+          No hay reservas pendientes de pago para esta unidad.
         </div>
 
         <!-- Step 3: Payment form -->
@@ -349,7 +370,7 @@ loadPayMethods()
                 step="0.01"
                 placeholder="0.00"
                 dense
-                class="form__inputsR_registePay"
+                class="form__inputsR"
                 prefix="S/."
               />
             </div>
@@ -365,7 +386,7 @@ loadPayMethods()
                 placeholder="Seleccionar método"
                 clearable
                 dense
-                class="form__inputsR_registePay"
+                class="form__inputsR"
               />
             </div>
             <div>
@@ -374,7 +395,7 @@ loadPayMethods()
                 v-model="paymentForm.pay_date"
                 type="date"
                 dense
-                class="form__inputsR_registePay"
+                class="form__inputsR"
               />
             </div>
             <div>
@@ -383,7 +404,7 @@ loadPayMethods()
                 v-model="paymentForm.reference"
                 placeholder="000000"
                 dense
-                class="form__inputsR_registePay"
+                class="form__inputsR"
               />
             </div>
           </div>
@@ -394,7 +415,7 @@ loadPayMethods()
               label="Seleccionar imagen"
               accept="image/*"
               dense
-              class="form__inputsR_registePay"
+              class="form__inputsR"
               clearable
             >
               <template v-slot:prepend>
@@ -427,16 +448,20 @@ loadPayMethods()
 </template>
 
 <style lang="scss">
-.form__inputsR_registePay {
+.form__inputsR {
   & .q-field__inner {
     box-shadow: 0px 3px 4px 0px #bfbfbf48;
     border-radius: 0.5rem;
+    border: 1px solid rgb(223, 223, 223);
     padding: 0px 1rem;
+  }
+  &.q-field--auto-height.q-field--dense.q-field--labeled .q-field__control-container {
+    padding-top: 10px !important;
   }
 }
 
 @media (max-width: 780px) {
-  .form__inputsR_registePay {
+  .form__inputsR {
     & .q-field__inner {
       padding: 0.1rem 1rem;
     }

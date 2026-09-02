@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\PayClaims;
 use App\Models\BankAccount;
 use App\Models\Booking;
+use App\Models\Expense;
 use App\Models\FinancialAccount;
 use App\Models\Pay;
 use App\Models\Quota;
@@ -1003,5 +1004,131 @@ class PayController extends Controller
             ? $request->get('sort_by') : 'created_at';
         $sortDir = $request->get('sort_dir') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $sortDir);
+    }
+
+    public function storeExpensePay(Request $request, int $expenseId)
+    {
+        $expense = Expense::find($expenseId);
+
+        if (! $expense) {
+            return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Gasto no encontrado']);
+        }
+
+        if ($expense->pay_id) {
+            $existingPay = Pay::find($expense->pay_id);
+            if ($existingPay && in_array($existingPay->status, [1, 2])) {
+                return $this->returnFail(409, ['messageType' => 'negative', 'message' => 'Este gasto ya tiene un pago registrado']);
+            }
+        }
+
+        $validated = Validator::make($request->all(), [
+            'amount' => ['required', 'numeric'],
+            'financial_account_id' => ['required', 'exists:financial_accounts,id'],
+            'transaction_category_id' => ['required', 'exists:transaction_categories,id'],
+            'reference' => ['nullable', 'string'],
+            'pay_date' => ['required', 'date'],
+            'vaucher' => ['nullable', 'file', 'max:10240'],
+        ], [
+            'amount.required' => 'El monto es requerido',
+            'amount.numeric' => 'El monto no es válido',
+            'financial_account_id.required' => 'La cuenta financiera es requerida',
+            'financial_account_id.exists' => 'La cuenta financiera no es válida',
+            'transaction_category_id.required' => 'La categoría de transacción es requerida',
+            'transaction_category_id.exists' => 'La categoría de transacción no es válida',
+            'pay_date.required' => 'La fecha de pago es requerida',
+            'pay_date.date' => 'La fecha de pago no es válida',
+        ]);
+
+        if ($validated->fails()) {
+            return $this->returnFail(422, ['messageType' => 'negative', 'message' => $validated->errors()->first()]);
+        }
+
+        DB::beginTransaction();
+        try {
+            $pay = Pay::create([
+                'user_id' => $request->user()->id,
+                'expense_id' => $expenseId,
+                'amount' => $request->amount,
+                'reference' => $request->reference ?? null,
+                'pay_id' => 'E-'.rand(1000, 9999),
+                'pay_date' => date('Y-m-d', strtotime($request->pay_date)),
+                'type' => 3,
+                'pay_method' => null,
+                'status' => 2,
+            ]);
+
+            if ($request->hasFile('vaucher')) {
+                $this->uploadExpenseVaucher($pay, $request);
+            }
+
+            $expense->update(['pay_id' => $pay->id, 'status' => 3]);
+
+            $financialAccountId = (int) $request->financial_account_id;
+            $financialAccount = FinancialAccount::query()
+                ->whereKey($financialAccountId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $financialAccount || (int) $financialAccount->status !== 1) {
+                DB::rollBack();
+
+                return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'Cuenta financiera inválida o inactiva']);
+            }
+
+            $amount = round((float) $pay->amount, 2);
+            $financialAccount->current_balance = round((float) $financialAccount->current_balance - $amount, 2);
+            $financialAccount->save();
+
+            $transaction = Transaction::create([
+                'financial_account_id' => $financialAccount->id,
+                'transaction_category_id' => (int) $request->transaction_category_id,
+                'pay_id' => $pay->id,
+                'expense_id' => $expenseId,
+                'amount' => $amount,
+                'date' => now()->toDateString(),
+                'reference' => (string) $pay->reference,
+                'description' => sprintf('Egreso pago de gasto #%s', $pay->pay_id),
+                'status' => 1,
+                'type' => 2,
+            ]);
+
+            DB::commit();
+
+            $pay->refresh()->load(['expense', 'user']);
+
+            return $this->returnSuccess(200, [
+                'pay' => $pay,
+                'transaction' => $transaction,
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error($e);
+
+            return $this->returnFail(500, ['messageType' => 'negative', 'message' => 'Error al registrar el pago del gasto']);
+        }
+    }
+
+    private function uploadExpenseVaucher(Pay $pay, Request $request)
+    {
+        if (! $request->hasFile('vaucher')) {
+            return null;
+        }
+
+        $rand = rand(1000000, 9999999);
+        $fileName = trim(str_replace(' ', '_', $pay->id));
+        $extension = $request->file('vaucher')->extension();
+        $path = "/public/images/vaucher/{$rand}_{$fileName}.{$extension}";
+        $folder = public_path().'/images/vaucher/';
+
+        if (! is_dir($folder)) {
+            mkdir($folder, 0755, true);
+        }
+
+        $request->file('vaucher')->move($folder, basename($path));
+
+        $pay->vaucher = $path;
+        $pay->save();
+
+        return $path;
     }
 }

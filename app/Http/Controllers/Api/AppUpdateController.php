@@ -39,7 +39,7 @@ class AppUpdateController extends Controller
         }
 
         return $this->returnSuccess(200, [
-            'message' => "Notificación de actualización enviada correctamente.",
+            'message' => 'Notificación de actualización enviada correctamente.',
             'notified' => $notified,
             'total_with_token' => $users->count(),
         ]);

@@ -23,6 +23,7 @@ class Expense extends Model
         'description',
         'attachment_url',
         'status',
+        'pay_id',
     ];
 
     public function provider()
@@ -38,6 +39,11 @@ class Expense extends Model
     public function monthlyBill()
     {
         return $this->belongsTo(MonthlyBills::class, 'monthly_bill_id');
+    }
+
+    public function pay()
+    {
+        return $this->belongsTo(Pay::class);
     }
 
     public function getStatusLabelAttribute(): string

@@ -11,6 +11,7 @@ const maintenanceStore = useMaintenanceStore()
 const maintenance = ref(null)
 const loading = ref(true)
 const error = ref('')
+const imageBroken = ref(false)
 
 const getStatusColor = (status) => {
   switch (Number(status)) {
@@ -64,7 +65,7 @@ onMounted(async () => {
 
       <div v-else-if="maintenance" class="px-4 py-6 md:px-28">
   
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 md:px-8">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-lg p-5 md:px-8">
           <div class="flex items-start justify-between flex-wrap gap-3">
             <h1 class="text-xl font-bold text-gray-900">{{ maintenance.title }}</h1>
             <q-chip :color="getStatusColor(maintenance.status)" text-color="white" class="text-bold px-3" dense>
@@ -72,39 +73,48 @@ onMounted(async () => {
             </q-chip>
           </div>
 
-          <div class="flex flex-wrap gap-2 mt-4">
-            <q-btn
+          <div class="row mt-4">
+            <div class="col-6 col-md-4 px-2">
+              <q-btn
               v-if="Number(maintenance.status) !== 2"
               color="positive"
               unelevated
               no-caps
+              class="w-full"
               icon="eva-checkmark-circle-2-outline"
               label="Completar"
               style="border-radius: 0.5rem;"
               @click="goToComplete"
             />
-            <q-btn
-              color="primary"
-              outline
-              no-caps
-              icon="eva-edit-2-outline"
-              label="Cambiar status"
-              style="border-radius: 0.5rem;"
-              @click="goToChangeStatus"
-            />
-            <q-btn
-              color="primary"
-              no-caps
-              icon="eva-edit-outline"
-              label="Editar"
-              style="border-radius: 0.5rem;"
-              @click="goToEdit"
-            />
+            </div>
+            <div class="col-6 col-md-4 px-2">
+              <q-btn
+                color="primary"
+                no-caps
+                icon="eva-edit-outline"
+                label="Editar"
+                class="w-full"
+                unelevated
+                style="border-radius: 0.5rem;"
+                @click="goToEdit"
+              />
+            </div>
+            <div class="col-12 col-md-4 pt-4 md:pt-0 px-2">
+              <q-btn
+                color="primary"
+                outline
+                no-caps
+                icon="eva-edit-2-outline"
+                label="Cambiar estado"
+                class="w-full"
+                style="border-radius: 0.5rem;"
+                @click="goToChangeStatus"
+              />
+            </div>
           </div>
 
           <div class="mt-4 space-y-3">
             <div v-if="maintenance.comun_area" class="row items-center">
-              <q-icon name="eva-building-outline" size="1.1rem" color="teal-9" class="q-mr-sm" />
               <span class="text-bold text-teal-9">Área: {{ maintenance.comun_area.name }}</span>
               <q-chip dense color="teal-1" text-color="teal-9" size="sm" class="q-ml-2">
                 Bloqueada
@@ -129,9 +139,26 @@ onMounted(async () => {
               <p class="text-body1 text-gray-700 whitespace-pre-line">{{ maintenance.description }}</p>
             </div>
 
-            <div v-if="maintenance.photo" class="mt-4 pt-3 border-t border-gray-100">
+            <div class="mt-4 pt-3 border-t border-gray-200">
               <h2 class="text-subtitle1 text-bold text-gray-800 q-mb-sm">Foto del mantenimiento</h2>
-              <q-img :src="maintenance.photo" spinner-color="primary" style="max-width: 22rem; border-radius: 0.75rem;" />
+              <div
+                class="rounded-lg overflow-hidden border border-gray-200 bg-grey-2 flex flex-col items-center justify-center"
+                style="min-height: 200px; max-width: 22rem;">
+                <template v-if="maintenance.photo && !imageBroken">
+                  <q-img
+                    :src="maintenance.photo"
+                    fit="contain"
+                    spinner-color="primary"
+                    style="max-height: 360px; width: 100%;"
+                    @error="imageBroken = true" />
+                </template>
+                <template v-else>
+                  <q-icon name="eva-image-outline" size="3rem" color="grey-5" class="q-mt-md" />
+                  <p class="text-grey-6 text-center q-px-md q-pb-md q-mb-none">
+                    {{ maintenance.photo ? 'No se pudo cargar la imagen.' : 'No hay foto registrada.' }}
+                  </p>
+                </template>
+              </div>
             </div>
 
             <div v-if="maintenance.evidence_photo" class="mt-4 pt-3 border-t border-gray-100">

@@ -116,12 +116,12 @@ const getQuotaDetail = (row) => {
 
 const getPaymentResponsible = (row) => {
   if (!row.quotas.length) return null
+  const first = row.quotas[0]
   const roles = [...new Set(row.quotas.map(q => q.payment_responsible_role))]
-  if (roles.length === 1) {
-    const name = row.quotas[0].payment_responsible_name
-    return { role: roles[0], name }
+  return {
+    role: roles.length === 1 ? roles[0] : 'Mixto',
+    name: first.payment_responsible_name,
   }
-  return { role: 'Mixto', name: null }
 }
 
 const toggleExpand = (userId) => {

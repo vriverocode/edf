@@ -127,6 +127,25 @@ export const useExpenseStore = defineStore('Expenses', {
       })
     },
 
+    async payExpense(id, payload) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.post(`/api/expenses/${id}/pay`, payload, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al registrar el pago')
+          })
+      })
+    },
+
     filterQuery(filter) {
       try {
         const params = new URLSearchParams()
