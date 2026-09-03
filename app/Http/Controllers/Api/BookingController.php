@@ -47,7 +47,9 @@ class BookingController extends Controller
             $departament_id = $request->departament_id;
 
             $ownedIds = $user->apartaments()->pluck('id');
-            $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
+            $residentIds = PeoplesXDepartaments::where('user_id', $user->id)
+                ->whereHas('departament', fn ($q) => $q->where('type', Departament::TYPE_DEPARTAMENTO))
+                ->pluck('departament_id');
             $allowedIds = $ownedIds->merge($residentIds)->unique()->values();
 
             if ($allowedIds->isEmpty()) {
@@ -57,6 +59,7 @@ class BookingController extends Controller
             if (! $departament_id && ($user->rol_id === Rol::AIRBNB || $user->rol_id === Rol::FAMILIAR || $user->rol_id === Rol::INQUILINO)) {
                 $residentRecord = PeoplesXDepartaments::where('user_id', $user->id)
                     ->whereIn('type', [5, 4, 3])
+                    ->whereHas('departament', fn ($q) => $q->where('type', Departament::TYPE_DEPARTAMENTO))
                     ->first();
                 if ($residentRecord) {
                     $departament_id = $residentRecord->departament_id;

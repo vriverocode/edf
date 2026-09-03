@@ -181,32 +181,48 @@ class PayController extends Controller
         $authUser = $request->user();
         $user = $authUser;
         if ($request->has('user_id') && in_array($authUser->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
-            $user = User::findOrFail((int) $request->user_id);
+            $user = User::find((int) $request->user_id);
+            if (! $user) {
+                return $this->returnFail(404, 'Usuario no encontrado');
+            }
         }
 
-        $pay = Pay::create([
-            'user_id' => $user->id,
-            'booking_id' => $request->type == 2 ? $request->to_pay_id : null,
-            'quota_id' => $quotaIdsForPay ? $quotaIdsForPay[0] : null,
-            'consolidated_ids' => $quotaIdsForPay,
-            'amount' => $request->amount,
-            'reference' => $request->reference ?? '000000',
-            'pay_id' => $prefixPayId[$request->pay_method].($request->booking_id ?? 'Q').'-'.rand(1000, 9999),
-            'pay_date' => $request->pay_date ? date('Y-m-d', strtotime($request->pay_date)) : date('Y-m-d'),
-            'type' => $request->type,
-            'pay_method' => $request->pay_method,
-            'status' => 1,
-        ]);
+        try {
+            DB::beginTransaction();
 
-        if ($request->type == 1) {
-            $pay->quotas()->sync($quotaIdsForPay);
+            $payIdPrefix = $prefixPayId[$request->pay_method] ?? 'x';
+            $bookingIdStr = (int) $request->type === 2 ? $request->to_pay_id : 'Q';
+
+            $pay = Pay::create([
+                'user_id' => $user->id,
+                'booking_id' => $request->type == 2 ? $request->to_pay_id : null,
+                'quota_id' => !empty($quotaIdsForPay) ? $quotaIdsForPay[0] : null,
+                'consolidated_ids' => $quotaIdsForPay,
+                'amount' => $request->amount,
+                'reference' => $request->reference ?? '000000',
+                'pay_id' => $payIdPrefix . $bookingIdStr . '-' . rand(1000, 9999),
+                'pay_date' => $request->pay_date ? date('Y-m-d', strtotime($request->pay_date)) : date('Y-m-d'),
+                'type' => $request->type,
+                'pay_method' => $request->pay_method,
+                'status' => 1,
+            ]);
+
+            if ($request->type == 1 && !empty($quotaIdsForPay)) {
+                $pay->quotas()->sync($quotaIdsForPay);
+            }
+
+            $this->afterPayAction($pay);
+            $this->uploadVaucher($pay, $request);
+            $this->sendNotification($pay);
+
+            DB::commit();
+
+            return $this->returnSuccess(200, ['idPay' => $pay->id]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error en storePay: ' . $e->getMessage(), ['exception' => $e]);
+            return $this->returnFail(500, 'Ocurrió un error al procesar el pago. Intente nuevamente.');
         }
-
-        $this->afterPayAction($pay);
-        $this->uploadVaucher($pay, $request);
-        $this->sendNotification($pay);
-
-        return $this->returnSuccess(200, ['idPay' => $pay->id]);
     }
 
     public function updateStatus(Request $request, $payId)

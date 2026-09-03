@@ -45,10 +45,12 @@ const blockedAreaIds = ref([])
 const maintenanceDates = ref([])
 const userApartments = computed(() => {
   if (authStore.user.role_id == 3) {
-    return (authStore.user.departments_inquilino || []).map(p => ({
-      id: p.departament_id,
-      number: p.departament?.number ?? `Dpto ${p.departament_id}`,
-    }))
+    return (authStore.user.departments_inquilino || [])
+      .filter(p => p.departament?.type == 1)
+      .map(p => ({
+        id: p.departament_id,
+        number: p.departament?.number ?? `Dpto ${p.departament_id}`,
+      }))
   }
   if (!authStore.user?.units) return []
   return authStore.user.units.filter(u => u.type == 1)
