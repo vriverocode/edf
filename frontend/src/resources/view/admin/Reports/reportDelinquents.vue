@@ -202,7 +202,7 @@ onMounted(() => {
             <div class="repbok-cell">Rol</div>
             <div class="repbok-cell">Contacto</div>
             <div class="repbok-cell">Unidades (Deuda)</div>
-            <div class="repbok-cell" style="text-align: center">N° Cuotas</div>
+            <div class="repbok-cell">N° Cuotas</div>
             <div class="repbok-cell" style="text-align: right">Monto Total</div>
             <div class="repbok-cell" style="text-align: center">Acciones</div>
           </div>
@@ -216,11 +216,11 @@ onMounted(() => {
               </div>
               <div class="repbok-cell" data-title="Propietario / Doc.">
                 <div class="text-weight-bold">{{ row.name }}</div>
-                <div class="text-caption text-grey-6">{{ row.dni || '—' }}</div>
+                <div class="text-caption text-grey-6">{{ row.dni || '' }}</div>
               </div>
               <div class="repbok-cell" data-title="Encargado de Pago">
                 <template v-if="getPaymentResponsible(row)">
-                  <div class="text-caption text-grey-7">{{ getPaymentResponsible(row).name }}</div>
+                  <div class="mt-1">{{ getPaymentResponsible(row).name }}</div>
                 </template>
                 <div v-else class="text-grey-6 text-caption">—</div>
               </div>
@@ -233,21 +233,20 @@ onMounted(() => {
                 <div v-else class="text-grey-6 text-caption">—</div>
               </div>
               <div class="repbok-cell" data-title="Contacto">
-                <div v-if="row.email" class="text-caption">{{ row.email }}</div>
-                <div v-if="row.phone" class="text-caption">{{ row.phone }}</div>
+                <div v-if="row.email" class="">{{ row.email }}</div>
+                <div v-if="row.phone" class="">{{ row.phone }}</div>
                 <div v-if="!row.email && !row.phone" class="text-grey-6">—</div>
               </div>
               <div class="repbok-cell" data-title="Unidades (Deuda)">
-                <q-chip v-for="dept in row.departments" :key="dept" size="sm" color="primary" text-color="white" class="q-mr-xs q-mb-xs">{{ dept }}</q-chip>
+                <q-chip v-for="dept in row.departments" :key="dept" size="0.8rem" color="primary" text-color="white" class="q-mr-xs q-mb-xs">{{ dept }}</q-chip>
                 <div v-if="!row.departments.length" class="text-grey-6 text-caption">—</div>
               </div>
-              <div class="repbok-cell" data-title="N° Cuotas" style="text-align: center">
+              <div class="repbok-cell" data-title="N° Cuotas">
                 <div>{{ row.quotas_count }}</div>
-                <div v-if="getQuotaDetail(row)" class="text-caption text-grey-7" style="font-size: 11px;">{{ getQuotaDetail(row) }}</div>
               </div>
-              <div class="repbok-cell" data-title="Monto Total" style="text-align: right; font-weight: bold">{{ formatMoney(row.total_debt) }}</div>
+              <div class="repbok-cell" data-title="Monto Total" style="font-weight: bold">{{ formatMoney(row.total_debt) }}</div>
               <div class="repbok-cell" data-title="Acciones" style="text-align: center">
-                <q-btn round size="xs" icon="eva-bell-outline" color="primary"
+                <q-btn round size="sm" icon="eva-bell-outline" color="primary"
                   :loading="sendingForUser === row.user_id"
                   @click="confirmReminder(row)">
                   <q-tooltip>Enviar recordatorio</q-tooltip>
@@ -267,13 +266,13 @@ onMounted(() => {
                   </div>
                   <div class="repbok-detail-row" v-for="q in row.quotas" :key="q.id">
                     <div class="repbok-detail-cell" data-label="Departamento">{{ q.department }}</div>
-                    <div class="repbok-detail-cell repbok-detail-center" data-label="Mes">{{ q.month_label }}</div>
-                    <div class="repbok-detail-cell repbok-detail-center" data-label="Vencimiento">{{ q.due_date }}</div>
+                    <div class="repbok-detail-cell " data-label="Mes">{{ q.month_label }}</div>
+                    <div class="repbok-detail-cell " data-label="Vencimiento">{{ q.due_date }}</div>
                     <div class="repbok-detail-cell" data-label="Responsable">
                       <span class="text-caption">{{ q.payment_responsible_name }}</span>
                       <q-chip :color="q.tenant_pays_quota ? 'teal' : 'orange'" size="xs" text-color="white" class="q-ml-xs">{{ q.payment_responsible_role }}</q-chip>
                     </div>
-                    <div class="repbok-detail-cell repbok-detail-right text-weight-bold" data-label="Monto">{{ formatMoney(q.amount) }}</div>
+                    <div class="repbok-detail-cell text-weight-bold" data-label="Monto">{{ formatMoney(q.amount) }}</div>
                   </div>
                 </div>
             </div>
@@ -371,15 +370,17 @@ onMounted(() => {
   }
 
   .repbok-row .repbok-cell:before {
-    margin-bottom: 3px;
+    margin-bottom: 10px;
+    padding: 5px 0px;
     content: attr(data-title);
     min-width: 98px;
-    font-size: 10px;
+    font-size: 11px;
     line-height: 10px;
     font-weight: bold;
     text-transform: uppercase;
-    color: #969696;
+    color: #7a7a7a;
     display: block;
+    border-bottom: 1px solid lightgray;
   }
 }
 
