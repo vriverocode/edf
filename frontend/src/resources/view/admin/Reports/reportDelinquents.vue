@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Notify, useQuasar } from 'quasar'
+import { useQuasar } from 'quasar'
 import { useReportStore } from '@/services/store/report.store'
 import { useQuotaStore } from '@/services/store/quota.store'
 
@@ -90,21 +90,6 @@ async function handleExport() {
 }
 
 const formatMoney = (v) => `S/. ${(Number(v) || 0).toFixed(2)}`
-
-const getTypeLabel = (types) => {
-  const labels = {
-    user_status: 'Estado: Moroso',
-    overdue_quotas: 'Cuotas >2 meses',
-  }
-  return types.map(t => labels[t] || t).join(' · ')
-}
-
-const getTypeColor = (types) => {
-  if (types.includes('user_status') && types.includes('overdue_quotas')) return 'orange-8'
-  if (types.includes('user_status')) return 'negative'
-  if (types.includes('overdue_quotas')) return 'warning'
-  return 'grey'
-}
 
 const getQuotaDetail = (row) => {
   if (row.quotas_count === 1 && row.quotas.length === 1) {
@@ -212,14 +197,13 @@ onMounted(() => {
 
           <div class="repbok-row repbok-header">
             <div class="repbok-cell" style="width: 40px"></div>
-            <div class="repbok-cell">Nombre</div>
-            <div class="repbok-cell">DNI</div>
+            <div class="repbok-cell">Propietario / Doc.</div>
+            <div class="repbok-cell">Encargado de Pago</div>
+            <div class="repbok-cell">Rol</div>
             <div class="repbok-cell">Contacto</div>
-            <div class="repbok-cell">Departamentos</div>
-            <div class="repbok-cell">Tipo Morosidad</div>
-            <div class="repbok-cell">Responsable Pago</div>
-            <div class="repbok-cell" style="text-align: right">Deuda Total</div>
+            <div class="repbok-cell">Unidades (Deuda)</div>
             <div class="repbok-cell" style="text-align: center">N° Cuotas</div>
+            <div class="repbok-cell" style="text-align: right">Monto Total</div>
             <div class="repbok-cell" style="text-align: center">Acciones</div>
           </div>
 
@@ -230,36 +214,38 @@ onMounted(() => {
                   flat dense :icon="isExpanded(row.user_id) ? 'eva-chevron-up' : 'eva-chevron-down'"
                   @click="toggleExpand(row.user_id)" />
               </div>
-              <div class="repbok-cell" data-title="Nombre">
+              <div class="repbok-cell" data-title="Propietario / Doc.">
                 <div class="text-weight-bold">{{ row.name }}</div>
+                <div class="text-caption text-grey-6">{{ row.dni || '—' }}</div>
               </div>
-              <div class="repbok-cell" data-title="DNI">{{ row.dni || '—' }}</div>
+              <div class="repbok-cell" data-title="Encargado de Pago">
+                <template v-if="getPaymentResponsible(row)">
+                  <div class="text-caption text-grey-7">{{ getPaymentResponsible(row).name }}</div>
+                </template>
+                <div v-else class="text-grey-6 text-caption">—</div>
+              </div>
+              <div class="repbok-cell" data-title="Rol">
+                <template v-if="getPaymentResponsible(row)">
+                  <q-chip :color="getPaymentResponsible(row).role === 'Inquilino' ? 'teal' : 'orange'" size="sm" text-color="white" class="q-mb-xs">
+                    {{ getPaymentResponsible(row).role }}
+                  </q-chip>
+                </template>
+                <div v-else class="text-grey-6 text-caption">—</div>
+              </div>
               <div class="repbok-cell" data-title="Contacto">
                 <div v-if="row.email" class="text-caption">{{ row.email }}</div>
                 <div v-if="row.phone" class="text-caption">{{ row.phone }}</div>
                 <div v-if="!row.email && !row.phone" class="text-grey-6">—</div>
               </div>
-              <div class="repbok-cell" data-title="Departamentos">
+              <div class="repbok-cell" data-title="Unidades (Deuda)">
                 <q-chip v-for="dept in row.departments" :key="dept" size="sm" color="primary" text-color="white" class="q-mr-xs q-mb-xs">{{ dept }}</q-chip>
                 <div v-if="!row.departments.length" class="text-grey-6 text-caption">—</div>
               </div>
-              <div class="repbok-cell" data-title="Tipo Morosidad">
-                <q-chip :color="getTypeColor(row.types)" size="sm" text-color="white" class="q-mb-xs">{{ getTypeLabel(row.types) }}</q-chip>
-              </div>
-              <div class="repbok-cell" data-title="Responsable Pago">
-                <template v-if="getPaymentResponsible(row)">
-                  <q-chip :color="getPaymentResponsible(row).role === 'Inquilino' ? 'teal' : 'orange'" size="sm" text-color="white" class="q-mb-xs">
-                    {{ getPaymentResponsible(row).role }}
-                  </q-chip>
-                  <div v-if="getPaymentResponsible(row).name" class="text-caption text-grey-7" style="font-size: 11px;">{{ getPaymentResponsible(row).name }}</div>
-                </template>
-                <div v-else class="text-grey-6 text-caption">—</div>
-              </div>
-              <div class="repbok-cell" data-title="Deuda Total" style="text-align: right; font-weight: bold">{{ formatMoney(row.total_debt) }}</div>
               <div class="repbok-cell" data-title="N° Cuotas" style="text-align: center">
                 <div>{{ row.quotas_count }}</div>
                 <div v-if="getQuotaDetail(row)" class="text-caption text-grey-7" style="font-size: 11px;">{{ getQuotaDetail(row) }}</div>
               </div>
+              <div class="repbok-cell" data-title="Monto Total" style="text-align: right; font-weight: bold">{{ formatMoney(row.total_debt) }}</div>
               <div class="repbok-cell" data-title="Acciones" style="text-align: center">
                 <q-btn round size="xs" icon="eva-bell-outline" color="primary"
                   :loading="sendingForUser === row.user_id"
@@ -268,37 +254,32 @@ onMounted(() => {
                 </q-btn>
               </div>
             </div>
+
+            <div v-if="isExpanded(row.user_id) && row.types.includes('overdue_quotas') && row.quotas.length"
+              class="repbok-detail-wrapper">
+                <div class="repbok-detail-table">
+                  <div class="repbok-detail-header">
+                    <div class="repbok-detail-cell">Departamento</div>
+                    <div class="repbok-detail-cell repbok-detail-center">Mes</div>
+                    <div class="repbok-detail-cell repbok-detail-center">Vencimiento</div>
+                    <div class="repbok-detail-cell">Responsable</div>
+                    <div class="repbok-detail-cell repbok-detail-right">Monto</div>
+                  </div>
+                  <div class="repbok-detail-row" v-for="q in row.quotas" :key="q.id">
+                    <div class="repbok-detail-cell" data-label="Departamento">{{ q.department }}</div>
+                    <div class="repbok-detail-cell repbok-detail-center" data-label="Mes">{{ q.month_label }}</div>
+                    <div class="repbok-detail-cell repbok-detail-center" data-label="Vencimiento">{{ q.due_date }}</div>
+                    <div class="repbok-detail-cell" data-label="Responsable">
+                      <span class="text-caption">{{ q.payment_responsible_name }}</span>
+                      <q-chip :color="q.tenant_pays_quota ? 'teal' : 'orange'" size="xs" text-color="white" class="q-ml-xs">{{ q.payment_responsible_role }}</q-chip>
+                    </div>
+                    <div class="repbok-detail-cell repbok-detail-right text-weight-bold" data-label="Monto">{{ formatMoney(q.amount) }}</div>
+                  </div>
+                </div>
+            </div>
           </template>
 
         </div>
-
-        <template v-for="row in rows" :key="'detail-' + row.user_id">
-          <div v-if="isExpanded(row.user_id) && row.types.includes('overdue_quotas') && row.quotas.length"
-            class="repbok-detail-wrapper">
-            <div class="repbok-detail-content">
-              <div class="text-subtitle2 q-mb-sm" style="text-align: left;">Detalle de Cuotas Pendientes (&gt;2 meses)</div>
-              <div class="repbok-detail-table">
-                <div class="repbok-detail-header">
-                  <div class="repbok-detail-cell">Departamento</div>
-                  <div class="repbok-detail-cell repbok-detail-center">Mes</div>
-                  <div class="repbok-detail-cell repbok-detail-center">Vencimiento</div>
-                  <div class="repbok-detail-cell">Responsable</div>
-                  <div class="repbok-detail-cell repbok-detail-right">Monto</div>
-                </div>
-                <div class="repbok-detail-row" v-for="q in row.quotas" :key="q.id">
-                  <div class="repbok-detail-cell" data-label="Departamento">{{ q.department }}</div>
-                  <div class="repbok-detail-cell repbok-detail-center" data-label="Mes">{{ q.month_label }}</div>
-                  <div class="repbok-detail-cell repbok-detail-center" data-label="Vencimiento">{{ q.due_date }}</div>
-                  <div class="repbok-detail-cell" data-label="Responsable">
-                    <span class="text-caption">{{ q.payment_responsible_name }}</span>
-                    <q-chip :color="q.tenant_pays_quota ? 'teal' : 'orange'" size="xs" text-color="white" class="q-ml-xs">{{ q.payment_responsible_role }}</q-chip>
-                  </div>
-                  <div class="repbok-detail-cell repbok-detail-right text-weight-bold" data-label="Monto">{{ formatMoney(q.amount) }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
       </div>
 
       <div v-if="rows.length > 0" class="row justify-end q-mt-lg" style="display: flex !important;">
@@ -337,7 +318,8 @@ onMounted(() => {
   margin: 0 0 40px 0;
   width: 100%;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  display: table;
+  display: grid;
+  grid-template-columns: 40px 1.5fr 1.2fr 0.8fr 1fr 1.5fr 0.8fr 1fr 0.8fr;
 }
 
 @media screen and (max-width: 580px) {
@@ -347,7 +329,7 @@ onMounted(() => {
 }
 
 .repbok-row {
-  display: table-row !important;
+  display: contents;
   background: #f6f6f6;
   margin: 0;
 }
@@ -359,6 +341,9 @@ onMounted(() => {
 .repbok-row.repbok-header {
   font-weight: 900;
   color: #ffffff;
+}
+
+.repbok-row.repbok-header .repbok-cell {
   background: $primary;
 }
 
@@ -400,7 +385,8 @@ onMounted(() => {
 
 .repbok-cell {
   padding: 6px 12px;
-  display: table-cell;
+  display: flex;
+  align-items: center;
   vertical-align: middle;
 }
 
@@ -412,7 +398,7 @@ onMounted(() => {
 }
 
 .repbok-detail-wrapper {
-  width: 100%;
+  grid-column: 1 / -1;
   background: #fafafa;
   border-top: 1px solid #e0e0e0;
 }

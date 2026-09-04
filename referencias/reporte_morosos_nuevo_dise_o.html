@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Morosos - Sistema de Gestión</title>
+    
+    <!-- Fuentes y Estilos -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Iconos Phosphor -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Alpine.js para reactividad -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f8fafc; }
+        /* Animación suave para la expansión */
+        .expand-enter-active, .expand-leave-active { transition: all 0.3s ease-in-out; overflow: hidden; }
+        .expand-enter-from, .expand-leave-to { opacity: 0; max-height: 0; }
+        .expand-enter-to, .expand-leave-from { opacity: 1; max-height: 500px; }
+        /* Scrollbar personalizado para la tabla */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+</head>
+<body x-data="morososApp()" class="text-slate-800 antialiased min-h-screen p-4 md:p-8">
+
+    <div class="max-w-[1400px] mx-auto space-y-6">
+        
+        <!-- Header Principal -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Reporte de Cuentas por Cobrar</h1>
+                <p class="text-sm text-slate-500 mt-1">Gestión de unidades con más de 2 meses de atraso.</p>
+            </div>
+            
+            <div class="flex w-full md:w-auto gap-3">
+                <button @click="showModal = true" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-sm font-medium transition-all shadow-sm">
+                    <i class="ph ph-funnel text-lg"></i> Filtros
+                </button>
+                <button class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all shadow-sm">
+                    <i class="ph ph-export text-lg"></i> Exportar
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Tarjeta 1 -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <i class="ph ph-users text-2xl text-red-500"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Total Morosos</p>
+                    <p class="text-2xl font-bold text-slate-900" x-text="totalMorosos"></p>
+                </div>
+            </div>
+            
+            <!-- Tarjeta 2 -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">
+                    <i class="ph ph-coins text-2xl text-orange-500"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Deuda Total Acumulada</p>
+                    <p class="text-2xl font-bold text-orange-600" x-text="formatMoney(deudaTotal)"></p>
+                </div>
+            </div>
+
+            <!-- Tarjeta 3 -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center flex-shrink-0">
+                    <i class="ph ph-warning-circle text-2xl text-brand-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Cuotas Vencidas (>2 meses)</p>
+                    <p class="text-2xl font-bold text-slate-900" x-text="totalCuotasVencidas"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            
+            <!-- Toolbar -->
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="relative w-full md:w-96">
+                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                    <input 
+                        type="text" 
+                        x-model="searchQuery" 
+                        placeholder="Buscar por nombre, documento o unidad..." 
+                        class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-slate-400"
+                    >
+                </div>
+                <div class="text-sm text-slate-500 font-medium">
+                    Mostrando <span x-text="filteredData.length" class="text-slate-900"></span> registros
+                </div>
+            </div>
+
+            <!-- VISTA DE ESCRITORIO (Tabla) -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                            <th class="py-4 px-4 w-12 text-center"></th>
+                            <th class="py-4 px-4">Propietario / Doc.</th>
+                            <th class="py-4 px-4">Encargado de Pago</th>
+                            <th class="py-4 px-4">Contacto</th>
+                            <th class="py-4 px-4">Unidades (Deuda)</th>
+                            <th class="py-4 px-4 text-center">N° Cuotas</th>
+                            <th class="py-4 px-4 text-right">Monto Total</th>
+                            <th class="py-4 px-4 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <!-- Iteración de registros -->
+                        <template x-for="item in filteredData" :key="item.id">
+                            <!-- Agrupador de Fila Principal + Detalle -->
+                            <template x-if="true"> <!-- Template dummy para agrupar trs sin romper el html -->
+                                
+                                <!-- Fila Principal -->
+                                <tr class="hover:bg-slate-50/80 transition-colors group" :class="item.expanded ? 'bg-brand-50/30' : 'bg-white'">
+                                    
+                                    <!-- 1. Botón Expandir -->
+                                    <td class="py-4 px-4 text-center">
+                                        <button @click="toggleExpand(item.id)" class="w-8 h-8 rounded-full flex items-center justify-center transition-colors focus:outline-none"
+                                                :class="item.expanded ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+                                            <i class="ph text-lg font-bold" :class="item.expanded ? 'ph-caret-down' : 'ph-caret-right'"></i>
+                                        </button>
+                                    </td>
+                                    
+                                    <!-- 2. Propietario -->
+                                    <td class="py-4 px-4">
+                                        <div class="font-semibold text-slate-900" x-text="item.propietario"></div>
+                                        <div class="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-identification-card"></i> <span x-text="item.documento"></span>
+                                        </div>
+                                    </td>
+
+                                    <!-- 3. Encargado -->
+                                    <td class="py-4 px-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider mb-1" 
+                                              :class="item.rol_encargado === 'Inquilino' ? 'bg-teal-50 text-teal-700 ring-1 ring-teal-600/20' : 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20'" 
+                                              x-text="item.rol_encargado"></span>
+                                        <div class="text-sm text-slate-700 font-medium" x-text="item.nombre_encargado"></div>
+                                    </td>
+
+                                    <!-- 4. Contacto -->
+                                    <td class="py-4 px-4">
+                                        <div class="flex items-center gap-2 text-sm text-slate-600 mb-1">
+                                            <i class="ph ph-envelope-simple text-slate-400"></i> <span x-text="item.email"></span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-sm text-slate-600">
+                                            <i class="ph ph-phone text-slate-400"></i> <span x-text="item.telefono"></span>
+                                        </div>
+                                    </td>
+
+                                    <!-- 5. Unidades -->
+                                    <td class="py-4 px-4">
+                                        <div class="flex flex-wrap gap-1.5 max-w-[180px]">
+                                            <template x-for="unidad in item.unidades" :key="unidad">
+                                                <span class="inline-flex items-center px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-md" x-text="unidad"></span>
+                                            </template>
+                                        </div>
+                                    </td>
+
+                                    <!-- 6. N° Cuotas -->
+                                    <td class="py-4 px-4 text-center">
+                                        <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-50 text-red-600 font-bold text-sm ring-1 ring-red-500/20" x-text="item.total_cuotas"></div>
+                                    </td>
+
+                                    <!-- 7. Monto Total -->
+                                    <td class="py-4 px-4 text-right">
+                                        <div class="font-bold text-red-600 text-lg tracking-tight" x-text="formatMoney(item.monto_total)"></div>
+                                    </td>
+
+                                    <!-- 8. Acciones -->
+                                    <td class="py-4 px-4 text-center">
+                                        <button @click="notificar(item)" class="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors focus:outline-none ring-1 ring-transparent hover:ring-brand-200" title="Enviar recordatorio de pago">
+                                            <i class="ph ph-paper-plane-tilt text-xl"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Fila Desplegable (Detalle de Cuotas) -->
+                                <tr x-show="item.expanded" x-transition class="bg-slate-50/50 border-b border-slate-200 shadow-inner">
+                                    <td colspan="8" class="p-0">
+                                        <div class="px-16 py-6">
+                                            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm relative">
+                                                <!-- Borde decorativo lateral -->
+                                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-brand-500"></div>
+                                                
+                                                <div class="px-5 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                                                    <i class="ph ph-list-dashes text-brand-600"></i>
+                                                    <span class="text-sm font-semibold text-slate-700">Desglose de cuotas pendientes (>2 meses)</span>
+                                                </div>
+                                                
+                                                <table class="w-full text-sm text-left">
+                                                    <thead class="text-xs text-slate-500 uppercase bg-white border-b border-slate-100">
+                                                        <tr>
+                                                            <th class="py-3 px-5 font-medium">Unidad</th>
+                                                            <th class="py-3 px-5 font-medium">Periodo (Mes)</th>
+                                                            <th class="py-3 px-5 font-medium">Vencimiento</th>
+                                                            <th class="py-3 px-5 font-medium">Responsable</th>
+                                                            <th class="py-3 px-5 font-medium text-right">Monto</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="divide-y divide-slate-50">
+                                                        <template x-for="cuota in item.detalle_cuotas" :key="cuota.id">
+                                                            <tr class="hover:bg-slate-50/50 transition-colors text-slate-600">
+                                                                <td class="py-3 px-5 font-medium text-slate-800 flex items-center gap-2">
+                                                                    <i class="ph ph-door text-slate-400"></i> <span x-text="cuota.unidad"></span>
+                                                                </td>
+                                                                <td class="py-3 px-5">
+                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-600 border border-red-100" x-text="cuota.mes"></span>
+                                                                </td>
+                                                                <td class="py-3 px-5 flex items-center gap-2">
+                                                                    <i class="ph ph-calendar-blank text-slate-400"></i> <span x-text="cuota.vencimiento"></span>
+                                                                </td>
+                                                                <td class="py-3 px-5">
+                                                                    <div x-text="cuota.responsable"></div>
+                                                                </td>
+                                                                <td class="py-3 px-5 text-right font-semibold text-slate-900" x-text="formatMoney(cuota.monto)"></td>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </template>
+
+                        <!-- Estado Vacío -->
+                        <tr x-show="filteredData.length === 0">
+                            <td colspan="8" class="py-12 text-center">
+                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+                                    <i class="ph ph-magnifying-glass text-3xl text-slate-400"></i>
+                                </div>
+                                <h3 class="text-slate-900 font-medium text-lg">No se encontraron resultados</h3>
+                                <p class="text-slate-500 mt-1">Intenta ajustando los términos de búsqueda.</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- VISTA MÓVIL (Tarjetas) -->
+            <div class="md:hidden divide-y divide-slate-100">
+                <template x-for="item in filteredData" :key="'mob-'+item.id">
+                    <div class="p-4 bg-white transition-colors" :class="item.expanded ? 'bg-slate-50/50' : ''">
+                        
+                        <!-- Cabecera de la Tarjeta -->
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base" x-text="item.propietario"></h3>
+                                <div class="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                                    <i class="ph ph-identification-card"></i> <span x-text="item.documento"></span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-red-600 text-lg leading-none" x-text="formatMoney(item.monto_total)"></div>
+                                <span class="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-100">
+                                    <span x-text="item.total_cuotas"></span> cuotas
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Info Grid -->
+                        <div class="grid grid-cols-2 gap-3 mb-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <!-- Encargado -->
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Encargado</p>
+                                <div class="flex flex-col items-start gap-1">
+                                    <span class="inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase" 
+                                          :class="item.rol_encargado === 'Inquilino' ? 'bg-teal-100 text-teal-700' : 'bg-orange-100 text-orange-700'" 
+                                          x-text="item.rol_encargado"></span>
+                                    <span class="text-sm font-medium text-slate-700 truncate w-full" x-text="item.nombre_encargado"></span>
+                                </div>
+                            </div>
+                            <!-- Contacto -->
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Contacto</p>
+                                <div class="text-xs text-slate-600 space-y-1">
+                                    <div class="flex items-center gap-1"><i class="ph ph-phone"></i> <span class="truncate" x-text="item.telefono"></span></div>
+                                    <div class="flex items-center gap-1"><i class="ph ph-envelope-simple"></i> <span class="truncate" x-text="item.email"></span></div>
+                                </div>
+                            </div>
+                            <!-- Unidades -->
+                            <div class="col-span-2 pt-2 border-t border-slate-200/60 mt-1">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Unidades con deuda</p>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <template x-for="unidad in item.unidades">
+                                        <span class="inline-flex items-center px-2 py-1 bg-white border border-slate-200 text-slate-600 text-xs font-medium rounded-md shadow-sm" x-text="unidad"></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Acciones Móvil -->
+                        <div class="flex items-center gap-2">
+                            <button @click="toggleExpand(item.id)" class="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+                                <i class="ph" :class="item.expanded ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                                <span x-text="item.expanded ? 'Ocultar Cuotas' : 'Ver Cuotas'"></span>
+                            </button>
+                            <button @click="notificar(item)" class="flex-none flex items-center justify-center w-10 h-10 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-lg transition-colors ring-1 ring-brand-200">
+                                <i class="ph ph-paper-plane-tilt text-lg"></i>
+                            </button>
+                        </div>
+
+                        <!-- Detalle Expandido Móvil -->
+                        <div x-show="item.expanded" x-collapse class="mt-3">
+                            <div class="bg-white border border-slate-200 rounded-xl p-1 shadow-sm relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-brand-500"></div>
+                                <div class="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-600 border-b border-slate-100 rounded-t-lg">
+                                    Desglose de Cuotas
+                                </div>
+                                <div class="divide-y divide-slate-50">
+                                    <template x-for="cuota in item.detalle_cuotas" :key="'mob-cuota-'+cuota.id">
+                                        <div class="p-3 hover:bg-slate-50 transition-colors">
+                                            <div class="flex justify-between items-center mb-1.5">
+                                                <span class="font-bold text-slate-800 text-sm flex items-center gap-1">
+                                                    <i class="ph ph-door text-slate-400"></i> <span x-text="cuota.unidad"></span>
+                                                </span>
+                                                <span class="font-bold text-red-600 text-sm" x-text="formatMoney(cuota.monto)"></span>
+                                            </div>
+                                            <div class="flex justify-between text-xs text-slate-500">
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600 border border-red-100" x-text="cuota.mes"></span>
+                                                <span class="flex items-center gap-1"><i class="ph ph-calendar-blank"></i> Vence: <span x-text="cuota.vencimiento"></span></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
+            </div>
+
+            <!-- Paginación Mockup -->
+            <div class="p-4 border-t border-slate-100 bg-white flex flex-col md:flex-row justify-between items-center gap-4">
+                <span class="text-sm text-slate-500">Página 1 de 4</span>
+                <div class="flex items-center gap-1">
+                    <button class="w-8 h-8 flex items-center justify-center rounded text-slate-400 cursor-not-allowed bg-slate-50"><i class="ph ph-caret-left"></i></button>
+                    <button class="w-8 h-8 flex items-center justify-center rounded bg-brand-500 text-white font-medium text-sm">1</button>
+                    <button class="w-8 h-8 flex items-center justify-center rounded text-slate-600 hover:bg-slate-100 font-medium text-sm">2</button>
+                    <button class="w-8 h-8 flex items-center justify-center rounded text-slate-600 hover:bg-slate-100 font-medium text-sm">3</button>
+                    <span class="px-1 text-slate-400">...</span>
+                    <button class="w-8 h-8 flex items-center justify-center rounded text-slate-600 hover:bg-slate-100"><i class="ph ph-caret-right"></i></button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Notificación Toast Mockup -->
+    <div x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-4"
+         class="fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50">
+        <i class="ph ph-check-circle text-green-400 text-xl"></i>
+        <span x-text="toast.message" class="text-sm font-medium"></span>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('morososApp', () => ({
+                searchQuery: '',
+                toast: { show: false, message: '' },
+                
+                // Datos crudos de prueba
+                data: [
+                    {
+                        id: 1,
+                        propietario: 'Constructora Atlas S.A.',
+                        documento: 'J-40123456-7',
+                        rol_encargado: 'Propietario',
+                        nombre_encargado: 'Dpto. Finanzas',
+                        email: 'pagos@atlas.com',
+                        telefono: '+58 412-5550123',
+                        unidades: ['Penthouse A', 'Local 2'],
+                        total_cuotas: 4,
+                        monto_total: 1250.50,
+                        expanded: false,
+                        detalle_cuotas: [
+                            { id: 101, unidad: 'Penthouse A', mes: 'Febrero 2026', vencimiento: '05/02/2026', responsable: 'Dpto. Finanzas', monto: 400.00 },
+                            { id: 102, unidad: 'Penthouse A', mes: 'Marzo 2026', vencimiento: '05/03/2026', responsable: 'Dpto. Finanzas', monto: 400.00 },
+                            { id: 103, unidad: 'Local 2', mes: 'Febrero 2026', vencimiento: '10/02/2026', responsable: 'Dpto. Finanzas', monto: 225.25 },
+                            { id: 104, unidad: 'Local 2', mes: 'Marzo 2026', vencimiento: '10/03/2026', responsable: 'Dpto. Finanzas', monto: 225.25 }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        propietario: 'María Antonieta Rivas',
+                        documento: 'V-15678901',
+                        rol_encargado: 'Inquilino',
+                        nombre_encargado: 'Carlos Eduardo Ruiz',
+                        email: 'carlos.ruiz99@mail.com',
+                        telefono: '+58 414-1234567',
+                        unidades: ['Apto 4B', 'Estac. 12'],
+                        total_cuotas: 3,
+                        monto_total: 450.00,
+                        expanded: false,
+                        detalle_cuotas: [
+                            { id: 201, unidad: 'Apto 4B', mes: 'Enero 2026', vencimiento: '15/01/2026', responsable: 'Carlos E. Ruiz', monto: 200.00 },
+                            { id: 202, unidad: 'Apto 4B', mes: 'Febrero 2026', vencimiento: '15/02/2026', responsable: 'Carlos E. Ruiz', monto: 200.00 },
+                            { id: 203, unidad: 'Estac. 12', mes: 'Febrero 2026', vencimiento: '15/02/2026', responsable: 'María A. Rivas', monto: 50.00 }
+                        ]
+                    },
+                    {
+                        id: 3,
+                        propietario: 'Inversiones El Sol C.A.',
+                        documento: 'J-30987654-1',
+                        rol_encargado: 'Propietario',
+                        nombre_encargado: 'José Gómez',
+                        email: 'jgomez@elsol.com',
+                        telefono: '+58 212-9876543',
+                        unidades: ['Oficina 101'],
+                        total_cuotas: 2,
+                        monto_total: 680.00,
+                        expanded: false,
+                        detalle_cuotas: [
+                            { id: 301, unidad: 'Oficina 101', mes: 'Marzo 2026', vencimiento: '01/03/2026', responsable: 'José Gómez', monto: 340.00 },
+                            { id: 302, unidad: 'Oficina 101', mes: 'Abril 2026', vencimiento: '01/04/2026', responsable: 'José Gómez', monto: 340.00 }
+                        ]
+                    }
+                ],
+
+                // Propiedades Computadas
+                get filteredData() {
+                    if (this.searchQuery === '') return this.data;
+                    const query = this.searchQuery.toLowerCase();
+                    return this.data.filter(item => {
+                        return item.propietario.toLowerCase().includes(query) || 
+                               item.documento.toLowerCase().includes(query) ||
+                               item.nombre_encargado.toLowerCase().includes(query) ||
+                               item.unidades.some(u => u.toLowerCase().includes(query));
+                    });
+                },
+
+                get totalMorosos() {
+                    return this.data.length;
+                },
+
+                get deudaTotal() {
+                    return this.data.reduce((acc, item) => acc + item.monto_total, 0);
+                },
+
+                get totalCuotasVencidas() {
+                    return this.data.reduce((acc, item) => acc + item.total_cuotas, 0);
+                },
+
+                // Métodos
+                toggleExpand(id) {
+                    const index = this.data.findIndex(item => item.id === id);
+                    if (index !== -1) {
+                        this.data[index].expanded = !this.data[index].expanded;
+                    }
+                },
+
+                formatMoney(amount) {
+                    return new Intl.NumberFormat('es-VE', { 
+                        style: 'currency', 
+                        currency: 'USD',
+                        minimumFractionDigits: 2 
+                    }).format(amount).replace('US$', '$'); 
+                },
+
+                notificar(item) {
+                    this.toast.message = `Recordatorio enviado a ${item.nombre_encargado}`;
+                    this.toast.show = true;
+                    setTimeout(() => { this.toast.show = false; }, 3000);
+                }
+            }));
+        });
+    </script>
+</body>
+</html>
