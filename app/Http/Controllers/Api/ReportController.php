@@ -330,6 +330,7 @@ class ReportController extends Controller
                 return [
                     'type' => 'overdue_quotas',
                     'user_id' => $responsibleUser?->id,
+                    'responsible_user_id' => $responsibleUser?->id,
                     'name' => $responsibleUser?->name ?? 'Sin responsable',
                     'email' => $responsibleUser?->email,
                     'phone' => $responsibleUser?->phone,
@@ -382,6 +383,7 @@ class ReportController extends Controller
 
                 return [
                     'user_id' => $first['user_id'],
+                    'responsible_user_id' => $first['responsible_user_id'] ?? $first['user_id'],
                     'name' => $first['name'],
                     'email' => $first['email'],
                     'phone' => $first['phone'],
@@ -390,7 +392,7 @@ class ReportController extends Controller
                     'departments' => $group->pluck('departments')->flatten()->unique()->values()->all(),
                     'total_debt' => round((float) $group->sum('total_debt'), 2),
                     'quotas_count' => $group->sum('quotas_count'),
-                    'quotas' => $group->pluck('quotas')->flatten()->values()->all(),
+                    'quotas' => $group->pluck('quotas')->flatten(1)->values()->all(),
                 ];
             })
             ->values();
@@ -571,17 +573,20 @@ class ReportController extends Controller
             return $quota->responsiblePivot->user_id;
         }
 
-        return $quota->departament->user_id;
+        return $quota->departament?->user_id;
     }
 
     private function getResponsibleUser(Quota $quota)
     {
         $tenantPays = $quota->departament->tenant_pays_quota ?? false;
-        if ($tenantPays && $quota->responsiblePivot?->user) {
-            return $quota->responsiblePivot->user;
+        if ($tenantPays) {
+            $user = $quota->responsiblePivot?->user;
+            if ($user) {
+                return $user;
+            }
         }
 
-        return $quota->departament->owner;
+        return $quota->departament?->owner;
     }
 
     public function exportDelinquents(Request $request): BinaryFileResponse
@@ -636,6 +641,7 @@ class ReportController extends Controller
                 return [
                     'type' => 'overdue_quotas',
                     'user_id' => $responsibleUser?->id,
+                    'responsible_user_id' => $responsibleUser?->id,
                     'name' => $responsibleUser?->name ?? 'Sin responsable',
                     'email' => $responsibleUser?->email,
                     'phone' => $responsibleUser?->phone,
@@ -685,6 +691,7 @@ class ReportController extends Controller
 
                 return [
                     'user_id' => $first['user_id'],
+                    'responsible_user_id' => $first['responsible_user_id'] ?? $first['user_id'],
                     'name' => $first['name'],
                     'email' => $first['email'],
                     'phone' => $first['phone'],
@@ -693,7 +700,7 @@ class ReportController extends Controller
                     'departments' => $group->pluck('departments')->flatten()->unique()->values()->all(),
                     'total_debt' => round((float) $group->sum('total_debt'), 2),
                     'quotas_count' => $group->sum('quotas_count'),
-                    'quotas' => $group->pluck('quotas')->flatten()->values()->all(),
+                    'quotas' => $group->pluck('quotas')->flatten(1)->values()->all(),
                 ];
             })
             ->values();
