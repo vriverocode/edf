@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('pays', function (Blueprint $table) {
             $table->dropForeign('pays_pay_method_foreign');
-            $table->bigInteger('pay_method')->nullable()->change();
+            $table->unsignedBigInteger('pay_method')->nullable()->change();
             $table->foreign('pay_method')->references('id')->on('pay_methods')->onDelete('cascade');
         });
     }
@@ -19,7 +19,7 @@ return new class extends Migration
     {
         Schema::table('pays', function (Blueprint $table) {
             $table->dropForeign('pays_pay_method_foreign');
-            $table->bigInteger('pay_method')->nullable(false)->change();
+            $table->unsignedBigInteger('pay_method')->nullable(false)->change();
             $table->foreign('pay_method')->references('id')->on('pay_methods')->onDelete('cascade');
         });
     }
