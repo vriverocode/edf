@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendNotificationJob;
 use App\Mail\PayClaims;
 use App\Models\BankAccount;
 use App\Models\Booking;
@@ -15,7 +16,6 @@ use App\Models\Rol;
 use App\Models\Sequence;
 use App\Models\Transaction;
 use App\Models\User;
-use App\Notifications\RealtimeNotification;
 use App\Services\BillInvoiceService;
 use App\Services\BookingPendingPayNotifier;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -143,6 +143,11 @@ class PayController extends Controller
         }
 
         if ((int) $request->type === 2) {
+            $bookingExists = Booking::where('id', $request->to_pay_id)->exists();
+            if (! $bookingExists) {
+                return $this->returnFail(404, 'La reserva que intentas pagar no existe o ha sido eliminada.');
+            }
+
             $hasActivePay = Pay::query()
                 ->where('booking_id', $request->to_pay_id)
                 ->whereIn('status', [1, 2, 6])
@@ -196,33 +201,39 @@ class PayController extends Controller
             $pay = Pay::create([
                 'user_id' => $user->id,
                 'booking_id' => $request->type == 2 ? $request->to_pay_id : null,
-                'quota_id' => !empty($quotaIdsForPay) ? $quotaIdsForPay[0] : null,
+                'quota_id' => ! empty($quotaIdsForPay) ? $quotaIdsForPay[0] : null,
                 'consolidated_ids' => $quotaIdsForPay,
                 'amount' => $request->amount,
                 'reference' => $request->reference ?? '000000',
-                'pay_id' => $payIdPrefix . $bookingIdStr . '-' . rand(1000, 9999),
+                'pay_id' => $payIdPrefix.$bookingIdStr.'-'.rand(1000, 9999),
                 'pay_date' => $request->pay_date ? date('Y-m-d', strtotime($request->pay_date)) : date('Y-m-d'),
                 'type' => $request->type,
                 'pay_method' => $request->pay_method,
                 'status' => 1,
             ]);
 
-            if ($request->type == 1 && !empty($quotaIdsForPay)) {
+            if ($request->type == 1 && ! empty($quotaIdsForPay)) {
                 $pay->quotas()->sync($quotaIdsForPay);
             }
 
             $this->afterPayAction($pay);
             $this->uploadVaucher($pay, $request);
-            $this->sendNotification($pay);
 
             DB::commit();
-
-            return $this->returnSuccess(200, ['idPay' => $pay->id]);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error en storePay: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('Error en storePay: '.$e->getMessage(), ['exception' => $e]);
+
             return $this->returnFail(500, 'Ocurrió un error al procesar el pago. Intente nuevamente.');
         }
+
+        try {
+            $this->sendNotification($pay);
+        } catch (\Throwable $e) {
+            Log::error('Error en notificación storePay: '.$e->getMessage());
+        }
+
+        return $this->returnSuccess(200, ['idPay' => $pay->id]);
     }
 
     public function updateStatus(Request $request, $payId)
@@ -486,19 +497,7 @@ class PayController extends Controller
 
             DB::commit();
 
-            try {
-                $user = User::find($pay->user_id);
-                if ($user) {
-                    $user->notify(new RealtimeNotification(
-                        title: 'Devolución procesada',
-                        message: 'Se procesó la devolución de S/ '.number_format($amount, 2).' por la reserva #'.($booking->booking_number ?? ''),
-                        url: '/client/reserves/view/'.$booking->id,
-                        meta: ['booking_id' => $booking->id, 'icon' => 'eva-undo-outline']
-                    ));
-                }
-            } catch (\Throwable $e) {
-                Log::error('Error al notificar devolución: '.$e->getMessage());
-            }
+            SendNotificationJob::dispatch($pay->user_id, 'Devolución procesada', 'Se procesó la devolución de S/ '.number_format($amount, 2).' por la reserva #'.($booking->booking_number ?? ''), '/client/reserves/view/'.$booking->id, ['booking_id' => $booking->id, 'icon' => 'eva-undo-outline']);
 
             return $this->returnSuccess(200, ['message' => 'Devolución registrada correctamente.']);
         } catch (\Throwable $e) {
@@ -805,26 +804,16 @@ class PayController extends Controller
 
     private function notifyMissingBankAccount($booking): void
     {
-        try {
-            $user = User::find($booking->user_id);
-            if ($user) {
-                $user->notify(new RealtimeNotification(
-                    title: 'Registra tu cuenta bancaria',
-                    message: 'Para recibir la devolución de tu reserva #'.$booking->booking_number.', registra tu cuenta bancaria o Yape.',
-                    url: '/client/account-bank',
-                    meta: ['booking_id' => $booking->id, 'icon' => 'eva-credit-card-outline']
-                ));
-            }
-        } catch (\Throwable $e) {
-            Log::error('Error al notificar cuenta bancaria faltante: '.$e->getMessage());
-        }
+        SendNotificationJob::dispatch($booking->user_id, 'Registra tu cuenta bancaria', 'Para recibir la devolución de tu reserva #'.$booking->booking_number.', registra tu cuenta bancaria o Yape.', '/client/account-bank', ['booking_id' => $booking->id, 'icon' => 'eva-credit-card-outline']);
     }
 
     private function updateBooking($id, $user)
     {
-        $booking = Booking::find($id)->update([
-            'status' => 2,
-        ]);
+        $booking = Booking::find($id);
+        if (! $booking) {
+            return;
+        }
+        $booking->update(['status' => 2]);
         $this->successReserveNotification($id, $booking);
     }
 
@@ -847,44 +836,30 @@ class PayController extends Controller
 
     private function sendNotification($pay)
     {
-        $users = [
-            'admin' => User::find(1),
-            'client' => User::find($pay->user_id),
-        ];
         $dataNotificaction = $this->getDataToNotification($pay);
 
-        try {
-            $users['client']->notify(new RealtimeNotification(
-                title: $dataNotificaction[0]['title'],
-                message: $dataNotificaction[0]['message'],
-                url: $dataNotificaction[0]['url'],
-                meta: $dataNotificaction[0]['meta'],
-            ));
-            $users['admin']->notify(new RealtimeNotification(
-                title: $dataNotificaction[1]['title'],
-                message: $dataNotificaction[1]['message'],
-                url: $dataNotificaction[1]['url'],
-                meta: $dataNotificaction[1]['meta'],
-            ));
-        } catch (\Throwable $e) {
-            // Silenciar errores de notificación para no romper el flujo
-        }
+        SendNotificationJob::dispatch($pay->user_id, $dataNotificaction[0]['title'], $dataNotificaction[0]['message'], $dataNotificaction[0]['url'], $dataNotificaction[0]['meta']);
+        SendNotificationJob::dispatch(1, $dataNotificaction[1]['title'], $dataNotificaction[1]['message'], $dataNotificaction[1]['url'], $dataNotificaction[1]['meta']);
     }
 
     private function getDataToNotification($pay)
     {
+        $bookingNumber = $pay->booking?->booking_number ?? '#'.$pay->id;
+        $monthLabel = $pay->quotas->first()?->month_label ?? '';
+        $month = $pay->quotas->first()?->month ?? '';
+
         return $pay->type == 1
             ? [
                 [
                     'title' => 'Pago realizado',
-                    'message' => 'Tu pago por las cuotas del mes de '.$pay->quotas[0]->month_label
+                    'message' => 'Tu pago por las cuotas del mes de '.$monthLabel
                     .' fue realizado, el personal de administración lo validará en breve.',
-                    'url' => '/client/quota/details/month/'.$pay->quotas[0]->month,
+                    'url' => '/client/quota/details/month/'.$month,
                     'meta' => ['quota_id' => $pay->id],
                 ],
                 [
                     'title' => 'Pago realizado',
-                    'message' => 'Se ha realizado el pago por las cuotas del mes de '.$pay->quotas[0]->month_label
+                    'message' => 'Se ha realizado el pago por las cuotas del mes de '.$monthLabel
                     .', Por favor validar',
                     'url' => '/admin/pay/validate/'.$pay->id,
                     'meta' => ['quota_id' => $pay->id],
@@ -893,14 +868,14 @@ class PayController extends Controller
             : [
                 [
                     'title' => 'Pago de reserva realizado',
-                    'message' => 'Tu pago por la reserva #'.$pay->booking->booking_number
+                    'message' => 'Tu pago por la reserva '.$bookingNumber
                         .' fue realizado, el personal de administración lo validará en breve.',
                     'url' => '/client/reserves/view/'.$pay->id,
                     'meta' => ['booking_id' => $pay->id],
                 ],
                 [
                     'title' => 'Pago de reserva realizado',
-                    'message' => 'Se ha realizado el pago por la reserva #'.$pay->booking->booking_number
+                    'message' => 'Se ha realizado el pago por la reserva '.$bookingNumber
                     .' Por favor validar.',
                     'url' => '/admin/pay/validate/'.$pay->id,
                     'meta' => ['booking_id' => $pay->id],
@@ -910,20 +885,17 @@ class PayController extends Controller
 
     private function sendReserveNotification($pay)
     {
-        $users = [
-            'admin' => User::find(1),
-            'client' => User::find($pay->user_id),
-        ];
-        $this->reserveNotificationByStatus($users, $pay);
+        $this->reserveNotificationByStatus($pay);
     }
 
-    private function reserveNotificationByStatus($users, $pay)
+    private function reserveNotificationByStatus($pay)
     {
+        $bookingNumber = $pay->booking?->booking_number ?? '#'.$pay->id;
 
         $data = $pay->status == 0
             ? [
                 'title' => 'Pago de reserva rechazado',
-                'message' => 'Tu pago por la reserva #'.$pay->booking->booking_number.' fue rechazado.',
+                'message' => 'Tu pago por la reserva '.$bookingNumber.' fue rechazado.',
                 'url' => '/client/reserves/view/'.$pay->id,
                 'meta' => [
                     'booking_id' => $pay->id,
@@ -933,7 +905,7 @@ class PayController extends Controller
 
             : [
                 'title' => 'Pago de reserva aceptado',
-                'message' => 'Tu pago por la reserva #'.$pay->booking->booking_number.' fue aprobada.',
+                'message' => 'Tu pago por la reserva '.$bookingNumber.' fue aprobada.',
                 'url' => '/client/reserves/view/'.$pay->id,
                 'meta' => [
                     'booking_id' => $pay->id,
@@ -941,48 +913,19 @@ class PayController extends Controller
                 ],
             ];
 
-        try {
-            $users['client']->notify(new RealtimeNotification(
-                title: $data['title'],
-                message: $data['message'],
-                url: $data['url'],
-                meta: $data['meta'],
-            ));
-        } catch (\Throwable $e) {
-            // Silenciar errores de notificación para no romper el flujo
-        }
+        SendNotificationJob::dispatch($pay->user_id, $data['title'], $data['message'], $data['url'], $data['meta']);
     }
 
     private function successReserveNotification($user, $booking)
     {
-        $users = [
-            'admin' => User::find(1),
-            'client' => User::find($user),
-        ];
-        try {
-            $users['client']->notify(new RealtimeNotification(
-                title: 'Reserva creada',
-                message: 'Tu reserva #'.$booking->booking_number.' fue creada.',
-                url: '/client/reserves/view/'.$booking->id,
-                meta: [
-                    'booking_id' => $booking->id,
-                    'icon' => $booking->icon_status,
-                ]
-            ));
-
-            if ($users['admin']) {
-                $users['admin']->notify(new RealtimeNotification(
-                    title: 'Nueva reserva',
-                    message: 'Se creó la reserva #'.$booking->booking_number.'.',
-                    url: '/admin/reserves/view/'.$booking->id,
-                    meta: [
-                        'booking_id' => $booking->id,
-                        'icon' => $booking->icon_status,
-                    ]
-                ));
-            }
-        } catch (\Throwable $e) {
-        }
+        SendNotificationJob::dispatch($user, 'Reserva creada', 'Tu reserva #'.$booking->booking_number.' fue creada.', '/client/reserves/view/'.$booking->id, [
+            'booking_id' => $booking->id,
+            'icon' => $booking->icon_status,
+        ]);
+        SendNotificationJob::dispatch(1, 'Nueva reserva', 'Se creó la reserva #'.$booking->booking_number.'.', '/admin/reserves/view/'.$booking->id, [
+            'booking_id' => $booking->id,
+            'icon' => $booking->icon_status,
+        ]);
     }
 
     private function pedingToPayReserveNotification($users, $booking)
