@@ -519,7 +519,7 @@ const showModal = () => {
           <q-btn label="Aprobar" unelevated color="primary" style="border-radius: 0.8rem;" padding="sm lg"
             :loading="loading" @click="openApproveDialog" />
         </div>
-        <p v-else class="text-grey-7 text-caption q-mt-md">Este pago ya tiene un resultado de validación.</p>
+        <p v-else class="text-grey-7 text-subtitle1 q-mt-md md:max-w-4xl">• Este pago ya tiene un resultado de validación.</p>
 
         <voucherModal :vaucher="pay.vaucher" :dialog="(dialog === 'voucher')" @closeModal="dialog = ''" />
       </div>

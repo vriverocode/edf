@@ -16,6 +16,7 @@ const pagTitle = ref(route.meta.pagTitle)
 const homePagesNameToHeader = ['dashboardAdmin', 'financePage', 'usersAdmin', 'ProfileMenu']
 const isHomePage = ref(homePagesNameToHeader.includes(route.name))
 const ifOwner = ref(user.value.rol.name.toLowerCase() == 'propietario')
+const ifTenant = ref(user.value.rol.name.toLowerCase() == 'inquilino')
 const reserveAreaActive = ref(false)
 const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
 
@@ -45,6 +46,8 @@ const hasPendingToPay = computed(() => {
   });
   return quotas;
 })
+
+const tenantPendingToPay = computed(() => user.value.tenant_pending_count || 0)
 
 const goTo = (url) => {
   router.push(url)
@@ -79,6 +82,12 @@ onMounted(() => {
 
               {{ user.total_peding_quotas.toFixed(2) }}
 
+            </div>
+          </div>
+          <div class="text-white" v-if="ifTenant && tenantPendingToPay > 0">
+            <div class="mant-title">Mantenimiento</div>
+            <div class="text-amtHeader" style="">{{ user.currency_symbol }}
+              {{ user.tenant_pending_amount.toFixed(2) }}
             </div>
           </div>
 

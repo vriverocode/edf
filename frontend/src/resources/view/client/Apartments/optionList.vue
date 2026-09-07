@@ -26,7 +26,7 @@ const menu = [
     link: '/client/pays/list',
   },
   {
-    title: 'Mi unidad',
+    title: 'Mis propiedades',
     icon: departamentos,
     link: '/client/department/my-unit',
   },

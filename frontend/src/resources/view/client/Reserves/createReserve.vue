@@ -368,43 +368,7 @@ const showNotify = (type, text) => {
   })
 }
 
-const createReserve = () => {
-  formData.value.comun_area = selectedComunArea.value.id
-  formData.value.amount = formData.value.typeOfReserve > 1
-    ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
-    : selectedComunArea.value.warranty_price || 0
 
-  formData.value.exclusive = formData.value.is_exclusive ? 1 : 0;
-
-  loading.value = true
-  reserveStore.createReserve(formData.value)
-    .then((response) => {
-      !response.data.toPay
-        ? showNotify('positive', 'Reserva realizada con exito')
-        : ''
-
-      if (!response.data.toPay) {
-        console.error('por aqui no son los pagados')
-        setTimeout(() => {
-          loading.value = false
-          router.push('/client/reserves/confirm-reserve/' + response.data.id)
-          // rulesModal.value = false
-        }, 1000);
-        return
-      }
-      toPayId.value = response.data.id
-      createPay(response.data.id)
-    })
-    .catch((response) => {
-      console.error(response)
-      setTimeout(() => {
-        loading.value = false
-        showNotify('negative', response)
-
-      }, 2000);
-
-    })
-}
 const mediaUrl = import.meta.env.VITE_LARAVEL_MEDIA_URL
 
 const visibleBackButton = (visible) => {
@@ -554,10 +518,47 @@ const fileSizeInMB = computed(() => {
 
   return size.toFixed(2);
 });
+const createReserve = () => {
+  formData.value.comun_area = selectedComunArea.value.id
+  formData.value.amount = formData.value.typeOfReserve > 1
+    ? (selectedComunArea.value.price + selectedComunArea.value.warranty_price)
+    : selectedComunArea.value.warranty_price || 0
 
+  formData.value.exclusive = formData.value.is_exclusive ? 1 : 0;
+
+  loading.value = true
+  reserveStore.createReserve(formData.value)
+    .then((response) => {
+      !response.data.toPay
+        ? showNotify('positive', 'Reserva realizada con exito')
+        : ''
+
+      if (!response.data.toPay) {
+        setTimeout(() => {
+          loading.value = false
+          router.push('/client/reserves/confirm-reserve/' + response.data.id)
+          // rulesModal.value = false
+        }, 1000);
+        return
+      }
+      toPayId.value = response.data.id
+      createPay(response.data.id)
+    })
+    .catch((response) => {
+      console.error(response)
+      setTimeout(() => {
+        loading.value = false
+        showNotify('negative', response)
+
+      }, 2000);
+
+    })
+}
 
 const createPay = (id) => {
   const dataForm = dataToForm(id)
+  loading.value = true
+
   reserveStore.createReservePay(dataForm)
     .then((response) => {
       showNotify('positive', 'Reserva creada y pagada con exito')
@@ -938,7 +939,9 @@ watch(step,
                               <div class=" md:pr-4">
                                 <q-input color="tealedf" label="Referencia de pago" dense borderless clearable
                                   v-model="payFormData.reference" class="form__inputsReverse mt-0" :maxlength="12"
-                                  :rules="[val => !(!val) || 'La refrencia de pago es obligatoria']">
+                                  placeholder="N° de referencia de la operacion" hint="Solo caracteres numéricos"
+                                  mask="############"
+                                  :rules="[val => !(!val) || 'La referencia de pago es obligatoria']">
 
                                   <template v-slot:append>
                                     <q-btn color="tealedf" size="0.1rem" outline style="padding:3px 6px" no-caps

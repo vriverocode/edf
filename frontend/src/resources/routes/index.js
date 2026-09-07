@@ -1501,6 +1501,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/reports/payments',
+        component: () => import('@/view/admin/Reports/reportPayments.vue'),
+        name: 'reportPayments',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Reporte de pagos',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/client/profile/edit',
         component: () => import('@/view/client/Profile/editProfile.vue'),
         name: 'editProfile',

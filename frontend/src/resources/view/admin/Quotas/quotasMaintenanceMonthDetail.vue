@@ -237,7 +237,7 @@ onMounted(() => {
                       </span>
                     </h3>
                     <div class="row">
-                      <div class="flex items-center text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-8 pl-1 ">
+                      <div class="flex items-center text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-7 pl-1 ">
                         <svg style="transform: translateX(-3px);" width="15px" height="15px" viewBox="0 0 24 24"
                           fill="none" xmlns="http://www.w3.org/2000/svg">
                           <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -250,7 +250,7 @@ onMounted(() => {
                         </svg>
                         <span class="font-medium">{{ quota.responsible_name }}</span>
                       </div>
-                      <div class="flex items-center md:justify-end text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-4 ">
+                      <div class="flex items-center md:justify-end text-sm text-gray-700 col-12 pb-1 md:pt-0 col-md-5 ">
                         <svg style="transform: translateX(-3px);" width="23px" height="23px" viewBox="0 0 64 64"
                           xmlns="http://www.w3.org/2000/svg" stroke-width="2" stroke="#374151" fill="none">
                           <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

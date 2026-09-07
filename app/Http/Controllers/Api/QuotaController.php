@@ -319,7 +319,12 @@ class QuotaController extends Controller
      */
     public function show($id)
     {
-        $quota = Quota::with(['departament', 'waterReading'])->find($id);
+        $quota = Quota::with([
+            'departament.owner',
+            'pays.payMethod',
+            'responsiblePivot.user',
+            'waterReading',
+        ])->find($id);
         if (! $quota) {
             return $this->returnFail(404, 'Cuota no encontrada');
         }

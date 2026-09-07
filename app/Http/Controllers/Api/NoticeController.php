@@ -168,7 +168,7 @@ class NoticeController extends Controller
     public function setViewer(Request $request, $noticeId)
     {
         $notice = Notice::find($noticeId);
-        $viewers = json_decode($notice->views, true);
+        $viewers = json_decode($notice->views, true) ?? [];
 
         if (in_array($request->user()->id, $viewers)) {
             return $this->returnSuccess(200, 'ok');

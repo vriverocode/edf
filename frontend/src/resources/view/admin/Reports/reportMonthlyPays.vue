@@ -2,8 +2,10 @@
 import { onMounted, ref, computed } from 'vue'
 import { Notify } from 'quasar'
 import { useQuotaStore } from '@/services/store/quota.store'
+import { useRouter } from 'vue-router'
 
 const quotaStore = useQuotaStore()
+const router = useRouter()
 
 const now = new Date()
 const year = ref(now.getFullYear())
@@ -131,7 +133,10 @@ const exportCsv = () => {
   a.click()
   URL.revokeObjectURL(url)
 }
-
+const goTo = (quotaId) => {
+  if (!quotaId) return
+  router.push(`/client/quota/view/${quotaId}`)
+}
 onMounted(fetchData)
 </script>
 
@@ -264,7 +269,9 @@ onMounted(fetchData)
             <td class="col-fixed col-dept">{{ dept.number }}</td>
             <td class="col-fixed col-type">{{ dept.type_label || '—' }}</td>
             <td class="col-fixed col-responsible text-ellipsis">{{ dept.responsible }}</td>
-            <td v-for="m in months" :key="m.num" class="col-month" :style="cellStyle(dept.months[m.num])">
+            <td v-for="m in months" :key="m.num" class="col-month" :style="cellStyle(dept.months[m.num])"
+              :class="{ 'cursor-pointer': dept.months[m.num]?.quota_id }"
+              @click="dept.months[m.num]?.quota_id && goTo(dept.months[m.num].quota_id)">
               <template v-if="dept.months[m.num]">
                 {{ formatMoney(dept.months[m.num].amount) }}
               </template>
@@ -465,6 +472,15 @@ onMounted(fetchData)
   height: 14px;
   border-radius: 3px;
   flex-shrink: 0;
+}
+
+.monthly-pays-table tbody td.cursor-pointer {
+  cursor: pointer;
+}
+
+.monthly-pays-table tbody td.cursor-pointer:hover {
+  opacity: 0.8;
+  text-decoration: underline;
 }
 
 </style>

@@ -154,7 +154,7 @@ watch(() => user.value?.units, calculateTotalParticipation, { immediate: true })
                   </div>
                 </q-item-section>
               </template>
-              <q-card class="md:px-5 mt-2 shadow-md" style="border-bottom: 1px solid lightgray;">
+              <q-card class="md:px-5 mt-2 shadow-md" style="border: 1px solid lightgray;">
                 <q-card-section>
                   <div class=" text-center text-xl pb-2 text-stone-600 md:text-2xl  font-bold">
                     Ficha Unidad Inmobiliaria
@@ -164,6 +164,10 @@ watch(() => user.value?.units, calculateTotalParticipation, { immediate: true })
                       <div class="flex my-2">
                         <div class="text-black font-medium">Dirección:</div>
                         <div class="ml-1 text-black font-medium">{{ apartment.address }}</div>
+                      </div>
+                      <div class="flex my-2">
+                        <div class="text-black font-medium">% de participación:</div>
+                        <div class="ml-1 text-black font-medium">%{{ parseFloat(apartment.participation_percentage).toFixed(6) }}</div>
                       </div>
                       <div class="flex my-2">
                         <div class="text-black font-medium">Tipo:</div>
@@ -217,14 +221,14 @@ watch(() => user.value?.units, calculateTotalParticipation, { immediate: true })
               </q-card>
             </q-expansion-item>
           </div>
-          <div class="pb-2 px-4">
-            <div class="flex justify-between items-center bg-primary text-white q-pa-md rounded-borders"
-              style="border-radius: 0.75rem;">
+          <div class="pb-2 px-1">
+            <div class="flex justify-between items-center  text-primary q-px-sm"
+              style="border-bottom: 1px solid lightgrey">
               <span class="text-body1 text-bold">Participación total</span>
               <span class="text-h6 text-bold">{{ totalParticipation.toFixed(4) }}%</span>
             </div>
           </div>
-          <div class="pb-4" style="height: 10%;">
+          <div class="pb-4 pt-2" style="height: 10%;">
             <div class="flex items-end h-full justify-center">
               <q-btn color="primary" class="full-width" style="border-radius: 0.5rem;" @click="addNewUnit()">
                 <div class="px-8 py-1">

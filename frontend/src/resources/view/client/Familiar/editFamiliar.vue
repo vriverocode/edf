@@ -19,6 +19,7 @@ const areaLoading = ref(false)
 
 const formData = ref({
     name: '',
+    username: '',
     email: '',
     phone: '',
     password: '',
@@ -34,6 +35,7 @@ const loadData = () => {
         .then((response) => {
             const user = response.data;
             formData.value.name = user.name || '';
+            formData.value.username = user.username || '';
             formData.value.email = user.email || '';
             formData.value.phone = user.phone || '';
             formData.value.parentesco = user.parentesco || '';
@@ -65,6 +67,7 @@ const onSubmit = () => {
     // Solo enviamos parentesco si es familiar
     const payload = {
         name: formData.value.name,
+        username: formData.value.username,
         email: formData.value.email,
         phone: formData.value.phone,
     };
@@ -152,6 +155,14 @@ onMounted(() => {
                     </div>
                     <q-input borderless clearable dense class="form__inputsCR mt-2" color="primary" v-model="formData.name"
                         :rules="[val => !!val || 'El nombre es requerido']" />
+                </div>
+
+                <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
+                    <div class="text-subtitle2 text-bold text-black pt-2">
+                        Nombre de usuario
+                    </div>
+                    <q-input borderless clearable dense class="form__inputsCR mt-2" color="primary" v-model="formData.username"
+                        :rules="[val => !!val || 'El nombre de usuario es requerido']" />
                 </div>
                 
                 <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">

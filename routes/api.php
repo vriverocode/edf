@@ -65,6 +65,14 @@ Route::middleware('auth:sanctum')->group(function () {
         $currency = Currency::first();
 
         $user->total_peding_quotas = $user->units->sum('pending_quotas_sum_amount');
+
+        $tenantDepartments = $user->departmentsInquilino
+            ->filter(fn ($p) => $p->departament?->tenant_pays_quota ?? false);
+        $user->tenant_pending_amount = (float) $tenantDepartments
+            ->sum('departament.pending_quotas_sum_amount');
+        $user->tenant_pending_count = (int) $tenantDepartments
+            ->sum('departament.pending_quotas_count');
+
         $userData = $user->toArray();
         $userData['currency'] = $currency?->id ?? 1;
         $userData['currency_symbol'] = $currency?->symbol ?? 'S/';
@@ -434,5 +442,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/delinquents/metrics', [ReportController::class, 'delinquentsMetrics']);
         Route::post('/delinquents/send-reminder', [ReportController::class, 'sendReminderDelinquents']);
         Route::get('/expense-matrix', [ReportController::class, 'expenseMatrix']);
+        Route::get('/payments', [ReportController::class, 'paymentsReport']);
+        Route::get('/payments/export', [ReportController::class, 'exportPayments']);
     });
 });

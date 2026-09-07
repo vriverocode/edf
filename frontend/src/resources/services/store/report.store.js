@@ -138,6 +138,52 @@ export const useReportStore = defineStore('Report', {
       })
     },
 
+    async getPaymentsReport(filters) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        const query = this.filterQuery(filters)
+        const url = '/api/reports/payments' + (query ? `?${query}` : '')
+        ApiService.get(url)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al cargar reporte de pagos')
+          })
+      })
+    },
+
+    async exportPaymentsReport(filters) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        const token = ApiService.getToken()
+        const query = this.filterQuery(filters)
+        const url = import.meta.env.VITE_LARAVEL_API_URL + '/api/reports/payments/export' + (query ? `?${query}` : '')
+        fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+          .then((res) => {
+            if (!res.ok) throw new Error('Error al exportar')
+            return res.blob()
+          })
+          .then((blob) => {
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            a.download = 'reporte-pagos.xlsx'
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+            resolve(true)
+          })
+          .catch((err) => {
+            console.error(err)
+            reject('Error al descargar el archivo')
+          })
+      })
+    },
+
     filterQuery(filter) {
       console.log(filter)
       try {

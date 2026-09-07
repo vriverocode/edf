@@ -6,10 +6,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Exports\BookingsExport;
 use App\Exports\DelinquentsExport;
+use App\Exports\PaymentsExport;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Departament;
 use App\Models\Expense;
+use App\Models\Pay;
 use App\Models\Provider;
 use App\Models\Quota;
 use App\Models\Rol;
@@ -783,5 +785,111 @@ class ReportController extends Controller
             'expenses' => $data,
             'totals' => $totals,
         ]);
+    }
+
+    public function paymentsReport(Request $request): JsonResponse
+    {
+        $perPage = min(max((int) $request->get('per_page', 15), 1), 100);
+
+        $query = Pay::with(['user', 'quotas.departament', 'payMethod'])
+            ->where('type', 1);
+
+        // Filtros de fecha
+        if ($request->filled('date_from')) {
+            $dateFrom = Carbon::createFromFormat('d/m/Y', $request->get('date_from'))->format('Y-m-d');
+            $query->whereDate('pay_date', '>=', $dateFrom);
+        }
+        if ($request->filled('date_to')) {
+            $dateTo = Carbon::createFromFormat('d/m/Y', $request->get('date_to'))->format('Y-m-d');
+            $query->whereDate('pay_date', '<=', $dateTo);
+        }
+
+        // Filtro por búsqueda (nombre de usuario o número de departamento)
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', fn ($uq) => $uq->where('name', 'like', '%'.$search.'%'))
+                    ->orWhereHas('quotas.departament', fn ($dq) => $dq->where('number', 'like', '%'.$search.'%'));
+            });
+        }
+
+        // Filtro por status
+        if ($request->filled('status') && intval($request->status) !== -1) {
+            $query->where('status', intval($request->status));
+        }
+
+        // Ordenamiento dinámico por columna
+        $sortBy = $request->get('sort_by', 'pay_date');
+        $sortDir = $request->get('sort_dir') === 'asc' ? 'asc' : 'desc';
+
+        if ($sortBy === 'dept_number') {
+            $query->join('pay_quota as pq_sort', 'pays.id', '=', 'pq_sort.pay_id')
+                ->join('quotas as q_sort', 'q_sort.id', '=', 'pq_sort.quota_id')
+                ->join('departaments as d_sort', 'd_sort.id', '=', 'q_sort.departament_id')
+                ->orderBy('d_sort.number', $sortDir)
+                ->orderBy('pays.id', $sortDir);
+        } elseif ($sortBy === 'month') {
+            $query->join('pay_quota as pq_sort2', 'pays.id', '=', 'pq_sort2.pay_id')
+                ->join('quotas as q_sort2', 'q_sort2.id', '=', 'pq_sort2.quota_id')
+                ->orderBy('q_sort2.month', $sortDir)
+                ->orderBy('pays.id', $sortDir);
+        } else {
+            $validSortFields = ['pay_date', 'amount', 'status'];
+            $safeSortBy = in_array($sortBy, $validSortFields) ? $sortBy : 'pay_date';
+            $query->orderBy($safeSortBy, $sortDir)->orderBy('id', $sortDir);
+        }
+
+        $pays = $query->paginate($perPage);
+
+        // Métricas sobre el mismo filtro (sin paginación)
+        $metricsQuery = Pay::where('type', 1);
+
+        if ($request->filled('date_from')) {
+            $metricsQuery->whereDate('pay_date', '>=', Carbon::createFromFormat('d/m/Y', $request->get('date_from'))->format('Y-m-d'));
+        }
+        if ($request->filled('date_to')) {
+            $metricsQuery->whereDate('pay_date', '<=', Carbon::createFromFormat('d/m/Y', $request->get('date_to'))->format('Y-m-d'));
+        }
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $metricsQuery->where(function ($q) use ($search) {
+                $q->whereHas('user', fn ($uq) => $uq->where('name', 'like', '%'.$search.'%'))
+                    ->orWhereHas('quotas.departament', fn ($dq) => $dq->where('number', 'like', '%'.$search.'%'));
+            });
+        }
+        if ($request->filled('status') && intval($request->status) !== -1) {
+            $metricsQuery->where('status', intval($request->status));
+        }
+
+        $metrics = [
+            'total_amount' => round((float) $metricsQuery->sum('amount'), 2),
+            'total_count' => $metricsQuery->count(),
+            'approved_count' => (clone $metricsQuery)->where('status', 2)->count(),
+            'pending_count' => (clone $metricsQuery)->where('status', 1)->count(),
+            'rejected_count' => (clone $metricsQuery)->where('status', 3)->count(),
+        ];
+
+        return $this->returnSuccess(200, [
+            'data' => $pays->items(),
+            'metrics' => $metrics,
+            'meta' => [
+                'current_page' => $pays->currentPage(),
+                'last_page' => $pays->lastPage(),
+                'total' => $pays->total(),
+                'per_page' => $pays->perPage(),
+            ],
+        ]);
+    }
+
+    public function exportPayments(Request $request)
+    {
+        $filters = [
+            'date_from' => $request->get('date_from'),
+            'date_to' => $request->get('date_to'),
+            'search' => $request->get('search'),
+            'status' => $request->get('status'),
+        ];
+
+        return Excel::download(new PaymentsExport($filters), 'reporte-pagos.xlsx');
     }
 }

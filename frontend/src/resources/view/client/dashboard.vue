@@ -52,6 +52,12 @@ const menu = computed(() => [
     roles: [2,7]
   },
   {
+    title: 'Cuotas',
+    icon: pagos,
+    link: '/client/balance/list',
+    roles: [3]
+  },
+  {
     title: 'Eventos',
     icon: eventos,
     link: '/client/events',

@@ -950,11 +950,22 @@ class PayController extends Controller
             $query->where('type', intval($request->type));
         }
 
+        // Filtro por búsqueda (nombre de usuario o número de departamento)
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', fn ($uq) => $uq->where('name', 'like', '%'.$search.'%'))
+                    ->orWhereHas('quotas.departament', fn ($dq) => $dq->where('number', 'like', '%'.$search.'%'));
+            });
+        }
+
         if ($request->filled('date_from')) {
-            $query->whereDate('pay_date', '>=', $request->get('date_from'));
+            $dateFrom = Carbon::createFromFormat('d/m/Y', $request->get('date_from'))->format('Y-m-d');
+            $query->whereDate('pay_date', '>=', $dateFrom);
         }
         if ($request->filled('date_to')) {
-            $query->whereDate('pay_date', '<=', $request->get('date_to'));
+            $dateTo = Carbon::createFromFormat('d/m/Y', $request->get('date_to'))->format('Y-m-d');
+            $query->whereDate('pay_date', '<=', $dateTo);
         }
 
         // Ordenamiento

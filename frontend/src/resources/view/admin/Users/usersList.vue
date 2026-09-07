@@ -133,9 +133,9 @@ onMounted(() => {
         </q-input>
       </div>
     </div>
-    <div class="px-4 md:px-0 md:flex md:mx-auto md:justify-end md:w-5/6">
+    <div class="px-4 md:px-0 md:flex md:mx-0 md:justify-end w-full md:px-28">
       <q-btn color="primary" unelevated class="w-full mt-5 md:mx-5 createButton" style="border-radius: 0.5rem;"
-        @click="goTo('/admin/users/form/add')">
+        @click="goTo('/admin/users/form/add')" no-caps>
         <div class="flex items-center py-1">
           <q-icon name="eva-plus-outline" />
           <div class="q-pt-xs text-bold pl-1">Crear nuevo usuario</div>
@@ -176,33 +176,33 @@ onMounted(() => {
               </q-tooltip>
             </div>
           </template>
-          <div class="flex justify-end px-2 w-full pt-3 col-12" style="border-top: 1px solid lightgrey;">
-            <div>
-              <q-btn icon="eva-eye-outline" class="mx-1" flat color="indigo-5" size="0.9rem"
+          <div class="row justify-end px-1 md:px-2 w-full pt-3 col-12" style="border-top: 1px solid lightgrey;">
+            <div class="col-2">
+              <q-btn icon="eva-eye-outline" class="mx-1" flat color="indigo-5" size="0.8rem"
                 @click="goTo('/admin/users/detail/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Ver detalle
                 </q-tooltip>
               </q-btn>
             </div>
-            <div v-if="user.rol_id == 2 || user.rol_id == 7">
-              <q-btn icon="eva-home-outline" class="mx-1" flat color="yellow-9" size="0.9rem"
+            <div class="col-2" v-if="user.rol_id == 2 || user.rol_id == 7">
+              <q-btn icon="eva-home-outline" class="mx-1" flat color="yellow-9" size="0.8rem"
                 @click="goTo('/admin/users/assign-property/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
                   Agregar unidad
                 </q-tooltip>
               </q-btn>
             </div>
-            <div>
-              <q-btn icon="eva-settings-outline" class="mx-1" color="primary" flat size="0.9rem"
+            <div class="col-2">
+              <q-btn icon="eva-settings-outline" class="mx-1" color="primary" flat size="0.8rem"
                 @click="goTo('/admin/users/form/update/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
                   Editar usuario
                 </q-tooltip>
               </q-btn>
             </div>
-            <div>
-              <q-btn icon="eva-credit-card-outline" class="mx-1" color="amber-6" flat size="0.9rem"
+            <div class="col-2">
+              <q-btn icon="eva-credit-card-outline" class="mx-1" color="amber-6" flat size="0.8rem"
                 v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6"
                 @click="goTo('/admin/pays/user/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
@@ -210,15 +210,15 @@ onMounted(() => {
                 </q-tooltip>
               </q-btn>
             </div>
-            <div>
-              <q-btn icon="eva-grid-outline" class="mx-1" flat color="teal" size="0.9rem" @click="openAreas(user)">
+            <div class="col-2">
+              <q-btn icon="eva-grid-outline" class="mx-1" flat color="teal" size="0.8rem" @click="openAreas(user)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
                   Áreas que puede reservar
                 </q-tooltip>
               </q-btn>
             </div>
-            <div>
-              <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.9rem" @click="openModal(user, 'delete')">
+            <div class="col-2">
+              <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.8rem" @click="openModal(user, 'delete')">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Borrar usuario
                 </q-tooltip>

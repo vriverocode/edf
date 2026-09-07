@@ -57,13 +57,13 @@ watch([selectedPrefix, phoneNumber], ([newPrefix, newNumber]) => {
 // Si necesitas inicializar el valor desde el padre
 onMounted(() => {
   // Lógica para separar el prefijo y el número si viene un valor inicial
-  const initialValue = props.modelValue
+  const initialValue = props.modelValue || ''
   const withPrefix = prefixes.find(p => initialValue.startsWith(p.value)) 
-  const foundPrefix = prefixes.find(p => initialValue.startsWith(p.value)) ?? '+51'
+  const foundPrefix = withPrefix ?? prefixes.find(p => p.value === '+51')
 
   if (foundPrefix) {
     selectedPrefix.value = foundPrefix
-    phoneNumber.value = withPrefix ? initialValue.substring(foundPrefix.length) : initialValue
+    phoneNumber.value = withPrefix ? initialValue.substring(foundPrefix.value.length) : initialValue
   }
 })
 </script>

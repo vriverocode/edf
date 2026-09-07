@@ -62,7 +62,7 @@ const createApartment = () => {
             class="form__inputsR mt-1" />
         </div>
 
-        <div class="col-md-6 col-12 mt-3 px-2 md:px-12">
+        <div class="col-md-6 col-12 mt:1 md:mt-3 px-2 md:px-12">
           <div class="text-subtitle2 text-black">
             N° de unidad
           </div>

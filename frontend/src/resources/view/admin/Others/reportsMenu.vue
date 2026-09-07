@@ -37,6 +37,12 @@ const menu = [
     subtitle: 'Matriz de gastos por proveedor y mes',
     link: '/admin/reports/expense-matrix',
   },
+  {
+    title: 'Reporte de pagos',
+    icon: cuotas,
+    subtitle: 'Pagos de cuotas con filtros y exportación',
+    link: '/admin/reports/payments',
+  },
 ];
 
 const goTo = (url) => {

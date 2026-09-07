@@ -234,9 +234,9 @@ onMounted(() => {
       </div>
     </div>
     <div class="px-4 md:px-0 md:flex md:justify-between items-center w-full md:w-6/6 mt-3 md:px-28 ">
-      <div class="w-full md:w-auto">
+      <div class="w-full md:w-auto px-2">
         <q-btn color="primary" unelevated class="w-full createButton" style="border-radius: 0.5rem;"
-          @click="goTo('/admin/department/form/add')">
+          @click="goTo('/admin/department/form/add')" no-caps>
           <div class="flex items-center py-1 px-4">
             <q-icon name="eva-plus-outline" />
             <div class="pl-2">Crear nueva unidad</div>
@@ -331,7 +331,7 @@ onMounted(() => {
           <q-select dense borderless v-model="selectedOwner" :options="filteredOwners" option-label="name"
             option-value="id" emit-value map-options class="form__inputsTypeDepart" :loading="modalLoading"
             :disable="modalLoading" use-input input-debounce="300" @filter="filterOwners"
-            placeholder="Buscar propietario..."
+            :placeholder="selectedOwner ? '' : 'Buscar propietario...' "
             no-option-label="No hay propietarios sin departamento" />
         </q-card-section>
         <q-card-actions align="right">

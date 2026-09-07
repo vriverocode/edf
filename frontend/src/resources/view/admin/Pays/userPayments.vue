@@ -58,11 +58,7 @@ onMounted(fetchData)
         { name: 'status_name', label: 'Estado', field: 'status_name', align: 'center' },
         { name: 'created_at', label: 'Fecha', field: 'created_at', format: v => v ? moment(v).format('DD/MM/YYYY') : '—', align: 'center' },
       ]" row-key="id" hide-pagination virtual-scroll />
-      <div class="flex justify-center q-mt-md">
-        <q-btn color="grey-7" style="border-radius: 0.5rem;" @click="router.go(-1)">
-          <div class="px-6 py-1">Volver</div>
-        </q-btn>
-      </div>
+
     </div>
   </div>
 </template>
