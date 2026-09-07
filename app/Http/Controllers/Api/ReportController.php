@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Exports\BookingsExport;
 use App\Exports\DelinquentsExport;
+use App\Exports\MonthlyPaymentsExport;
 use App\Exports\PaymentsExport;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
@@ -792,7 +793,7 @@ class ReportController extends Controller
         $perPage = min(max((int) $request->get('per_page', 15), 1), 100);
 
         $query = Pay::with(['user', 'quotas.departament', 'payMethod'])
-            ->where('type', 1);
+            ->where('pays.type', 1);
 
         // Filtros de fecha
         if ($request->filled('date_from')) {
@@ -823,16 +824,11 @@ class ReportController extends Controller
         $sortDir = $request->get('sort_dir') === 'asc' ? 'asc' : 'desc';
 
         if ($sortBy === 'dept_number') {
-            $query->join('pay_quota as pq_sort', 'pays.id', '=', 'pq_sort.pay_id')
-                ->join('quotas as q_sort', 'q_sort.id', '=', 'pq_sort.quota_id')
-                ->join('departaments as d_sort', 'd_sort.id', '=', 'q_sort.departament_id')
-                ->orderBy('d_sort.number', $sortDir)
-                ->orderBy('pays.id', $sortDir);
+            $deptSub = DB::raw('(SELECT d.number FROM pay_quota pq INNER JOIN quotas q ON q.id = pq.quota_id INNER JOIN departaments d ON d.id = q.departament_id WHERE pq.pay_id = pays.id ORDER BY d.number DESC LIMIT 1)');
+            $query->orderBy($deptSub, $sortDir)->orderBy('pays.id', $sortDir);
         } elseif ($sortBy === 'month') {
-            $query->join('pay_quota as pq_sort2', 'pays.id', '=', 'pq_sort2.pay_id')
-                ->join('quotas as q_sort2', 'q_sort2.id', '=', 'pq_sort2.quota_id')
-                ->orderBy('q_sort2.month', $sortDir)
-                ->orderBy('pays.id', $sortDir);
+            $monthSub = DB::raw('(SELECT MIN(q.month) FROM pay_quota pq INNER JOIN quotas q ON q.id = pq.quota_id WHERE pq.pay_id = pays.id)');
+            $query->orderBy($monthSub, $sortDir)->orderBy('pays.id', $sortDir);
         } else {
             $validSortFields = ['pay_date', 'amount', 'status'];
             $safeSortBy = in_array($sortBy, $validSortFields) ? $sortBy : 'pay_date';
@@ -842,7 +838,7 @@ class ReportController extends Controller
         $pays = $query->paginate($perPage);
 
         // Métricas sobre el mismo filtro (sin paginación)
-        $metricsQuery = Pay::where('type', 1);
+        $metricsQuery = Pay::where('pays.type', 1);
 
         if ($request->filled('date_from')) {
             $metricsQuery->whereDate('pay_date', '>=', Carbon::createFromFormat('d/m/Y', $request->get('date_from'))->format('Y-m-d'));
@@ -891,5 +887,103 @@ class ReportController extends Controller
         ];
 
         return Excel::download(new PaymentsExport($filters), 'reporte-pagos.xlsx');
+    }
+
+    public function exportMonthlyPayments(Request $request): BinaryFileResponse
+    {
+        $year = (int) $request->query('year', now()->year);
+
+        $departments = Departament::with([
+            'availableOwner:id,name',
+            'peoples.user:id,name',
+        ])->where(function ($q) {
+            $q->whereNotNull('user_id')
+                ->orWhereHas('peoples');
+        })->get()->sortBy(fn ($d) => [$d->type, $d->inter_number])->values();
+
+        $quotas = Quota::whereYear('due_date', $year)
+            ->whereIn('departament_id', $departments->pluck('id'))
+            ->get(['id', 'departament_id', 'month', 'amount', 'maintenance_amount', 'water_amount', 'status', 'due_date']);
+
+        $quotasByDept = $quotas->groupBy('departament_id');
+
+        $months = [
+            1 => ['label' => 'Ene', 'name' => 'Enero'],
+            2 => ['label' => 'Feb', 'name' => 'Febrero'],
+            3 => ['label' => 'Mar', 'name' => 'Marzo'],
+            4 => ['label' => 'Abr', 'name' => 'Abril'],
+            5 => ['label' => 'May', 'name' => 'Mayo'],
+            6 => ['label' => 'Jun', 'name' => 'Junio'],
+            7 => ['label' => 'Jul', 'name' => 'Julio'],
+            8 => ['label' => 'Ago', 'name' => 'Agosto'],
+            9 => ['label' => 'Sep', 'name' => 'Septiembre'],
+            10 => ['label' => 'Oct', 'name' => 'Octubre'],
+            11 => ['label' => 'Nov', 'name' => 'Noviembre'],
+            12 => ['label' => 'Dic', 'name' => 'Diciembre'],
+        ];
+
+        $data = $departments->map(function ($dept) use ($quotasByDept, $months) {
+            $deptQuotas = $quotasByDept->get($dept->id, collect());
+            $deptQuotasByMonth = $deptQuotas->keyBy('month');
+
+            $responsible = $dept->owner?->name;
+            if (! $responsible) {
+                $tenant = $dept->peoples->first();
+                $responsible = $tenant?->user?->name;
+            }
+
+            $monthData = [];
+            foreach ($months as $monthNum => $monthInfo) {
+                $quota = $deptQuotasByMonth->get($monthNum);
+                $monthData[$monthNum] = $quota ? [
+                    'quota_id' => $quota->id,
+                    'amount' => (float) $quota->amount,
+                    'maintenance_amount' => (float) $quota->maintenance_amount,
+                    'water_amount' => (float) $quota->water_amount,
+                    'status' => (int) $quota->status,
+                ] : null;
+            }
+
+            return [
+                'departament_id' => $dept->id,
+                'number' => $dept->number,
+                'inter_number' => $dept->inter_number,
+                'block' => $dept->block,
+                'type' => $dept->type,
+                'type_label' => $dept->type_label,
+                'responsible' => $responsible ?? '—',
+                'months' => $monthData,
+            ];
+        });
+
+        $totals = [];
+        foreach ($months as $monthNum => $monthInfo) {
+            $amount = 0;
+            $paid = 0;
+            $pending = 0;
+            $overdue = 0;
+            foreach ($data as $row) {
+                $m = $row['months'][$monthNum];
+                if (! $m) {
+                    continue;
+                }
+                $amount += $m['amount'];
+                if ($m['status'] === 3) {
+                    $paid += $m['amount'];
+                } elseif ($m['status'] === 4) {
+                    $overdue += $m['amount'];
+                } else {
+                    $pending += $m['amount'];
+                }
+            }
+            $totals[$monthNum] = [
+                'amount' => round($amount, 2),
+                'paid' => round($paid, 2),
+                'pending' => round($pending, 2),
+                'overdue' => round($overdue, 2),
+            ];
+        }
+
+        return Excel::download(new MonthlyPaymentsExport($data->toArray(), $totals, $year), 'reporte-cuotas-mensuales-'.$year.'.xlsx');
     }
 }

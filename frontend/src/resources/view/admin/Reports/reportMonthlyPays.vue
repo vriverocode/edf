@@ -106,32 +106,16 @@ const fetchData = async () => {
   }
 }
 
-const exportCsv = () => {
-  const headers = ['Unidad', 'Tipo', 'Responsable', ...months.map((m) => m.full)]
-  const rows = departments.value.map((dept) => {
-    const monthCells = months.map(({ num }) => {
-      const m = dept.months[num]
-      return m ? Number(m.amount).toFixed(2) : '0.00'
-    })
-    return [dept.number, dept.type_label || '', dept.responsible, ...monthCells]
-  })
-
-  // Footer rows
-  const paidRow = ['COBRADO', '', '', ...months.map(({ num }) => (filteredTotals.value[num]?.paid || 0).toFixed(2))]
-  const pendingRow = ['PENDIENTE', '', '', ...months.map(({ num }) => (filteredTotals.value[num]?.pending || 0).toFixed(2))]
-  const totalRow = ['TOTAL', '', '', ...months.map(({ num }) => (filteredTotals.value[num]?.amount || 0).toFixed(2))]
-
-  const csv = [headers, ...rows, paidRow, pendingRow, totalRow]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
-    .join('\n')
-
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `reporte-cuotas-${year.value}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+const exportToXls = async () => {
+  loading.value = true
+  try {
+    await quotaStore.exportMonthlyPaymentsReport(year.value)
+    Notify.create({ color: 'positive', message: 'Archivo descargado correctamente' })
+  } catch (e) {
+    Notify.create({ color: 'negative', message: typeof e === 'string' ? e : 'Error al exportar archivo' })
+  } finally {
+    loading.value = false
+  }
 }
 const goTo = (quotaId) => {
   if (!quotaId) return
@@ -212,7 +196,7 @@ onMounted(fetchData)
           label="Exportar"
           icon="eva-download-outline"
           :disable="departments.length === 0"
-          @click="exportCsv"
+          @click="exportToXls"
           size="sm"
         />
       </div>

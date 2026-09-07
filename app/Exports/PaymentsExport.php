@@ -7,17 +7,17 @@ namespace App\Exports;
 use App\Models\Pay;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithRowHeights;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class PaymentsExport implements FromCollection, WithColumnWidths, WithHeadings, WithMapping, WithRowHeights, WithStyles
+class PaymentsExport implements FromCollection, WithColumnWidths, WithHeadings, WithMapping, WithStyles
 {
     private array $filters;
 
@@ -31,7 +31,7 @@ class PaymentsExport implements FromCollection, WithColumnWidths, WithHeadings, 
     public function collection(): Collection
     {
         $query = Pay::with(['user', 'quotas.departament', 'payMethod'])
-            ->where('type', 1);
+            ->where('pays.type', 1);
 
         if (! empty($this->filters['date_from'])) {
             $query->whereDate('pay_date', '>=', Carbon::createFromFormat('d/m/Y', $this->filters['date_from'])->format('Y-m-d'));
@@ -54,16 +54,11 @@ class PaymentsExport implements FromCollection, WithColumnWidths, WithHeadings, 
         $sortDir = ($this->filters['sort_dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 
         if ($sortBy === 'dept_number') {
-            $query->join('pay_quota as pq_sort', 'pays.id', '=', 'pq_sort.pay_id')
-                ->join('quotas as q_sort', 'q_sort.id', '=', 'pq_sort.quota_id')
-                ->join('departaments as d_sort', 'd_sort.id', '=', 'q_sort.departament_id')
-                ->orderBy('d_sort.number', $sortDir)
-                ->orderBy('pays.id', $sortDir);
+            $deptSub = DB::raw('(SELECT d.number FROM pay_quota pq INNER JOIN quotas q ON q.id = pq.quota_id INNER JOIN departaments d ON d.id = q.departament_id WHERE pq.pay_id = pays.id ORDER BY d.number DESC LIMIT 1)');
+            $query->orderBy($deptSub, $sortDir)->orderBy('pays.id', $sortDir);
         } elseif ($sortBy === 'month') {
-            $query->join('pay_quota as pq_sort2', 'pays.id', '=', 'pq_sort2.pay_id')
-                ->join('quotas as q_sort2', 'q_sort2.id', '=', 'pq_sort2.quota_id')
-                ->orderBy('q_sort2.month', $sortDir)
-                ->orderBy('pays.id', $sortDir);
+            $monthSub = DB::raw('(SELECT MIN(q.month) FROM pay_quota pq INNER JOIN quotas q ON q.id = pq.quota_id WHERE pq.pay_id = pays.id)');
+            $query->orderBy($monthSub, $sortDir)->orderBy('pays.id', $sortDir);
         } else {
             $validSortFields = ['pay_date', 'amount', 'status'];
             $safeSortBy = in_array($sortBy, $validSortFields) ? $sortBy : 'pay_date';
@@ -162,13 +157,6 @@ class PaymentsExport implements FromCollection, WithColumnWidths, WithHeadings, 
             'F' => 20,  // Método de pago
             'G' => 20,  // Referencia
             'H' => 22,  // Estado
-        ];
-    }
-
-    public function rowHeights(): array
-    {
-        return [
-            1 => 30,  // Header row height
         ];
     }
 }

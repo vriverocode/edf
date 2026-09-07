@@ -265,6 +265,33 @@ export const useQuotaStore = defineStore('Quota', {
           })
       })
     },
+    async exportMonthlyPaymentsReport(year) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        const token = ApiService.getToken()
+        const url = import.meta.env.VITE_LARAVEL_API_URL + '/api/reports/monthly-payments/export?year=' + year
+        fetch(url, { headers: { Authorization: 'Bearer ' + token } })
+          .then((res) => {
+            if (!res.ok) throw new Error('Error al exportar')
+            return res.blob()
+          })
+          .then((blob) => {
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            a.download = 'reporte-cuotas-mensuales-' + year + '.xlsx'
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+            resolve(true)
+          })
+          .catch((err) => {
+            console.error(err)
+            reject('Error al descargar el archivo')
+          })
+      })
+    },
     async getAvailableQuotaInDayByArea(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {

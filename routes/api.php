@@ -437,6 +437,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/bookings/export', [ReportController::class, 'exportBookings']);
         Route::get('/bookings/metrics', [ReportController::class, 'bookingsMetrics']);
         Route::get('/monthly-payments', [ReportController::class, 'monthlyPayments']);
+        Route::get('/monthly-payments/export', [ReportController::class, 'exportMonthlyPayments']);
         Route::get('/delinquents', [ReportController::class, 'delinquents']);
         Route::get('/delinquents/export', [ReportController::class, 'exportDelinquents']);
         Route::get('/delinquents/metrics', [ReportController::class, 'delinquentsMetrics']);

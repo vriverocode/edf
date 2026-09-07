@@ -729,7 +729,7 @@ class PayController extends Controller
         $rules = $inputs['pay_method'] != 3
             ? [
                 'amount' => ['required', 'numeric'],
-                'pay_date' => ['required', 'date'],
+                'pay_date' => ['required', 'date', 'before_or_equal:today'],
                 'reference' => ['required', 'regex:/^[0-9 &]+$/i'],
                 'pay_method' => ['required', 'numeric'],
                 'vaucher' => ['required', 'file'],
@@ -745,6 +745,7 @@ class PayController extends Controller
             'amount.numeric' => 'El monto no es valido',
             'pay_date.required' => 'La fecha es requerida',
             'pay_date.date' => 'La fecha no es valida',
+            'pay_date.before_or_equal' => 'La fecha de pago no puede ser mayor a la fecha actual',
             'reference.required' => 'la referencia es requerida',
             'reference.regex' => 'la referencia no es valida',
             'pay_method.required' => 'Metodo de pago es requerido',
@@ -996,7 +997,7 @@ class PayController extends Controller
             'financial_account_id' => ['required', 'exists:financial_accounts,id'],
             'transaction_category_id' => ['required', 'exists:transaction_categories,id'],
             'reference' => ['nullable', 'string'],
-            'pay_date' => ['required', 'date'],
+            'pay_date' => ['required', 'date', 'before_or_equal:today'],
             'vaucher' => ['nullable', 'file', 'max:10240'],
         ], [
             'amount.required' => 'El monto es requerido',
@@ -1007,6 +1008,7 @@ class PayController extends Controller
             'transaction_category_id.exists' => 'La categoría de transacción no es válida',
             'pay_date.required' => 'La fecha de pago es requerida',
             'pay_date.date' => 'La fecha de pago no es válida',
+            'pay_date.before_or_equal' => 'La fecha de pago no puede ser mayor a la fecha actual',
         ]);
 
         if ($validated->fails()) {
