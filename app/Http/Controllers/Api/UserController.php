@@ -332,8 +332,8 @@ class UserController extends Controller
     }
     public function resetUser(Request $request, $userId)
     {
-        if ($request->user()->rol_id === Rol::ADMIN) {
-            throw new Exception('No tiene permiso para registrar usuarios en este departamento.');
+        if ($request->user()->rol_id !== Rol::ADMIN) {
+            throw new Exception('No tiene permiso para modificar usuarios.');
         }
         $user = User::find($userId);
         if (!$user) {

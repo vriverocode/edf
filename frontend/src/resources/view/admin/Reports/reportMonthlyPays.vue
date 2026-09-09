@@ -17,7 +17,7 @@ const statusFilter = ref(null)
 const statusOptions = [
   { label: 'Todos', value: null },
   { label: 'Pagado', value: 3 },
-  { label: 'Pendiente', value: 2 },
+  { label: 'Pendiente', value: 1 },
   { label: 'Vencido', value: 4 },
 ]
 

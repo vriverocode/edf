@@ -10,6 +10,7 @@ use App\Services\MonthlyQuotaService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ImportCuotasPagosAgosto extends Command
@@ -32,11 +33,14 @@ class ImportCuotasPagosAgosto extends Command
         'quotas_created' => 0,
         'quotas_duplicated' => 0,
         'pays_created' => 0,
+        'pays_duplicated' => 0,
         'departments_not_found' => 0,
         'departments_skipped' => 0,
         'water_readings_linked' => 0,
         'user_not_found' => 0,
     ];
+
+    private array $accumulatedSaldo = [];
 
     public function handle(): int
     {
@@ -59,6 +63,9 @@ class ImportCuotasPagosAgosto extends Command
             return 1;
         }
 
+        $this->info('Pre-escaneando saldos por depto/mes/año...');
+        $this->preScanAccumulate($sheet);
+
         $this->info("Procesando hoja '".self::SHEET_NAME."'...\n");
 
         $totalRows = self::LAST_DATA_ROW - self::FIRST_DATA_ROW + 1;
@@ -79,6 +86,44 @@ class ImportCuotasPagosAgosto extends Command
         return 0;
     }
 
+    private function preScanAccumulate(Worksheet $sheet): void
+    {
+        for ($row = self::FIRST_DATA_ROW; $row <= self::LAST_DATA_ROW; $row++) {
+            $predio = $this->cellValue($sheet, $row, 3);
+            $periodo = $this->cellValue($sheet, $row, 6);
+            $saldo = $this->cellValue($sheet, $row, 9);
+
+            if ($predio === null || $predio === '' || ! is_numeric($saldo)) {
+                continue;
+            }
+
+            $periodMeta = $this->parsePeriodo($periodo);
+            if ($periodMeta === null || $periodMeta['month'] === 0) {
+                continue;
+            }
+
+            $departamentsData = $this->resolveDepartaments($predio);
+            if ($departamentsData === null) {
+                continue;
+            }
+
+            // Dividir el saldo entre los departamentos del código multi-línea
+            $saldoPerDept = (float) $saldo / count($departamentsData);
+
+            foreach ($departamentsData as $deptData) {
+                $departament = Departament::where('number', $deptData['number'])->first();
+                if (! $departament) {
+                    continue;
+                }
+
+                $key = $departament->id.'|'.$periodMeta['month'].'|'.$periodMeta['year'];
+                $this->accumulatedSaldo[$key] = ($this->accumulatedSaldo[$key] ?? 0) + $saldoPerDept;
+            }
+        }
+
+        $this->info('Departamentos con saldo acumulado: '.count($this->accumulatedSaldo));
+    }
+
     private function processRow(Worksheet $sheet, int $row): void
     {
         $this->stats['rows']++;
@@ -93,7 +138,7 @@ class ImportCuotasPagosAgosto extends Command
         // Parsear periodo
         $periodMeta = $this->parsePeriodo($periodo);
         if ($periodMeta === null) {
-            $this->skip($predio, "Periodo no valido: ".((string) $periodo ?: 'vacio'));
+            $this->skip($predio, 'Periodo no valido: '.((string) $periodo ?: 'vacio'));
 
             return;
         }
@@ -131,39 +176,48 @@ class ImportCuotasPagosAgosto extends Command
             $year = $periodMeta['year'];
             $dueDate = $this->dueDateFor($month, $year);
 
-            // Verificar duplicado
-            $exists = Quota::where('departament_id', $departament->id)
-                ->where('month', $month)
-                ->whereYear('due_date', $year)
-                ->exists();
-
-            if ($exists) {
-                $this->stats['quotas_duplicated']++;
-
-                continue;
-            }
-
             // Buscar lectura de agua existente
             $waterReading = WaterReading::where('departament_id', $departament->id)
                 ->where('month', $month)
                 ->where('year', $year)
                 ->first();
 
+            // Verificar si la cuota ya existe
+            $existingQuota = Quota::where('departament_id', $departament->id)
+                ->where('month', $month)
+                ->whereYear('due_date', $year)
+                ->first();
+
+            if ($existingQuota) {
+                // Cuota ya existe: solo procesar el pago si hay abono
+                $this->stats['quotas_duplicated']++;
+
+                if ($abonoVal > 0) {
+                    $this->createPay($departament, $abonoVal, $fechaPago, $comprobante, $existingQuota, $predio);
+                }
+
+                continue;
+            }
+
+            // Obtener saldo acumulado de todas las filas del mismo depto/mes/año
+            $key = $departament->id.'|'.$month.'|'.$year;
+            $accumulatedSaldo = $this->accumulatedSaldo[$key] ?? $saldo;
+
             $waterAmount = $waterReading ? (float) $waterReading->amount : 0;
-            $maintenanceAmount = $saldo - $waterAmount;
+            $maintenanceAmount = $accumulatedSaldo - $waterAmount;
 
             if ($maintenanceAmount < 0) {
                 $maintenanceAmount = 0;
             }
 
-            // Crear cuota
+            // Crear cuota con saldo acumulado
             $quota = Quota::create([
                 'departament_id' => $departament->id,
                 'peoples_x_departments_id' => MonthlyQuotaService::findActiveTenantPivotId($departament->id),
                 'water_reading_id' => $waterReading?->id,
                 'maintenance_amount' => $maintenanceAmount,
                 'water_amount' => $waterAmount,
-                'amount' => $saldo,
+                'amount' => $accumulatedSaldo,
                 'number' => null,
                 'month' => $month,
                 'due_date' => $dueDate,
@@ -180,40 +234,64 @@ class ImportCuotasPagosAgosto extends Command
 
             // Crear pago si hay abono
             if ($abonoVal > 0) {
-                $userId = $departament->user_id;
-
-                if (! $userId) {
-                    $this->stats['user_not_found']++;
-                    $this->skip($predio, "Departamento {$departament->number} sin user_id, pago no creado");
-
-                    continue;
-                }
-
-                $payDate = $fechaPago instanceof Carbon
-                    ? $fechaPago->toDateString()
-                    : ($fechaPago ? Carbon::parse($fechaPago)->toDateString() : $dueDate);
-
-                $reference = ($comprobante !== null && $comprobante !== '')
-                    ? (string) $comprobante
-                    : 'Importacion pagos agosto';
-
-                $pay = Pay::create([
-                    'user_id' => $userId,
-                    'type' => 1,
-                    'amount' => $abonoVal,
-                    'status' => 2,
-                    'pay_date' => $payDate,
-                    'reference' => $reference,
-                    'vaucher' => null,
-                    'pay_method' => 1,
-                    'pay_id' => '',
-                ]);
-
-                $pay->quotas()->attach($quota->id);
-
-                $this->stats['pays_created']++;
+                $this->createPay($departament, $abonoVal, $fechaPago, $comprobante, $quota, $predio);
             }
         }
+    }
+
+    private function createPay(Departament $departament, float $abonoVal, mixed $fechaPago, mixed $comprobante, Quota $quota, mixed $predio): void
+    {
+        $userId = $departament->user_id;
+
+        if (! $userId) {
+            $this->stats['user_not_found']++;
+            $this->skip($predio, "Departamento {$departament->number} sin user_id, pago no creado");
+
+            return;
+        }
+
+        // Parsear fecha de pago con manejo de errores
+        $payDate = now()->toDateString();
+        if ($fechaPago instanceof Carbon) {
+            $payDate = $fechaPago->toDateString();
+        } elseif ($fechaPago !== null && $fechaPago !== '') {
+            try {
+                $payDate = Carbon::parse($fechaPago)->toDateString();
+            } catch (\Exception $e) {
+                $this->skip($predio, 'Fecha de pago invalida: '.(string) $fechaPago.', usando fecha actual');
+            }
+        }
+
+        $reference = ($comprobante !== null && $comprobante !== '')
+            ? (string) $comprobante
+            : 'Importacion pagos agosto';
+
+        // Verificar si ya existe un pago para esta cuota con el mismo monto (idempotencia)
+        $existingPay = Pay::whereHas('quotas', function ($q) use ($quota) {
+            $q->where('quota_id', $quota->id);
+        })->where('amount', $abonoVal)->exists();
+
+        if ($existingPay) {
+            $this->stats['pays_duplicated']++;
+
+            return;
+        }
+
+        $pay = Pay::create([
+            'user_id' => $userId,
+            'type' => 1,
+            'amount' => $abonoVal,
+            'status' => 2,
+            'pay_date' => $payDate,
+            'reference' => $reference,
+            'vaucher' => null,
+            'pay_method' => 1,
+            'pay_id' => '',
+        ]);
+
+        $pay->quotas()->attach($quota->id);
+
+        $this->stats['pays_created']++;
     }
 
     private function resolveDepartaments(mixed $code): ?array
@@ -328,17 +406,17 @@ class ImportCuotasPagosAgosto extends Command
             $month = (int) $periodo->format('m');
             $year = (int) $periodo->format('Y');
 
-            return ['month' => $month, 'year' => $year, 'label' => $periodo->format('F').' - '.$year];
+            return ['month' => $month, 'year' => $year, 'label' => $this->monthName($month).' - '.$year];
         }
 
         // Numero serial de Excel (46023 = fecha serial Excel)
         if (is_numeric($periodo)) {
             try {
-                $date = Carbon::instance(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $periodo));
+                $date = Carbon::instance(Date::excelToDateTimeObject((float) $periodo));
                 $month = (int) $date->format('m');
                 $year = (int) $date->format('Y');
 
-                return ['month' => $month, 'year' => $year, 'label' => $date->format('F').' - '.$year];
+                return ['month' => $month, 'year' => $year, 'label' => $this->monthName($month).' - '.$year];
             } catch (\Exception $e) {
                 return null;
             }
@@ -351,13 +429,24 @@ class ImportCuotasPagosAgosto extends Command
                 $month = (int) $date->format('m');
                 $year = (int) $date->format('Y');
 
-                return ['month' => $month, 'year' => $year, 'label' => $date->format('F').' - '.$year];
+                return ['month' => $month, 'year' => $year, 'label' => $this->monthName($month).' - '.$year];
             } catch (\Exception $e) {
                 return null;
             }
         }
 
         return null;
+    }
+
+    private function monthName(int $month): string
+    {
+        $months = [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
+        ];
+
+        return $months[$month] ?? '';
     }
 
     private function dueDateFor(int $month, int $year): string
@@ -392,6 +481,7 @@ class ImportCuotasPagosAgosto extends Command
                 ['Cuotas creadas', $this->stats['quotas_created']],
                 ['Cuotas duplicadas (skipped)', $this->stats['quotas_duplicated']],
                 ['Pagos creados (status 2 - Exitoso)', $this->stats['pays_created']],
+                ['Pagos duplicados (skipped)', $this->stats['pays_duplicated']],
                 ['Lecturas de agua vinculadas', $this->stats['water_readings_linked']],
                 ['Departamentos no encontrados en BD', $this->stats['departments_not_found']],
                 ['Departamentos sin user_id', $this->stats['user_not_found']],

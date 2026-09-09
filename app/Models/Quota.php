@@ -29,6 +29,7 @@ class Quota extends Model
         'amount',
         'number',
         'month',
+        'year',
         'due_date',
         'type',
         'description',
@@ -66,7 +67,7 @@ class Quota extends Model
     {
         return $query
             ->where('month', $month)
-            ->whereYear('due_date', $year);
+            ->where('year', $year);
     }
 
     public static function baseAdminQuery(): Builder

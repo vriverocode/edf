@@ -101,7 +101,7 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                $sheet = $event->sheet;
+                $sheet = $event->sheet->getDelegate();
                 $lastCol = 'N'; // A=Unidad, B=Tipo, C=Responsable, D-N=Ene-Dic (12 months)
                 $dataStartRow = 7; // after title + blank + header + 3 summary rows + blank
                 $dataEndRow = $dataStartRow + count($this->departments) - 1;
@@ -109,7 +109,7 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
                 // ── Title row (row 1) ──
                 $sheet->mergeCells('A1:'.$lastCol.'1');
                 $sheet->setCellValue('A1', 'REPORTE DE PAGOS MENSUALES - '.$this->year);
-                $sheet->getStyle('A1')->apply([
+                $sheet->getStyle('A1')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 14, 'name' => 'Calibri', 'color' => ['rgb' => '333333']],
                     'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
                 ]);
@@ -124,7 +124,7 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
                     $sheet->setCellValue($cell, strtoupper($h));
                     $col = $this->nextColumn($col);
                 }
-                $sheet->getStyle('A'.$headerRow.':'.$lastCol.$headerRow)->apply([
+                $sheet->getStyle('A'.$headerRow.':'.$lastCol.$headerRow)->applyFromArray([
                     'font' => ['bold' => true, 'size' => 10, 'name' => 'Calibri', 'color' => ['rgb' => self::COLOR_HEADER_FONT]],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => self::COLOR_HEADER_BG]],
                     'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
@@ -140,7 +140,7 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
                 // ── Data rows styling ──
                 if (count($this->departments) > 0) {
                     $dataRange = 'A'.$dataStartRow.':'.$lastCol.$dataEndRow;
-                    $sheet->getStyle($dataRange)->apply([
+                    $sheet->getStyle($dataRange)->applyFromArray([
                         'font' => ['size' => 10, 'name' => 'Calibri'],
                         'alignment' => ['vertical' => 'center'],
                         'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'E0E0E0']]],
@@ -150,14 +150,14 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
                     $rowNum = $dataStartRow;
                     foreach ($this->departments as $dept) {
                         // Fixed columns: A (Unidad), B (Tipo), C (Responsable)
-                        $sheet->getStyle('A'.$rowNum)->apply([
+                        $sheet->getStyle('A'.$rowNum)->applyFromArray([
                             'font' => ['bold' => true, 'size' => 10, 'name' => 'Calibri'],
                             'alignment' => ['horizontal' => 'left', 'vertical' => 'center'],
                         ]);
-                        $sheet->getStyle('B'.$rowNum)->apply([
+                        $sheet->getStyle('B'.$rowNum)->applyFromArray([
                             'alignment' => ['horizontal' => 'left', 'vertical' => 'center'],
                         ]);
-                        $sheet->getStyle('C'.$rowNum)->apply([
+                        $sheet->getStyle('C'.$rowNum)->applyFromArray([
                             'alignment' => ['horizontal' => 'left', 'vertical' => 'center'],
                         ]);
 
@@ -183,14 +183,14 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
                                     $font = self::COLOR_YELLOW_FONT;
                                 }
 
-                                $sheet->getStyle($cell)->apply([
+                                $sheet->getStyle($cell)->applyFromArray([
                                     'font' => ['bold' => true, 'size' => 10, 'name' => 'Calibri', 'color' => ['rgb' => $font]],
                                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $bg]],
                                     'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
                                 ]);
                             } else {
                                 $sheet->setCellValue($cell, '—');
-                                $sheet->getStyle($cell)->apply([
+                                $sheet->getStyle($cell)->applyFromArray([
                                     'font' => ['size' => 10, 'name' => 'Calibri', 'color' => ['rgb' => self::COLOR_GRAY_FONT]],
                                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => self::COLOR_GRAY_BG]],
                                     'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
@@ -227,7 +227,7 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
             $col = $this->nextColumn($col);
         }
 
-        $sheet->getStyle('A'.$rowNum.':'.$lastCol.$rowNum)->apply([
+        $sheet->getStyle('A'.$rowNum.':'.$lastCol.$rowNum)->applyFromArray([
             'font' => ['bold' => true, 'size' => 10, 'name' => 'Calibri', 'color' => ['rgb' => $fontColor]],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $bgColor]],
             'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
@@ -235,7 +235,7 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
         ]);
 
         // Label column left-aligned
-        $sheet->getStyle('A'.$rowNum)->apply([
+        $sheet->getStyle('A'.$rowNum)->applyFromArray([
             'alignment' => ['horizontal' => 'left', 'vertical' => 'center'],
         ]);
 

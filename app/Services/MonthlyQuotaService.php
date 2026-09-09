@@ -93,6 +93,7 @@ class MonthlyQuotaService
                 'amount' => $totalAmount,
                 'number' => 'A'.substr($departament->number, -3).'-'.$month.rand(1000, 9999),
                 'month' => $month,
+                'year' => $year,
                 'due_date' => Carbon::create($year, $month, 1)->endOfMonth()->format('Y-m-d'),
                 'type' => $departament->type == 1 ? 1 : 2,
                 'description' => 'Cuota mensual: '.$this->labelMonth($month).' - '.$year,

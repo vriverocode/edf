@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\EnsureRoleIsNot;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\SecurityHeaders;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->append(SecurityHeaders::class);
         $middleware->alias([
+            'auth' => Authenticate::class,
             'role' => EnsureUserHasRole::class,
             'role_not' => EnsureRoleIsNot::class,
         ]);

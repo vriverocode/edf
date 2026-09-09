@@ -66,17 +66,17 @@ const endTutorial = () => {
 <template>
   <div class="h-full bg-white login-root">
     <Transition name="fade" mode="out-in">
-      <div class="h-full md:w-1/2 md:mx-auto relative" v-if="tutorialView == 'true'">
+      <div class="h-full w-full  relative" v-if="tutorialView == 'true'">
 
         <div class="absolute inset-0 login__bg" :style="{ backgroundImage: 'url(' + bg + ')' }"></div>
 
-        <div class="relative z-10 h-full md:w-full">
+        <div class="relative z-10 h-full md:w-1/2 md:mx-auto">
           <section class="mt-0 md:pt-12 ">
             <q-form @submit="authLogin" class="w-full h-full">
               <div class="mx-auto form__cont md:px-8">
                 <div class="w-full h-full">
                   <div class="relative md:px-10 px-8 h-full w-full form pt-12 md:pt-0">
-                    <img :src="logoWite" alt="logo" class="md:w-1/6 w-2/5 mx-auto mt-12" />
+                    <img :src="logoWite" alt="logo" class="md:w-1/6 w-2/5 mx-auto mt-12"  style="filter: drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5));"/>
                     <div class="text-white mt-5 text-center" style="font-weight:600; font-size: 1.6rem">
                       INGRESO
                     </div>

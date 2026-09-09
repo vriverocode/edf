@@ -63,8 +63,11 @@ class BillInvoiceMail extends Mailable
             '-'.strtolower($receiptData['monthLabel']).
             '-'.$receiptData['year'].'.pdf';
 
+        $tempPath = storage_path('app/'.$filename);
+        file_put_contents($tempPath, $pdf->output());
+
         return [
-            $this->attachData($pdf->output(), $filename),
+            $this->attachFromPath($tempPath, $filename),
         ];
     }
 }
