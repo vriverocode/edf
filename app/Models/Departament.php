@@ -47,6 +47,7 @@ class Departament extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
+
     public function availableOwner()
     {
         return $this->belongsTo(User::class, 'user_id', 'id')->where('id', '>', 10);

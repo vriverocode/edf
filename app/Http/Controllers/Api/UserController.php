@@ -330,6 +330,23 @@ class UserController extends Controller
 
         return $this->returnSuccess(200, $residents);
     }
+    public function resetUser(Request $request, $userId)
+    {
+        if ($request->user()->rol_id === Rol::ADMIN) {
+            throw new Exception('No tiene permiso para registrar usuarios en este departamento.');
+        }
+        $user = User::find($userId);
+        if (!$user) {
+            return $this->returnFail(401, 'Usuario no encontrado');
+        }
+        $user->update([
+            'password' => Hash::make($request->password ?? '12345678'),
+            'email' => null,
+            'phone' => null,
+            'is_first_time' => 1
+        ]);
+        return $this->returnSuccess(200, 'ok');
+    }
 
     private function validateTemporaryOrResidentInput(array $inputs): array
     {

@@ -92,6 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/d/{id}', [UserController::class, 'destroy'])->middleware('throttle:write');
         Route::post('/resident/u/{id}', [UserController::class, 'updateResident'])->middleware('throttle:write');
         Route::put('/{id}', [UserController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/resetUser/{id}', [UserController::class, 'resetUser']);
         Route::post('/assing_apartmet', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/assign-property', [DepartamentController::class, 'assingApartment'])->middleware('role:admin,super-admin', 'throttle:write');
     });

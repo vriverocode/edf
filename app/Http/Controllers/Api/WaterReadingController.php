@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Departament;
 use App\Models\MonthlyBills;
 use App\Models\Rol;
 use App\Models\WaterReading;
@@ -88,6 +89,49 @@ class WaterReadingController extends Controller
         return $this->returnSuccess(200, $reading);
     }
 
+    public function getPreviousByDepartment(Request $request, ?int $departmentId = null)
+    {
+        $deptId = $departmentId ?? $request->input('departament_id') ?? $request->input('department_id');
+
+        if (! $deptId) {
+            return $this->returnFail(422, 'El departamento es requerido.');
+        }
+
+        try {
+            $validated = $request->validate([
+                'month' => ['required', 'integer', 'between:1,12'],
+                'year' => ['nullable', 'integer'],
+            ]);
+        } catch (ValidationException $e) {
+            return $this->returnFail(422, $e->validator->errors()->first());
+        }
+
+        $month = (int) $validated['month'];
+        $year = (int) ($validated['year'] ?? now()->year);
+
+        $reading = WaterReading::where('departament_id', $deptId)
+            ->where('is_common', false)
+            ->where(function ($query) use ($month, $year) {
+                $query->where('year', '<', $year)
+                    ->orWhere(function ($q) use ($month, $year) {
+                        $q->where('year', $year)
+                            ->where('month', '<', $month);
+                    });
+            })
+            ->orderBy('year', 'desc')
+            ->orderBy('month', 'desc')
+            ->first();
+
+        if (! $reading) {
+            $reading = WaterReading::where('departament_id', $deptId)
+                ->where('is_common', false)
+                ->where('is_initial', true)
+                ->first();
+        }
+
+        return $this->returnSuccess(200, $reading ? (float) $reading->current_reading : null);
+    }
+
     public function getLastCommonReading(Request $request)
     {
         try {
@@ -145,6 +189,32 @@ class WaterReadingController extends Controller
             'readings' => $readings,
             'total_consumption' => $totalConsumption,
         ]);
+    }
+
+    public function departmentsWithoutReading(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'month' => ['required', 'integer', 'between:1,12'],
+                'year' => ['required', 'integer'],
+            ]);
+        } catch (ValidationException $e) {
+            return $this->returnFail(422, $e->validator->errors()->first());
+        }
+
+        $month = (int) $validated['month'];
+        $year = (int) $validated['year'];
+
+        $departments = Departament::with('owner')
+            ->where('id', '>', 7)
+            ->whereIn('type', [Departament::TYPE_LAV, Departament::TYPE_DEPARTAMENTO])
+            ->whereDoesntHave('waterReadings', function ($query) use ($month, $year) {
+                $query->where('month', $month)
+                    ->where('year', $year);
+            })
+            ->get();
+
+        return $this->returnSuccess(200, $departments);
     }
 
     public function store(Request $request)
@@ -318,6 +388,23 @@ class WaterReadingController extends Controller
         $reading->update($payload);
 
         return $this->returnSuccess(200, $reading->load(['departament.owner']));
+    }
+
+    public function destroy(int $id)
+    {
+        $user = request()->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
+        $reading = WaterReading::find($id);
+        if (! $reading) {
+            return $this->returnFail(404, 'Medición de agua no encontrada');
+        }
+
+        $reading->delete();
+
+        return $this->returnSuccess(200, 'Medición eliminada con éxito');
     }
 
     private function resolvePhotoColumn(): ?string

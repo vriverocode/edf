@@ -62,7 +62,7 @@ export const useReserveStore = defineStore('Reserve', {
             if (response.data.code == 409) {
               reject(response.data.error || 'Límite de reservas por día alcanzado');
             }
-            reject('Error al realizar reserva');
+            reject(response.data.error);
           });
 
       })

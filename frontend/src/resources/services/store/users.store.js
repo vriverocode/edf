@@ -24,6 +24,27 @@ export const useUserStore = defineStore('User', {
           })
       })
     },
+    async resetUser(data) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.post('/api/users/resetUser/' + data.id, data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            if (response.data.code == 403) {
+              reject(response.data)
+            }
+            reject(response.data.error)
+          })
+      })
+    },
     async assingApartment(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {

@@ -91,6 +91,24 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
       })
     },
 
+    async deleteWaterReading(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.delete('/api/water-readings/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al eliminar medición de agua')
+          })
+      })
+    },
+
     async getLastWaterReadingByDepartment(departmentId) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
@@ -105,6 +123,28 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
           .catch(({ response }) => {
             console.error(response)
             reject(response?.data?.error || 'Error al obtener la última medición')
+          })
+      })
+    },
+
+    async getPreviousWaterReadingByDepartment(departmentId, month, year) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        const params = new URLSearchParams()
+        params.set('departament_id', String(departmentId))
+        params.set('month', String(month))
+        if (year) params.set('year', String(year))
+        ApiService.get('/api/water-readings/previous-by-department?' + params.toString())
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al obtener la lectura anterior')
           })
       })
     },
@@ -126,6 +166,27 @@ export const useWaterReadingsStore = defineStore('WaterReadings', {
           .catch(({ response }) => {
             console.error(response)
             reject(response?.data?.error || 'Error al obtener la última medición de áreas comunes')
+          })
+      })
+    },
+
+    async getDepartmentsWithoutReading(month, year) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        const params = new URLSearchParams()
+        params.set('month', String(month))
+        params.set('year', String(year))
+        ApiService.get('/api/water-readings/departments-without-reading?' + params.toString())
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al obtener departamentos sin lectura')
           })
       })
     },

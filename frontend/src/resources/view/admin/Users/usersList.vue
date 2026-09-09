@@ -5,6 +5,7 @@ import { Notify } from 'quasar';
 import { useUserStore } from '@/services/store/users.store';
 import iconsApp from '@/assets/icons/index'
 import deleteUserModal from '@//components/admin/deleteUserModal.vue';
+import resetUserModal from '@/components/admin/resetUserModal.vue';
 import userAvailableAreasStep from '@/components/admin/userAvailableAreasStep.vue';
 import { usePaginationState } from '@/composables/usePaginationState';
 const userStore = useUserStore()
@@ -13,6 +14,7 @@ const lastPage = ref(1)
 const search = ref('')
 const ready = ref(false)
 const modal = ref('')
+const resetModal = ref(false)
 
 const router = useRouter()
 
@@ -64,6 +66,11 @@ const openModal = (user, type) => {
   setTimeout(() => {
     modal.value = type
   }, 50)
+}
+
+const openResetModal = (user) => {
+  selectedUser.value = user
+  resetModal.value = true
 }
 
 const getUsers = (resetPage = false) => {
@@ -218,6 +225,13 @@ onMounted(() => {
               </q-btn>
             </div>
             <div class="col-2">
+              <q-btn icon="eva-sync-outline" class="mx-1" flat color="black" size="0.8rem" @click="openResetModal(user)">
+                <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
+                  Resetear Usuario
+                </q-tooltip>
+              </q-btn>
+            </div>
+            <div class="col-2">
               <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.8rem" @click="openModal(user, 'delete')">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Borrar usuario
@@ -234,6 +248,7 @@ onMounted(() => {
     </div>
     <div v-if="Object.values(selectedUser).length > 0">
       <deleteUserModal :dialog="(modal == 'delete')" :user="selectedUser" @close-modal="modal = ''" @update-list="getUsers()" />
+      <resetUserModal :dialog="resetModal" :user="selectedUser" @close-modal="resetModal = false" @update-list="getUsers()" />
     </div>
     <q-dialog v-model="areasDialog">
       <q-card style="max-width: 40rem; width: 100%;" class="q-py-md">

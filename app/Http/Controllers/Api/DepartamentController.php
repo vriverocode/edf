@@ -45,7 +45,19 @@ class DepartamentController extends Controller
             $departaments->where('user_id', '!=', null);
         }
         if ($request->find == 'allDepartmentWithoutReadingThisMonth') {
-            $departaments->whereIn('type', [4, 1])->with(['waterReadings'])->whereDoesntHave('waterReadings');
+            $month = (int) $request->input('month', now()->month);
+            $year = (int) $request->input('year', now()->year);
+
+            if ($request->filled('type')) {
+                $departaments->where('type', $request->type);
+            } else {
+                $departaments->whereIn('type', [Departament::TYPE_LAV, Departament::TYPE_DEPARTAMENTO]);
+            }
+
+            $departaments->whereDoesntHave('waterReadings', function ($query) use ($month, $year) {
+                $query->where('month', $month)
+                    ->where('year', $year);
+            });
         }
 
         return $this->returnSuccess(200, $departaments->get());

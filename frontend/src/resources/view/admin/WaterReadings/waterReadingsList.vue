@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { Notify } from 'quasar'
+import { Notify, Dialog } from 'quasar'
 import { useRouter } from 'vue-router'
 import iconsApp from '@/assets/icons/index'
 import { useWaterReadingsStore } from '@/services/store/waterReadings.store'
@@ -17,7 +17,7 @@ const ready = ref(false)
 const lastPage = ref(1)
 
 const now = new Date()
-const selectedMonth = ref(now.getMonth())
+const selectedMonth = ref(now.getMonth()+1)
 const selectedYear = ref(now.getFullYear())
 const availableYears = ref([])
 
@@ -142,6 +142,28 @@ const startSequential = () => {
   goTo('/admin/water_readings/form/add?sequential=1&month=' + selectedMonth.value + '&year=' + selectedYear.value)
 }
 
+const confirmDelete = (reading) => {
+  const label = reading.is_common ? 'área común' : `departamento ${reading.departament?.number ?? reading.departament_id}`
+  Dialog.create({
+    title: 'Eliminar medición',
+    message: `¿Estás seguro de eliminar la medición de ${label} (${reading.month_label} ${reading.year})?`,
+    cancel: { label: 'Cancelar', flat: true, color: 'grey' },
+    ok: { label: 'Eliminar', color: 'negative' },
+    persistent: true
+  }).onOk(() => deleteReading(reading.id))
+}
+
+const deleteReading = async (id) => {
+  try {
+    const response = await waterReadingsStore.deleteWaterReading(id)
+    if (response?.code !== 200) throw response
+    showNotify('positive', 'Medición eliminada con éxito')
+    fetchReadings()
+  } catch (err) {
+    showNotify('negative', err?.error || err?.message || 'No se pudo eliminar la medición')
+  }
+}
+
 onMounted(() => {
   restoreFromQuery()
   loadDepartments()
@@ -224,6 +246,9 @@ onMounted(() => {
                           </q-item>
                           <q-item clickable v-close-popup @click="goTo('/admin/water_readings/edit/' + r.id)">
                             <q-item-section>Modificar</q-item-section>
+                          </q-item>
+                          <q-item clickable v-close-popup @click="confirmDelete(r)">
+                            <q-item-section class="text-red">Eliminar</q-item-section>
                           </q-item>
                         </q-list>
                       </q-menu>

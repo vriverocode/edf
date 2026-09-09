@@ -134,18 +134,28 @@ export const useApartmentStore = defineStore('Apartment', {
           })
       })
     },
-    async getApartmentsByFind(find, type = null) {
+    async getApartmentsByFind(find, type = null, params = {}) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw ''
         ApiService.setHeader()
-        // Añadimos el type a la query string
-        const typeParam = type ? `&type=${type}` : ''
-        ApiService.get(`/api/apartments/byFind?find=${find}${typeParam}`)
+        const queryParams = new URLSearchParams()
+        queryParams.append('find', find)
+        if (type !== null && type !== undefined) {
+          queryParams.append('type', type)
+        }
+        if (params && typeof params === 'object') {
+          Object.entries(params).forEach(([key, val]) => {
+            if (val !== null && val !== undefined && val !== '') {
+              queryParams.append(key, val)
+            }
+          })
+        }
+        ApiService.get(`/api/apartments/byFind?${queryParams.toString()}`)
           .then(({ data }) => {
             if (data.code != 200) throw data
             resolve(data)
           })
-          .catch(({ response }) => reject(response.data.error))
+          .catch(({ response }) => reject(response?.data?.error || response?.data || response))
       })
     },
 

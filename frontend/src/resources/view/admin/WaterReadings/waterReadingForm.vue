@@ -2,17 +2,17 @@
 import { onMounted, ref, computed, watch } from 'vue'
 import { Notify } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
-import { useApartmentStore } from '@/services/store/apartment.store'
 import { useWaterReadingsStore } from '@/services/store/waterReadings.store'
 
 const router = useRouter()
 const route = useRoute()
-const apartmentStore = useApartmentStore()
 const waterReadingsStore = useWaterReadingsStore()
 
 const loading = ref(false)
 const deptLoading = ref(false)
 const loadingCommon = ref(false)
+const loadingPrevious = ref(false)
+const hasPreviousReading = ref(false)
 
 const parseMaskedDecimal = (value, decimals) => {
   if (value === null || value === undefined) return null
@@ -33,6 +33,18 @@ const formatMaskedDecimal = (value, decimals = 3) => {
   const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   return `${withThousands},${decPart}`
 }
+
+const consumption = computed(() => {
+  const prev = parseMaskedDecimal(formData.value.previous_reading, 3)
+  const curr = parseMaskedDecimal(formData.value.current_reading, 3)
+  if (prev === null || curr === null) return null
+  return Number((curr - prev).toFixed(3))
+})
+
+const consumptionFormatted = computed(() => {
+  if (consumption.value === null) return ''
+  return formatMaskedDecimal(consumption.value, 3)
+})
 
 const monthOptions = [
   { value: 1, name: 'Enero' },
@@ -59,8 +71,8 @@ const formData = ref({
   departament: null,
   is_common: false,
   month: sequential.value
-    ? monthOptions.find(m => m.value === Number(route.query.month)) || monthOptions[now.getMonth() - 1]
-    : monthOptions[now.getMonth() - 1],
+    ? monthOptions.find(m => m.value === Number(route.query.month)) || monthOptions[now.getMonth()]
+    : monthOptions[now.getMonth()],
   year: sequential.value ? Number(route.query.year) || now.getFullYear() : now.getFullYear(),
   previous_reading: '',
   current_reading: '',
@@ -85,7 +97,10 @@ const hasPrev = computed(() => {
 })
 
 const loadCommonReading = async () => {
-  if (!formData.value.month?.value || !formData.value.year) return
+  if (!formData.value.month?.value || !formData.value.year) {
+    hasPreviousReading.value = false
+    return
+  }
   loadingCommon.value = true
   try {
     const response = await waterReadingsStore.getLastCommonReading(
@@ -93,16 +108,54 @@ const loadCommonReading = async () => {
       formData.value.year
     )
     const reading = response?.data
-    if (reading) {
+    if (reading && reading.current_reading !== null && reading.current_reading !== undefined) {
+      hasPreviousReading.value = true
       formData.value.previous_reading = formatMaskedDecimal(reading.current_reading, 3)
       showNotify('positive', 'Lectura anterior del área común cargada')
     } else {
+      hasPreviousReading.value = false
       formData.value.previous_reading = ''
     }
   } catch (e) {
+    hasPreviousReading.value = false
     formData.value.previous_reading = ''
   } finally {
     loadingCommon.value = false
+  }
+}
+
+const loadDepartmentPreviousReading = async () => {
+  if (formData.value.is_common) return
+  const deptId = formData.value.departament?.value
+  const month = getMonthValue(formData.value.month)
+  const year = formData.value.year
+  if (!deptId || !month || !year) {
+    hasPreviousReading.value = false
+    return
+  }
+
+  loadingPrevious.value = true
+  try {
+    const response = await waterReadingsStore.getPreviousWaterReadingByDepartment(
+      deptId,
+      month,
+      year
+    )
+    const val = response?.data
+    const currentReadingVal = typeof val === 'object' && val !== null ? val.current_reading : val
+    if (currentReadingVal !== null && currentReadingVal !== undefined && currentReadingVal !== '') {
+      hasPreviousReading.value = true
+      formData.value.previous_reading = formatMaskedDecimal(currentReadingVal, 3)
+      showNotify('positive', `Lectura anterior cargada (${formatMaskedDecimal(currentReadingVal, 3)} m³)`)
+    } else {
+      hasPreviousReading.value = false
+      formData.value.previous_reading = ''
+    }
+  } catch (e) {
+    hasPreviousReading.value = false
+    formData.value.previous_reading = ''
+  } finally {
+    loadingPrevious.value = false
   }
 }
 
@@ -114,15 +167,25 @@ const showNotify = (type, text) => {
   })
 }
 
+const getMonthValue = (val) => {
+  if (!val) return null
+  return typeof val === 'object' ? val.value : Number(val)
+}
+
 const searchDepartaments = async () => {
   deptLoading.value = true
   try {
-    const response = await apartmentStore.getApartmentsByFind('allDepartmentWithoutReadingThisMonth')
+    const month = getMonthValue(formData.value.month)
+    const year = formData.value.year
+    const response = await waterReadingsStore.getDepartmentsWithoutReading(month, year)
     const items = response?.data || []
     departamentOptions.value = items.map((d) => ({
       label: `${d.number}`,
       value: d.id
     }))
+    if (formData.value.departament && !departamentOptions.value.some(o => o.value === formData.value.departament?.value)) {
+      formData.value.departament = null
+    }
   } catch (e) {
     departamentOptions.value = []
   } finally {
@@ -229,6 +292,19 @@ watch(
       loadCommonReading()
     } else {
       formData.value.previous_reading = ''
+      searchDepartaments()
+      if (formData.value.departament) {
+        loadDepartmentPreviousReading()
+      }
+    }
+  }
+)
+
+watch(
+  () => formData.value.departament,
+  (dept) => {
+    if (dept && !formData.value.is_common) {
+      loadDepartmentPreviousReading()
     }
   }
 )
@@ -238,15 +314,25 @@ watch(
   () => {
     if (formData.value.is_common) {
       loadCommonReading()
+    } else {
+      searchDepartaments()
+      if (formData.value.departament) {
+        loadDepartmentPreviousReading()
+      }
     }
   }
 )
 
-onMounted(() => {
-  searchDepartaments('')
+onMounted(async () => {
+  await searchDepartaments()
   if (sequential.value && route.query.department_id) {
     const dept = departamentOptions.value.find(o => o.value === Number(route.query.department_id))
     if (dept) formData.value.departament = dept
+  } else if (sequential.value && departamentOptions.value.length > 0 && !formData.value.departament) {
+    formData.value.departament = departamentOptions.value[0]
+  }
+  if (formData.value.departament && !formData.value.is_common) {
+    loadDepartmentPreviousReading()
   }
 })
 
@@ -286,12 +372,24 @@ onMounted(() => {
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Lectura anterior</div>
-          <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.previous_reading"
+          <q-input dense borderless class="form__inputsR mt-1" v-model="formData.previous_reading"
             mask="###.###.###,###" reverse-fill-mask inputmode="decimal"
-            :loading="loadingCommon"
-            :disable="loadingCommon"
-            :hint="formData.is_common && loadingCommon ? 'Cargando lectura del área común...' : ''"
-            :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura anterior es requerida']" />
+            :readonly="hasPreviousReading"
+            :clearable="!hasPreviousReading"
+            :loading="loadingCommon || loadingPrevious"
+            :disable="loadingCommon || loadingPrevious"
+            :hint="formData.is_common && loadingCommon
+              ? 'Cargando lectura del área común...'
+              : (loadingPrevious
+                ? 'Cargando lectura anterior...'
+                : (hasPreviousReading
+                  ? 'Lectura anterior automática (solo lectura)'
+                  : 'Sin lectura anterior registrada. Ingrese el valor manual'))"
+            :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura anterior es requerida']">
+            <template v-if="hasPreviousReading" #append>
+              <q-icon name="eva-lock-outline" size="xs" color="grey-6" />
+            </template>
+          </q-input>
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
@@ -300,6 +398,19 @@ onMounted(() => {
             mask="###.###.###,###" reverse-fill-mask inputmode="decimal" :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura actual es requerida',
             val => parseMaskedDecimal(val, 2) > parseMaskedDecimal(formData.previous_reading, 3) || 'La lectura actual debe ser mayor que la lectura anterior'
             ]" />
+        </div>
+
+        <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
+          <div class="text-subtitle2 text-black">Consumo calculado (m³)</div>
+          <q-input dense borderless readonly class="form__inputsR mt-1 bg-grey-1"
+            :model-value="consumptionFormatted"
+            placeholder="0,000"
+            suffix="m³"
+            hint="Resta automática: Lectura actual - Lectura anterior">
+            <template #prepend>
+              <q-icon name="eva-droplet-outline" size="xs" color="primary" />
+            </template>
+          </q-input>
         </div>
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
