@@ -90,3 +90,49 @@ El botón "Resetear Usuario" en `usersList.vue` llamaba a `openAreas(user)` (bug
 | `frontend/.../view/admin/WaterReadings/waterReadingForm.vue` | `searchDepartaments()` usa store propio |
 | `frontend/.../view/admin/WaterReadings/waterReadingsList.vue` | Menú con opción "Eliminar" |
 | `frontend/.../view/admin/Users/usersList.vue` | Botón sync → modal reset |
+
+---
+
+## 4. Importación Cuotas y Pagos Agosto — Artisan Command
+
+### Problema
+Se necesitaba importar las cuotas de pago del mes de agosto (y meses anteriores) desde el Excel `referencias/pagos_agosto.xlsm` (hoja "ABONOS EFECTUADOS A AGO26") hacia la base de datos, creando cuotas (quotas) y vinculando los pagos (abonos) registrados en el spreadsheet.
+
+### Cambios
+
+#### Nuevo Comando — `app/Console/Commands/ImportCuotasPagosAgosto.php`
+- Firma: `import:cuotas-pagos-agosto {file?}`
+- Archivo por defecto: `referencias/pagos_agosto.xlsm`
+- Hoja: `ABONOS EFECTUADOS A AGO26` (filas 5-843)
+
+**Lógica principal:**
+1. **Resolución de departamento**: Columna "Predio" → `Departament::where('number', ...)`:
+   - Numéricos (103) → `dpt-103`
+   - `ESTA-131` → `EST-131`
+   - `DEPO-184` → `DPO-184`
+   - `LAV-001` → `LAV-001`
+   - Multi-línea (`ESTA-046\nESTA-062`) → múltiples departamentos
+2. **User ID**: Se obtiene directamente de `departaments.user_id` (no por nombre)
+3. **Periodo**: Manejo de fechas serial Excel (46023 → Carbon) usando `Date::excelToDateTimeObject()`
+4. **Duplicados**: `departament_id + month + year(due_date)` → skip si existe
+5. **WaterReading**: `WaterReading::where(departament_id, month, year)` → vincula `water_reading_id`
+   - `water_amount` = `wr->amount`, `maintenance_amount` = `saldo - water_amount`
+6. **Quota**: `type = 1` siempre, `status = 1` (pago pendiente)
+7. **Pay** (si abono > 0): `status = 2` (exitoso), `user_id` del departamento, vinculado via `pay_quota`
+
+**Saltos:**
+- `ESTA-S/ID` → predio sin identificar
+- Departamento no encontrado en BD
+- Fila vacía
+
+**Resultado de ejecución:**
+- 391 cuotas creadas
+- 240 pagos creados (status 2 - Exitoso)
+- 249 lecturas de agua vinculadas
+- 7 registros saltados (3 LAV-001 no encontrado, 3 ESTA-S/ID, 1 vacío)
+
+### Archivos modificados (resumen)
+
+| Archivo | Cambios |
+|---------|---------|
+| `app/Console/Commands/ImportCuotasPagosAgosto.php` | **Nuevo** — comando de importación |
