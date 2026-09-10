@@ -248,7 +248,7 @@ class WaterReadingController extends Controller
                 'year.required' => 'El año es requerido.',
                 'previous_reading.required' => 'La lectura anterior es requerida.',
                 'current_reading.required' => 'La lectura actual es requerida.',
-                'current_reading.gt' => 'La lectura actual debe ser mayor a la lectura anterior.',
+                'current_reading.gte' => 'La lectura actual debe ser mayor o igual a la lectura anterior.',
                 'photo.required' => 'La foto comprobante del medidor es requerida.',
                 'photo.image' => 'El archivo debe ser una imagen válida.',
             ];
@@ -339,7 +339,7 @@ class WaterReadingController extends Controller
                 'year.required' => 'El año es requerido.',
                 'previous_reading.required' => 'La lectura anterior es requerida.',
                 'current_reading.required' => 'La lectura actual es requerida.',
-                'current_reading.gt' => 'La lectura actual debe ser mayor a la lectura anterior.',
+                'current_reading.gte' => 'La lectura actual debe ser mayor o igual a la lectura anterior.',
             ];
 
             if ($isCommon) {

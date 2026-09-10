@@ -164,14 +164,14 @@ class ReportController extends Controller
         $departments = Departament::with([
             'owner:id,name',
             'peoples.user:id,name',
-        ])->where(function ($q) {
+        ])->where('id', '>', 7)->where(function ($q) {
             $q->whereNotNull('user_id')
                 ->orWhereHas('peoples');
         })->get()->sortBy(fn ($d) => [$d->type, $d->inter_number])->values();
 
-        $quotas = Quota::whereYear('due_date', $year)
+        $quotas = Quota::where('year', $year)
             ->whereIn('departament_id', $departments->pluck('id'))
-            ->get(['id', 'departament_id', 'month', 'amount', 'maintenance_amount', 'water_amount', 'status', 'due_date']);
+            ->get(['id', 'departament_id', 'month', 'amount', 'maintenance_amount', 'water_amount', 'status', 'due_date', 'year']);
 
         $quotasByDept = $quotas->groupBy('departament_id');
 
@@ -896,14 +896,14 @@ class ReportController extends Controller
         $departments = Departament::with([
             'availableOwner:id,name',
             'peoples.user:id,name',
-        ])->where(function ($q) {
+        ])->where('id', '>', 7)->where(function ($q) {
             $q->whereNotNull('user_id')
                 ->orWhereHas('peoples');
         })->get()->sortBy(fn ($d) => [$d->type, $d->inter_number])->values();
 
-        $quotas = Quota::whereYear('due_date', $year)
+        $quotas = Quota::where('year', $year)
             ->whereIn('departament_id', $departments->pluck('id'))
-            ->get(['id', 'departament_id', 'month', 'amount', 'maintenance_amount', 'water_amount', 'status', 'due_date']);
+            ->get(['id', 'departament_id', 'month', 'amount', 'maintenance_amount', 'water_amount', 'status', 'due_date', 'year']);
 
         $quotasByDept = $quotas->groupBy('departament_id');
 

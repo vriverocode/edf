@@ -127,8 +127,8 @@ const submit = () => {
   }
   const prev = Number(formData.value.previous_reading) || 0
   const curr = parseMaskedDecimal(formData.value.current_reading, 3)
-  if (curr <= prev) {
-    showNotify('warning', 'La lectura actual debe ser mayor a la lectura anterior.')
+  if (curr < prev) {
+    showNotify('warning', 'La lectura actual debe ser mayor o igual a la lectura anterior.')
     return
   }
 
@@ -245,7 +245,7 @@ watch(dialogVisible, (open) => {
         mask="#######.###"
         reverse-fill-mask inputmode="decimal"
         :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura actual es requerida',
-        val => parseMaskedDecimal(val, 3) > parseMaskedDecimal(formData.previous_reading, 3) || 'La lectura actual debe ser mayor que la lectura anterior'
+        val => parseMaskedDecimal(val, 3) >= parseMaskedDecimal(formData.previous_reading, 3) || 'La lectura actual debe ser mayor o igual que la lectura anterior'
         ]" 
       />
 

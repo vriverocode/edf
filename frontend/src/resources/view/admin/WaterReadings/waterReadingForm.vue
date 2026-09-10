@@ -396,7 +396,7 @@ onMounted(async () => {
           <div class="text-subtitle2 text-black">Lectura actual</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" v-model="formData.current_reading"
             mask="###.###.###,###" reverse-fill-mask inputmode="decimal" :rules="[val => parseMaskedDecimal(val, 3) !== null || 'La lectura actual es requerida',
-            val => parseMaskedDecimal(val, 2) > parseMaskedDecimal(formData.previous_reading, 3) || 'La lectura actual debe ser mayor que la lectura anterior'
+            val => parseMaskedDecimal(val, 2) >= parseMaskedDecimal(formData.previous_reading, 3) || 'La lectura actual debe ser mayor o igual que la lectura anterior'
             ]" />
         </div>
 
