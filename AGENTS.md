@@ -46,19 +46,60 @@ cd frontend && npm run build   # outputs to frontend/dist/
 ## Architecture
 
 ### Backend (`app/Http/Controllers/Api/`)
-- 24 API controllers, all under `auth:sanctum` middleware
+- 30 API controllers, all under `auth:sanctum` middleware
 - Routes defined in `routes/api.php` — all prefixed with `/api/`
 - Roles: `admin`, `super-admin`, `propietario`, `trabajador` (enforced via `EnsureUserHasRole` middleware)
 - Auth: Sanctum tokens + Fortify (login, registration)
 - Real-time: Pusher via Laravel Broadcasting (`config/broadcasting.php`)
 - Push notifications: Firebase Cloud Messaging (`kreait/firebase-php`)
-- Services layer in `app/Services/` (currently one: `BookingPendingPayNotifier.php`)
-- 32 Eloquent models in `app/Models/`
+- 34 Eloquent models in `app/Models/`
+
+### Services (`app/Services/`)
+- `BookingPendingPayNotifier.php` — notificación de pagos pendientes
+- `BillInvoiceMailService.php` — servicio de facturación
+- `MonthlyQuotaService.php` — generación de cuotas mensuales
+- `RefundService.php` — servicio de reembolsos
+
+### Exports (`app/Exports/`)
+- `MonthlyPaymentsExport.php` — exportación de pagos mensuales (maatwebsite/excel)
+- `PaymentsExport.php` — exportación general de pagos
+- `BookingsExport.php` — exportación de reservas
+- `DelinquentsExport.php` — exportación de morosos
+
+### Mail (`app/Mail/`)
+- `BillInvoiceMail.php` — envío de facturas PDF
+- `PayClaims.php` — reclamaciones de pago
+- `ResetPasswordMail.php` — reset de contraseña
+
+### Console Commands (`app/Console/Commands/`)
+- `MonthlyQuota.php` — generación mensual de cuotas (cron)
+- `ImportCuotasFromExcel.php` — importación genérica de cuotas
+- `ImportCuotasPagosAgosto.php` — importación cuotas/agosto (acumulación saldos, idempotente)
+- `ImportCuotasAlDia.php` — importación cuotas al día
+- `ImportCuotasMorosos.php` — importación cuotas morosos
+- `ImportCuotasActualizadasMorosidad.php` — actualización morosidad
+- `ImportWaterReadings.php` — importación lecturas de agua
+- `ImportWaterReadingsJuly.php` — importación lecturas julio
+- `BookingPendingPaymentReminders.php` — recordatorios de pago
+- `CheckUserMorosos.php` — verificación de morosos
+- `ActiveOrdesactiveAirBnbUsers.php` — activar/desactivar usuarios Airbnb
+- `AutoCompleteBookings.php` — autocompletar reservas
+- `updateYearInQuota.php` — migración: agregar columna `year` a quotas
+
+### Middleware custom (`app/Http/Middleware/`)
+- `EnsureUserHasRole.php` — validación de roles
+- `EnsureRoleIsNot.php` — exclusión de roles
+- `SecurityHeaders.php` — headers de seguridad
+- `Authenticate.php` — fix para API sin auth (retorna `null` en `redirectTo()`)
+
+### Push notifications
+- Firebase Cloud Messaging (`kreait/firebase-php`)
+- Laravel Broadcasting con Pusher (`config/broadcasting.php`)
 
 ### Frontend (`frontend/src/resources/`)
 - `@` alias resolves to `frontend/src/resources/`
 - Vue Router with role-based guards: `middlewares/auth.js`, `middlewares/role.js`, `middlewares/guest.js`
-- Pinia stores in `services/store/` (23 stores, one per domain)
+- Pinia stores in `services/store/` (26 stores, one per domain)
 - API client: `services/axios/index.js` — uses `VITE_LARAVEL_API_URL` as base URL, stores token in localStorage
 - Pages split by role: `view/admin/`, `view/client/`, `view/security/`, `view/auth/`
 - Layouts: `authLayout.vue` (login/register), `panelLayout.vue` (authenticated app)
@@ -92,3 +133,6 @@ cd frontend && npm run build   # outputs to frontend/dist/
 - Capacitor `allowNavigation` in `frontend/capacitor.config.json` must include any new staging/dev IPs
 - No PHP static analysis (no phpstan/psalm) — rely on IDE + Pint for code quality
 - Database is MySQL (`edf_app`), not SQLite
+- Tabla `quotas` tiene columna `year` (migración `2026_09_09`) — los comandos de importación y el `MonthlyQuotaService` la usan para filtrar por año
+- 13 Artisan import commands — ejecutar solo en producción con datos reales, no en desarrollo
+- `referencias/` folder contains `.md` files documenting each day's changes and Excel source files for imports

@@ -256,7 +256,12 @@ class ImportCuotasPagosAgosto extends Command
             $payDate = $fechaPago->toDateString();
         } elseif ($fechaPago !== null && $fechaPago !== '') {
             try {
-                $payDate = Carbon::parse($fechaPago)->toDateString();
+                // Serial de Excel (ej: 46253 = 2026-08-19)
+                if (is_numeric($fechaPago)) {
+                    $payDate = Carbon::instance(Date::excelToDateTimeObject((float) $fechaPago))->toDateString();
+                } else {
+                    $payDate = Carbon::parse($fechaPago)->toDateString();
+                }
             } catch (\Exception $e) {
                 $this->skip($predio, 'Fecha de pago invalida: '.(string) $fechaPago.', usando fecha actual');
             }
