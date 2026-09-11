@@ -242,7 +242,7 @@ watch(
               <transition :name="transitionName">
                 <component
                   :is="Component"
-                  :key="route.fullPath"
+                  :key="route.path"
                   class="inner-page-component pb-1"
                 />
               </transition>

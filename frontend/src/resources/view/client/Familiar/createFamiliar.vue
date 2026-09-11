@@ -478,7 +478,7 @@ onMounted(() => {
                         </div>
                         <q-input borderless clearable v-model="formData.password" dense class="form__inputsCR mt-2"
                             color="primary" :type="isPwd ? 'password' : 'text'"
-                            :rules="[val => val && val.length > 0 || 'Correo electrónico es requerido', val => val.length >= 8 || 'Contraseña debe tener 8 caracteres']">
+                            :rules="[val => val && val.length > 0 || 'Contraseña es requerido', val => val.length >= 8 || 'Contraseña debe tener 8 caracteres']">
                             <template v-slot:append>
                                 <q-icon :name="isPwd ? 'eva-eye-off-outline' : 'eva-eye-outline'" class="cursor-pointer"
                                     @click="isPwd = !isPwd" />

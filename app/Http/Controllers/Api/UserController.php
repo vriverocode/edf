@@ -123,7 +123,7 @@ class UserController extends Controller
             return $this->returnFail(422, $validator->errors()->first());
         }
 
-        $data = $request->only(['name', 'username', 'email', 'phone', 'dni']);
+        $data = $request->only(['name', 'username', 'email', 'phone', 'dni', 'rol_id']);
         $data = array_filter($data, fn ($v) => $v !== null && $v !== '');
 
         if ($request->filled('password')) {
@@ -132,7 +132,7 @@ class UserController extends Controller
 
         $user->update($data);
 
-        return $this->returnSuccess(200, 'ok');
+        return $this->returnSuccess(200, $data);
     }
 
     /**

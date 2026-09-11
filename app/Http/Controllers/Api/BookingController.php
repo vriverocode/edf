@@ -41,8 +41,8 @@ class BookingController extends Controller
             if ($user->rol_id === Rol::ADMIN || $user->rol_id === Rol::TRABAJADOR || $user->rol_id === Rol::PARCIAL) {
                 return $this->returnFail(400, ['Usuario no valido', $user]);
             }
-            if ($user->status !== 1) {
-                return $this->returnFail(400, ['El usuario se encuentra moroso o inactivo', $user]);
+            if ($user->status === 3) {
+                return $this->returnFail(400, ['El usuario se encuentra inactivo', $user]);
             }
             $departament_id = $request->departament_id;
 
@@ -1176,33 +1176,8 @@ class BookingController extends Controller
 
     private function hasOverdueQuotas(int $userId, int $departamentId): bool
     {
-        if (Quota::where('departament_id', $departamentId)
+        return Quota::where('departament_id', $departamentId)
             ->overdueOrPendingOlderThan(2)
-            ->exists()) {
-            return true;
-        }
-
-        $ownerDeptIds = Departament::where('user_id', $userId)->pluck('id');
-        if ($ownerDeptIds->isNotEmpty() && Quota::whereIn('departament_id', $ownerDeptIds)
-            ->overdueOrPendingOlderThan(2)
-            ->exists()) {
-            return true;
-        }
-
-        $tenantDeptIds = PeoplesXDepartaments::where('user_id', $userId)->pluck('departament_id');
-        if ($tenantDeptIds->isNotEmpty() && Quota::whereIn('departament_id', $tenantDeptIds)
-            ->overdueOrPendingOlderThan(2)
-            ->exists()) {
-            return true;
-        }
-
-        $pivotIds = PeoplesXDepartaments::where('user_id', $userId)->pluck('id');
-        if ($pivotIds->isNotEmpty() && Quota::whereIn('peoples_x_departments_id', $pivotIds)
-            ->overdueOrPendingOlderThan(2)
-            ->exists()) {
-            return true;
-        }
-
-        return false;
+            ->exists();
     }
 }

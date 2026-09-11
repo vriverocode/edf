@@ -18,17 +18,41 @@ const formData = ref({
   phone: '',
   password: '',
 })
+const rolOptions = ref([
+  {
+    id: 0,
+    title: 'Selecciona el tipo de usuario'
+  },
+  {
+    id: 2,
+    title: 'Propietario'
+  },
+  {
+    id: 3,
+    title: 'Inquilino'
+  },
+  {
+    id: 6,
+    title: 'Trabajador'
+  },
+  {
+    id: 7,
+    title: 'Propietario Parcial'
+  },
+])
 
 const loadUserData = () => {
   loadUser.value = true
   userStore.getUserById(route.params.id)
     .then((response) => {
       if (response.code !== 200) throw response
-      const u = response.data
-      formData.value.name = u.name || ''
-      formData.value.username = u.username || ''
-      formData.value.email = u.email || ''
-      formData.value.phone = u.phone || ''
+      const userToUpdate = response.data
+      formData.value.name = userToUpdate.name || ''
+      formData.value.username = userToUpdate.username || ''
+      formData.value.email = userToUpdate.email || ''
+      formData.value.phone = userToUpdate.phone || ''
+      formData.value.rol = rolOptions.value.find(rol => rol.id == userToUpdate.rol_id) || ''
+
     })
     .catch(() => {
       showNotify('negative', 'Error al cargar datos del usuario')
@@ -37,9 +61,21 @@ const loadUserData = () => {
       loadUser.value = false
     })
 }
-
+const validationForm = () => {
+ if(formData.value.rol.id == 0){
+    return false
+  }
+  if(!formData.value.name || formData.value.name == '' ){
+    return false
+  }
+  if(!formData.value.username || formData.value.username == '' ){
+    return false
+  }
+}
 const submit = () => {
+ 
   loading.value = true
+  formData.value.rol_id = formData.value.rol.id 
   const payload = { ...formData.value }
   if (!payload.password?.trim()) delete payload.password
   userStore.updateUser(route.params.id, payload)
@@ -85,6 +121,13 @@ onMounted(loadUserData)
           <q-input borderless dense clearable v-model="formData.username" class="form__inputsCR mt-2" color="primary"
             :rules="[val => val && val.length > 0 || 'Nombre de usuario es requerido']" />
         </div>
+         <div class="col-md-6 md:my-0 col-12 my-1 mb-4 px-2 md:px-12">
+            <div class="text-subtitle2 text-bold text-black">
+              Tipo de usuario <span class="text-negative">*</span>
+            </div>
+            <q-select borderless class="form__inputsCR mt-2" v-model="formData.rol" option-value="id"
+              option-label="title" :options="rolOptions" behavior="menu" dense />
+          </div>
         <div class="col-md-6 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">
             Correo electronico
@@ -93,11 +136,12 @@ onMounted(loadUserData)
         </div>
         <div class="col-md-6 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">
-            Contraseña <span class="text-negative">*</span>
+            Contraseña
           </div>
           <q-input borderless dense clearable v-model="formData.password" class="form__inputsCR mt-2" color="primary"
-            type="password"
-            :rules="[]" />
+            type="password" 
+            :rules="[val => !val || val.length >= 8 || 'La contraseña debe tener al menos 8 caracteres']"
+          /> 
         </div>
         <div class="col-md-6 col-12 my-1 px-2 md:px-12">
           <div class="text-subtitle2 text-bold text-black">

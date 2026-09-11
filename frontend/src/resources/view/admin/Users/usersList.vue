@@ -133,7 +133,7 @@ onMounted(() => {
       </div>
       <div class="col">
         <q-input v-model="search" dense borderless clearable placeholder="Buscar por nombre o # depto..."
-          class="form_userOptionSelect" @update:model-value="getUsers(true)" debounce="500">
+          class="form_userOptionSelect" @update:model-value="getUsers(true)" debounce="500" autofocus>
           <template v-slot:prepend>
             <q-icon name="eva-search-outline" />
           </template>
@@ -183,8 +183,8 @@ onMounted(() => {
               </q-tooltip>
             </div>
           </template>
-          <div class="row justify-end px-1 md:px-2 w-full pt-3 col-12" style="border-top: 1px solid lightgrey;">
-            <div class="col-2">
+          <div class="row justify-center md:justify-end  px-1 md:px-2 w-full pt-3 col-12" style="border-top: 1px solid lightgrey;">
+            <div class="col col-md-1 flex flex-center">
               <q-btn icon="eva-eye-outline" class="mx-1" flat color="indigo-5" size="0.8rem"
                 @click="goTo('/admin/users/detail/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
@@ -192,7 +192,7 @@ onMounted(() => {
                 </q-tooltip>
               </q-btn>
             </div>
-            <div class="col-2" v-if="user.rol_id == 2 || user.rol_id == 7">
+            <div class="col col-md-1 flex flex-center" v-if="user.rol_id == 2 || user.rol_id == 7">
               <q-btn icon="eva-home-outline" class="mx-1" flat color="yellow-9" size="0.8rem"
                 @click="goTo('/admin/users/assign-property/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
@@ -200,7 +200,7 @@ onMounted(() => {
                 </q-tooltip>
               </q-btn>
             </div>
-            <div class="col-2">
+            <div class="col col-md-1 flex flex-center">
               <q-btn icon="eva-settings-outline" class="mx-1" color="primary" flat size="0.8rem"
                 @click="goTo('/admin/users/form/update/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
@@ -208,7 +208,7 @@ onMounted(() => {
                 </q-tooltip>
               </q-btn>
             </div>
-            <div class="col-2">
+            <div class="col col-md-1 flex flex-center">
               <q-btn icon="eva-credit-card-outline" class="mx-1" color="amber-6" flat size="0.8rem"
                 v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6"
                 @click="goTo('/admin/pays/user/' + user.id)">
@@ -217,21 +217,21 @@ onMounted(() => {
                 </q-tooltip>
               </q-btn>
             </div>
-            <div class="col-2">
+            <div class="col col-md-1 flex flex-center">
               <q-btn icon="eva-grid-outline" class="mx-1" flat color="teal" size="0.8rem" @click="openAreas(user)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
                   Áreas que puede reservar
                 </q-tooltip>
               </q-btn>
             </div>
-            <div class="col-2">
+            <div class="col col-md-1 flex flex-center">
               <q-btn icon="eva-sync-outline" class="mx-1" flat color="black" size="0.8rem" @click="openResetModal(user)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" :class="'bg-black text-body2 px-2'">
                   Resetear Usuario
                 </q-tooltip>
               </q-btn>
             </div>
-            <div class="col-2">
+            <div class="col col-md-1 flex flex-center">
               <q-btn icon="eva-trash-2-outline" class="mx-1" color="negative" flat size="0.8rem" @click="openModal(user, 'delete')">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Borrar usuario
