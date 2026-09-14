@@ -29,6 +29,7 @@ class PayMethodController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'commission_percentage' => 'nullable|numeric|min:0|max:100',
             'dataList' => 'required|array|min:1',
             'dataList.*.title' => 'required|string',
             'dataList.*.data' => 'required|string',
@@ -40,6 +41,7 @@ class PayMethodController extends Controller
         try {
             PayMethod::create([
                 'name' => $request->name,
+                'commission_percentage' => (float) ($request->commission_percentage ?? 0),
                 'data' => json_encode($request->dataList),
                 'status' => 1,
             ]);
@@ -75,6 +77,7 @@ class PayMethodController extends Controller
         // Validaciones en backend
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'commission_percentage' => 'nullable|numeric|min:0|max:100',
             'dataList' => 'required|array|min:1',
             'dataList.*.title' => 'required|string',
             'dataList.*.data' => 'required|string',
@@ -94,6 +97,7 @@ class PayMethodController extends Controller
 
             $payMethod->update([
                 'name' => $request->name,
+                'commission_percentage' => (float) ($request->commission_percentage ?? $payMethod->commission_percentage),
                 'data' => json_encode($request->dataList), // Volvemos a guardar como string
                 'status' => $request->has('status') ? $request->status : $payMethod->status,
             ]);

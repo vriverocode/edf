@@ -21,6 +21,7 @@ const typeOfData = [
 
 const formData = ref({
   name: '',
+  commission_percentage: 0,
   status: 1, // Por si en el futuro quieres agregar un toggle de estatus
   dataList: []
 })
@@ -56,6 +57,7 @@ const loadMethodData = () => {
     .then((res) => {
       const dbData = res.data;
       formData.value.name = dbData.name;
+      formData.value.commission_percentage = dbData.commission_percentage ?? 0;
       formData.value.status = dbData.status;
       
       // Parsear la información. El backend ya manda dataList como un arreglo gracias al json_decode,
@@ -143,6 +145,12 @@ onMounted(() => {
                   </div>
                   <q-input placeholder="Ej: transferencia, Yape, Tarjeta" dense borderless clearable v-model="formData.name" class="form__inputsR mt-1" color="primary"
                     :rules="[val => val && val.length > 0 || 'El nombre es requerido']" />
+                </div>
+                <div class="col-md-6 col-12 mt-1 md:mt-0 px-0 md:px-12">
+                  <div class="text-subtitle2 text-black">
+                    Comisión (%)
+                  </div>
+                  <q-input placeholder="0" dense borderless clearable v-model.number="formData.commission_percentage" type="number" min="0" max="100" step="0.01" class="form__inputsR mt-1" color="primary" />
                 </div>
               </div>
               <div class="" style="height:83%;">

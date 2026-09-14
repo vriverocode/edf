@@ -315,7 +315,8 @@ class NoticeController extends Controller
     {
         $rand = rand(1000000, 9999999);
         $fileName = trim(str_replace(' ', '_', $notice->id));
-        $extension = $image->extension();
+        $originalName = $image->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $image->extension();
 
         return config('app.url')."public/storage/images/post/{$rand}_{$fileName}.{$extension}";
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Departament;
+use App\Models\PeoplesXDepartaments;
 use App\Models\Rol;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -126,6 +127,29 @@ class DepartamentController extends Controller
         }
 
         return $this->returnSuccess(200, $apartments);
+    }
+
+    public function getDepartmentsByOwnerId($id)
+    {
+        $owned = Departament::with('owner')
+            ->where('user_id', $id)
+            ->where('type', Departament::TYPE_DEPARTAMENTO)
+            ->get()
+            ->map(fn ($d) => (array) $d->toArray() + ['_relation' => 'owner']);
+
+        $tenantDeptIds = PeoplesXDepartaments::where('user_id', $id)
+            ->where('type', Rol::INQUILINO)
+            ->pluck('departament_id');
+
+        $asTenant = Departament::with('owner')
+            ->whereIn('id', $tenantDeptIds)
+            ->where('type', Departament::TYPE_DEPARTAMENTO)
+            ->get()
+            ->map(fn ($d) => (array) $d->toArray() + ['_relation' => 'tenant']);
+
+        $all = $owned->keyBy('id')->merge($asTenant->keyBy('id'))->values();
+
+        return $this->returnSuccess(200, $all);
     }
 
     /**

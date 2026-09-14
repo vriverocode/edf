@@ -244,6 +244,12 @@ class Quota extends Model
                     }
                 }
 
+                $detailNumbers = collect($details)
+                    ->map(fn ($d) => $d['departament']['number'] ?? null)
+                    ->filter()
+                    ->unique()
+                    ->values();
+
                 return [
                     'id' => 'group-'.$group->pluck('id')->join('-'),
                     'month' => $firstQuota->month,
@@ -253,7 +259,7 @@ class Quota extends Model
                     'responsible_id' => $responsibleUser?->id,
                     'owner_name' => $owner ? $owner->name : 'Desconocido',
                     'owner_id' => $owner?->id,
-                    'departament_number' => $firstQuota->departament->number ?? '',
+                    'departament_number' => $detailNumbers->isNotEmpty() ? $detailNumbers->implode(' - ') : ($firstQuota->departament->number ?? ''),
                     'departament_inter_number' => $firstQuota->departament->inter_number ?? 0,
                     'maintenance_amount' => $group->sum('maintenance_amount'),
                     'water_amount' => $group->sum('water_amount'),

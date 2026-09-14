@@ -18,7 +18,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener reservas del usuario');
           });
 
       })
@@ -38,7 +38,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener reservas de seguridad');
           });
 
       })
@@ -57,12 +57,12 @@ export const useReserveStore = defineStore('Reserve', {
           }).catch(({ response }) => {
             console.error(response)
             if (response.data.code == 403) {
-              reject(response.data);
+              return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
             }
             if (response.data.code == 409) {
-              reject(response.data.error || 'Límite de reservas por día alcanzado');
+              return reject({ message: typeof response.data.error === 'string' ? response.data.error : 'Límite de reservas por día alcanzado' });
             }
-            reject(response.data.error);
+            reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al crear la reserva' });
           });
 
       })
@@ -82,7 +82,7 @@ export const useReserveStore = defineStore('Reserve', {
           })
           .catch(({ response }) => {
             console.error(response)
-            reject(response.data.error)
+            reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al registrar pago de reserva' })
           })
 
       })
@@ -102,7 +102,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener la reserva');
           });
 
       })
@@ -121,7 +121,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener reservas por área');
           });
 
       })
@@ -139,7 +139,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener reservas por departamento');
           });
       })
     },
@@ -158,9 +158,9 @@ export const useReserveStore = defineStore('Reserve', {
           }).catch(({ response }) => {
             console.error(response)
             if (response.data.code == 403) {
-              reject(response.data);
+              return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
             }
-            reject(response.data.error);
+            reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al actualizar la reserva' });
           });
 
       })
@@ -179,7 +179,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener disponibilidad');
           });
       })
 
@@ -197,7 +197,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al eliminar la reserva');
           });
       })
     },
@@ -214,7 +214,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al cancelar la reserva');
           });
       })
     },
@@ -231,7 +231,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al cancelar mantenimiento');
           });
       })
     },
@@ -248,7 +248,7 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al completar la reserva');
           });
       })
     },
@@ -298,7 +298,7 @@ export const useReserveStore = defineStore('Reserve', {
           })
           .catch(({ response }) => {
             console.error(response)
-            reject(response.data.error);
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener pendientes');
           });
       })
     },

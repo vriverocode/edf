@@ -355,6 +355,42 @@ const submitApprove = () => {
 const showModal = () => {
   dialog.value = 'voucher'
 }
+
+const uploadVoucherDialog = ref(false)
+const uploadFile = ref(null)
+const uploadingVoucher = ref(false)
+
+const handleVoucherUpload = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    showNotify('negative', 'Solo se permiten archivos de imagen.')
+    return
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    showNotify('negative', 'El archivo no debe superar 15MB.')
+    return
+  }
+  uploadFile.value = file
+}
+
+const submitUploadVoucher = async () => {
+  if (!uploadFile.value || !pay.value?.id) return
+  uploadingVoucher.value = true
+  try {
+    const formData = new FormData()
+    formData.append('vaucher', uploadFile.value)
+    const res = await payStore.uploadVoucher(pay.value.id, formData)
+    pay.value.vaucher = res.data.vaucher
+    uploadVoucherDialog.value = false
+    uploadFile.value = null
+    showNotify('positive', 'Voucher subido correctamente.')
+  } catch (e) {
+    showNotify('negative', typeof e === 'string' ? e : 'Error al subir voucher.')
+  } finally {
+    uploadingVoucher.value = false
+  }
+}
 </script>
 
 <template>
@@ -437,6 +473,18 @@ const showModal = () => {
               <span class="text-gray-900 font-semibold">S/. {{ pay.amount.toFixed(2) }}</span>
             </div>
 
+            <div v-if="pay.commission_amount > 0" class="flex justify-between items-center pb-2"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">Comisión</span>
+              <span class="text-red-600 font-semibold">- S/. {{ pay.commission_amount.toFixed(2) }}</span>
+            </div>
+
+            <div v-if="pay.commission_amount > 0" class="flex justify-between items-center pb-2"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">Monto neto</span>
+              <span class="text-green-700 font-bold">S/. {{ pay.net_amount?.toFixed(2)  }}</span>
+            </div>
+
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
               <span class="text-gray-600 font-medium">Fecha de pago</span>
@@ -480,12 +528,13 @@ const showModal = () => {
             </div>
           </template>
 
-          <div class="flex flex-center mt-4 cursor-pointer" @click="showModal"
-            v-if="pay.pay_method != 3 && pay.vaucher">
-            <div class="text-center text-subtitle1 text-primary text-bold font-medium text__vaucher">
-              Ver comprobante (voucher)
-            </div>
-            <span class="ml-2" v-html="iconsApp.voucher"></span>
+          <div class="flex justify-center mt-4" v-if="pay.vaucher">
+            <q-btn outline color="primary" icon="eva-eye-outline" label="Ver voucher"
+              style="border-radius: 0.8rem;" padding="sm lg" @click="showModal" />
+          </div>
+          <div class="flex justify-center mt-4" v-else>
+            <q-btn outline color="primary" icon="eva-upload-outline" label="Subir voucher"
+              style="border-radius: 0.8rem;" padding="sm lg" @click="uploadVoucherDialog = true" />
           </div>
         </div>
 
@@ -519,7 +568,8 @@ const showModal = () => {
           <q-btn label="Aprobar" unelevated color="primary" style="border-radius: 0.8rem;" padding="sm lg"
             :loading="loading" @click="openApproveDialog" />
         </div>
-        <p v-else class="text-grey-7 text-subtitle1 q-mt-md md:max-w-4xl">• Este pago ya tiene un resultado de validación.</p>
+        <p v-else class="text-grey-7 text-subtitle1 q-mt-md md:max-w-4xl md:mx-auto">
+          • Este pago ya fue completado.</p>
 
         <voucherModal :vaucher="pay.vaucher" :dialog="(dialog === 'voucher')" @closeModal="dialog = ''" />
       </div>
@@ -666,6 +716,36 @@ const showModal = () => {
           <q-btn flat label="Cancelar" v-close-popup color="grey" no-caps />
           <q-btn color="orange" label="Devolver" no-caps :loading="refundSubmitting"
             :disable="!refundAccountId || !refundVaucher" @click="submitRefund" />
+        </div>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="uploadVoucherDialog">
+      <q-card style="min-width: min(400px, 92vw);" class="q-pa-md">
+        <div class="flex items-center justify-between q-mb-sm">
+          <div class="text-h6">Subir voucher</div>
+          <q-btn flat round dense icon="eva-close-outline" v-close-popup />
+        </div>
+        <div class="text-caption text-grey-7 q-mb-md">
+          Formatos aceptados: JPG, JPEG, PNG, WEBP. Tamaño máximo: 15MB.
+        </div>
+        <label class="border rounded-lg px-3 py-4 flex flex-center column cursor-pointer"
+          :class="uploadFile ? 'border-green-500' : 'border-gray-300'">
+          <template v-if="!uploadFile">
+            <q-icon name="eva-image-outline" size="3rem" color="grey-5" />
+            <div class="text-grey-7 font-medium mt-1">Seleccionar imagen del voucher</div>
+          </template>
+          <template v-else>
+            <q-icon color="positive" name="eva-checkmark-circle-2" size="2rem" />
+            <div class="text-positive font-medium mt-1">{{ uploadFile.name }}</div>
+            <div class="text-caption text-grey-6">{{ (uploadFile.size / 1024 / 1024).toFixed(2) }} MB</div>
+          </template>
+          <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleVoucherUpload" />
+        </label>
+        <div class="row justify-end q-gutter-sm q-mt-lg">
+          <q-btn flat label="Cancelar" v-close-popup color="grey" no-caps />
+          <q-btn color="primary" label="Subir" no-caps :loading="uploadingVoucher"
+            :disable="!uploadFile" @click="submitUploadVoucher" />
         </div>
       </q-card>
     </q-dialog>

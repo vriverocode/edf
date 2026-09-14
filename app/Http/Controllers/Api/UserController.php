@@ -277,7 +277,8 @@ class UserController extends Controller
         $relativePath = '';
         $rand = rand(1000000, 9999999);
         $fileName = trim(str_replace(' ', '_', $visit->id));
-        $extension = $photoFile->extension();
+        $originalName = $photoFile->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $photoFile->extension();
 
         $imageName = "{$rand}_{$fileName}.{$extension}";
 
@@ -330,21 +331,23 @@ class UserController extends Controller
 
         return $this->returnSuccess(200, $residents);
     }
+
     public function resetUser(Request $request, $userId)
     {
         if ($request->user()->rol_id !== Rol::ADMIN) {
             throw new Exception('No tiene permiso para modificar usuarios.');
         }
         $user = User::find($userId);
-        if (!$user) {
+        if (! $user) {
             return $this->returnFail(401, 'Usuario no encontrado');
         }
         $user->update([
             'password' => Hash::make($request->password ?? '12345678'),
             'email' => null,
             'phone' => null,
-            'is_first_time' => 1
+            'is_first_time' => 1,
         ]);
+
         return $this->returnSuccess(200, 'ok');
     }
 

@@ -18,8 +18,18 @@ const filters = ref({
   search: '',
   date_from: '',
   date_to: '',
+  status: { label: 'Pendiente de aprobación', value: 1 },
 })
 const showDateFilters = ref(false)
+const statusOptions = [
+  { label: 'Todos', value: 9 },
+  { label: 'Pendiente de aprobación', value: 1 },
+  { label: 'Exitoso', value: 2 },
+  { label: 'Rechazado', value: 3 },
+  { label: 'Reembolsado', value: 5 },
+  { label: 'Pendiente por devolución', value: 6 },
+  { label: 'Cancelado', value: 0 },
+]
 
 const getPays = (page = 1) => {
   loading.value = true
@@ -27,6 +37,7 @@ const getPays = (page = 1) => {
   if (filters.value.search) params.search = filters.value.search
   if (filters.value.date_from) params.date_from = filters.value.date_from
   if (filters.value.date_to) params.date_to = filters.value.date_to
+  if (filters.value.status !== null && filters.value.status !== undefined) params.status = filters.value.status.value
   payStore.getPaysByUser(params)
     .then((response) => {
       pays.value = response.data.data || []
@@ -45,7 +56,7 @@ const applyFilters = () => {
 }
 
 const clearFilters = () => {
-  filters.value = { search: '', date_from: '', date_to: '' }
+  filters.value = { search: '', date_from: '', date_to: '', status: null }
   applyFilters()
 }
 
@@ -82,50 +93,57 @@ onMounted(() => {
         </div>
       </q-btn>
     </div>
-    <div class="px-4 pt-2 md:px-28">
-      <q-input dense outlined v-model="filters.search" placeholder="Buscar por nombre o departamento..."
-        @keyup.enter="applyFilters" clearable @clear="applyFilters" color="teal">
-        <template v-slot:prepend>
-          <q-icon name="eva-search-outline" />
-        </template>
-        <template v-slot:append>
-          <q-btn flat dense round icon="eva-options-2-outline" size="sm" @click="showDateFilters = !showDateFilters" />
-        </template>
-      </q-input>
-      <q-slide-transition>
-        <div v-show="showDateFilters" class="row q-col-gutter-sm q-mt-sm">
-          <div class="col-6">
-            <q-input dense outlined v-model="filters.date_from" label="Desde" mask="##/##/####" color="teal"
-              @update:model-value="applyFilters" clearable @clear="applyFilters">
-              <template v-slot:append>
-                <q-icon name="eva-calendar-outline" class="cursor-pointer">
-                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                    <q-date mask="DD/MM/YYYY" v-model="filters.date_from" @update:model-value="applyFilters" />
-                  </q-popup-proxy>
-                </q-icon>
-              </template>
-            </q-input>
-          </div>
-          <div class="col-6">
-            <q-input dense outlined v-model="filters.date_to" label="Hasta" mask="##/##/####" color="teal"
-              @update:model-value="applyFilters" clearable @clear="applyFilters">
-              <template v-slot:append>
-                <q-icon name="eva-calendar-outline" class="cursor-pointer">
-                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                    <q-date mask="DD/MM/YYYY" v-model="filters.date_to" @update:model-value="applyFilters" />
-                  </q-popup-proxy>
-                </q-icon>
-              </template>
-            </q-input>
-          </div>
-          <div class="col-12">
-            <q-btn flat dense no-caps color="grey-7" size="sm" icon="eva-refresh-outline" label="Limpiar filtros"
-              @click="clearFilters" />
-          </div>
-        </div>
-      </q-slide-transition>
-    </div>
     <div class="" style="height: 90%; overflow: auto;">
+      <div class="px-4 pt-2 md:px-36">
+        <div class="w-full">
+          <q-select dense outlined v-model="filters.status" label="Estado del pago" color="primary"
+            :options="statusOptions" option-label="label" option-value="value"
+            emit-value map-options clearable @clear="applyFilters"
+            @update:model-value="applyFilters">
+          </q-select>
+        </div>
+        <q-input class="mt-2" dense outlined v-model="filters.search" placeholder="Buscar por nombre o departamento..."
+          @keyup.enter="applyFilters" clearable @clear="applyFilters" color="teal">
+          <template v-slot:prepend>
+            <q-icon name="eva-search-outline" />
+          </template>
+          <template v-slot:append>
+            <q-btn flat dense round icon="eva-options-2-outline" size="sm" @click="showDateFilters = !showDateFilters" />
+          </template>
+        </q-input>
+        <q-slide-transition>
+          <div v-show="showDateFilters" class="row q-col-gutter-sm q-mt-sm items-center">
+            <div class="col-6">
+              <q-input dense outlined v-model="filters.date_from" label="Desde" mask="##/##/####" color="teal"
+                @update:model-value="applyFilters" clearable @clear="applyFilters">
+                <template v-slot:append>
+                  <q-icon name="eva-calendar-outline" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date mask="DD/MM/YYYY" v-model="filters.date_from" @update:model-value="applyFilters" />
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+            </div>
+            <div class="col-6">
+              <q-input dense outlined v-model="filters.date_to" label="Hasta" mask="##/##/####" color="teal"
+                @update:model-value="applyFilters" clearable @clear="applyFilters">
+                <template v-slot:append>
+                  <q-icon name="eva-calendar-outline" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date mask="DD/MM/YYYY" v-model="filters.date_to" @update:model-value="applyFilters" />
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12">
+              <q-btn flat dense no-caps color="grey-7" size="sm" icon="eva-refresh-outline" label="Limpiar filtros"
+                @click="clearFilters" />
+            </div>
+          </div>
+        </q-slide-transition>
+      </div>
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />
@@ -134,9 +152,9 @@ onMounted(() => {
       <!-- Content -->
       <div v-else class="px-4 py-6 md:px-28">
         <!-- Lista de pagos -->
-        <div v-if="pays.length > 0" class="space-y-3 md:px-5">
+        <div v-if="pays.length > 0" class="  md:px-5">
           <div v-for="pay in pays" :key="pay.id"
-            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 cursor-pointer"
+            class="bg-white rounded-xl shadow-md my-5 border border-gray-100 overflow-hidden md:mb-5 cursor-pointer"
             style="position: relative;" @click="goToDetail(pay.id)">
 
             <div class="px-4 pb-4 pt-2">
@@ -185,7 +203,7 @@ onMounted(() => {
             </div>
           </div>
           <!-- Paginación -->
-          <div v-if="pagination.lastPage > 1" class="flex justify-center mt-4">
+          <div v-if="pagination.lastPage > 1" class="flex justify-center mt-8 pb-5">
             <q-pagination
               v-model="pagination.page"
               :max="pagination.lastPage"

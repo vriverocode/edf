@@ -7,6 +7,7 @@ import { useReserveStore } from '@/services/store/reserve.store'
 import { useQuotaStore } from '@/services/store/quota.store'
 import { usePayStore } from '@/services/store/pay.store'
 import { usePayMethodStore } from '@/services/store/payMethod.store'
+import { useUserStore } from '@/services/store/users.store'
 
 const router = useRouter()
 const apartmentStore = useApartmentStore()
@@ -14,22 +15,36 @@ const reserveStore = useReserveStore()
 const quotaStore = useQuotaStore()
 const payStore = usePayStore()
 const payMethodStore = usePayMethodStore()
+const userStore = useUserStore()
 
 const loading = ref(false)
 const submitting = ref(false)
 
-// Step 1: Department/Unit & Type
-const selectedDept = ref(null)
+// Step 1: Type
 const selectedType = ref(null)
-const departments = ref([])
-const deptSearch = ref('')
 const typeOptions = [
   { label: 'Cuota de mantenimiento', value: 1 },
   { label: 'Reserva de área común', value: 2 },
 ]
 
-// Derived user from selected department owner
-const selectedUser = computed(() => selectedDept.value?.owner || null)
+// Step 1a: User selector (for type=1)
+const selectedUserId = ref(null)
+const userOptions = ref([])
+const userSearch = ref('')
+
+// Step 1b: Department selector
+const selectedDept = ref(null)
+const selectedDepts = ref([])
+const departments = ref([])
+const deptSearch = ref('')
+
+// Derived user from selected department (for type=2)
+const selectedUser = computed(() => {
+  if (isQuotaType.value) {
+    return userOptions.value.find(u => u.id === selectedUserId.value) || null
+  }
+  return selectedDept.value?.owner || null
+})
 
 // Step 2a: Month/Year for quotas
 const selectedMonth = ref(null)
@@ -48,6 +63,7 @@ const yearOptions = Array.from({ length: 5 }, (_, i) => ({
 const pendingQuotas = ref([])
 const pendingBookings = ref([])
 const selectedItem = ref(null)
+const selectedQuotas = ref([])
 
 // Step 3: Payment form
 const paymentForm = ref({
@@ -63,7 +79,56 @@ const payMethods = ref([])
 const isQuotaType = computed(() => Number(selectedType.value) === 1)
 const isReserveType = computed(() => Number(selectedType.value) === 2)
 
-const loadDepartments = async () => {
+const selectedPayMethodCommission = computed(() => {
+  if (!paymentForm.value.pay_method) return 0
+  const method = payMethods.value.find(m => m.id === paymentForm.value.pay_method)
+  return method?.commission_percentage || 0
+})
+
+const commissionAmount = computed(() => {
+  if (!selectedPayMethodCommission.value || !paymentForm.value.amount) return 0
+  return Math.round((paymentForm.value.amount * selectedPayMethodCommission.value / 100) * 100) / 100
+})
+
+const netAmount = computed(() => {
+  if (!paymentForm.value.amount) return 0
+  return Math.round((paymentForm.value.amount - commissionAmount.value) * 100) / 100
+})
+
+const filteredUsers = computed(() => {
+  if (!userSearch.value) return userOptions.value
+  const q = userSearch.value.toLowerCase()
+  return userOptions.value.filter(u => u.name?.toLowerCase().includes(q))
+})
+
+const filteredDepts = computed(() => {
+  if (!deptSearch.value) return departments.value
+  const q = deptSearch.value.toLowerCase()
+  return departments.value.filter(
+    d => String(d.number).toLowerCase().includes(q) || d.block?.toLowerCase().includes(q),
+  )
+})
+
+const loadUsers = async () => {
+  try {
+    const res = await userStore.getUsersOptions()
+    userOptions.value = res.data || []
+  } catch {
+    userOptions.value = []
+  }
+}
+
+const loadDepartmentsByUser = async (userId) => {
+  if (!userId) { departments.value = []; return }
+  try {
+    const res = await apartmentStore.getDepartmentsByOwner(userId)
+    departments.value = res.data || []
+  } catch {
+    departments.value = []
+  }
+}
+
+const loadAllDepartments = async () => {
   try {
     const res = await apartmentStore.getApartmentsByFind('allWithUser')
     departments.value = res.data || []
@@ -71,17 +136,6 @@ const loadDepartments = async () => {
     departments.value = []
   }
 }
-
-const filteredDepts = computed(() => {
-  if (!deptSearch.value) return departments.value
-  const q = deptSearch.value.toLowerCase()
-  return departments.value.filter(
-    (d) =>
-      String(d.number).toLowerCase().includes(q) ||
-      d.block?.toLowerCase().includes(q) ||
-      d.owner?.name?.toLowerCase().includes(q),
-  )
-})
 
 const loadPayMethods = async () => {
   try {
@@ -96,11 +150,16 @@ const loadPendingQuotas = async () => {
   if (!selectedUser.value || !selectedMonth.value) return
   pendingQuotas.value = []
   selectedItem.value = null
+  selectedQuotas.value = []
   try {
+    const deptIds = isQuotaType.value && selectedDepts.value.length
+      ? selectedDepts.value.map(d => d.id)
+      : undefined
     const res = await quotaStore.getQuotaByMonth(selectedMonth.value, {
       year: selectedYear.value || currentYear,
       owner: selectedUser.value.id,
       status: 1,
+      departament_ids: deptIds,
     })
     pendingQuotas.value = res.data || []
   } catch {
@@ -109,43 +168,96 @@ const loadPendingQuotas = async () => {
 }
 
 const loadPendingBookings = async () => {
-  if (!selectedUser.value) return
+  if (!selectedDept.value) return
   pendingBookings.value = []
   selectedItem.value = null
   try {
     const res = await reserveStore.getReservesByUser({
       status: 1,
-      user_id: selectedUser.value.id,
+      department_id: selectedDept.value.id,
     })
-    pendingBookings.value = res.data || []
+    pendingBookings.value = res.data.data || []
   } catch {
     pendingBookings.value = []
   }
 }
 
-watch(selectedDept, () => {
-  selectedItem.value = null
-  if (isQuotaType.value && selectedMonth.value) loadPendingQuotas()
-  if (isReserveType.value) loadPendingBookings()
+const totalSelectedAmount = computed(() => {
+  if (isQuotaType.value) {
+    return selectedQuotas.value.reduce((sum, q) => sum + (Number(q.amount) || 0), 0)
+  }
+  return selectedItem.value ? Number(selectedItem.value.amount) || 0 : 0
 })
+
+// Watches
+watch(selectedType, (val) => {
+  selectedItem.value = null
+  selectedQuotas.value = []
+  selectedDept.value = null
+  selectedDepts.value = []
+  selectedUserId.value = null
+  departments.value = []
+  pendingQuotas.value = []
+  pendingBookings.value = []
+  if (Number(val) === 1) {
+    loadUsers()
+  } else if (Number(val) === 2) {
+    loadAllDepartments()
+  }
+})
+
+watch(selectedUserId, (id) => {
+  selectedDepts.value = []
+  departments.value = []
+  pendingQuotas.value = []
+  selectedItem.value = null
+  selectedQuotas.value = []
+  if (id) {
+    loadDepartmentsByUser(id)
+  }
+})
+
+watch(selectedDepts, () => {
+  selectedItem.value = null
+  selectedQuotas.value = []
+  if (isQuotaType.value && selectedUser.value && selectedMonth.value) {
+    loadPendingQuotas()
+  }
+}, { deep: true })
 
 watch([selectedMonth, selectedYear], () => {
   if (isQuotaType.value && selectedUser.value) loadPendingQuotas()
 })
 
-watch(selectedType, () => {
+watch(selectedDept, () => {
   selectedItem.value = null
-  if (isQuotaType.value && selectedUser.value && selectedMonth.value) loadPendingQuotas()
-  if (isReserveType.value && selectedUser.value) loadPendingBookings()
+  if (isReserveType.value && selectedDept.value) loadPendingBookings()
 })
 
 watch(selectedItem, (item) => {
-  if (item) {
+  if (item && !isQuotaType.value) {
     paymentForm.value.amount = Number(item.amount) || 0
-  } else {
+  } else if (!isQuotaType.value) {
     paymentForm.value.amount = null
   }
 })
+
+watch(selectedQuotas, (items) => {
+  if (isQuotaType.value && items.length) {
+    paymentForm.value.amount = totalSelectedAmount.value
+  } else if (isQuotaType.value) {
+    paymentForm.value.amount = null
+  }
+}, { deep: true })
+
+const toggleQuota = (quota) => {
+  const idx = selectedQuotas.value.findIndex(q => q.id === quota.id)
+  if (idx >= 0) {
+    selectedQuotas.value.splice(idx, 1)
+  } else {
+    selectedQuotas.value.push(quota)
+  }
+}
 
 const selectItem = (item) => {
   selectedItem.value = item
@@ -158,10 +270,23 @@ const formatTime = (time) => {
 }
 
 const submitPay = async () => {
-  if (!selectedUser.value || !selectedType.value || !selectedItem.value) {
+  if (!selectedUser.value || !selectedType.value) {
     Notify.create({ color: 'negative', message: 'Completa todos los campos requeridos' })
     return
   }
+
+  if (isQuotaType.value) {
+    if (!selectedQuotas.value.length) {
+      Notify.create({ color: 'negative', message: 'Selecciona al menos una cuota' })
+      return
+    }
+  } else {
+    if (!selectedItem.value) {
+      Notify.create({ color: 'negative', message: 'Selecciona una reserva' })
+      return
+    }
+  }
+
   if (!paymentForm.value.amount || paymentForm.value.amount <= 0) {
     Notify.create({ color: 'negative', message: 'El monto debe ser mayor a cero' })
     return
@@ -174,11 +299,20 @@ const submitPay = async () => {
   const formData = new FormData()
   formData.append('user_id', selectedUser.value.id)
   formData.append('type', selectedType.value)
-  formData.append('to_pay_id', selectedItem.value.id)
   formData.append('amount', paymentForm.value.amount)
   formData.append('pay_method', paymentForm.value.pay_method)
   formData.append('pay_date', paymentForm.value.pay_date)
   formData.append('reference', paymentForm.value.reference || '000000')
+
+  if (isQuotaType.value) {
+    const ids = selectedQuotas.value.map(q => q.id)
+    formData.append('to_pay_id', ids[0])
+    ids.forEach(id => formData.append('quota_ids[]', id))
+    formData.append('consolidated_ids', JSON.stringify(ids))
+  } else {
+    formData.append('to_pay_id', selectedItem.value.id)
+  }
+
   if (paymentForm.value.vaucher) {
     formData.append('vaucher', paymentForm.value.vaucher)
   }
@@ -196,7 +330,6 @@ const submitPay = async () => {
   }
 }
 
-loadDepartments()
 loadPayMethods()
 </script>
 
@@ -206,30 +339,87 @@ loadPayMethods()
       <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-3xl p-6 mx-auto my-6">
         <h2 class="text-lg font-bold text-gray-900 mb-6">Registrar pago</h2>
 
-        <!-- Step 1: Department/Unit & Type -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <!-- Step 1: Type -->
+        <div class="mb-6">
+          <div class="text-sm font-medium text-gray-700 mb-1">Tipo de pago</div>
+          <q-select
+            v-model="selectedType"
+            :options="typeOptions"
+            option-label="label"
+            option-value="value"
+            emit-value
+            borderless
+            map-options
+            placeholder="Seleccionar tipo"
+            clearable
+            dense
+            class="form__inputsR"
+          />
+        </div>
+
+        <!-- Step 1a: Cuota type — User then Departments -->
+        <div v-if="isQuotaType" class="space-y-4 mb-6">
           <div>
-            <div class="text-sm font-medium text-gray-700 mb-1">Departamento / Unidad</div>
+            <div class="text-sm font-medium text-gray-700 mb-1">Usuario</div>
             <q-select
-              v-model="selectedDept"
-              :options="filteredDepts"
-              option-label="number"
+              v-model="selectedUserId"
+              :options="filteredUsers"
+              option-label="name"
               option-value="id"
-              placeholder="Buscar por número o propietario..."
+              emit-value
+              map-options
               use-input
               fill-input
               hide-selected
               behavior="menu"
+              placeholder="Buscar por nombre..."
               clearable
               dense
               borderless
+              class="form__inputsR"
+              @filter="(val, update) => { userSearch = val; update() }"
+              @filter-abort="() => { userSearch = '' }"
+            >
+              <template v-slot:option="{ itemProps, opt }">
+                <q-item v-bind="itemProps" dense style="border-bottom: 1px solid lightgrey;" class="my-1 py-1">
+                  <q-item-section avatar class="min-w-[36px]">
+                    <q-avatar size="28px" color="teal" text-color="white" class="text-xs font-bold">
+                      {{ String(opt.name || '?')[0] }}
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label class="text-sm font-semibold">{{ opt.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template v-slot:selected-item="{ opt }">
+                <span>{{ opt.name }}</span>
+              </template>
+            </q-select>
+          </div>
+          <div v-if="selectedUserId">
+            <div class="text-sm font-medium text-gray-700 mb-1">Unidades</div>
+            <q-select
+              v-model="selectedDepts"
+              :options="filteredDepts"
+              option-label="number"
+              option-value="id"
+              use-input
+              behavior="menu"
+              multiple
+              use-chips
+              placeholder="Seleccionar unidades..."
+              clearable
+              dense
+              borderless
+              input-debounce="0"
               class="form__inputsR"
               @filter="(val, update) => { deptSearch = val; update() }"
               @filter-abort="() => { deptSearch = '' }"
             >
               <template v-slot:option="{ itemProps, opt }">
-                <q-item v-bind="itemProps" dense style="border-bottom: 1px solid lightgrey;" class=" my-1 py-1">
-                  <q-item-section avatar class="min-w-[36px]" >
+                <q-item v-bind="itemProps" dense style="border-bottom: 1px solid lightgrey;" class="my-1 py-1">
+                  <q-item-section avatar class="min-w-[36px]">
                     <q-avatar size="28px" color="teal" text-color="white" class="text-xs font-bold">
                       {{ String(opt.number || '?')[0] }}
                     </q-avatar>
@@ -238,31 +428,60 @@ loadPayMethods()
                     <q-item-label class="text-sm font-semibold">
                       {{ opt.number }}<span v-if="opt.block" class="text-grey-6 font-normal"> · Bloque {{ opt.block }}</span>
                     </q-item-label>
-                    <q-item-label caption class="text-xs">{{ opt.owner?.name || 'Sin propietario' }}</q-item-label>
+                    <q-item-label caption class="text-xs">
+                      {{ opt._relation === 'tenant' ? 'Inquilino' : 'Propietario' }}
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </template>
               <template v-slot:selected-item="{ opt }">
-                <span>{{ opt.number }}<span v-if="opt.block"> · Bloque {{ opt.block }}</span></span>
+                <q-chip removable @remove="selectedDepts = selectedDepts.filter(d => d.id !== opt.id)" dense class="q-mr-xs">
+                  {{ opt.number }}<span v-if="opt.block"> · B{{ opt.block }}</span>
+                </q-chip>
               </template>
             </q-select>
           </div>
-          <div>
-            <div class="text-sm font-medium text-gray-700 mb-1">Tipo de pago</div>
-            <q-select
-              v-model="selectedType"
-              :options="typeOptions"
-              option-label="label"
-              option-value="value"
-              emit-value
-              borderless
-              map-options
-              placeholder="Seleccionar tipo"
-              clearable
-              dense
-              class="form__inputsR"
-            />
-          </div>
+        </div>
+
+        <!-- Step 1b: Reserva type — Department selector -->
+        <div v-if="isReserveType" class="mb-6">
+          <div class="text-sm font-medium text-gray-700 mb-1">Departamento / Unidad</div>
+          <q-select
+            v-model="selectedDept"
+            :options="filteredDepts"
+            option-label="number"
+            option-value="id"
+            placeholder="Buscar por número o propietario..."
+            use-input
+            fill-input
+            hide-selected
+            behavior="menu"
+            clearable
+            dense
+            borderless
+            class="form__inputsR"
+            @filter="(val, update) => { deptSearch = val; update() }"
+            @filter-abort="() => { deptSearch = '' }"
+          >
+            <template v-slot:option="{ itemProps, opt }">
+              <q-item v-bind="itemProps" dense style="border-bottom: 1px solid lightgrey;" class="my-1 py-1">
+                <q-item-section avatar class="min-w-[36px]">
+                  <q-avatar size="28px" color="teal" text-color="white" class="text-xs font-bold">
+                    {{ String(opt.number || '?')[0] }}
+                  </q-avatar>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label class="text-sm font-semibold">
+                    {{ opt.number }}<span v-if="opt.block" class="text-grey-6 font-normal"> · Bloque {{ opt.block }}</span>
+                  </q-item-label>
+                  <q-item-label caption class="text-xs">{{ opt.owner?.name || 'Sin propietario' }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+            <template v-slot:selected-item="{ opt }">
+              <span>{{ opt.number }}<span v-if="opt.block"> · Bloque {{ opt.block }}</span></span>
+            </template>
+          </q-select>
         </div>
 
         <!-- Step 2a: Month picker for quotas -->
@@ -309,12 +528,20 @@ loadPayMethods()
               v-for="quota in pendingQuotas"
               :key="quota.id"
               class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors"
-              :class="selectedItem?.id === quota.id ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'"
-              @click="selectItem(quota)"
+              :class="selectedQuotas.some(q => q.id === quota.id) ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'"
+              @click="toggleQuota(quota)"
             >
-              <div>
-                <div class="text-sm font-semibold text-gray-900">{{ quota.month_label }}</div>
-                <div class="text-xs text-gray-500">Unidad {{ quota.departament?.number || '—' }}</div>
+              <div class="flex items-center gap-3">
+                <q-checkbox
+                  :model-value="selectedQuotas.some(q => q.id === quota.id)"
+                  color="primary"
+                  dense
+                  @update:model-value="toggleQuota(quota)"
+                />
+                <div>
+                  <div class="text-sm font-semibold text-gray-900">{{ quota.month_label }}</div>
+                  <div class="text-xs text-gray-500">Unidad {{ quota.departament?.number || '—' }}</div>
+                </div>
               </div>
               <div class="text-right">
                 <div class="text-sm font-bold text-gray-900">S/. {{ Number(quota.amount).toFixed(2) }}</div>
@@ -323,6 +550,9 @@ loadPayMethods()
                 </q-badge>
               </div>
             </div>
+          </div>
+          <div v-if="selectedQuotas.length" class="mt-3 text-right text-sm font-semibold text-gray-900">
+            Total seleccionado: S/. {{ totalSelectedAmount.toFixed(2) }}
           </div>
         </div>
 
@@ -351,15 +581,15 @@ loadPayMethods()
         </div>
 
         <!-- Empty states -->
-        <div v-if="isQuotaType && selectedDept && selectedMonth && !pendingQuotas.length && !loading" class="text-center py-6 text-gray-400 text-sm">
-          No hay cuotas pendientes para esta unidad y mes.
+        <div v-if="isQuotaType && selectedUserId && selectedDepts.length && selectedMonth && !pendingQuotas.length && !loading" class="text-center py-6 text-gray-400 text-sm">
+          No hay cuotas pendientes para las unidades seleccionadas y mes.
         </div>
         <div v-if="isReserveType && selectedDept && !pendingBookings.length && !loading" class="text-center py-6 text-gray-400 text-sm">
           No hay reservas pendientes de pago para esta unidad.
         </div>
 
         <!-- Step 3: Payment form -->
-        <div v-if="selectedItem" class="border-t border-gray-200 pt-6 mt-6">
+        <div v-if="selectedItem || (isQuotaType && selectedQuotas.length)" class=" pt-6 mt-6">
           <h3 class="text-base font-semibold text-gray-900 mb-4">Detalles del pago</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -372,6 +602,7 @@ loadPayMethods()
                 dense
                 class="form__inputsR"
                 prefix="S/."
+                borderless
               />
             </div>
             <div>
@@ -387,7 +618,17 @@ loadPayMethods()
                 clearable
                 dense
                 class="form__inputsR"
+                borderless
               />
+            </div>
+            <div v-if="selectedPayMethodCommission > 0" class="col-span-full">
+              <div class="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <q-icon name="eva-alert-triangle-outline" color="amber-7" size="20px" />
+                <div class="text-sm">
+                  <span class="text-amber-800 font-medium">Este método cobra {{ selectedPayMethodCommission }}% de comisión.</span>
+                  <span class="text-amber-700 ml-1">Se descontarán S/. {{ commissionAmount.toFixed(2) }} — el condominio recibirá S/. {{ netAmount.toFixed(2) }}</span>
+                </div>
+              </div>
             </div>
             <div>
               <div class="text-sm font-medium text-gray-700 mb-1">Fecha de pago *</div>
@@ -396,6 +637,7 @@ loadPayMethods()
                 type="date"
                 dense
                 class="form__inputsR"
+                borderless
               />
             </div>
             <div>
@@ -405,6 +647,7 @@ loadPayMethods()
                 placeholder="000000"
                 dense
                 class="form__inputsR"
+                borderless
               />
             </div>
           </div>
@@ -416,6 +659,7 @@ loadPayMethods()
               accept="image/*"
               dense
               class="form__inputsR"
+              borderless
               clearable
             >
               <template v-slot:prepend>

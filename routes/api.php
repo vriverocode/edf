@@ -115,6 +115,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [DepartamentController::class, 'getApartmentById']);
         Route::get('/byFind', [DepartamentController::class, 'apartmentsByfind']);
         Route::get('/byUser', [DepartamentController::class, 'getApartmentsByUser']);
+        Route::get('/byOwner/{id}', [DepartamentController::class, 'getDepartmentsByOwnerId'])->middleware('role:admin,super-admin');
         // Write - admin only
         Route::post('/', [DepartamentController::class, 'storeApartment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/u/{id}', [DepartamentController::class, 'updateApartment'])->middleware('role:admin,super-admin', 'throttle:write');
@@ -225,6 +226,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/validate/{id}', [PayController::class, 'validatePayment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/refund', [PayController::class, 'refund'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/refund/notify-missing-bank-account', [PayController::class, 'notifyMissingBankAccountRequest'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/{id}/upload-voucher', [PayController::class, 'uploadVoucher'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::get('/receipt/{payId}', [PayController::class, 'downloadBookingReceipt']);
     });
 

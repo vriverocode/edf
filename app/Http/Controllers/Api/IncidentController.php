@@ -56,7 +56,9 @@ class IncidentController extends Controller
             $file = $request->file('image');
             if ($file->isValid()) {
                 $rand = rand(1000000, 9999999);
-                $name = $rand.'_'.time().'.'.$file->extension();
+                $originalName = $file->getClientOriginalName();
+                $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $file->extension();
+                $name = $rand.'_'.time().'.'.$extension;
                 $destination = public_path('images/incidents');
 
                 if (! is_dir($destination)) {

@@ -21,7 +21,7 @@ export const usePayStore = defineStore('Pay', {
           resolve(data);
         }).catch(( {response}) => {
           console.error(response)
-          reject(response.data.error);
+          reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener pagos');
         });
         
       })
@@ -41,9 +41,9 @@ export const usePayStore = defineStore('Pay', {
         }).catch(( {response}) => {
           console.error(response)
           if(response.data.code == 403){
-            reject(response.data);
+            return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
           }
-          reject(response.data.error);
+          reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al registrar el pago' });
         });
         
       })
@@ -63,7 +63,7 @@ export const usePayStore = defineStore('Pay', {
           resolve(data);
         }).catch(( {response}) => {
           console.error(response)
-          reject(response.data.error);
+          reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener el pago');
         });
         
       })
@@ -84,9 +84,9 @@ export const usePayStore = defineStore('Pay', {
         }).catch(( {response}) => {
           console.error(response)
           if(response.data.code == 403){
-            reject(response.data);
+            return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
           }
-          reject(response.data.error);
+          reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al actualizar el pago' });
         });
         
       })
@@ -105,7 +105,7 @@ export const usePayStore = defineStore('Pay', {
           resolve(data);
         }).catch(( {response}) => {
           console.error(response)
-          reject(response.data.error);
+          reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener disponibilidad');
         });
       })
 
@@ -123,7 +123,7 @@ export const usePayStore = defineStore('Pay', {
           resolve(data);
         }).catch(( {response}) => {
           console.error(response)
-          reject(response.data.error);
+          reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al eliminar el pago');
         });
       })
     },
@@ -141,9 +141,9 @@ export const usePayStore = defineStore('Pay', {
         }).catch(( {response}) => {
           console.error(response)
           if(response.data.code == 403){
-            reject(response.data);
+            return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
           }
-          reject(response.data.error);
+          reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al actualizar estado' });
         });
         
       })
@@ -192,6 +192,20 @@ export const usePayStore = defineStore('Pay', {
             reject(response.data.error || 'Error al procesar pago');
           });
       });
+    },
+    async uploadVoucher(id, formData) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.post(`/api/pays/${id}/upload-voucher`, formData)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al subir voucher');
+          });
+      })
     },
     formatFiltersQuery(filters){
       const queryParams = new URLSearchParams();

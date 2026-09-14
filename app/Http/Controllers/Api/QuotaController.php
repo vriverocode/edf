@@ -159,12 +159,16 @@ class QuotaController extends Controller
             'responsiblePivot.user',
         ])->orderBy('created_at', 'desc');
 
-        $userQuota = $request->owner ?? $request->user()->id;
+        if ($request->filled('departament_ids')) {
+            $quotas->whereIn('departament_id', $request->departament_ids);
+        } else {
+            $userQuota = $request->owner ?? $request->user()->id;
 
-        $quotas->where(function (Builder $queryBuilder) use ($userQuota) {
-            $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $userQuota))
-                ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $userQuota));
-        });
+            $quotas->where(function (Builder $queryBuilder) use ($userQuota) {
+                $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $userQuota))
+                    ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $userQuota));
+            });
+        }
 
         $quotas->where('month', $month);
 

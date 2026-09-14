@@ -92,7 +92,9 @@ class MaintenanceController extends Controller
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
                 $rand = rand(1000000, 9999999);
-                $fileName = $rand.'_maintenance_'.$maintenance->id.'.'.$photo->extension();
+                $originalName = $photo->getClientOriginalName();
+                $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $photo->extension();
+                $fileName = $rand.'_maintenance_'.$maintenance->id.'.'.$extension;
                 $photo->move(public_path('storage').'/images/maintenance/', $fileName);
                 $photoUrl = config('app.url').'/storage/images/maintenance/'.$fileName;
                 $maintenance->update(['photo' => $photoUrl]);
@@ -239,7 +241,9 @@ class MaintenanceController extends Controller
     private function storeMaintenancePhoto($photo, int $maintenanceId): string
     {
         $rand = rand(1000000, 9999999);
-        $fileName = $rand.'_maintenance_'.$maintenanceId.'.'.$photo->extension();
+        $originalName = $photo->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $photo->extension();
+        $fileName = $rand.'_maintenance_'.$maintenanceId.'.'.$extension;
         $photo->move(public_path('storage').'/images/maintenance/', $fileName);
 
         return config('app.url').'/storage/images/maintenance/'.$fileName;
@@ -514,7 +518,9 @@ class MaintenanceController extends Controller
     private function storeEvidencePhoto($photo, int $maintenanceId): string
     {
         $rand = rand(1000000, 9999999);
-        $fileName = $rand.'_evidence_'.$maintenanceId.'.'.$photo->extension();
+        $originalName = $photo->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $photo->extension();
+        $fileName = $rand.'_evidence_'.$maintenanceId.'.'.$extension;
         $photo->move(public_path('storage').'/images/maintenance/', $fileName);
 
         return config('app.url').'/storage/images/maintenance/'.$fileName;

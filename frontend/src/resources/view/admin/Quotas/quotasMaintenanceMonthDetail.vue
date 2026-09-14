@@ -164,17 +164,22 @@ const getPaymentProgress = (quota) => {
 };
 
 const unitsInQuota = (quota) => {
-  let apartmentNumbers = '';
-  quota.details.forEach((element, index) => {
-    apartmentNumbers += element.departament.number
+  if (!quota) return '';
+  const details = Array.isArray(quota.details) ? quota.details : [];
 
-    if (index + 1 < quota.details.length) {
-      apartmentNumbers += ' - '
-    }
-  });
+  const numbers = details
+    .map((element) => {
+      const num = element?.departament?.number;
+      return num !== null && num !== undefined && num !== '' ? String(num) : null;
+    })
+    .filter(Boolean);
 
-  return apartmentNumbers
-}
+  if (numbers.length > 0) {
+    return [...new Set(numbers)].join(' - ');
+  }
+
+  return quota.departament_number || 'Sin unidad';
+};
 
 onMounted(() => {
   getQuotas();

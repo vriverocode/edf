@@ -495,7 +495,7 @@ const pegarTexto = async () => {
   }
   try {
     const textoDelPortapapeles = await navigator.clipboard.readText()
-    payFormData.value.reference = textoDelPortapapeles
+    payFormData.value.reference = (textoDelPortapapeles || '').replace(/\D/g, '').slice(0, 12)
   } catch (err) {
     console.error('Error al intentar pegar: ', err)
   }
@@ -915,9 +915,12 @@ watch(step,
                           <div class=" row mt-2 md:px-12">
                             <div class="col-12 mt-0">
                               <div class=" md:pr-4">
-                                <q-input color="tealedf" label="Fecha de pago" v-model="payFormData.date"
+                                <div class="text-bold pl-3 pb-1">
+                                  Fecha de pago
+                                </div>
+                                <q-input color="tealedf" v-model="payFormData.date"
                                   :rules="[val => !(!val) || 'Fecha es requerida']" dense borderless clearable
-                                  class="form__inputsReverse mt-1">
+                                  class="form__inputsReverse mt-1 pb-2" placeholder="Fecha de pago">
                                   <template v-slot:append>
                                     <q-icon name="eva-calendar-outline" class="cursor-pointer">
                                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -937,11 +940,21 @@ watch(step,
                             </div>
                             <div class="col-12 mt-0 ">
                               <div class=" md:pr-4">
-                                <q-input color="tealedf" label="Referencia de pago" dense borderless clearable
-                                  v-model="payFormData.reference" class="form__inputsReverse mt-0" :maxlength="12"
-                                  placeholder="N° de referencia de la operacion" hint="Solo caracteres numéricos"
-                                  mask="############"
-                                  :rules="[val => !(!val) || 'La referencia de pago es obligatoria']">
+                                <div class="text-bold pl-3 pb-1">
+                                  Referencia de pago
+                                </div>
+                                <q-input color="tealedf"
+                                  dense borderless clearable
+                                  v-model="payFormData.reference"
+                                  class="form__inputsReverse mt-0" :maxlength="12"
+                                  type="tel" inputmode="numeric" pattern="[0-9]*" mask="############"
+                                  @keydown.space.prevent
+                                  placeholder="N° de referencia de la operacion" 
+                                  hint="Solo caracteres numéricos"
+                                  :rules="[
+                                    val => !!val || 'La referencia de pago es obligatoria',
+                                    val => /^[0-9]+$/.test(val) || 'Solo se permiten números sin espacios'
+                                  ]">
 
                                   <template v-slot:append>
                                     <q-btn color="tealedf" size="0.1rem" outline style="padding:3px 6px" no-caps
@@ -955,7 +968,7 @@ watch(step,
                               </div>
                             </div>
                           </div>
-                          <div class=" rulesContainer mt-0 px-3 w-full py-2">
+                          <div class=" rulesContainer mt-2 px-3 w-full py-2">
                             <label for="vaucherPay">
                               <template v-if="!payFormData.vaucher">
                                 <div class=" flex flex-center column">
@@ -1012,8 +1025,8 @@ watch(step,
                   </template>
                 </div>
               </div>
-              <div :style="{ height: step != 3 ? '10%' : '20%' }" class="buttonSection">
-                <div class="row  ">
+              <div :style="{ height: step != 3 ? '10%' : '20%' }" class="buttonSection flex w-full">
+                <div class="row  w-full">
                   <template v-if="step >= 4">
                     <div class="col-4 flex flex-center ">
                       <q-btn outline color="grey-8" unelevated no-caps class="" style="width: 90%; border-radius: 3rem;"

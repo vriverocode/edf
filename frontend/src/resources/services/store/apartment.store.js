@@ -58,6 +58,20 @@ export const useApartmentStore = defineStore('Apartment', {
           })
       })
     },
+    async getDepartmentsByOwner(userId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.get(`/api/apartments/byOwner/${userId}`)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al cargar departamentos')
+          })
+      })
+    },
     async getPaginationApartment(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw ''

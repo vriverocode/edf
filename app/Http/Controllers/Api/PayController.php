@@ -10,6 +10,7 @@ use App\Models\Booking;
 use App\Models\Expense;
 use App\Models\FinancialAccount;
 use App\Models\Pay;
+use App\Models\PayMethod;
 use App\Models\Quota;
 use App\Models\Refund;
 use App\Models\Rol;
@@ -198,12 +199,22 @@ class PayController extends Controller
             $payIdPrefix = $prefixPayId[$request->pay_method] ?? 'x';
             $bookingIdStr = (int) $request->type === 2 ? $request->to_pay_id : 'Q';
 
+            $amount = round((float) $request->amount, 2);
+            $commissionAmount = 0.0;
+            if ($request->pay_method) {
+                $payMethod = PayMethod::find($request->pay_method);
+                if ($payMethod && $payMethod->commission_percentage > 0) {
+                    $commissionAmount = round($amount * ($payMethod->commission_percentage / 100), 2);
+                }
+            }
+
             $pay = Pay::create([
                 'user_id' => $user->id,
                 'booking_id' => $request->type == 2 ? $request->to_pay_id : null,
                 'quota_id' => ! empty($quotaIdsForPay) ? $quotaIdsForPay[0] : null,
                 'consolidated_ids' => $quotaIdsForPay,
-                'amount' => $request->amount,
+                'amount' => $amount,
+                'commission_amount' => $commissionAmount,
                 'reference' => $request->reference ?? '000000',
                 'pay_id' => $payIdPrefix.$bookingIdStr.'-'.rand(1000, 9999),
                 'pay_date' => $request->pay_date ? date('Y-m-d', strtotime($request->pay_date)) : date('Y-m-d'),
@@ -217,7 +228,6 @@ class PayController extends Controller
             }
 
             $this->afterPayAction($pay);
-            $this->uploadVaucher($pay, $request);
 
             DB::commit();
         } catch (Exception $e) {
@@ -225,6 +235,12 @@ class PayController extends Controller
             Log::error('Error en storePay: '.$e->getMessage(), ['exception' => $e]);
 
             return $this->returnFail(500, 'Ocurrió un error al procesar el pago. Intente nuevamente.');
+        }
+
+        try {
+            $this->uploadVaucher($request, $pay);
+        } catch (\Throwable $e) {
+            Log::error('Error al subir voucher en storePay: '.$e->getMessage());
         }
 
         try {
@@ -362,7 +378,7 @@ class PayController extends Controller
                 return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'Cuenta financiera inválida o inactiva.']);
             }
 
-            $amount = round((float) $pay->amount, 2);
+            $amount = round((float) $pay->net_amount, 2);
             $financialAccount->current_balance = round((float) $financialAccount->current_balance + $amount, 2);
             $financialAccount->save();
 
@@ -604,7 +620,7 @@ class PayController extends Controller
 
                     // Ejecutamos tus acciones post-pago y notificaciones
                     $this->afterPayAction($pay);
-                    $this->uploadVaucher($pay, $request);
+                    $this->uploadVaucher($request, $pay);
                     $this->sendNotification($pay);
 
                     return $this->returnSuccess(200, [
@@ -760,24 +776,45 @@ class PayController extends Controller
         return $validator->all();
     }
 
-    private function uploadVaucher($pay, $vaucher, $type = 1)
+    public function uploadVoucher(Request $request, $id)
+    {
+        $pay = Pay::find($id);
+        if (! $pay) {
+            return $this->returnFail(404, 'Pago no encontrado');
+        }
+
+        try {
+            $this->uploadVaucher($request, $pay);
+        } catch (Exception $e) {
+            return $this->returnFail(422, $e->getMessage());
+        }
+
+        return $this->returnSuccess(200, $pay);
+    }
+
+    private function uploadVaucher(Request $request, Pay $pay, int $type = 1): string
     {
         if ($type == 1 && $pay->vaucher) {
             return $pay->vaucher;
         }
 
-        $path = '';
+        $validator = Validator::make($request->all(), [
+            'vaucher' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'],
+        ]);
+
+        if ($validator->fails()) {
+            throw new Exception($validator->errors()->first());
+        }
+
+        $rand = rand(1000000, 9999999);
         $id = $type == 1 ? $pay->id : $pay->sequence;
         $folder = $type == 1 ? 'vaucher' : 'claims';
+        $fileName = trim(str_replace(' ', '_', $id));
+        $originalName = $request->file('vaucher')->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $request->file('vaucher')->extension();
+        $path = "/public/images/{$folder}/{$rand}_{$fileName}.{$extension}";
+        $request->file('vaucher')->move(public_path().'/images/{$folder}/', basename($path));
 
-        if ($vaucher->file('vaucher')) {
-            $rand = rand(1000000, 9999999);
-            $fileName = trim(str_replace(' ', '_', $id));
-            $extension = $vaucher->file('vaucher')->extension();
-            $path = "/public/images/{$folder}/{$rand}_{$fileName}.{$extension}";
-            $vaucherPath = public_path()."/images/{$folder}/";
-            $vaucher->file('vaucher')->move($vaucherPath, $path);
-        }
         if ($type == 1) {
             $pay->vaucher = $path;
             $pay->save();
@@ -790,7 +827,8 @@ class PayController extends Controller
     {
         $rand = rand(1000000, 9999999);
         $fileName = trim(str_replace(' ', '_', $request->booking_id));
-        $extension = $request->file('vaucher')->extension();
+        $originalName = $request->file('vaucher')->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $request->file('vaucher')->extension();
         $path = "/public/images/refunds/{$rand}_{$fileName}.{$extension}";
         $folder = public_path().'/images/refunds/';
 
@@ -936,7 +974,7 @@ class PayController extends Controller
 
     private function applyPaysFilter($query, Request $request)
     {
-        $VIEW_ALL_STATUS = 4;
+        $VIEW_ALL_STATUS = 9;
 
         // Filtro por estado
         if ($request->filled('status') && intval($request->status) !== $VIEW_ALL_STATUS) {
@@ -1088,7 +1126,8 @@ class PayController extends Controller
 
         $rand = rand(1000000, 9999999);
         $fileName = trim(str_replace(' ', '_', $pay->id));
-        $extension = $request->file('vaucher')->extension();
+        $originalName = $request->file('vaucher')->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $request->file('vaucher')->extension();
         $path = "/public/images/vaucher/{$rand}_{$fileName}.{$extension}";
         $folder = public_path().'/images/vaucher/';
 

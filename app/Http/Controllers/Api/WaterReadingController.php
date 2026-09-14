@@ -426,7 +426,9 @@ class WaterReadingController extends Controller
 
         $photo = $request->file('photo');
         $rand = rand(1000000, 9999999);
-        $name = $rand.'_'.time().'.'.$photo->extension();
+        $originalName = $photo->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $photo->extension();
+        $name = $rand.'_'.time().'.'.$extension;
         $destination = public_path('storage/images/water-readings');
         if (! is_dir($destination)) {
             @mkdir($destination, 0775, true);

@@ -142,6 +142,9 @@ export const useQuotaStore = defineStore('Quota', {
           if (data.year) params.set('year', String(data.year))
           if (data.owner) params.set('owner', String(data.owner))
           if (data.status !== undefined && data.status !== null && data.status !== '') params.set('status', String(data.status))
+          if (data.departament_ids && data.departament_ids.length) {
+            data.departament_ids.forEach(id => params.append('departament_ids[]', String(id)))
+          }
           const qs = params.toString()
           query = qs ? '?' + qs : ''
         }

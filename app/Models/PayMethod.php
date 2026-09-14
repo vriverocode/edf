@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PayMethod extends Model
 {
     //
-    protected $fillable = ['name', 'data', 'status'];
+    protected $fillable = ['name', 'data', 'status', 'commission_percentage'];
 
     public $appends = ['status_label', 'status_color'];
 

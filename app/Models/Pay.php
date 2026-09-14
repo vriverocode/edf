@@ -21,6 +21,7 @@ class Pay extends Model
         'consolidated_ids',
         'type',
         'amount',
+        'commission_amount',
         'vaucher',
         'reference',
         'pay_date',
@@ -28,6 +29,11 @@ class Pay extends Model
         'pay_method',
         'status',
     ];
+
+    public function getNetAmountAttribute(): float
+    {
+        return round((float) $this->amount - (float) $this->commission_amount, 2);
+    }
 
     protected $casts = [
         'consolidated_ids' => 'array',
