@@ -813,7 +813,7 @@ class PayController extends Controller
         $originalName = $request->file('vaucher')->getClientOriginalName();
         $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: $request->file('vaucher')->extension();
         $path = "/public/images/{$folder}/{$rand}_{$fileName}.{$extension}";
-        $request->file('vaucher')->move(public_path().'/images/{$folder}/', basename($path));
+        $request->file('vaucher')->move(public_path()."/images/{$folder}/", basename($path));
 
         if ($type == 1) {
             $pay->vaucher = $path;

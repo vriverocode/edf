@@ -75,7 +75,7 @@ class BookingController extends Controller
             }
 
             if ($this->hasOverdueQuotas($user->id, $departament_id)) {
-                return $this->returnFail(403, 'No puede reservar: tiene cuotas pendientes o vencidas de dos o más meses.');
+                return $this->returnFail(505, 'No puede reservar: tiene cuotas pendientes o vencidas de dos o más meses.');
             }
 
             $allowedAreas = $user->availableComunAreas()->pluck('comun_area_id')->toArray();

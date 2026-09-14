@@ -56,13 +56,22 @@ export const useReserveStore = defineStore('Reserve', {
             resolve(data);
           }).catch(({ response }) => {
             console.error(response)
+
+            // console.error(response)
             if (response.data.code == 403) {
-              return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
+              return reject(typeof response.data.message === 'string'
+                ? { message: response.data.message } : { message: 'No autorizado' });
             }
             if (response.data.code == 409) {
-              return reject({ message: typeof response.data.error === 'string' ? response.data.error : 'Límite de reservas por día alcanzado' });
+              return reject({
+                message: typeof response.data.error === 'string'
+                  ? response.data.error : 'Límite de reservas por día alcanzado'
+              });
             }
-            reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al crear la reserva' });
+            reject({
+              message: typeof response?.data?.error === 'string'
+                ? response.data.error : 'Error al crear la reserva'
+            });
           });
 
       })

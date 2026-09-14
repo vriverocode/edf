@@ -50,6 +50,8 @@ const userApartments = computed(() => {
       .map(p => ({
         id: p.departament_id,
         number: p.departament?.number ?? `Dpto ${p.departament_id}`,
+        due_quotas: p.departament?.due_quotas ?? [],
+        pending_amount_quota: p.departament?.pending_amount_quota ?? 0,
       }))
   }
   if (!authStore.user?.units) return []
@@ -277,8 +279,6 @@ const validateStepForm = () => {
   return true
 }
 const getAvaibleBookingByDay = () => {
-  console.log('formData.value.date', formData.value.date);
-  
   const alreadyBlocked = blockedAreaIds.value.includes(selectedComunArea.value.id)
 
   // if (alreadyBlocked) {
@@ -548,7 +548,7 @@ const createReserve = () => {
       console.error(response)
       setTimeout(() => {
         loading.value = false
-        showNotify('negative', response)
+        showNotify('negative', response?.message)
 
       }, 2000);
 
@@ -1039,7 +1039,7 @@ watch(step,
                     <div class="col-4 flex flex-center" v-if="calculateDiffHour && step ==4">
                       <q-btn outline color="warning" unelevated no-caps class=""
                         style="width: 95%; border-radius: 3rem;" @click="showPayLaterModal(true)">
-                        <div class="py-0 md:py-0" style="font-weight: 500;">
+                        <div class="py-0 md:py-0" style="font-weight: 500;" :loading="loading">
                           Pagar luego
                         </div>
                       </q-btn>
@@ -1234,12 +1234,42 @@ watch(step,
                   </q-chip>
                 </div>
                 <div class="text-center pt-4 font-bold text-2xl text-primary">Opciones de reserva</div>
-                <div v-if="userApartments.length > 1" class="mt-4 px-2">
+                <div v-if="userApartments.length > 1" class="mt-4 px-1">
                   <div style="font-weight: 500; font-size: 0.95rem; margin-bottom: 8px;">Selecciona tu departamento:
                   </div>
                   <q-select v-model="formData.departament_id" :options="userApartments" option-value="id"
-                    option-label="number" emit-value map-options outlined dense color="tealedf" label="Departamento"
-                    @update:model-value="fetchBlockedAreas" />
+                    option-label="number" emit-value map-options borderless dense class="form__inputsCR bg-white" color="primary"
+                    behavior="menu" @update:model-value="fetchBlockedAreas">
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <div class="w-full flex justify-between items-center">
+                          <div class="text-subtitle1" style="font-weight: 500">
+                            {{ scope.opt.id != 0 ? '#' : '' }} {{ scope.opt.number }}
+                          </div>
+                          <div>
+                            <q-chip size="sm" :color="(scope.opt.due_quotas?.length > 0 || scope.opt.pending_amount_quota > 0) ? 'negative' : 'positive'" text-color="white" :label="(scope.opt.due_quotas?.length > 0 || scope.opt.pending_amount_quota > 0) ? 'Moroso' : 'Al día'" />
+                          </div>
+                        </div>
+                      </q-item>
+                    </template>
+                    <template v-slot:selected>
+                      <div class="w-full flex justify-between items-center">
+                        <div class="text-subtitle1" style="font-weight: 500">
+                          {{  userApartments.find(apartment => apartment.id === formData?.departament_id)?.number ?? 'Selecciona tu departamento'}}
+                        </div>
+                        <div>
+                          <q-chip size="sm" :color="
+                            (userApartments.find(apartment => apartment.id === formData?.departament_id)?.due_quotas?.length > 0 
+                            || userApartments.find(apartment => apartment.id === formData?.departament_id)?.pending_amount_quota > 0) 
+                            ? 'negative' : 
+                            'positive'" text-color="white" :label="
+                            (userApartments.find(apartment => apartment.id === formData?.departament_id)?.due_quotas?.length > 0 
+                            || userApartments.find(apartment => apartment.id === formData?.departament_id)?.pending_amount_quota > 0) 
+                            ? 'Moroso' : 'Al día'" />
+                        </div>  
+                      </div>
+                    </template>
+                  </q-select>
                 </div>
                 <div>
                   <div v-for="type in reservesByType" :key="type.id"
@@ -1386,6 +1416,15 @@ watch(step,
   </div>
 </template>
 <style lang="scss">
+.form__inputsCR {
+  & .q-field__inner {
+    box-shadow: 0px 3px 5px 0px #bfbfbfa3;
+    border-radius: 0.8rem;
+    border: 1px solid rgb(223, 223, 223);
+    padding: 0px 2rem;
+  }
+}
+
 .text__amountItem {
   font-size: 1rem;
   font-weight: 500;
@@ -1877,6 +1916,12 @@ watch(step,
     & .q-field__inner {
 
       padding: 0rem 1rem;
+    }
+  }
+
+  .form__inputsCR {
+    & .q-field__inner {
+      padding: 0px 1rem;
     }
   }
 }

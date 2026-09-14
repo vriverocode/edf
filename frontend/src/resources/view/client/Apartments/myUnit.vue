@@ -173,11 +173,12 @@ onMounted(() => {
                 <!-- Sección inferior - Estado de pago -->
                 <div class="py-1 px-3 bg-gray-50">
                   <div class="flex justify-between items-center">
-                    <q-chip :label="apartment.due_quotas.length > 0 ? 'Moroso':'Al día'" color="positive" text-color="white" />
+                    <q-chip :label="(apartment.due_quotas.length > 0 || apartment.pending_amount_quota > 0) ? 'Moroso':'Al día'" 
+                      :color="(apartment.due_quotas.length > 0 || apartment.pending_amount_quota > 0) ? 'warning':'positive'" text-color="white" />
                     <div class="flex items-center">
                       <q-btn flat rounded size="sm" class="ml-3" @click="showPick(apartment.number)">
                         <q-tooltip class="bg-primary  text-white text-body2" :offset="[10, 10]">
-                          Ver detallesss
+                          Ver detalles
                         </q-tooltip>
                         <q-icon name="eva-arrow-ios-downward-outline" size="md" />
                       </q-btn>
