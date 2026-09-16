@@ -1,4 +1,5 @@
 <?php
+
 require __DIR__.'/../vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -25,24 +26,25 @@ for ($row = 3; $row <= $highestRow; $row++) {
     $estac = $sheet->getCell([12, $row])->getValue();
     $dep = $sheet->getCell([16, $row])->getValue();
     $propietario = $sheet->getCell([2, $row])->getValue();
-    
+
     if ($dpto === null || $dpto === '') {
         $emptyDept++;
+
         continue;
     }
-    
+
     $deptCount++;
-    
+
     if ($estac !== null && $estac !== '') {
-        $lines = preg_split('/\r\n|\n|\r/', (string)$estac);
+        $lines = preg_split('/\r\n|\n|\r/', (string) $estac);
         $estacCount += count($lines);
-        echo "Row $row: DPTO=$dpto, PROPIETARIO=$propietario, ESTAC=" . implode('|', $lines) . "\n";
+        echo "Row $row: DPTO=$dpto, PROPIETARIO=$propietario, ESTAC=".implode('|', $lines)."\n";
     }
-    
+
     if ($dep !== null && $dep !== '') {
-        $lines = preg_split('/\r\n|\n|\r/', (string)$dep);
+        $lines = preg_split('/\r\n|\n|\r/', (string) $dep);
         $depCount += count($lines);
-        echo "Row $row: DPTO=$dpto, PROPIETARIO=$propietario, DEP=" . implode('|', $lines) . "\n";
+        echo "Row $row: DPTO=$dpto, PROPIETARIO=$propietario, DEP=".implode('|', $lines)."\n";
     }
 }
 
@@ -56,16 +58,17 @@ echo "Total DEP: $depCount\n";
 echo "\n=== VERIFICACION BD ===\n";
 require __DIR__.'/../vendor/autoload.php';
 $app = require_once __DIR__.'/../bootstrap/app.php';
-$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$app->make(Kernel::class)->bootstrap();
 
 use App\Models\Departament;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 
 $allDepts = [];
 for ($row = 3; $row <= $highestRow; $row++) {
     $dpto = $sheet->getCell([7, $row])->getValue();
     if ($dpto !== null && $dpto !== '' && is_numeric($dpto)) {
-        $allDepts[] = (int)$dpto;
+        $allDepts[] = (int) $dpto;
     }
 }
 $allDepts = array_unique($allDepts);
@@ -77,11 +80,11 @@ $existing = Departament::where('type', 1)
     ->toArray();
 
 $missing = array_diff($allDepts, array_keys($existing));
-echo "Total deptos unicos en Excel: " . count($allDepts) . "\n";
-echo "Deptos existentes en BD: " . count($existing) . "\n";
-echo "Deptos faltantes en BD: " . count($missing) . "\n";
-if (!empty($missing)) {
-    echo "Faltantes: " . implode(', ', $missing) . "\n";
+echo 'Total deptos unicos en Excel: '.count($allDepts)."\n";
+echo 'Deptos existentes en BD: '.count($existing)."\n";
+echo 'Deptos faltantes en BD: '.count($missing)."\n";
+if (! empty($missing)) {
+    echo 'Faltantes: '.implode(', ', $missing)."\n";
 }
 
 // Check participation percentage for parking

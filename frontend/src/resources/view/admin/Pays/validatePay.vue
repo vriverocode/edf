@@ -159,6 +159,16 @@ const createAccountDialog = ref(false)
 const approveForm = ref({
   financial_account_id: null,
   transaction_category_id: null,
+  actual_amount: null,
+})
+const showOverpaymentInfo = computed(() => {
+  const actual = Number(approveForm.value.actual_amount)
+  const payAmount = Number(pay.value?.amount)
+  return actual > 0 && actual > payAmount
+})
+const overpaymentCredit = computed(() => {
+  if (!showOverpaymentInfo.value) return 0
+  return Number(approveForm.value.actual_amount) - Number(pay.value?.amount)
 })
 
 const financialAccountOptions = computed(() =>
@@ -270,6 +280,8 @@ const openApproveDialog = async () => {
   approveForm.value = {
     financial_account_id: null,
     transaction_category_id: null,
+    actual_amount: null,
+    showActualAmount: false,
   }
   await loadApproveOptions()
   approveDialog.value = true
@@ -322,14 +334,18 @@ const submitApprove = () => {
   }
   if (!pay.value?.id) return
   approveLoading.value = true
+  const approveData = {
+    status: 2,
+    financial_account_id: approveForm.value.financial_account_id,
+    transaction_category_id: approveForm.value.transaction_category_id,
+  }
+  if (approveForm.value.actual_amount !== null && approveForm.value.actual_amount !== '') {
+    approveData.actual_amount = Number(approveForm.value.actual_amount)
+  }
   payStore
     .validatePayment({
       id: pay.value.id,
-      data: {
-        status: 2,
-        financial_account_id: approveForm.value.financial_account_id,
-        transaction_category_id: approveForm.value.transaction_category_id,
-      },
+      data: approveData,
     })
     .then(() => {
       approveDialog.value = false
@@ -616,6 +632,38 @@ const submitUploadVoucher = async () => {
               <q-icon name="eva-plus-outline" />
               <q-tooltip>Nueva categoría</q-tooltip>
             </q-btn>
+          </div>
+        </div>
+        <div class="mt-5" v-if="isQuotaPay">
+          <div class="flex items-center gap-2 mb-1">
+            <q-checkbox v-model="approveForm.showActualAmount" dense color="primary"
+              @update:model-value="approveForm.actual_amount = approveForm.showActualAmount ? pay.amount : null" />
+            <span class="text-subtitle2 text-black">Reportar diferencia a favor</span>
+          </div>
+          <div v-if="approveForm.showActualAmount" class="q-mt-sm">
+            <div class="flex items-center gap-2 mb-1 mt-5">
+              <span class="text-subtitle2 text-black">Monto transferido</span>
+            </div>
+            <q-input dense borderless class="form__inputsR" color="primary"
+              v-model="approveForm.actual_amount" type="number" step="0.01" min="0"
+              :placeholder="'S/. ' + Number(pay.amount).toFixed(2)"
+              @update:model-value="approveForm.actual_amount = $event ? Number($event) : null" />
+            <div v-if="showOverpaymentInfo" class="q-mt-sm bg-green-50 border border-green-200 rounded-lg p-3">
+              <div class="text-caption text-green-8">
+                <div class="flex justify-between">
+                  Monto transferido: <b>S/. {{ Number(approveForm.actual_amount).toFixed(2) }}</b>
+                </div>
+                <div class="flex justify-between mt-1">
+                  Cuota: <b>S/. {{ Number(pay.amount).toFixed(2) }}</b>
+                </div>
+                <div class="flex justify-between mt-1">
+                  <b>Saldo a favor: </b><b>S/. {{ overpaymentCredit.toFixed(2) }}</b>
+                </div>
+                 
+                
+                
+              </div>
+            </div>
           </div>
         </div>
         <div class="row justify-end q-gutter-sm q-mt-lg">

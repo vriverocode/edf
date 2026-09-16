@@ -16,9 +16,9 @@ class ValidatePropietariosFromExcel extends Command
     private const FILE_DEFAULT = 'referencias/LISTA DE PROPIETARIOS completo.xlsx';
 
     private array $sheets = [
-        'DPTO'  => ['type' => Departament::TYPE_DEPARTAMENTO, 'prefix' => 'DPT-', 'label' => 'Departamentos'],
+        'DPTO' => ['type' => Departament::TYPE_DEPARTAMENTO, 'prefix' => 'DPT-', 'label' => 'Departamentos'],
         'ESTAC' => ['type' => Departament::TYPE_ESTACIONAMIENTO, 'prefix' => 'EST-', 'label' => 'Estacionamientos'],
-        'DEP'   => ['type' => Departament::TYPE_DEPOSITO, 'prefix' => 'DPO-', 'label' => 'Depositos'],
+        'DEP' => ['type' => Departament::TYPE_DEPOSITO, 'prefix' => 'DPO-', 'label' => 'Depositos'],
     ];
 
     public function handle(): int
@@ -48,6 +48,7 @@ class ValidatePropietariosFromExcel extends Command
             $sheet = $spreadsheet->getSheetByName($sheetName);
             if (! $sheet) {
                 $this->warn("Hoja '$sheetName' no encontrada, saltando...");
+
                 continue;
             }
 
@@ -75,13 +76,13 @@ class ValidatePropietariosFromExcel extends Command
             $totalFaltan += count($missing);
 
             $this->info("Hoja: {$config['label']} ({$config['prefix']}*)");
-            $this->line("  Total en Excel: " . count($numbers));
-            $this->line("  Existen en BD:  " . count($existing));
+            $this->line('  Total en Excel: '.count($numbers));
+            $this->line('  Existen en BD:  '.count($existing));
 
             if (empty($missing)) {
-                $this->line("  <info>OK - Todos existen en BD</info>");
+                $this->line('  <info>OK - Todos existen en BD</info>');
             } else {
-                $this->line("  <error>FALTAN POR CREAR: " . count($missing) . "</error>");
+                $this->line('  <error>FALTAN POR CREAR: '.count($missing).'</error>');
                 foreach ($missing as $num) {
                     $this->line("    - $num");
                     $allMissing[] = ['sheet' => $sheetName, 'number' => $num, 'prefix' => $config['prefix']];
@@ -92,18 +93,18 @@ class ValidatePropietariosFromExcel extends Command
         }
 
         $this->line('========================================');
-        $this->info("RESUMEN:");
+        $this->info('RESUMEN:');
         $this->line("  Total en Excel:   $totalExcel");
         $this->line("  Existen en BD:    $totalExist");
         $this->line("  Faltan por crear: $totalFaltan");
         $this->line('========================================');
 
         if (! empty($allMissing)) {
-            $csvFile = base_path('referencias/faltantes_' . date('Ymd_His') . '.csv');
+            $csvFile = base_path('referencias/faltantes_'.date('Ymd_His').'.csv');
             $fp = fopen($csvFile, 'w');
             fputcsv($fp, ['HOJA', 'NUMERO_BD', 'PREDIO_EXCEL']);
             foreach ($allMissing as $m) {
-                fputcsv($fp, [$m['sheet'], $m['number'], $m['prefix'] === 'DPT-' ? 'DEPA-' . substr($m['number'], 4) : ($m['prefix'] === 'EST-' ? 'ESTA-' . substr($m['number'], 4) : 'DEPO-' . substr($m['number'], 4))]);
+                fputcsv($fp, [$m['sheet'], $m['number'], $m['prefix'] === 'DPT-' ? 'DEPA-'.substr($m['number'], 4) : ($m['prefix'] === 'EST-' ? 'ESTA-'.substr($m['number'], 4) : 'DEPO-'.substr($m['number'], 4))]);
             }
             fclose($fp);
             $this->newLine();
@@ -124,24 +125,27 @@ class ValidatePropietariosFromExcel extends Command
         // DEPA-103 -> DPT-103
         if (str_starts_with($predio, 'DEPA-')) {
             $suffix = substr($predio, 5);
-            return ctype_digit($suffix) ? 'DPT-' . $suffix : null;
+
+            return ctype_digit($suffix) ? 'DPT-'.$suffix : null;
         }
 
         // ESTA-131 -> EST-131
         if (str_starts_with($predio, 'ESTA-')) {
             $suffix = substr($predio, 5);
-            return ctype_digit($suffix) ? 'EST-' . $suffix : null;
+
+            return ctype_digit($suffix) ? 'EST-'.$suffix : null;
         }
 
         // DEPO-184 -> DPO-184
         if (str_starts_with($predio, 'DEPO-')) {
             $suffix = substr($predio, 5);
-            return ctype_digit($suffix) ? 'DPO-' . $suffix : null;
+
+            return ctype_digit($suffix) ? 'DPO-'.$suffix : null;
         }
 
         // Numerico puro (101, 102) -> DPT-101
         if (ctype_digit($predio)) {
-            return $targetPrefix . $predio;
+            return $targetPrefix.$predio;
         }
 
         return null;

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnnualBudgetController;
 use App\Http\Controllers\Api\AppUpdateController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BankAccountController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\Api\BillInvoiceController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ComunAreaController;
 use App\Http\Controllers\Api\ConfigController;
+use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\DepartamentController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\ExpenseController;
@@ -283,6 +285,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/departments/{id}/residents', [DepartamentController::class, 'getDepartmentResidents']);
     });
 
+    // ── Credits (Saldo a favor) ────────────────────────────────
+    Route::get('/departments/credit-balance', [CreditController::class, 'getBalance'])->middleware('role_not:trabajador');
+    Route::prefix('departments/{id}')->middleware('role_not:trabajador')->group(function () {
+        Route::get('/credit-balance', [CreditController::class, 'getBalance']);
+        Route::get('/credit-transactions', [CreditController::class, 'getTransactions']);
+    });
+
     // ── Notices ──────────────────────────────────────────────
     Route::prefix('notices')->name('notice.')->middleware('role_not:trabajador')->group(function () {
         // Read — accessible to all authenticated users
@@ -334,6 +343,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [MonthlyBillsController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/u/{id}', [MonthlyBillsController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/generate-quotas/{id}', [MonthlyBillsController::class, 'generateQuotas'])->middleware('role:admin,super-admin', 'throttle:write');
+    });
+
+    // ── Annual Budgets ──────────────────────────────────────
+    Route::prefix('annual-budgets')->name('annualBudgets.')->middleware('role_not:trabajador')->group(function () {
+        Route::get('/', [AnnualBudgetController::class, 'index']);
+        Route::get('/available-expenses', [AnnualBudgetController::class, 'availableExpenses']);
+        Route::get('/{id}', [AnnualBudgetController::class, 'show']);
+        Route::post('/', [AnnualBudgetController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/{id}', [AnnualBudgetController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::delete('/{id}', [AnnualBudgetController::class, 'destroy'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Water Readings ───────────────────────────────────────

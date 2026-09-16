@@ -5,6 +5,7 @@ import cash from '@/assets/img/util/cash.webp'
 import { useRoute, useRouter } from 'vue-router';
 import { useReserveStore } from '@/services/store/reserve.store'
 import { useQuotaStore } from '@/services/store/quota.store'
+import { usePayStore } from '@/services/store/pay.store'
 import { usePayMethodStore } from '@/services/store/payMethod.store'
 import { useNotificationsStore } from '@/services/store/notifications.store'
 import { useAuthStore } from '@/services/store/auth.services'
@@ -33,6 +34,7 @@ const route = useRoute()
 const router = useRouter()
 const reserveStore = useReserveStore()
 const quotaStore = useQuotaStore()
+const payStore = usePayStore()
 const payMethodStore = usePayMethodStore()
 const authStore = useAuthStore()
 const { currencySymbol } = storeToRefs(authStore)
@@ -61,6 +63,15 @@ const payFormData = ref({
 const notificationsStore = useNotificationsStore()
 
 const payMethods = ref([])
+const creditBalance = ref(0)
+
+const amountToPay = computed(() => {
+  const total = Number(toPay.value?.amount || 0)
+  if (!isQuotaPayment.value) return total
+  return Math.max(0, total - creditBalance.value)
+})
+
+const hasCredit = computed(() => isQuotaPayment.value && creditBalance.value > 0)
 
 const paymentSubtitle = computed(() => {
   if (!toPay.value || !Object.keys(toPay.value).length) return ''
@@ -211,6 +222,7 @@ const getQuotaById = () => {
     .then((response) => {
       toPay.value = response.data
       ready.value = true
+      fetchCreditBalance()
     })
     .catch((response) => {
       console.error(response)
@@ -249,6 +261,30 @@ const fetchAllQuotasByIds = async (ids) => {
     console.error(err)
   } finally {
     ready.value = true
+    fetchCreditBalance()
+  }
+}
+
+const fetchCreditBalance = async () => {
+  if (!isQuotaPayment.value) return
+  try {
+    const deptIds = []
+    if (toPay.value.breakdown && toPay.value.breakdown.length) {
+      toPay.value.breakdown.forEach(item => {
+        if (item.departament?.id) deptIds.push(item.departament.id)
+      })
+    } else if (toPay.value.departament_id) {
+      deptIds.push(toPay.value.departament_id)
+    }
+    if (deptIds.length === 0) return
+
+    const uniqueIds = [...new Set(deptIds)]
+    const res = await payStore.getCreditBalanceForDepartments(uniqueIds)
+    if (res?.code === 200) {
+      creditBalance.value = res.data.total || 0
+    }
+  } catch {
+    creditBalance.value = 0
   }
 }
 
@@ -341,7 +377,7 @@ const copyData = (texto) => {
 }
 const dataToForm = () => {
   const dataForm = new FormData()
-  dataForm.append('amount', toPay.value.amount)
+  dataForm.append('amount', amountToPay.value)
   dataForm.append('vaucher', payFormData.value.vaucher)
   dataForm.append('reference', payFormData.value.reference)
   dataForm.append('pay_date', payFormData.value.date)
@@ -360,6 +396,9 @@ const dataToForm = () => {
     toPay.value.consolidated_ids.length
   ) {
     dataForm.append('consolidated_ids', JSON.stringify(toPay.value.consolidated_ids))
+  }
+  if (hasCredit.value && creditBalance.value > 0) {
+    dataForm.append('credit_applied', creditBalance.value)
   }
   return { data: dataForm }
 }
@@ -475,11 +514,27 @@ watch(step, (toStep, fromStep) => {
                   </div>
                 </div>
 
+                <div v-if="hasCredit" class="mt-3 px-3 py-2 rounded-lg" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                  <div class="flex justify-between items-center text-sm mb-1">
+                    <span class="text-gray-600">Cuota mensual</span>
+                    <span class="text-gray-900">{{ amountPrefix }} {{ Number(toPay.amount).toFixed(2) }}</span>
+                  </div>
+                  <div class="flex justify-between items-center text-sm" style="color: #16a34a;">
+                    <span class="flex items-center gap-1">
+                      <q-icon name="eva-checkmark-circle-2-outline" size="1rem" />
+                      Saldo a favor
+                    </span>
+                    <span class="font-medium">- {{ amountPrefix }} {{ creditBalance.toFixed(2) }}</span>
+                  </div>
+                  <div class="flex justify-between items-center text-sm font-bold pt-1 mt-1" style="border-top: 1px dashed #86efac;">
+                    <span class="text-gray-900">Monto a pagar</span>
+                    <span class="text-gray-900">{{ amountPrefix }} {{ amountToPay.toFixed(2) }}</span>
+                  </div>
+                </div>
+
                 <div class="pay-form-amount-box mb-3 mt-4">
                   <span class="pay-form-amount-prefix">{{ amountPrefix }}</span>
-                  <span class="pay-form-amount-value flex flex-center">{{ toPay.amount != null ?
-                    Number(toPay.amount).toFixed(2) : '0.00'
-                  }}</span>
+                  <span class="pay-form-amount-value flex flex-center">{{ amountToPay.toFixed(2) }}</span>
                 </div>
 
                 <div class="pay-form-select-label">Seleccionar medio</div>
@@ -514,11 +569,14 @@ watch(step, (toStep, fromStep) => {
                           <div class="text__amountItem">Mes</div>
                           <div class="text__amountItem">{{ toPay.month_label }}</div>
                         </div>
+                        <div v-if="hasCredit" class="flex justify-between items-center w-full py-1" style="color: #16a34a;">
+                          <div class="text__amountItem">Saldo a favor aplicado</div>
+                          <div class="text__amountItem font-medium">- {{ amountPrefix }} {{ creditBalance.toFixed(2) }}</div>
+                        </div>
                         <div class="flex justify-between items-center w-full mt-1 pt-2"
                           style="border-top: 2px solid #8b8e9446;">
                           <div class="text__amountTotal">Total</div>
-                          <div class="text__amountTotal">{{ amountPrefix }} {{ Number(toPay.amount || 0).toFixed(2) }}
-                          </div>
+                          <div class="text__amountTotal">{{ amountPrefix }} {{ amountToPay.toFixed(2) }}</div>
                         </div>
                       </div>
 

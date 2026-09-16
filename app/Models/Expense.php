@@ -24,6 +24,9 @@ class Expense extends Model
         'attachment_url',
         'status',
         'pay_id',
+        'is_template',
+        'annual_budget_id',
+        'sort_order',
     ];
 
     public function provider()
@@ -44,6 +47,11 @@ class Expense extends Model
     public function pay()
     {
         return $this->belongsTo(Pay::class);
+    }
+
+    public function annualBudget()
+    {
+        return $this->belongsTo(AnnualBudget::class);
     }
 
     public function getStatusLabelAttribute(): string

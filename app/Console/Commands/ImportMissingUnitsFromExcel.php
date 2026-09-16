@@ -103,6 +103,7 @@ class ImportMissingUnitsFromExcel extends Command
                 $exists = Departament::where('number', $code)->exists();
                 if ($exists) {
                     $this->stats['estac_skipped']++;
+
                     continue;
                 }
                 Departament::create([
@@ -125,6 +126,7 @@ class ImportMissingUnitsFromExcel extends Command
                 $exists = Departament::where('number', $code)->exists();
                 if ($exists) {
                     $this->stats['dep_skipped']++;
+
                     continue;
                 }
                 Departament::create([
@@ -165,10 +167,10 @@ class ImportMissingUnitsFromExcel extends Command
         $this->info('RESUMEN:');
         $this->line("  Filas procesadas:      {$this->stats['rows_processed']}");
         $this->line("  Depto no encontrado:   {$this->stats['dept_not_found']}");
-        $this->line("  Estacionamientos:");
+        $this->line('  Estacionamientos:');
         $this->line("    Creados:             {$this->stats['estac_created']}");
         $this->line("    Ya existian:         {$this->stats['estac_skipped']}");
-        $this->line("  Depositos:");
+        $this->line('  Depositos:');
         $this->line("    Creados:             {$this->stats['dep_created']}");
         $this->line("    Ya existian:         {$this->stats['dep_skipped']}");
         $this->line('========================================');

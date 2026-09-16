@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useQuotaStore } from '@/services/store/quota.store';
+import { usePayStore } from '@/services/store/pay.store';
 import { useRouter } from 'vue-router';
 import moment from 'moment';
 import appIcons from '@/assets/icons';
@@ -14,8 +15,10 @@ moment.locale('es', {
 const quotas = ref([]);
 const loading = ref(true);
 const quotaStore = useQuotaStore();
+const payStore = usePayStore();
 const router = useRouter();
 const dialog = ref(false);
+const creditBalances = ref({});
 const filters = ref({
   status: 4,
   quota_method: '',
@@ -32,6 +35,7 @@ const getQuotas = () => {
     .then((response) => {
       if (response.code !== 200) throw response;
       quotas.value = response.data;
+      fetchCreditBalances();
     })
     .catch((response) => {
       console.error(response);
@@ -39,6 +43,37 @@ const getQuotas = () => {
     .finally(() => {
       loading.value = false;
     });
+}
+
+const fetchCreditBalances = async () => {
+  const deptIds = new Set();
+  quotas.value.forEach(q => {
+    if (q.details) {
+      q.details.forEach(d => {
+        if (d.departament?.id) deptIds.add(d.departament.id);
+      });
+    } else if (q.departament?.id) {
+      deptIds.add(q.departament.id);
+    }
+  });
+  for (const deptId of deptIds) {
+    try {
+      const res = await payStore.getCreditBalance(deptId);
+      if (res?.code === 200 && res.data?.balance > 0) {
+        creditBalances.value[deptId] = res.data.balance;
+      }
+    } catch {}
+  }
+}
+
+const getCreditForQuota = (quota) => {
+  if (quota.details) {
+    const balances = quota.details
+      .map(d => creditBalances.value[d.departament?.id] || 0)
+      .filter(b => b > 0);
+    return balances.length > 0 ? Math.min(...balances) : 0;
+  }
+  return creditBalances.value[quota.departament?.id] || 0;
 }
 
 const goTo = (quota) => {
@@ -150,6 +185,12 @@ onMounted(() => {
                       </path>
                     </svg>
                     <span class="font-medium text-base">S/. {{ Number(quota.amount).toFixed(2) }}</span>
+                  </div>
+                  <div v-if="getCreditForQuota(quota) > 0" class="text-xs">
+                    <q-badge color="green" class="text-white px-2 py-1">
+                      <q-icon name="eva-checkmark-circle-2-outline" size="0.85rem" class="mr-1" />
+                      Saldo a favor: S/. {{ getCreditForQuota(quota).toFixed(2) }}
+                    </q-badge>
                   </div>
                   <div class="flex items-cente
                   r text-sm text-gray-700 col-7 col-md-8 justify-end md:justify-start">

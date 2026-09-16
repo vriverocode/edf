@@ -22,6 +22,8 @@ class Pay extends Model
         'type',
         'amount',
         'commission_amount',
+        'overpayment_amount',
+        'credit_applied',
         'vaucher',
         'reference',
         'pay_date',
@@ -37,6 +39,8 @@ class Pay extends Model
 
     protected $casts = [
         'consolidated_ids' => 'array',
+        'credit_applied' => 'float',
+        'overpayment_amount' => 'float',
     ];
 
     public $appends = ['status_label', 'status_color', 'status_icon', 'title_pay'];

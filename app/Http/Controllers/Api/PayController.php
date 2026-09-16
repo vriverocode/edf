@@ -19,6 +19,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\BillInvoiceService;
 use App\Services\BookingPendingPayNotifier;
+use App\Services\CreditService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Exception;
@@ -208,6 +209,11 @@ class PayController extends Controller
                 }
             }
 
+            $overpaymentAmount = null;
+            if ((int) $request->type === 1 && $request->has('overpayment_amount')) {
+                $overpaymentAmount = round((float) $request->overpayment_amount, 2);
+            }
+
             $pay = Pay::create([
                 'user_id' => $user->id,
                 'booking_id' => $request->type == 2 ? $request->to_pay_id : null,
@@ -215,6 +221,7 @@ class PayController extends Controller
                 'consolidated_ids' => $quotaIdsForPay,
                 'amount' => $amount,
                 'commission_amount' => $commissionAmount,
+                'overpayment_amount' => $overpaymentAmount,
                 'reference' => $request->reference ?? '000000',
                 'pay_id' => $payIdPrefix.$bookingIdStr.'-'.rand(1000, 9999),
                 'pay_date' => $request->pay_date ? date('Y-m-d', strtotime($request->pay_date)) : date('Y-m-d'),
@@ -225,6 +232,27 @@ class PayController extends Controller
 
             if ($request->type == 1 && ! empty($quotaIdsForPay)) {
                 $pay->quotas()->sync($quotaIdsForPay);
+            }
+
+            // Aplicar crédito (saldo a favor) si el usuario indica
+            $creditApplied = 0.0;
+            if ((int) $request->type === 1 && ! empty($quotaIdsForPay)) {
+                $creditRequested = round((float) $request->input('credit_applied', 0), 2);
+                if ($creditRequested > 0) {
+                    $quotasForCredit = Quota::whereIn('id', $quotaIdsForPay)->get();
+                    $deptQuotas = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
+
+                    $creditService = new CreditService;
+                    $available = $creditService->getBalanceForDepartments(array_keys($deptQuotas));
+                    $effectiveCredit = min($creditRequested, $available['total']);
+
+                    if ($effectiveCredit > 0) {
+                        $creditApplied = $creditService->applyCreditToConsolidated($deptQuotas, $effectiveCredit, $pay);
+                    }
+                }
+            }
+            if ($creditApplied > 0) {
+                $pay->update(['credit_applied' => $creditApplied]);
             }
 
             $this->afterPayAction($pay);
@@ -280,6 +308,7 @@ class PayController extends Controller
             'status' => ['required', 'integer', 'in:2,3'],
             'financial_account_id' => ['required_if:status,2', 'nullable', 'exists:financial_accounts,id'],
             'transaction_category_id' => ['required_if:status,2', 'nullable', 'exists:transaction_categories,id'],
+            'actual_amount' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         if ($validator->fails()) {
@@ -362,6 +391,27 @@ class PayController extends Controller
                 Quota::query()->whereIn('id', $quotaIds)->update(['status' => 3]);
 
                 $shouldSendInvoice = true;
+
+                // Detectar sobrepago y crear crédito
+                $creditService = new CreditService;
+                $actualAmount = $request->has('actual_amount') ? round((float) $request->actual_amount, 2) : null;
+                $payAmount = round((float) $pay->amount, 2);
+
+                if ($actualAmount !== null && $actualAmount > $payAmount) {
+                    $creditAmount = round($actualAmount - $payAmount, 2);
+                    $firstQuota = Quota::with('departament')->find($quotaIds[0]);
+                    if ($firstQuota && $creditAmount > 0) {
+                        $creditService->createCredit($firstQuota->departament, $creditAmount, $pay);
+                        $pay->update(['overpayment_amount' => $actualAmount, 'credit_applied' => true]);
+                    }
+                } elseif ($pay->overpayment_amount && (float) $pay->overpayment_amount > $payAmount) {
+                    $creditAmount = round((float) $pay->overpayment_amount - $payAmount, 2);
+                    $firstQuota = Quota::with('departament')->find($quotaIds[0]);
+                    if ($firstQuota && $creditAmount > 0) {
+                        $creditService->createCredit($firstQuota->departament, $creditAmount, $pay);
+                        $pay->update(['credit_applied' => true]);
+                    }
+                }
             } elseif ((int) $pay->type === 2 && $pay->booking_id) {
                 $this->approveBooking($pay);
             }

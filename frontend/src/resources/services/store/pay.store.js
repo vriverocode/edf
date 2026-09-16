@@ -207,6 +207,49 @@ export const usePayStore = defineStore('Pay', {
           });
       })
     },
+    async getCreditBalance(departamentId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.get(`/api/departments/${departamentId}/credit-balance`)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener saldo a favor');
+          });
+      })
+    },
+    async getCreditBalanceForDepartments(deptIds) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        const params = deptIds.map(id => `ids[]=${id}`).join('&')
+        ApiService.get(`/api/departments/credit-balance?${params}`)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener saldo a favor');
+          });
+      })
+    },
+    async getCreditTransactions(departamentId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.get(`/api/departments/${departamentId}/credit-transactions`)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener historial de créditos');
+          });
+      })
+    },
     formatFiltersQuery(filters){
       const queryParams = new URLSearchParams();
       Object.keys(filters).forEach(key => {

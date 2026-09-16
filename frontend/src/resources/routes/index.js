@@ -686,6 +686,42 @@ const routes = [
         },
       },
       {
+        path: '/admin/budget/annual/create',
+        component: () => import('@/view/admin/Budget/annualBudgetForm.vue'),
+        name: 'annualBudgetCreate',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Crear presupuesto anual',
+          roles: ['admin'],
+          depth: 4,
+        },
+      },
+      {
+        path: '/admin/budget/annual/:id/edit',
+        component: () => import('@/view/admin/Budget/annualBudgetForm.vue'),
+        name: 'annualBudgetEdit',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Editar presupuesto anual',
+          roles: ['admin'],
+          depth: 4,
+        },
+      },
+      {
+        path: '/admin/budget/annual/:id',
+        component: () => import('@/view/admin/Budget/annualBudgetDetail.vue'),
+        name: 'annualBudgetDetail',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Detalle presupuesto anual',
+          roles: ['admin'],
+          depth: 4,
+        },
+      },
+      {
         path: '/admin/monthly_bills/list',
         component: () => import('@/view/admin/MonthlyBills/monthlyBillsList.vue'),
         name: 'MonthlyBillsList',
