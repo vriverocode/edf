@@ -20,6 +20,7 @@ class ExpenseController extends Controller
                 'month' => ['nullable', 'integer', 'between:1,12'],
                 'year' => ['nullable', 'integer'],
                 'status' => ['nullable', 'integer', 'in:1,2,3'],
+                'expense_type' => ['nullable', 'integer', 'in:1,2'],
                 'provider_id' => ['nullable', 'integer', 'exists:providers,id'],
                 'category_id' => ['nullable', 'integer', 'exists:service_categories,id'],
                 'date_from' => ['nullable', 'date'],

@@ -7,6 +7,7 @@ use App\Models\CreditTransaction;
 use App\Models\Departament;
 use App\Models\Pay;
 use App\Models\Quota;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class CreditService
@@ -155,5 +156,43 @@ class CreditService
             ->with(['pay', 'quota'])
             ->orderByDesc('created_at')
             ->get();
+    }
+
+    public function getAllWithBalance(?string $search = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return CreditBalance::where('balance', '>', 0)
+            ->with(['departament.owner'])
+            ->when($search, function ($query, $search) {
+                $query->whereHas('departament', function ($q) use ($search) {
+                    $q->where('number', 'like', "%{$search}%")
+                        ->orWhereHas('owner', fn ($uq) => $uq->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->orderByDesc('balance')
+            ->get();
+    }
+
+    public function getAllTransactions(array $filters = []): LengthAwarePaginator
+    {
+        $query = CreditTransaction::with(['departament.owner', 'pay', 'quota'])
+            ->orderByDesc('created_at');
+
+        if (! empty($filters['departament_id'])) {
+            $query->where('departament_id', $filters['departament_id']);
+        }
+
+        if (! empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+
+        if (! empty($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (! empty($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        return $query->paginate($filters['per_page'] ?? 20);
     }
 }

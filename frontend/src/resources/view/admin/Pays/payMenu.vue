@@ -7,6 +7,7 @@ import { computed } from 'vue';
 
 import pagosCuotas from '@/assets/img/menu/cuotas2.png'
 import pagosReservas from '@/assets/img/menu/historial-pagos.png'
+import saldosFavor from '@/assets/img/menu/balance-cuentas.png'
 
 
 const { user } = storeToRefs(useAuthStore())
@@ -21,6 +22,12 @@ const menu = [
     title: 'Pago de reservas',
     icon: pagosReservas,
     link: '/admin/pays/booking',
+    roles: [1]
+  },
+  {
+    title: 'Saldos a favor',
+    icon: saldosFavor,
+    link: '/admin/credits',
     roles: [1]
   },
 ];

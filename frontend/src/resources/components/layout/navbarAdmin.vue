@@ -40,6 +40,7 @@ const items = [
       '/balances',
       '/client/pays/menu',
       '/client/quota',
+      '/admin/credits',
     ],
     roles: ['admin', 'propietario'],
   },

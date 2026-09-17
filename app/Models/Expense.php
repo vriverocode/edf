@@ -11,6 +11,7 @@ class Expense extends Model
 
     protected $fillable = [
         'provider_id',
+        'departament_id',
         'service_category_id',
         'monthly_bill_id',
         'invoice_number',
@@ -32,6 +33,16 @@ class Expense extends Model
     public function provider()
     {
         return $this->belongsTo(Provider::class);
+    }
+
+    public function departament()
+    {
+        return $this->belongsTo(Departament::class);
+    }
+
+    public function departmentCharges()
+    {
+        return $this->hasMany(DepartmentCharge::class);
     }
 
     public function serviceCategory()
@@ -92,6 +103,9 @@ class Expense extends Model
             })
             ->when($filters['category_id'] ?? null, function ($q, $categoryId) {
                 $q->where('service_category_id', $categoryId);
+            })
+            ->when($filters['expense_type'] ?? null, function ($q, $type) {
+                $q->where('expense_type', $type);
             })
             ->when($filters['date_from'] ?? null, function ($q, $dateFrom) {
                 $q->whereDate('issue_date', '>=', $dateFrom);

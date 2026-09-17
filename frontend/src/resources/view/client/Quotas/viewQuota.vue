@@ -205,6 +205,14 @@ const reloadQuota = () => {
                   </td>
                   <td class="text-right py-2 font-semibold">S/. {{ quotaData.water_amount }}</td>
                 </tr>
+                <!-- Cargo extra -->
+                <tr v-if="quotaData.extra_amount > 0" class="border-b">
+                  <td class="py-2">
+                    <div class="font-medium text-orange-700">Cargo extra</div>
+                    <div class="text-xs text-gray-500">Cobro especial a este departamento</div>
+                  </td>
+                  <td class="text-right py-2 font-semibold text-orange-700">S/. {{ quotaData.extra_amount }}</td>
+                </tr>
                 <!-- Total -->
                 <tr class="font-bold">
                   <td class="py-3 text-gray-900">Total a pagar</td>

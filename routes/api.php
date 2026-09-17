@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ComunAreaController;
 use App\Http\Controllers\Api\ConfigController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\DepartamentController;
+use App\Http\Controllers\Api\DepartmentChargeController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\FinancialAccountController;
@@ -292,6 +293,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/credit-transactions', [CreditController::class, 'getTransactions']);
     });
 
+    // ── Admin Credits (Saldo a favor - admin) ──────────────────
+    Route::prefix('admin')->middleware('role:admin,super-admin')->group(function () {
+        Route::get('/credits', [CreditController::class, 'listAll']);
+        Route::get('/credits/transactions', [CreditController::class, 'listAllTransactions']);
+    });
+
     // ── Notices ──────────────────────────────────────────────
     Route::prefix('notices')->name('notice.')->middleware('role_not:trabajador')->group(function () {
         // Read — accessible to all authenticated users
@@ -353,6 +360,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [AnnualBudgetController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/{id}', [AnnualBudgetController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::delete('/{id}', [AnnualBudgetController::class, 'destroy'])->middleware('role:admin,super-admin', 'throttle:write');
+    });
+
+    // ── Department Charges ──────────────────────────────────
+    Route::prefix('department-charges')->name('departmentCharges.')->middleware('role:admin,super-admin')->group(function () {
+        Route::get('/', [DepartmentChargeController::class, 'index']);
+        Route::get('/available-expenses', [DepartmentChargeController::class, 'availableExpenses']);
+        Route::get('/{id}', [DepartmentChargeController::class, 'show']);
+        Route::get('/{id}/history', [DepartmentChargeController::class, 'history']);
+        Route::post('/', [DepartmentChargeController::class, 'store'])->middleware('throttle:write');
+        Route::post('/{id}', [DepartmentChargeController::class, 'update'])->middleware('throttle:write');
+        Route::delete('/{id}', [DepartmentChargeController::class, 'destroy'])->middleware('throttle:write');
     });
 
     // ── Water Readings ───────────────────────────────────────

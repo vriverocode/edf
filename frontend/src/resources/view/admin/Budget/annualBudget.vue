@@ -167,7 +167,7 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            <div class="flex justify-center mt-4">
+            <div class="flex justify-center mt-4 ">
               <q-pagination
                 v-model="page"
                 color="primary"
@@ -185,10 +185,6 @@ onMounted(() => {
               </div>
               <div class="text-lg font-semibold text-gray-900 mb-1">Sin presupuestos anuales</div>
               <div class="text-gray-600 text-center mb-4">Crea un presupuesto anual para comenzar</div>
-              <q-btn color="primary" unelevated style="border-radius: 0.5rem;" @click="goTo('/admin/budget/annual/create')">
-                <q-icon name="eva-plus-outline" class="q-mr-sm" />
-                Crear presupuesto
-              </q-btn>
             </div>
           </template>
         </div>

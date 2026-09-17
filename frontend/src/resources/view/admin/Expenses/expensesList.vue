@@ -241,7 +241,7 @@ onMounted(() => {
                 <div class="flex justify-between items-center pb-1 px-4" style="border-bottom: 1px solid lightgrey">
                   <div @click="goTo('/admin/expenses/details/' + expense.id)" class="cursor-pointer">
                     <div class="text-lg font-bold text-gray-900 mb-0">
-                      {{ expense.provider?.name || 'Proveedor' }}
+                      {{ expense.provider?.name || 'Presupuesto' }}
                     </div>
                     <div v-if="expense.service_category?.name" class="text-xs text-primary font-medium">
                       {{ expense.service_category.name }}
@@ -280,8 +280,8 @@ onMounted(() => {
                   <div class="col-12 col-md-6 text-sm text-gray-700 mt-1">
                     Tipo: <span class="font-medium">{{ expense.expense_type_label }}</span>
                   </div>
-                  <div v-if="expense.invoice_number" class="col-6 text-sm text-gray-700 md:mt-0 mt-2">
-                    Factura N°: <span class="font-medium">{{ expense.invoice_number }}</span>
+                  <div class="col-6 text-sm text-gray-700 md:mt-0 mt-2">
+                    Factura N°: <span class="font-medium">{{ expense.invoice_number || '—' }}</span>
                   </div>
                   <div class="col-6 col-md-6 text-sm text-gray-700 mt-2  md:text-start text-end">
                     Presupuesto: <span class="font-medium">{{ monthlyBillLabel(expense.monthly_bill) }}</span>

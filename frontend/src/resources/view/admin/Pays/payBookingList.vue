@@ -14,10 +14,31 @@ const pagination = ref({
   lastPage: 1,
   perPage: 20,
 })
+const filters = ref({
+  search: '',
+  date_from: '',
+  date_to: '',
+  status: null,
+})
+const showDateFilters = ref(false)
+const statusOptions = [
+  { label: 'Todos', value: 9 },
+  { label: 'Pendiente de aprobación', value: 1 },
+  { label: 'Exitoso', value: 2 },
+  { label: 'Rechazado', value: 3 },
+  { label: 'Reembolsado', value: 5 },
+  { label: 'Pendiente por devolución', value: 6 },
+  { label: 'Cancelado', value: 0 },
+]
 
 const getPays = (page = 1) => {
   loading.value = true
-  payStore.getPaysByUser({ type: 2, paginate: pagination.value.perPage, page })
+  const params = { type: 2, paginate: pagination.value.perPage, page }
+  if (filters.value.search) params.search = filters.value.search
+  if (filters.value.date_from) params.date_from = filters.value.date_from
+  if (filters.value.date_to) params.date_to = filters.value.date_to
+  if (filters.value.status !== null && filters.value.status !== undefined) params.status = filters.value.status.value
+  payStore.getPaysByUser(params)
     .then((response) => {
       pays.value = response.data.data || []
       pagination.value.lastPage = response.data.last_page || 1
@@ -29,6 +50,43 @@ const getPays = (page = 1) => {
     })
 }
 
+const syncToUrl = () => {
+  const query = {}
+  const set = (k, v) => {
+    if (v === '' || v === null || v === undefined) return
+    query[k] = v
+  }
+  set('search', filters.value.search)
+  set('status', filters.value.status?.value)
+  set('date_from', filters.value.date_from)
+  set('date_to', filters.value.date_to)
+  set('page', pagination.value.page > 1 ? pagination.value.page : undefined)
+  router.replace({ query })
+}
+
+const restoreFromQuery = () => {
+  if (route.query.search) filters.value.search = route.query.search
+  if (route.query.status !== undefined) {
+    const val = Number(route.query.status)
+    filters.value.status = statusOptions.find(o => o.value === val) || null
+  }
+  if (route.query.date_from) filters.value.date_from = route.query.date_from
+  if (route.query.date_to) filters.value.date_to = route.query.date_to
+  if (route.query.page) pagination.value.page = Number(route.query.page)
+}
+
+const applyFilters = () => {
+  pagination.value.page = 1
+  syncToUrl()
+  getPays(1)
+}
+
+const clearFilters = () => {
+  filters.value = { search: '', date_from: '', date_to: '', status: null }
+  router.replace({ query: {} })
+  getPays(1)
+}
+
 const goToCreate = () => {
   router.push('/admin/pay/register')
 }
@@ -38,12 +96,13 @@ const goToDetail = (id) => {
 }
 
 const onPageChange = (page) => {
-  router.replace({ query: { ...route.query, page } })
+  pagination.value.page = page
+  syncToUrl()
   getPays(page)
 }
 
 onMounted(() => {
-  if (route.query.page) pagination.value.page = Number(route.query.page)
+  restoreFromQuery()
   getPays(pagination.value.page)
 })
 </script>
@@ -63,6 +122,56 @@ onMounted(() => {
       </q-btn>
     </div>
     <div class="" style="height: 90%; overflow: auto;">
+      <div class="px-4 pt-2 md:px-36">
+        <div class="w-full">
+          <q-select dense outlined v-model="filters.status" label="Estado del pago" color="primary"
+            :options="statusOptions" option-label="label" option-value="value"
+            map-options clearable @clear="applyFilters"
+            @update:model-value="applyFilters">
+          </q-select>
+        </div>
+        <q-input class="mt-2" dense outlined v-model="filters.search" placeholder="Buscar por nombre o área común..."
+          @keyup.enter="applyFilters" clearable @clear="applyFilters" color="teal">
+          <template v-slot:prepend>
+            <q-icon name="eva-search-outline" />
+          </template>
+          <template v-slot:append>
+            <q-btn flat dense round icon="eva-options-2-outline" size="sm" @click="showDateFilters = !showDateFilters" />
+          </template>
+        </q-input>
+        <q-slide-transition>
+          <div v-show="showDateFilters" class="row q-col-gutter-sm q-mt-sm items-center">
+            <div class="col-6">
+              <q-input dense outlined v-model="filters.date_from" label="Desde" mask="##/##/####" color="teal"
+                @update:model-value="applyFilters" clearable @clear="applyFilters">
+                <template v-slot:append>
+                  <q-icon name="eva-calendar-outline" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date mask="DD/MM/YYYY" v-model="filters.date_from" @update:model-value="applyFilters" />
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+            </div>
+            <div class="col-6">
+              <q-input dense outlined v-model="filters.date_to" label="Hasta" mask="##/##/####" color="teal"
+                @update:model-value="applyFilters" clearable @clear="applyFilters">
+                <template v-slot:append>
+                  <q-icon name="eva-calendar-outline" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date mask="DD/MM/YYYY" v-model="filters.date_to" @update:model-value="applyFilters" />
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12">
+              <q-btn flat dense no-caps color="grey-7" size="sm" icon="eva-refresh-outline" label="Limpiar filtros"
+                @click="clearFilters" />
+            </div>
+          </div>
+        </q-slide-transition>
+      </div>
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />
@@ -73,7 +182,7 @@ onMounted(() => {
         <!-- Lista de pagos -->
         <div v-if="pays.length > 0" class="md:px-5 pb-5">
           <div v-for="pay in pays" :key="pay.id"
-            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 cursor-pointer"
+            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden mb-5 cursor-pointer"
             style="position: relative;" @click="goToDetail(pay.id)">
 
             <div class="px-4 pb-4 pt-2">

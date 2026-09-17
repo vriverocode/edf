@@ -18,6 +18,7 @@ class Quota extends Model
         'amount' => 'float',
         'maintenance_amount' => 'float',
         'water_amount' => 'float',
+        'extra_amount' => 'float',
     ];
 
     protected $fillable = [
@@ -26,6 +27,7 @@ class Quota extends Model
         'water_reading_id',
         'maintenance_amount',
         'water_amount',
+        'extra_amount',
         'amount',
         'number',
         'month',
@@ -51,6 +53,11 @@ class Quota extends Model
     public function pays(): BelongsToMany
     {
         return $this->belongsToMany(Pay::class, 'pay_quota');
+    }
+
+    public function departmentCharges(): BelongsToMany
+    {
+        return $this->belongsToMany(DepartmentCharge::class, 'charge_quota')->withPivot('installment_number');
     }
 
     public function waterReading(): BelongsTo

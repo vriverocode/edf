@@ -12,6 +12,7 @@ import cuotas from '@/assets/img/menu/cuotas2.png'
 import gastos from '@/assets/img/menu/gastos2.png'
 import pays from '@/assets/img/menu/pagos.svg' 
 import worker from '@/assets/img/menu/worker.png'
+import cuotasEspeciales from '@/assets/img/menu/cuotas-especiales.png'
 const { user } = storeToRefs(useAuthStore())
 const router = useRouter()
 const menu = [
@@ -42,6 +43,12 @@ const menu = [
     title: 'Gastos',
     icon: gastos,
     link: '/admin/expenses/list',
+    roles: [1]
+  },
+  {
+    title: 'Cargos Depto.',
+    icon: cuotasEspeciales,
+    link: '/admin/department-charges',
     roles: [1]
   },
   {

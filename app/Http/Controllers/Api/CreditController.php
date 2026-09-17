@@ -43,7 +43,7 @@ class CreditController extends Controller
         $balance = $creditService->getBalance($dept);
 
         return $this->returnSuccess(200, [
-            'departament_id' => $dept->id,
+            'departament' => $dept,
             'balance' => $balance,
         ]);
     }
@@ -84,5 +84,44 @@ class CreditController extends Controller
         $transactions = $creditService->getHistory($dept);
 
         return $this->returnSuccess(200, $transactions);
+    }
+
+    public function listAll(Request $request)
+    {
+        $creditService = new CreditService;
+        $search = $request->get('search');
+        $balances = $creditService->getAllWithBalance($search);
+
+        $result = $balances->sortBy(function ($balance) {
+            return $balance->departament->inter_number;
+        })->map(function ($balance) {
+            $dept = $balance->departament;
+            $owner = $dept->owner ?? $dept->availableOwner;
+
+            return [
+                'departament_id' => $dept->id,
+                'number' => $dept->number,
+                'type' => $dept->type,
+                'owner_name' => $owner?->name ?? '—',
+                'balance' => (float) $balance->balance,
+            ];
+        })->values();
+
+        $total = round((float) $balances->sum('balance'), 2);
+
+        return $this->returnSuccess(200, [
+            'data' => $result,
+            'total' => $total,
+        ]);
+    }
+
+    public function listAllTransactions(Request $request)
+    {
+        $creditService = new CreditService;
+
+        $filters = $request->only(['departament_id', 'type', 'date_from', 'date_to', 'per_page']);
+        $paginator = $creditService->getAllTransactions($filters);
+
+        return $this->returnSuccess(200, $paginator);
     }
 }

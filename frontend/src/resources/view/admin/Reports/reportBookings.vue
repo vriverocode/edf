@@ -43,6 +43,12 @@ const statusOptions = [
   { label: 'Pend. reembolso', value: 5 },
   { label: 'Pend. devolución', value: 6 },
 ]
+const userTypeOptions = [
+  { label: 'Todos', value: -1 },
+  { label: 'Propietarios', value: 2 },
+  { label: 'Inquilinos', value: 3 },
+  { label: 'Airbnb', value: 5 },
+]
 
 const filters = ref({
   status: -1,
@@ -52,6 +58,7 @@ const filters = ref({
   sort_by: 'created_at',
   sort_dir: 'desc',
   include_cancelled: false,
+  rol_id: -1,
 })
 
 function spanishDayName(dateStr) {
@@ -73,6 +80,7 @@ const stats = computed(() => [
 
 const hasActiveFilter = computed(() => {
   return filters.value.status !== -1
+    || filters.value.rol_id !== -1
     || filters.value.area_id !== null
     || filters.value.date_from !== null
     || filters.value.date_to !== null
@@ -81,13 +89,21 @@ const hasActiveFilter = computed(() => {
 
 const activeFilterCount = computed(() => {
   let count = 0
-  if (filters.value.status !== 4) count++
+  if (filters.value.status !== -1) count++
+  if (filters.value.rol_id !== -1) count++
   if (filters.value.area_id !== null) count++
   if (filters.value.date_from !== null) count++
   if (filters.value.date_to !== null) count++
   if (filters.value.include_cancelled) count++
   return count
 })
+
+function userTypeLabel(rolId) {
+  if (rolId == 2) return 'Propietario'
+  if (rolId == 3) return 'Inquilino'
+  if (rolId == 5) return 'Airbnb'
+  return '—'
+}
 
 function payStatusLabel(pay) {
   if (!pay) return 'Sin pago'
@@ -160,6 +176,7 @@ function syncToUrl() {
   set('quickMonth', quickMonth.value)
   set('quickYear', quickYear.value)
   set('status', filters.value.status)
+  set('rol_id', filters.value.rol_id)
   set('area_id', filters.value.area_id)
   set('date_from', filters.value.date_from)
   set('date_to', filters.value.date_to)
@@ -176,6 +193,7 @@ function restoreFromQuery() {
   if (route.query.quickMonth !== undefined) quickMonth.value = Number(route.query.quickMonth) || null
   if (route.query.quickYear !== undefined) quickYear.value = Number(route.query.quickYear) || now.getFullYear()
   if (route.query.status !== undefined) filters.value.status = Number(route.query.status)
+  if (route.query.rol_id !== undefined) filters.value.rol_id = Number(route.query.rol_id)
   if (route.query.area_id !== undefined) filters.value.area_id = route.query.area_id === '' ? null : Number(route.query.area_id)
   if (route.query.date_from !== undefined) filters.value.date_from = route.query.date_from || null
   if (route.query.date_to !== undefined) filters.value.date_to = route.query.date_to || null
@@ -190,6 +208,7 @@ async function loadData() {
     const params = {
       search: search.value || null,
       status: filters.value.status,
+      rol_id: filters.value.rol_id,
       area_id: filters.value.area_id,
       date_from: filters.value.date_from,
       date_to: filters.value.date_to,
@@ -271,6 +290,11 @@ onMounted(() => {
           emit-value map-options dense borderless class="form__inputsRReportBooking" label="Estado" clearable color="primary"
           @update:model-value="onQuickFilterChange" />
       </div>
+      <div class="col-6 col-md-2">
+        <q-select v-model="filters.rol_id" :options="userTypeOptions" option-label="label" option-value="value"
+          emit-value map-options dense borderless class="form__inputsRReportBooking" label="Rol" clearable color="primary"
+          @update:model-value="onQuickFilterChange" />
+      </div>
       <div class="col-12 col-md-3">
         <q-input v-model="search" dense borderless class="form__inputsRReportBooking w-full md:mr-3" label="Buscar reserva, usuario, depto, área..."
           clearable color="primary" style="" @update:model-value="onSearchChange">
@@ -284,7 +308,7 @@ onMounted(() => {
           <q-checkbox :model-value="filters.include_cancelled" label="Incluir canceladas"
             @update:model-value="val => { filters.include_cancelled = val; syncToUrl(); loadData(); loadMetrics() }" />
         </div>
-        <div class="col-2 col-md-2">
+        <div class="col-3 col-md-2">
           <q-btn :color="hasActiveFilter ? 'primary' : 'grey-7'" outline
             icon="eva-funnel-outline"
             :label="hasActiveFilter ? `(${activeFilterCount})` : ''"
@@ -292,7 +316,7 @@ onMounted(() => {
             <q-badge v-if="hasActiveFilter" color="red" floating rounded>{{ activeFilterCount }}</q-badge>
           </q-btn>
         </div>
-        <div class="col-6 ">
+        <div class="col-5 ">
           <q-btn color="green" unelevated label="Exportar Excel" icon="eva-download-outline"
             :loading="exporting" @click="handleExport" />
         </div>
@@ -365,6 +389,7 @@ onMounted(() => {
             <div class="repbok-cell">Dpto</div>
             <div class="repbok-cell">Fec. Registro</div>
             <div class="repbok-cell">Usuario</div>
+            <div class="repbok-cell">Tipo</div>
             <div class="repbok-cell">Cod Pago</div>
             <div class="repbok-cell">Total</div>
             <div class="repbok-cell">Fec. Pago</div>
@@ -392,6 +417,9 @@ onMounted(() => {
             </div>
             <div class="repbok-cell" data-title="Usuario">
               {{ row.user?.name || '—' }}
+            </div>
+            <div class="repbok-cell" data-title="Tipo">
+              {{ row.user?.rol_id ? userTypeLabel(row.user.rol_id) : '—' }}
             </div>
             <div class="repbok-cell" data-title="Cod Pago">
               {{ row.booking_number || '—' }}

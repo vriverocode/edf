@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Departament;
+use App\Models\DepartmentCharge;
 use App\Models\MonthlyBills;
 use App\Models\PeoplesXDepartaments;
 use App\Models\Quota;
@@ -11,6 +12,7 @@ use App\Models\WaterReading;
 use App\Notifications\RealtimeNotification;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class MonthlyQuotaService
@@ -82,7 +84,8 @@ class MonthlyQuotaService
                 $waterAmount = max(0, $consumption) * floatval($budgetConfig->water_price_per_m3);
             }
 
-            $totalAmount = $maintenanceAmount + $waterAmount;
+            $extraAmount = $this->getExtraAmountForDepartment($departament->id, $month, $year);
+            $totalAmount = $maintenanceAmount + $waterAmount + $extraAmount;
 
             $quota = Quota::create([
                 'departament_id' => $departament->id,
@@ -90,6 +93,7 @@ class MonthlyQuotaService
                 'water_reading_id' => $waterReadingId,
                 'maintenance_amount' => $maintenanceAmount,
                 'water_amount' => $waterAmount,
+                'extra_amount' => $extraAmount,
                 'amount' => $totalAmount,
                 'number' => 'A'.substr($departament->number, -3).'-'.$month.rand(1000, 9999),
                 'month' => $month,
@@ -99,6 +103,11 @@ class MonthlyQuotaService
                 'description' => 'Cuota mensual: '.$this->labelMonth($month).' - '.$year,
                 'status' => 1,
             ]);
+
+            if ($quota && $extraAmount > 0) {
+                $this->linkChargesToQuota($departament->id, $quota->id, $month, $year);
+            }
+
             if ($quota) {
                 $this->sendNotifications($quota, $activeTenantPivot, $tenantPays);
             }
@@ -189,6 +198,28 @@ class MonthlyQuotaService
             ));
         } catch (\Throwable $e) {
             Log::error('Error enviando notificacion de cuota: '.$e->getMessage());
+        }
+    }
+
+    private function getExtraAmountForDepartment(int $departamentId, int $month, int $year): float
+    {
+        return DepartmentCharge::applicableForPeriod($month, $year)
+            ->where('departament_id', $departamentId)
+            ->sum('monthly_amount');
+    }
+
+    private function linkChargesToQuota(int $departamentId, int $quotaId, int $month, int $year): void
+    {
+        $charges = DepartmentCharge::applicableForPeriod($month, $year)
+            ->where('departament_id', $departamentId)
+            ->get();
+
+        foreach ($charges as $charge) {
+            $monthIndex = ($year * 12 + $month) - ($charge->start_year * 12 + $charge->start_month) + 1;
+            DB::table('charge_quota')->updateOrInsert(
+                ['department_charge_id' => $charge->id, 'quota_id' => $quotaId],
+                ['installment_number' => $monthIndex]
+            );
         }
     }
 }

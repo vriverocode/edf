@@ -76,9 +76,16 @@ class UserController extends Controller
         }
 
         $creatorRole = request()->user()->rol_id;
-        $requestedRole = $request->rol_id ?? 2;
-        if ($creatorRole !== Rol::ADMIN && $requestedRole <= $creatorRole) {
-            return response()->json(['code' => 403, 'error' => 'No puedes crear usuarios con este rol'], 403);
+        $requestedRole = $request->idRol;
+
+        // Solo admin y super-admin pueden crear usuarios
+        if (! in_array($creatorRole, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return response()->json(['code' => 403, 'error' => 'No tienes permisos para crear usuarios'], 403);
+        }
+
+        // Solo super-admin puede crear admins o super-admins
+        if (in_array($requestedRole, [Rol::ADMIN, Rol::SUPER_ADMIN]) && $creatorRole !== Rol::SUPER_ADMIN) {
+            return response()->json(['code' => 403, 'error' => 'Solo el super-admin puede crear administradores'], 403);
         }
 
         if ((int) $request->idRol === Rol::INQUILINO
@@ -117,10 +124,24 @@ class UserController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'dni' => ['nullable', 'string', 'max:10'],
             'password' => ['nullable', 'string', 'min:6'],
+            'rol_id' => ['nullable', 'integer', 'in:1,2,3,4,5,6,7,8'],
         ]);
 
         if ($validator->fails()) {
             return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        // Solo admin y super-admin pueden cambiar roles
+        if ($request->has('rol_id')) {
+            $currentUser = $request->user();
+            if (! in_array($currentUser->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+                return $this->returnFail(403, 'No tienes permisos para cambiar el rol de usuarios');
+            }
+
+            // Solo super-admin puede asignar rol admin o super-admin
+            if (in_array($request->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]) && $currentUser->rol_id !== Rol::SUPER_ADMIN) {
+                return $this->returnFail(403, 'Solo el super-admin puede asignar el rol de administrador');
+            }
         }
 
         $data = $request->only(['name', 'username', 'email', 'phone', 'dni', 'rol_id']);
@@ -535,6 +556,7 @@ class UserController extends Controller
             'email' => ['nullable', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'username' => ['required', Rule::unique('users', 'username')->whereNull('deleted_at'), 'regex:/^[a-zA-Z-À-ÿ0-9 .]+$/i'],
             'password' => ['required', 'min:8'],
+            'idRol' => ['required', 'integer', 'in:1,2,3,4,5,6,7,8'],
 
         ];
         $messages = [
@@ -548,6 +570,9 @@ class UserController extends Controller
             'username.regex' => 'Nombre de usuario no valido',
             'password.required' => 'La contraseña es requerida',
             'password.min' => 'La contraseña debe tener un minimo de 8 caracteres',
+            'idRol.required' => 'El rol es requerido.',
+            'idRol.integer' => 'El rol debe ser un número entero.',
+            'idRol.in' => 'El rol seleccionado no es válido.',
         ];
 
         $validator = Validator::make($inputs, $rules, $messages)->errors();

@@ -46,8 +46,7 @@ class ReportController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('booking_number', 'like', "%{$search}%")
                     ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('departament', fn ($d) => $d->where('number', 'like', "%{$search}%"))
-                    ->orWhereHas('comunArea', fn ($a) => $a->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('departament', fn ($d) => $d->where('number', 'like', "%{$search}%"));
             });
         }
 
@@ -265,6 +264,7 @@ class ReportController extends Controller
         $validFilters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'integer', 'in:-1,0,1,2,3,4,5,6'],
+            'rol_id' => ['nullable', 'integer', 'in:-1,2,3,5'],
             'area_id' => ['nullable', 'integer', 'exists:comun_areas,id'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
@@ -277,6 +277,7 @@ class ReportController extends Controller
         return array_merge([
             'search' => null,
             'status' => -1,
+            'rol_id' => -1,
             'area_id' => null,
             'date_from' => null,
             'date_to' => null,

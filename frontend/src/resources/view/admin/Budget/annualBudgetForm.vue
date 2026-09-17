@@ -3,6 +3,7 @@ import { onMounted, ref, computed } from 'vue'
 import { Notify } from 'quasar'
 import { useAnnualBudgetStore } from '@/services/store/annualBudget.store'
 import { useRoute, useRouter } from 'vue-router'
+import createExpenseTemplateModal from '@/components/finance/createExpenseTemplateModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +14,7 @@ const saving = ref(false)
 const loadingExpenses = ref(false)
 const step = ref(1)
 const isEdit = computed(() => !!route.params.id)
+const showCreateModal = ref(false)
 
 const form = ref({
   year: new Date().getFullYear(),
@@ -62,6 +64,16 @@ const updateAmount = (expense, value) => {
 const getSelectedAmount = (expense) => {
   const selected = selectedExpenses.value.find((e) => e.description === expense.description)
   return selected ? selected.amount : expense.amount
+}
+
+const onExpenseCreated = (expense) => {
+  const exists = selectedExpenses.value.some(e => e.description === expense.description)
+  if (!exists) {
+    selectedExpenses.value.push({
+      ...expense,
+      sort_order: selectedExpenses.value.length,
+    })
+  }
 }
 
 const fetchAvailableExpenses = async () => {
@@ -216,11 +228,13 @@ onMounted(fetchBudget)
             </div>
           </div>
           <q-stepper-navigation>
-            <q-btn color="primary" unelevated style="border-radius: 0.5rem; min-width: 150px;" @click="goToStep2">
-              <div class="flex items-center py-1">
-                <div class="text-bold">Siguiente</div>
-              </div>
-            </q-btn>
+            <div class="w-full">
+              <q-btn color="primary" unelevated style="border-radius: 0.5rem; min-width: 150px;" @click="goToStep2" class="w-full">
+                <div class="flex items-center py-1">
+                  <div class="text-bold">Siguiente</div>
+                </div>
+              </q-btn>
+            </div>
           </q-stepper-navigation>
         </q-step>
 
@@ -283,6 +297,11 @@ onMounted(fetchBudget)
                 </div>
               </div>
             </div>
+
+            <!-- CREAR NUEVOS GASTOS -->
+            <div class="mt-4">
+              <q-btn flat no-caps color="primary" icon="eva-plus-outline" label="Nuevo gasto" @click="showCreateModal = true" />
+            </div>
           </template>
 
           <q-stepper-navigation class="q-mt-md">
@@ -313,10 +332,23 @@ onMounted(fetchBudget)
         </q-step>
       </q-stepper>
     </template>
+
+    <!-- MODAL CREAR GASTO -->
+    <createExpenseTemplateModal
+      :dialog="showCreateModal"
+      @closeModal="showCreateModal = false"
+      @created="onExpenseCreated"
+    />
   </div>
 </template>
 
 <style lang="scss">
+.q-stepper__step-inner{
+  padding-top: 0px!important;
+}
+.q-stepper__header--border{
+  border-bottom: none;
+}
 .form__inputsR .q-field__inner {
   box-shadow: 0px 3px 4px 0px #bfbfbf48;
   border-radius: 0.5rem;

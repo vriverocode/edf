@@ -173,6 +173,7 @@ class Booking extends Model
     public function scopeFilter(Builder $query, array $filters): void
     {
         $query->when(isset($filters['status']) && (int) $filters['status'] !== -1, fn ($q) => $q->where('status', (int) $filters['status']))
+            ->when(isset($filters['rol_id']) && (int) $filters['rol_id'] !== -1, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('rol_id', (int) $filters['rol_id'])))
             ->when($filters['area_id'] ?? null, fn ($q, $areaId) => $q->where('comun_area_id', (int) $areaId))
             ->when($filters['user_id'] ?? null, fn ($q, $userId) => $q->where('user_id', (int) $userId))
             ->when($filters['date_from'] ?? null, fn ($q, $date) => $q->whereDate('date', '>=', $date))

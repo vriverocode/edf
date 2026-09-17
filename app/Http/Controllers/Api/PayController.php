@@ -7,6 +7,7 @@ use App\Jobs\SendNotificationJob;
 use App\Mail\PayClaims;
 use App\Models\BankAccount;
 use App\Models\Booking;
+use App\Models\DepartmentCharge;
 use App\Models\Expense;
 use App\Models\FinancialAccount;
 use App\Models\Pay;
@@ -389,6 +390,8 @@ class PayController extends Controller
 
                 /** En este sistema el estado pagado efectivo es 3 ("Exitoso") */
                 Quota::query()->whereIn('id', $quotaIds)->update(['status' => 3]);
+
+                $this->incrementChargeInstallments($quotaIds);
 
                 $shouldSendInvoice = true;
 
@@ -1191,5 +1194,26 @@ class PayController extends Controller
         $pay->save();
 
         return $path;
+    }
+
+    private function incrementChargeInstallments(array $quotaIds): void
+    {
+        $chargeIds = DB::table('charge_quota')
+            ->whereIn('quota_id', $quotaIds)
+            ->pluck('department_charge_id')
+            ->unique();
+
+        foreach ($chargeIds as $chargeId) {
+            DB::table('department_charges')
+                ->where('id', $chargeId)
+                ->where('status', 1)
+                ->whereRaw('paid_installments < installments')
+                ->increment('paid_installments');
+
+            $charge = DepartmentCharge::find($chargeId);
+            if ($charge && $charge->fresh()->isFinished()) {
+                $charge->update(['status' => 2]);
+            }
+        }
     }
 }

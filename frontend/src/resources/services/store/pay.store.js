@@ -10,20 +10,20 @@ export const usePayStore = defineStore('Pay', {
         }
         ApiService.setHeader();
         const queryParams = this.formatFiltersQuery(filters) // Construir query string con filtros
-        
-        const url = queryParams.toString() 
+
+        const url = queryParams.toString()
           ? `/api/pays?${queryParams.toString()}`
           : '/api/pays';
-        
+
         ApiService.get(url)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener pagos');
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener pagos');
+          });
+
       })
     },
     async createPay(data) {
@@ -34,79 +34,79 @@ export const usePayStore = defineStore('Pay', {
         }
         ApiService.setHeader();
         ApiService.post(endpoint, data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          if(response.data.code == 403){
-            return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
-          }
-          reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al registrar el pago' });
-        });
-        
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            if (response.data.code == 403) {
+              return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
+            }
+            reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al registrar el pago' });
+          });
+
       })
 
     },
-     
+
     async getPayById(id) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/pays/byId/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-  
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener el pago');
-        });
-        
+        ApiService.get('/api/pays/byId/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener el pago');
+          });
+
       })
 
     },
-     
+
     async updatePay(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.put('/api/pays/'+data.id, data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          if(response.data.code == 403){
-            return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
-          }
-          reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al actualizar el pago' });
-        });
-        
+        ApiService.put('/api/pays/' + data.id, data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            if (response.data.code == 403) {
+              return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
+            }
+            reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al actualizar el pago' });
+          });
+
       })
 
     },
-    async getAvailablePayInDayByArea(data){
+    async getAvailablePayInDayByArea(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.get('/api/pays/availableBooking/'+data.idArea+'?date='+data.date+'&')
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener disponibilidad');
-        });
+        ApiService.get('/api/pays/availableBooking/' + data.idArea + '?date=' + data.date + '&')
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al obtener disponibilidad');
+          });
       })
 
     },
@@ -116,36 +116,36 @@ export const usePayStore = defineStore('Pay', {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.delete('/api/pays/'+id)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al eliminar el pago');
-        });
+        ApiService.delete('/api/pays/' + id)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(typeof response?.data?.error === 'string' ? response.data.error : 'Error al eliminar el pago');
+          });
       })
     },
-    async updateStatus(data) {      
+    async updateStatus(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
           throw '';
         }
         ApiService.setHeader();
-        ApiService.post('/api/pays/updateStatus/'+data.id, data.data)
-        .then(({data}) => {
-          if(data.code !=200) throw data;
-          
-          resolve(data);
-        }).catch(( {response}) => {
-          console.error(response)
-          if(response.data.code == 403){
-            return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
-          }
-          reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al actualizar estado' });
-        });
-        
+        ApiService.post('/api/pays/updateStatus/' + data.id, data.data)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            if (response.data.code == 403) {
+              return reject(typeof response.data.message === 'string' ? { message: response.data.message } : { message: 'No autorizado' });
+            }
+            reject({ message: typeof response?.data?.error === 'string' ? response.data.error : 'Error al actualizar estado' });
+          });
+
       })
 
     },
@@ -181,7 +181,7 @@ export const usePayStore = defineStore('Pay', {
     async createCulqiPay(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw 'No session';
-        
+
         ApiService.setHeader();
         ApiService.post('/api/pays/culqi-payment', data)
           .then(({ data }) => {
@@ -250,7 +250,41 @@ export const usePayStore = defineStore('Pay', {
           });
       })
     },
-    formatFiltersQuery(filters){
+    async getAllCredits(search = '') {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        const params = search ? `?search=${encodeURIComponent(search)}` : ''
+        ApiService.get(`/api/admin/credits${params}`)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data.data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener saldos a favor');
+          });
+      })
+    },
+    async getAllCreditTransactions(params = {}) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        const query = new URLSearchParams()
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== null && v !== '' && v !== undefined) query.append(k, v)
+        })
+        const qs = query.toString()
+        ApiService.get(`/api/admin/credits/transactions${qs ? '?' + qs : ''}`)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener historial de créditos');
+          });
+      })
+    },
+    formatFiltersQuery(filters) {
       const queryParams = new URLSearchParams();
       Object.keys(filters).forEach(key => {
         if (filters[key] !== null && filters[key] !== '' && filters[key] !== undefined) {
@@ -260,6 +294,6 @@ export const usePayStore = defineStore('Pay', {
 
       return queryParams;
     }
-    
+
   },
 })

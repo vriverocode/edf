@@ -9,7 +9,6 @@ const loading = ref(true)
 const payStore = usePayStore()
 const router = useRouter()
 const route = useRoute()
-const creditBalances = ref({})
 const pagination = ref({
   page: 1,
   lastPage: 1,
@@ -44,7 +43,6 @@ const getPays = (page = 1) => {
       pays.value = response.data.data || []
       pagination.value.lastPage = response.data.last_page || 1
       pagination.value.page = response.data.current_page || 1
-      fetchCreditBalances()
     })
     .catch(() => {})
     .finally(() => {
@@ -52,14 +50,41 @@ const getPays = (page = 1) => {
     })
 }
 
+const syncToUrl = () => {
+  const query = {}
+  const set = (k, v) => {
+    if (v === '' || v === null || v === undefined) return
+    query[k] = v
+  }
+  set('search', filters.value.search)
+  set('status', filters.value.status?.value)
+  set('date_from', filters.value.date_from)
+  set('date_to', filters.value.date_to)
+  set('page', pagination.value.page > 1 ? pagination.value.page : undefined)
+  router.replace({ query })
+}
+
+const restoreFromQuery = () => {
+  if (route.query.search) filters.value.search = route.query.search
+  if (route.query.status !== undefined) {
+    const val = Number(route.query.status)
+    filters.value.status = statusOptions.find(o => o.value === val) || null
+  }
+  if (route.query.date_from) filters.value.date_from = route.query.date_from
+  if (route.query.date_to) filters.value.date_to = route.query.date_to
+  if (route.query.page) pagination.value.page = Number(route.query.page)
+}
+
 const applyFilters = () => {
   pagination.value.page = 1
+  syncToUrl()
   getPays(1)
 }
 
 const clearFilters = () => {
   filters.value = { search: '', date_from: '', date_to: '', status: null }
-  applyFilters()
+  router.replace({ query: {} })
+  getPays(1)
 }
 
 const goToCreate = () => {
@@ -71,35 +96,14 @@ const goToDetail = (id) => {
 }
 
 const onPageChange = (page) => {
-  router.replace({ query: { ...route.query, page } })
+  pagination.value.page = page
+  syncToUrl()
   getPays(page)
 }
 
-const fetchCreditBalances = async () => {
-  const deptIds = new Set()
-  pays.value.forEach(p => {
-    if (p.quotas) {
-      p.quotas.forEach(q => {
-        if (q.departament_id) deptIds.add(q.departament_id)
-      })
-    }
-  })
-  for (const deptId of deptIds) {
-    try {
-      const res = await payStore.getCreditBalance(deptId)
-      if (res?.code === 200 && res.data?.balance > 0) {
-        creditBalances.value[deptId] = res.data.balance
-      }
-    } catch {}
-  }
-}
-
 const getCreditForPay = (pay) => {
-  if (!pay.quotas || !pay.quotas.length) return 0
-  const balances = pay.quotas
-    .map(q => creditBalances.value[q.departament_id] || 0)
-    .filter(b => b > 0)
-  return balances.length > 0 ? Math.min(...balances) : 0
+  console.log(pay)
+  return ((pay?.overpayment_amount ?? 0) - pay.amount)|| 0
 }
 
 const getPayQuotasInfo = (pay) => {
@@ -116,7 +120,7 @@ const getPayQuotasInfo = (pay) => {
 }
 
 onMounted(() => {
-  if (route.query.page) pagination.value.page = Number(route.query.page)
+  restoreFromQuery()
   getPays(pagination.value.page)
 })
 </script>
@@ -140,7 +144,7 @@ onMounted(() => {
         <div class="w-full">
           <q-select dense outlined v-model="filters.status" label="Estado del pago" color="primary"
             :options="statusOptions" option-label="label" option-value="value"
-            emit-value map-options clearable @clear="applyFilters"
+            map-options clearable @clear="applyFilters"
             @update:model-value="applyFilters">
           </q-select>
         </div>

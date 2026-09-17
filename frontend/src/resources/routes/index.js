@@ -559,6 +559,30 @@ const routes = [
         },
       },
       {
+        path: '/admin/credits',
+        component: () => import('@/view/admin/Credits/creditsList.vue'),
+        name: 'creditsList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Saldos a favor',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
+        path: '/admin/credits/:id',
+        component: () => import('@/view/admin/Credits/creditDetail.vue'),
+        name: 'creditDetail',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Detalle de saldo',
+          roles: ['admin', 'super-admin'],
+          depth: 4,
+        },
+      },
+      {
         path: '/admin/pays/user/:id',
         component: () => import('@/view/admin/Pays/userPayments.vue'),
         name: 'userPayments',
@@ -717,6 +741,42 @@ const routes = [
         meta: {
           title: 'PACIFIK',
           pagTitle: 'Detalle presupuesto anual',
+          roles: ['admin'],
+          depth: 4,
+        },
+      },
+      {
+        path: '/admin/department-charges',
+        component: () => import('@/view/admin/DepartmentCharges/departmentChargeList.vue'),
+        name: 'departmentChargesList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Cargos extras por departamento',
+          roles: ['admin'],
+          depth: 3,
+        },
+      },
+      {
+        path: '/admin/department-charges/create',
+        component: () => import('@/view/admin/DepartmentCharges/departmentChargeForm.vue'),
+        name: 'departmentChargeCreate',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Crear cargo extra',
+          roles: ['admin'],
+          depth: 4,
+        },
+      },
+      {
+        path: '/admin/department-charges/:id/edit',
+        component: () => import('@/view/admin/DepartmentCharges/departmentChargeForm.vue'),
+        name: 'departmentChargeEdit',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Editar cargo extra',
           roles: ['admin'],
           depth: 4,
         },
