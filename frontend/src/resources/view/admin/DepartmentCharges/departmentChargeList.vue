@@ -25,9 +25,10 @@ const fetchCharges = (page = 1) => {
   if (filters.value.status !== null) params.status = filters.value.status
   chargeStore.getDepartmentCharges(params)
     .then((res) => {
-      charges.value = res.data.data || []
-      pagination.value.lastPage = res.data.last_page || 1
-      pagination.value.page = res.data.current_page || 1
+      const pag = res.data.pagination || {}
+      charges.value = pag.data || []
+      pagination.value.lastPage = pag.last_page || 1
+      pagination.value.page = pag.current_page || 1
     })
     .catch(() => {})
     .finally(() => { loading.value = false })

@@ -59,6 +59,7 @@ const statusClass = (status) => {
   if (status === 1) return 'bg-orange-500'
   if (status === 2) return 'bg-blue-500'
   if (status === 3) return 'bg-green-500'
+  if (status === 4) return 'bg-purple-500'
   return 'bg-grey-5'
 }
 
@@ -205,7 +206,7 @@ onMounted(() => {
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 w-full">
 
           <div class="row w-full items-start q-pa-md-md q-pa-sm"  style="border-bottom: 1px solid lightgray;">
-            <div class="col-md-7 col-7">
+            <div class="col-md-7 col-7 px-2">
               <div class="text-2xl font-bold text-gray-900">
                 {{ expense.provider?.name || 'Proveedor' }}
               </div>
@@ -223,8 +224,8 @@ onMounted(() => {
                 </span>
               </div>
               <div class="mt-2 flex justify-end">
-                <q-btn color="primary"  class=" mx-1 md:px-12" rounded outline @click="goToEdit" icon="eva-edit-2-outline" v-if="expense.status !== 3" />
-                <q-btn color="secondary"  class=" mx-1 md:px-12" rounded outline @click="openPayModal" v-if="expense.status !== 3">
+                <q-btn color="primary"  class=" mx-1 md:px-12" rounded outline @click="goToEdit" icon="eva-edit-2-outline" v-if="expense.status !== 3 && !expense.is_template" />
+                <q-btn color="secondary"  class=" mx-1 md:px-12" rounded outline @click="openPayModal" v-if="expense.status !== 3 && !expense.is_template">
                  <svg width="2rem" height="1.5rem" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="#c8a34b"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="Layer_2" data-name="Layer 2"> <g id="invisible_box" data-name="invisible box"> <rect width="48" height="48" fill="none"></rect> </g> <g id="Icons"> <g> <path d="M42.2,31.7a4.6,4.6,0,0,0-4-1.1l-9.9,1.7A4.7,4.7,0,0,0,26.9,29l-7.1-7H5a2,2,0,0,0,0,4H18.2l5.9,5.9a.8.8,0,0,1,0,1.1.9.9,0,0,1-1.2,0l-3.5-3.5a2.1,2.1,0,0,0-2.8,0,2.1,2.1,0,0,0,0,2.9l3.5,3.4a4.5,4.5,0,0,0,3.4,1.4,5.7,5.7,0,0,0,1.8-.3h0l13.6-2.4a1,1,0,0,1,.8.2,1.1,1.1,0,0,1,.3.7,1,1,0,0,1-.8,1L20.6,39.8,9.7,30.9H5a2,2,0,0,0,0,4H8.3L19.4,44l20.5-3.7A4.9,4.9,0,0,0,44,35.4,4.6,4.6,0,0,0,42.2,31.7Z"></path> <path d="M34.3,20.1h0a6.7,6.7,0,0,1-4.1-1.3,2,2,0,0,0-2.8.6,1.8,1.8,0,0,0,.3,2.6A10.9,10.9,0,0,0,32,23.8V26a2,2,0,0,0,4,0V23.8a6.3,6.3,0,0,0,3-1.3,4.9,4.9,0,0,0,2-4h0c0-3.7-3.4-4.9-6.3-5.5s-3.5-1.3-3.5-1.8.2-.6.5-.9a3.4,3.4,0,0,1,1.8-.4,6.3,6.3,0,0,1,3.3.9,1.8,1.8,0,0,0,2.7-.5,1.9,1.9,0,0,0-.4-2.8A9.1,9.1,0,0,0,36,6.3V4a2,2,0,0,0-4,0V6.2c-3,.5-5,2.5-5,5.2s3.3,4.9,6.5,5.5,3.3,1.3,3.3,1.8S35.7,20.1,34.3,20.1Z"></path> </g> </g> </g> </g></svg>
                 </q-btn>
               </div>
@@ -236,11 +237,11 @@ onMounted(() => {
             <div class="text-subtitle1 text-bold text-grey-8 q-mb-sm">INFORMACIÓN DEL GASTO</div>
 
             <div class="row q-col-gutter-sm">
-              <div class="col-md-6 col-12">
+              <div class="col-md-4 col-12">
                 <div class="text-caption text-grey-6">Proveedor</div>
                 <div class="text-body1 text-bold">{{ expense.provider?.name || '—' }}</div>
               </div>
-              <div class="col-md-6 col-12">
+              <div class="col-md-4 col-12">
                 <div class="text-caption text-grey-6">Categoría de servicio</div>
                 <div class="text-body1 text-bold">{{ expense.service_category?.name || '—' }}</div>
               </div>
@@ -269,8 +270,14 @@ onMounted(() => {
             <div class="row q-col-gutter-sm">
               <div class="col-md-4 col-12">
                 <div class="bg-blue-1 rounded-lg py-3 px-4 text-center">
-                  <div class="text-caption text-grey-6" style="font-size: 10px;">Monto</div>
-                  <div class="text-h5 text-bold text-blue-9">S/ {{ formatMoney(expense.amount) }}</div>
+                  <div class="text-caption text-grey-6" style="font-size: 10px;">{{ expense.is_template ? 'Monto mensual' : 'Monto' }}</div>
+                  <div class="text-h5 text-bold text-blue-9">S/ {{ formatMoney(expense.is_template ? expense.monthly_amount : expense.amount) }}</div>
+                </div>
+              </div>
+              <div class="col-md-4 col-12" v-if="expense.is_template">
+                <div class="bg-blue-1 rounded-lg py-3 px-4 text-center">
+                  <div class="text-caption text-grey-6" style="font-size: 10px;">{{ (expense.is_template || expense.expense_type === 1) ? 'Monto mensual' : 'Monto' }}</div>
+                  <div class="text-h5 text-bold text-blue-9">S/ {{ formatMoney((expense.is_template || expense.expense_type === 1) ? expense.monthly_amount : expense.amount) }}</div>
                 </div>
               </div>
               <div class="col-md-4 col-12">

@@ -181,7 +181,7 @@ const isCancelled = (reserve) => reserve.status === 0
 
 const fetchPendingRefunds = () => {
   loadingRefunds.value = true
-  reserveStore.getReservesByUser({ status: 0, per_page: 999 })
+  reserveStore.getReservesByUser({ status: '0,6', per_page: 999 })
     .then((response) => {
       if (response.code !== 200) throw response
       const data = Array.isArray(response.data) ? response.data : (response.data?.data || [])

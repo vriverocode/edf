@@ -3,7 +3,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import iconsApp from '@/assets/icons/index'
 import { usePayStore } from '@/services/store/pay.store'
-import { useReserveStore } from '@/services/store/reserve.store'
 import { useTransactionCategoryStore } from '@/services/store/transactionCategory.store'
 import { useBankAccountStore } from '@/services/store/bankAccount.store'
 import moment from 'moment'
@@ -16,33 +15,9 @@ import ApiService from '@/services/axios'
 const route = useRoute()
 const router = useRouter()
 const payStore = usePayStore()
-const reserveStore = useReserveStore()
 const transactionCategoryStore = useTransactionCategoryStore()
 const bankStore = useBankAccountStore()
 const dialog = ref('')
-
-const refundList = ref([])
-const loadingRefunds = ref(false)
-
-const loadRefundableBookings = async () => {
-  loadingRefunds.value = true
-  try {
-    const res = await reserveStore.getReservesByUser({ status: -1, per_page: 999 })
-    if (res?.code === 200) {
-      const data = Array.isArray(res.data) ? res.data : (res.data?.data || [])
-      refundList.value = data.filter(r =>
-        r.amount > 0
-        && r.pay
-        && [0, 6].includes(r.status)
-        && [2, 6].includes(r.pay.status)
-      )
-    }
-  } catch {
-    refundList.value = []
-  } finally {
-    loadingRefunds.value = false
-  }
-}
 
 const refundAmount = (b) => {
   if (b.kind === 'warranty') {
@@ -52,7 +27,13 @@ const refundAmount = (b) => {
   return Number(b.amount ?? 0)
 }
 
-const refundOriginLabel = (b) => (b.kind === 'warranty' ? 'Garantía' : 'Cancelación')
+const isCurrentBookingRefundable = computed(() => {
+  const b = pay.value?.booking
+  if (!b || !pay.value) return false
+  return b.amount > 0
+    && [0, 6].includes(b.status)
+    && [2, 6].includes(pay.value.status)
+})
 
 const refundDialog = ref(false)
 const refundTarget = ref(null)
@@ -133,17 +114,13 @@ const submitRefund = async () => {
     await ApiService.post('/api/pays/refund', formData)
     showNotify('positive', 'Devolución registrada correctamente')
     refundDialog.value = false
-    loadRefundableBookings()
+    getPayById(payId)
   } catch (e) {
     showNotify('negative', e?.response?.data?.error || 'Error al registrar devolución')
   } finally {
     refundSubmitting.value = false
   }
 }
-
-onMounted(() => {
-  loadRefundableBookings()
-})
 
 const pay = ref(null)
 const loading = ref(false)
@@ -555,21 +532,20 @@ const submitUploadVoucher = async () => {
         </div>
 
         <!-- Refund section -->
-        <div v-if="refundList.length > 0 && pay.booking?.status == 5" class="q-mt-md">
-          <div class="text-subtitle1 text-bold text-black q-mb-sm">Devoluciones pendientes</div>
-          <div v-for="b in refundList" :key="b.id"
-            class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden q-mb-sm q-pa-md">
+        <div v-if="isCurrentBookingRefundable" class="q-mt-md">
+          <div class="text-subtitle1 text-bold text-black q-mb-sm">Devolución pendiente</div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden q-pa-md">
             <div class="flex justify-between items-center">
               <div>
-                <div class="text-body2 text-bold">#{{ b.booking_number }} — {{ b.comun_area?.name }}</div>
-                <div class="text-caption text-grey-7">{{ b.user?.name }} — S/. {{ refundAmount(b).toFixed(2) }}</div>
+                <div class="text-body2 text-bold">#{{ pay.booking.booking_number }} — {{ pay.booking.comun_area?.name }}</div>
+                <div class="text-caption text-grey-7">{{ pay.booking.user?.name }} — S/. {{ refundAmount(pay.booking).toFixed(2) }}</div>
               </div>
               <div class="flex items-center gap-2">
-                <q-badge :color="b.kind === 'warranty' ? 'teal-8' : 'orange'" class="text-white px-2 py-1">
-                  {{ refundOriginLabel(b) }}
+                <q-badge :color="pay.booking.kind === 'warranty' ? 'teal-8' : 'orange'" class="text-white px-2 py-1">
+                  {{ pay.booking.kind === 'warranty' ? 'Garantía' : 'Cancelación' }}
                 </q-badge>
                 <q-btn color="orange" unelevated size="sm" style="border-radius: 0.5rem;"
-                  @click="openRefundDialog(b)">
+                  @click="openRefundDialog(pay.booking)">
                   <q-icon name="eva-undo-outline" class="q-mr-xs" />
                   Devolver
                 </q-btn>

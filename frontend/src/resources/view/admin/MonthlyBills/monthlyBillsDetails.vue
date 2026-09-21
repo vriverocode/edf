@@ -162,11 +162,6 @@ onMounted(() => {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style="padding: 6px 8px; border-bottom: 1px solid #eee; font-size: 13px;">Presupuesto base mantenimiento</td>
-                  <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right; font-size: 13px;">{{ Number(bill.monthly_budget).toFixed(2) }}</td>
-                </tr>
-
                 <tr v-if="bill.expenses && bill.expenses.length > 0">
                   <td colspan="2" style="padding: 8px 8px 2px; font-size: 11px; text-transform: uppercase; font-weight: bold; color: #666; border-bottom: 1px solid #ddd;">
                     Gastos del mes ({{ bill.expenses.length }})
@@ -203,9 +198,9 @@ onMounted(() => {
             <div class="text-caption text-bold text-grey-6 q-mb-xs" style="text-transform: uppercase; font-size: 10px;">Resumen del mes</div>
             <div class="row q-col-gutter-xs">
               <div class="col-md-4 col-4">
-                <div class="bg-grey-2 rounded-lg py-2 px-2 text-center">
-                  <div class="text-grey-6" style="font-size: 10px;">Base mantenimiento</div>
-                  <div class="text-subtitle2 text-bold">S/ {{ Number(bill.monthly_budget).toFixed(2) }}</div>
+                <div class="bg-blue-1 rounded-lg py-2 px-2 text-center">
+                  <div class="text-grey-6" style="font-size: 10px;">Consumo agua (m³)</div>
+                  <div class="text-subtitle2 text-bold text-blue-9">{{ bill.total_water_consumption_m3 ?? '-' }}</div>
                 </div>
               </div>
               <div class="col-md-4 col-4">
@@ -215,9 +210,9 @@ onMounted(() => {
                 </div>
               </div>
               <div class="col-md-4 col-4">
-                <div class="bg-grey-2 rounded-lg py-2 px-2 text-center">
-                  <div class="text-grey-6" style="font-size: 10px;">Agua común</div>
-                  <div class="text-subtitle2 text-bold">S/ {{ commonWaterCost.toFixed(2) }}</div>
+                <div class="bg-blue-1 rounded-lg py-2 px-2 text-center">
+                  <div class="text-grey-6" style="font-size: 10px;">Precio por m³</div>
+                  <div class="text-subtitle2 text-bold text-blue-9">S/ {{ Number(bill.water_price_per_m3).toFixed(4) }}</div>
                 </div>
               </div>
             </div>

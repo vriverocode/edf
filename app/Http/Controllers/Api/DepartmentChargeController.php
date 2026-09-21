@@ -32,11 +32,12 @@ class DepartmentChargeController extends Controller
                 ->orWhere('description', 'like', "%{$search}%");
         }
 
-        if ($request->filled('paginate') && intval($request->paginate) > 0) {
-            return $this->returnSuccess(200, $query->paginate(intval($request->paginate)));
-        }
+        $perPage = $request->filled('per_page') ? intval($request->per_page) : 12;
+        $paginator = $query->paginate($perPage);
 
-        return $this->returnSuccess(200, $query->get());
+        return $this->returnSuccess(200, [
+            'pagination' => $paginator,
+        ]);
     }
 
     public function show(int $id): JsonResponse
@@ -83,7 +84,7 @@ class DepartmentChargeController extends Controller
 
         $this->updateExistingQuotas($charge);
 
-        return $this->returnSuccess(201, $charge->load('departament'));
+        return $this->returnSuccess(200, $charge->load('departament'));
     }
 
     public function update(Request $request, int $id): JsonResponse

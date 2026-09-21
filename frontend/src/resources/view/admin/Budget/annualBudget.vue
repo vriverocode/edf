@@ -111,7 +111,7 @@ onMounted(() => {
                 <div class="pb-4 pt-2">
                   <div class="flex justify-between items-center pb-1 px-4" style="border-bottom: 1px solid lightgrey;">
                     <div class="flex items-center">
-                      <div class="text-lg font-bold text-gray-900">Presupuesto año {{ budget.year }}</div>
+                      <div class="text-lg font-bold text-gray-900" @click="goTo(`/admin/budget/annual/${budget.id}`)">Presupuesto año {{ budget.year }}</div>
   
                       <q-chip :color="budget.status === 1 ? 'grey' : budget.status === 2 ? 'positive' : 'negative'"  class="ml-2"  text-color="white">
                         <div class="px-2 py-1">
@@ -146,7 +146,7 @@ onMounted(() => {
                       </q-btn>
                     </div>
                   </div>
-                  <div class="row px-4 pt-3">
+                  <div class="row px-4 pt-3" @click="goTo(`/admin/budget/annual/${budget.id}`)">
                     <div class="col-6">
                       <div class="text-caption text-grey-6">Año</div>
                       <div class="text-body1 font-bold">{{ budget.year }}</div>

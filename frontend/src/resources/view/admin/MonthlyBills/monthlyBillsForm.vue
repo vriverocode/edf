@@ -12,8 +12,8 @@ const monthlyBillsStore = useMonthlyBillsStore()
 const now = new Date()
 const router = useRouter();
 const showExpensesModal = ref(false)
-const selectedExpenseIds = ref([])
 const selectedExpensesData = ref([])
+const selectedExpensesPayload = ref([])
 const previousSelectedTotal = ref(0)
 const showWaterReadingsModal = ref(false)
 const waterReadingsData = ref([])
@@ -37,7 +37,6 @@ const monthOptions = [
 const formData = ref({
   month: monthOptions[now.getMonth() - 1],
   year: now.getFullYear(),
-  monthly_budget: '',
   total_maintenance_budget: '',
   total_water_bill_amount: '',
   total_water_consumption_m3: null,
@@ -132,10 +131,9 @@ const commonWaterCost = computed(() => {
 const formattedCommonWaterCost = computed(() => formatMaskedMoney(commonWaterCost.value))
 
 const calculatedTotal = computed(() => {
-  const budget = parseMaskedMoney(formData.value.monthly_budget) || 0
   const expenses = includedExpensesTotal.value
   const commonWater = commonWaterCost.value
-  return budget + expenses + commonWater
+  return expenses + commonWater
 })
 
 const formattedCalculatedTotal = computed(() => formatMaskedMoney(calculatedTotal.value))
@@ -189,16 +187,17 @@ const showNotify = (type, text) => {
   })
 }
 
-const onExpensesSelected = ({ totalAmount, expenseIds, expenses }) => {
-  selectedExpenseIds.value = expenseIds
+const onExpensesSelected = ({ totalAmount, expenses }) => {
+  selectedExpensesPayload.value = expenses
   selectedExpensesData.value = expenses
+
+  console.log(selectedExpensesData)
   previousSelectedTotal.value = totalAmount
 }
 
 const submit = async () => {
   loading.value = true
   try {
-    const monthlyBudget = parseMaskedMoney(formData.value.monthly_budget)
     const totalMaintenanceBudget = parseMaskedMoney(formData.value.total_maintenance_budget)
     const totalWaterBillAmount = parseMaskedMoney(formData.value.total_water_bill_amount)
     const waterPricePerM3 = parseMaskedMoney(formData.value.water_price_per_m3)
@@ -221,7 +220,7 @@ const submit = async () => {
     const payload = {
       month: formData.value.month?.value,
       year: Number(formData.value.year),
-      monthly_budget: monthlyBudget,
+      monthly_budget: 0,
       total_maintenance_budget: totalMaintenanceBudget,
       total_water_bill_amount: totalWaterBillAmount,
       total_water_consumption_m3: waterConsumption,
@@ -229,8 +228,8 @@ const submit = async () => {
       water_price_per_m3: waterPricePerM3
     }
 
-    if (selectedExpenseIds.value.length > 0) {
-      payload.expense_ids = selectedExpenseIds.value
+    if (selectedExpensesPayload.value.length > 0) {
+      payload.expenses = selectedExpensesPayload.value
     }
 
     const response = await monthlyBillsStore.createMonthlyBill(payload)
@@ -266,24 +265,14 @@ const submit = async () => {
             v-model.number="formData.year" :rules="[val => !!val || 'El año es requerido']" />
         </div>
 
-        <!-- 1. Presupuesto mensual base (EDITABLE) -->
-        <div class="col-12 mt-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-black">Presupuesto mensual base (S/.)</div>
-          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
-            v-model="formData.monthly_budget" mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
-            :rules="[
-              val => parseMaskedMoney(val) !== null || 'El presupuesto base es requerido'
-            ]" />
-        </div>
-
-        <!-- 2. Gastos incluidos (READONLY) -->
+        <!-- 1. Gastos incluidos (READONLY) -->
         <div v-if="selectedExpensesData.length > 0" class="col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Gastos incluidos (S/.)</div>
           <q-input dense borderless class="form__inputsR mt-1" color="grey-4" readonly
             v-model="formattedIncludedExpenses" />
         </div>
 
-        <!-- 3. Total a distribuir (READONLY, RESALTADO) -->
+        <!-- 2. Total a distribuir (READONLY, RESALTADO) -->
         <div class="col-12 mt-3 px-2 md:px-12">
           <div class="text-subtitle2 text-black text-weight-bold">Total a distribuir (S/.)</div>
           <q-input dense borderless class="form__inputsR mt-1" color="primary" readonly
@@ -311,7 +300,7 @@ const submit = async () => {
               class="row items-center q-py-xs"
             >
               <div class="col text-body2 text-black">
-                {{ expense.provider_name }}
+                {{ expense.provider_name || expense.description }}
               </div>
               <div class="col-auto text-body2 text-weight-bold" style="color: #18181b;">
                 S/ {{ formatMaskedMoney(expense.amount) }}
@@ -394,7 +383,6 @@ const submit = async () => {
       :dialog="showExpensesModal"
       :current-month="formData.month?.value || now.getMonth() + 1"
       :current-year="formData.year"
-      :previously-selected-ids="selectedExpenseIds"
       @close-modal="showExpensesModal = false"
       @expenses-selected="onExpensesSelected"
     />

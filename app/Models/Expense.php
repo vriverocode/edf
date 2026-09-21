@@ -16,6 +16,7 @@ class Expense extends Model
         'monthly_bill_id',
         'invoice_number',
         'amount',
+        'monthly_amount',
         'issue_date',
         'due_date',
         'expense_type',
@@ -27,7 +28,12 @@ class Expense extends Model
         'pay_id',
         'is_template',
         'annual_budget_id',
+        'parent_template_id',
         'sort_order',
+    ];
+
+    protected $casts = [
+        'monthly_amount' => 'decimal:2',
     ];
 
     public function provider()
@@ -65,12 +71,18 @@ class Expense extends Model
         return $this->belongsTo(AnnualBudget::class);
     }
 
+    public function parentTemplate()
+    {
+        return $this->belongsTo(Expense::class, 'parent_template_id');
+    }
+
     public function getStatusLabelAttribute(): string
     {
         $labels = [
             1 => 'Pendiente',
             2 => 'Aprobado para pago',
             3 => 'Pagado',
+            4 => 'Plantilla',
         ];
 
         return $labels[$this->status] ?? '—';

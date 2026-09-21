@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { Notify } from 'quasar'
 import { useAnnualBudgetStore } from '@/services/store/annualBudget.store'
 import { useRoute, useRouter } from 'vue-router'
@@ -32,7 +32,7 @@ const availableExpenses = ref([])
 const selectedExpenses = ref([])
 
 const totalCalculated = computed(() => {
-  return selectedExpenses.value.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0)
+  return selectedExpenses.value.reduce((sum, e) => sum + (parseFloat(e.monthly_amount) || 0), 0)
 })
 
 const toggleExpense = (expense) => {
@@ -41,8 +41,9 @@ const toggleExpense = (expense) => {
     selectedExpenses.value.splice(index, 1)
   } else {
     selectedExpenses.value.push({
+      id: expense.id || null,
       description: expense.description,
-      amount: expense.amount,
+      monthly_amount: expense.monthly_amount || expense.amount,
       expense_type: expense.expense_type,
       service_category_id: expense.service_category_id,
       sort_order: expense.sort_order,
@@ -57,20 +58,24 @@ const isSelected = (expense) => {
 const updateAmount = (expense, value) => {
   const selected = selectedExpenses.value.find((e) => e.description === expense.description)
   if (selected) {
-    selected.amount = parseFloat(value) || 0
+    selected.monthly_amount = parseFloat(value) || 0
   }
 }
 
 const getSelectedAmount = (expense) => {
   const selected = selectedExpenses.value.find((e) => e.description === expense.description)
-  return selected ? selected.amount : expense.amount
+  return selected ? selected.monthly_amount : (expense.monthly_amount || expense.amount)
 }
 
 const onExpenseCreated = (expense) => {
-  const exists = selectedExpenses.value.some(e => e.description === expense.description)
-  if (!exists) {
+  availableExpenses.value.push(expense)
+  if (!isSelected(expense)) {
     selectedExpenses.value.push({
-      ...expense,
+      id: expense.id || null,
+      description: expense.description,
+      monthly_amount: expense.monthly_amount || expense.amount,
+      expense_type: expense.expense_type,
+      service_category_id: expense.service_category_id,
       sort_order: selectedExpenses.value.length,
     })
   }
@@ -82,6 +87,20 @@ const fetchAvailableExpenses = async () => {
     const response = await annualBudgetStore.getAvailableExpenses()
     if (response?.code !== 200) throw response
     availableExpenses.value = response.data || []
+    if (!isEdit.value) {
+      const existingDescriptions = new Set(selectedExpenses.value.map(e => e.description))
+      const newExpenses = availableExpenses.value
+        .filter(t => !existingDescriptions.has(t.description))
+        .map(t => ({
+          id: t.id || null,
+          description: t.description,
+          monthly_amount: t.monthly_amount || t.amount,
+          expense_type: t.expense_type,
+          service_category_id: t.service_category_id,
+          sort_order: t.sort_order,
+        }))
+      selectedExpenses.value = [...selectedExpenses.value, ...newExpenses]
+    }
   } catch (err) {
     const apiError = err?.error || err?.message || 'Error al cargar gastos disponibles'
     Notify.create({ color: 'negative', message: apiError, timeout: 2000 })
@@ -103,8 +122,9 @@ const fetchBudget = async () => {
       status: data.status,
     }
     selectedExpenses.value = (data.templates || []).map((t) => ({
+      id: t.id || null,
       description: t.description,
-      amount: t.amount,
+      monthly_amount: t.monthly_amount || t.amount,
       expense_type: t.expense_type,
       service_category_id: t.service_category_id,
       sort_order: t.sort_order,
@@ -166,6 +186,12 @@ const submit = async () => {
 }
 
 const goTo = (url) => router.push(url)
+
+watch(() => form.value.year, (newYear) => {
+  if (newYear && !isEdit.value && step.value === 2) {
+    fetchAvailableExpenses()
+  }
+})
 
 onMounted(fetchBudget)
 </script>
@@ -241,7 +267,7 @@ onMounted(fetchBudget)
         <!-- STEP 2 -->
         <q-step :name="2" title="Seleccionar gastos" icon="eva-list-outline" :done="step > 2">
           <div class="text-subtitle1 text-grey-7 q-mb-sm">
-            Selecciona los gastos recurrentes y ajusta los montos
+            Selecciona los gastos recurrentes y ajusta los montos mensuales
           </div>
 
           <!-- LOADING EXPENSES -->
@@ -252,7 +278,7 @@ onMounted(fetchBudget)
           <!-- EXPENSES LIST -->
           <template v-else>
             <div v-if="availableExpenses.length === 0" class="text-center text-grey-6 py-10">
-              No hay gastos disponibles. Crea un presupuesto activo primero.
+              No hay gastos disponibles de presupuestos anteriores. Crea uno con el botón de abajo.
             </div>
             <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div
@@ -274,11 +300,13 @@ onMounted(fetchBudget)
                   </div>
                 </div>
                 <div class="col-auto" style="min-width: 140px;">
+                  <div class="text-right text-bold">
+                    Monto mensual:
+                  </div>
                   <q-input
                     :model-value="getSelectedAmount(expense)"
                     @update:model-value="(val) => updateAmount(expense, val)"
                     dense
-                    borderless
                     class="form__inputsRx"
                     mask="#.###.###,##"
                     reverse-fill-mask
@@ -292,7 +320,7 @@ onMounted(fetchBudget)
               <!-- TOTAL -->
               <div class="flex justify-end items-center q-pa-sm bg-grey-2">
                 <div class="text-subtitle1 font-bold text-grey-9">
-                  Total gastos seleccionados:
+                  Total mensual:
                   <span class="text-primary">S/. {{ totalCalculated.toFixed(2) }}</span>
                 </div>
               </div>
@@ -336,6 +364,7 @@ onMounted(fetchBudget)
     <!-- MODAL CREAR GASTO -->
     <createExpenseTemplateModal
       :dialog="showCreateModal"
+      :budget-id="isEdit ? route.params.id : null"
       @closeModal="showCreateModal = false"
       @created="onExpenseCreated"
     />

@@ -126,7 +126,8 @@ const submit = async () => {
     }
     router.push('/admin/department-charges')
   } catch (err) {
-    Notify.create({ color: 'negative', message: err?.error || 'Error al guardar' })
+    console.log(err)
+    Notify.create({ color: 'negative', message: (typeof err === 'string' ? err : err?.error) || 'Error al guardar' })
   } finally {
     saving.value = false
   }
@@ -148,7 +149,7 @@ onMounted(async () => {
         {{ isEdit ? 'Editar cargo extra' : 'Registrar cargo extra' }}
       </div>
       <div class="q-mt-md row ">
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-6 md:pr-2">
           <div class="text-caption text-grey-7 q-mb-xs">Departamento *</div>
           <q-select
             v-model="form.departament_id"
@@ -165,7 +166,7 @@ onMounted(async () => {
             :rules="[(val) => !!val || 'Requerido']"
           />
         </div>
-        <div class="col-12 col-md-6 mb-5">
+        <div class="col-12 col-md-6 mb-5 md:pl-2">
           <div class="text-caption text-grey-7 q-mb-xs">Gasto vinculado (Extraordinario)</div>
           <q-select
             v-model="form.expense_id"
@@ -195,7 +196,7 @@ onMounted(async () => {
             :rules="[(val) => !!val || 'Requerido']"
           />
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-4 md:pr-2">
           <div class="text-caption text-grey-7 q-mb-xs">Monto total (S/.) *</div>
           <q-input
             v-model.number="form.total_amount"
@@ -206,7 +207,7 @@ onMounted(async () => {
             :rules="[(val) => val > 0 || 'Debe ser mayor a 0']"
           />
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-4 md:px-2">
           <div class="text-caption text-grey-7 q-mb-xs">Cuotas *</div>
           <q-input
             v-model.number="form.installments"
@@ -218,7 +219,7 @@ onMounted(async () => {
             :rules="[(val) => val >= 1 || 'Mínimo 1']"
           />
         </div>
-        <div class="col-12 col-md-4 mb-5">
+        <div class="col-12 col-md-4 mb-5 md:pl-2">
           <div class="text-caption text-grey-7 q-mb-xs">Monto mensual</div>
           <q-input
             :model-value="monthlyAmount.toFixed(2)"
@@ -228,7 +229,7 @@ onMounted(async () => {
             disable
           />
         </div>
-        <div class="col-12 col-md-6 mb-5">
+        <div class="col-12 col-md-6 mb-5 md:pr-2">
           <div class="text-caption text-grey-7 q-mb-xs">Mes de inicio *</div>
           <q-select
             v-model="form.start_month"
@@ -240,8 +241,8 @@ onMounted(async () => {
             class="form__inputsR"
           />
         </div>
-        <div class="col-12 col-md-6">
-          <div class="text-caption text-grey-7 q-mb-xs">Año de inicio *</div>
+        <div class="col-12 col-md-6 md:pl-2">
+          <div class="text-caption text-grey-7 q-mb-xs ">Año de inicio *</div>
           <q-input
             v-model.number="form.start_year"
             type="number"

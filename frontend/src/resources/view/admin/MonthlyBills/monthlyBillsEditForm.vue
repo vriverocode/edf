@@ -52,7 +52,6 @@ const billId = computed(() => route.params.id || route.query.id)
 const formData = ref({
   month: null,
   year: new Date().getFullYear(),
-  monthly_budget: '',
   total_maintenance_budget: '',
   total_water_bill_amount: '',
   total_water_consumption_m3: null,
@@ -62,7 +61,6 @@ const formData = ref({
 
 const billExpenses = ref([])
 const showExpenseModal = ref(false)
-const selectedExpenseIds = ref([])
 
 const hasWaterTotals = computed(() => {
   const amount = parseMaskedMoney(formData.value.total_water_bill_amount)
@@ -83,8 +81,7 @@ const commonWaterCost = computed(() => {
 })
 
 const computedTotal = computed(() => {
-  const budget = parseMaskedMoney(formData.value.monthly_budget) || 0
-  return Number((budget + expensesTotal.value + commonWaterCost.value).toFixed(2))
+  return Number((expensesTotal.value + commonWaterCost.value).toFixed(2))
 })
 
 watch(
@@ -100,7 +97,7 @@ watch(
 )
 
 watch(
-  () => [formData.value.monthly_budget, formData.value.common_water_consumption_m3, formData.value.water_price_per_m3],
+  () => [formData.value.common_water_consumption_m3, formData.value.water_price_per_m3],
   () => {
     formData.value.total_maintenance_budget = formatMaskedMoney(computedTotal.value)
   }
@@ -119,14 +116,18 @@ const loadBill = async () => {
 
     formData.value.month = monthOptions.find(m => m.value === bill.month) || null
     formData.value.year = bill.year
-    formData.value.monthly_budget = bill.monthly_budget !== null ? formatMaskedMoney(bill.monthly_budget) : ''
     formData.value.total_maintenance_budget = formatMaskedMoney(bill.total_maintenance_budget)
     formData.value.total_water_bill_amount = bill.total_water_bill_amount === null ? '' : formatMaskedMoney(bill.total_water_bill_amount)
     formData.value.total_water_consumption_m3 = bill.total_water_consumption_m3
     formData.value.water_price_per_m3 = formatMaskedMoney(bill.water_price_per_m3, 4)
     formData.value.common_water_consumption_m3 = bill.common_water_consumption_m3
 
-    billExpenses.value = bill.expenses || []
+    billExpenses.value = (bill.expenses || []).map((e) => ({
+      template_id: e.parent_template_id || e.id,
+      amount: Number(e.amount),
+      description: e.description,
+      service_category: e.service_category?.name || ''
+    }))
   } catch (err) {
     showNotify('negative', err?.error || err?.message || 'No se pudo cargar el presupuesto')
   } finally {
@@ -135,37 +136,19 @@ const loadBill = async () => {
 }
 
 const openExpenseModal = () => {
-  selectedExpenseIds.value = billExpenses.value.map(e => e.id)
   showExpenseModal.value = true
 }
 
-const onExpensesSelected = ({ expenseIds, expenses }) => {
-  const currentIds = billExpenses.value.map(b => b.id)
-  const toRemove = currentIds.filter(id => !expenseIds.includes(id))
-  const toAdd = expenseIds.filter(id => !currentIds.includes(id))
-
-  billExpenses.value = billExpenses.value.filter(b => !toRemove.includes(b.id))
-
-  toAdd.forEach(id => {
-    const fromModal = expenses.find(e => e.id === id)
-    if (fromModal) {
-      billExpenses.value.push({
-        id: fromModal.id,
-        provider: { name: fromModal.provider_name },
-        amount: fromModal.amount,
-        description: '',
-        invoice_number: ''
-      })
-    }
-  })
-
-  selectedExpenseIds.value = [...expenseIds]
+const onExpensesSelected = ({ expenses }) => {
+  billExpenses.value = expenses.map((e) => ({
+    template_id: e.template_id,
+    amount: e.amount,
+  }))
   formData.value.total_maintenance_budget = formatMaskedMoney(computedTotal.value)
 }
 
-const unlinkExpense = (expenseId) => {
-  billExpenses.value = billExpenses.value.filter(e => e.id !== expenseId)
-  selectedExpenseIds.value = billExpenses.value.map(e => e.id)
+const unlinkExpense = (index) => {
+  billExpenses.value.splice(index, 1)
   formData.value.total_maintenance_budget = formatMaskedMoney(computedTotal.value)
   showNotify('info', 'Gasto desvinculado')
 }
@@ -177,7 +160,7 @@ const submit = async () => {
     const payload = {
       month: formData.value.month?.value,
       year: Number(formData.value.year),
-      monthly_budget: parseMaskedMoney(formData.value.monthly_budget),
+      monthly_budget: 0,
       total_maintenance_budget: parseMaskedMoney(formData.value.total_maintenance_budget),
       total_water_bill_amount: parseMaskedMoney(formData.value.total_water_bill_amount),
       total_water_consumption_m3:
@@ -188,7 +171,10 @@ const submit = async () => {
       common_water_consumption_m3: formData.value.common_water_consumption_m3
         ? Number(formData.value.common_water_consumption_m3)
         : null,
-      expense_ids: billExpenses.value.map(e => e.id)
+      expenses: billExpenses.value.map(e => ({
+        template_id: e.template_id,
+        amount: e.amount
+      }))
     }
 
     const response = await monthlyBillsStore.updateMonthlyBill(billId.value, payload)
@@ -232,13 +218,6 @@ onMounted(() => {
             v-model.number="formData.year" :rules="[val => !!val || 'El año es requerido']" />
         </div>
 
-        <div class="col-12 mt-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-black">Presupuesto mensual base (S/.)</div>
-          <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
-            v-model="formData.monthly_budget" mask="###.###.###,##" reverse-fill-mask inputmode="decimal"
-            :rules="[val => parseMaskedMoney(val) !== null || 'El presupuesto base es requerido']" />
-        </div>
-
         <div class="col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Monto total recibo de agua (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
@@ -276,16 +255,15 @@ onMounted(() => {
           </div>
 
           <q-table v-else :rows="billExpenses" :columns="[
-            { name: 'provider', label: 'Proveedor', field: row => row.provider?.name || '-', align: 'left' },
-            { name: 'description', label: 'Descripción', field: 'description', align: 'left' },
-            { name: 'invoice', label: 'N° Factura', field: 'invoice_number', align: 'left' },
+            { name: 'description', label: 'Gasto', field: 'description', align: 'left' },
+            { name: 'category', label: 'Categoría', field: 'service_category', align: 'left' },
             { name: 'amount', label: 'Monto', field: 'amount', align: 'right', format: v => 'S/ ' + Number(v).toFixed(2) },
             { name: 'actions', label: '', field: '', align: 'center' }
           ]" flat dense :pagination="{ rowsPerPage: 0 }" hide-bottom>
             <template v-slot:body-cell-actions="props">
               <q-td :props="props">
                 <q-btn flat dense round icon="eva-close-outline" size="sm" color="negative"
-                  @click="unlinkExpense(props.row.id)" />
+                  @click="unlinkExpense(props.rowIndex)" />
               </q-td>
             </template>
           </q-table>
@@ -297,10 +275,6 @@ onMounted(() => {
 
         <div class="col-12 mt-3 px-2 md:px-12">
           <div class="bg-grey-2 rounded-lg p-3">
-            <div class="flex justify-between mb-1">
-              <span class="text-grey-7">Presupuesto base</span>
-              <span class="font-medium">S/ {{ formatMaskedMoney(parseMaskedMoney(formData.monthly_budget)) || '0,00' }}</span>
-            </div>
             <div class="flex justify-between mb-1">
               <span class="text-grey-7">+ Gastos ({{ billExpenses.length }})</span>
               <span class="font-medium">S/ {{ expensesTotal.toFixed(2) }}</span>
@@ -330,7 +304,6 @@ onMounted(() => {
       :dialog="showExpenseModal"
       :current-month="formData.month?.value || new Date().getMonth() + 1"
       :current-year="formData.year"
-      :previously-selected-ids="selectedExpenseIds"
       @close-modal="showExpenseModal = false"
       @expenses-selected="onExpensesSelected"
     />

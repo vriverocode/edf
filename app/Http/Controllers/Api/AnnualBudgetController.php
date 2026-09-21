@@ -48,7 +48,7 @@ class AnnualBudgetController extends Controller
     public function show(int $id)
     {
         $budget = AnnualBudget::with(['templates' => function ($q) {
-            $q->orderBy('sort_order');
+            $q->with('serviceCategory:id,name')->orderBy('sort_order');
         }])->find($id);
 
         if (! $budget) {
@@ -56,25 +56,58 @@ class AnnualBudgetController extends Controller
         }
 
         $data = $budget->toArray();
-        $data['total_template_amount'] = $budget->templates->sum('amount');
+        $data['total_template_amount'] = $budget->templates->sum('monthly_amount');
 
         return $this->returnSuccess(200, $data);
     }
 
     public function availableExpenses()
     {
-        $budget = AnnualBudget::active()->first();
+        $budget = AnnualBudget::orderBy('year', 'desc')->first();
         if (! $budget) {
             return $this->returnSuccess(200, []);
         }
 
-        $templates = Expense::where('annual_budget_id', $budget->id)
+        $templates = Expense::where(function ($q) use ($budget) {
+                $q->where('annual_budget_id', $budget->id)
+                    ->orWhereNull('annual_budget_id');
+            })
             ->where('is_template', true)
+            ->where('status', 4)
             ->with('serviceCategory:id,name')
             ->orderBy('sort_order')
-            ->get(['id', 'description', 'amount', 'expense_type', 'service_category_id', 'sort_order']);
+            ->get(['id', 'description', 'amount', 'monthly_amount', 'expense_type', 'service_category_id', 'sort_order']);
 
         return $this->returnSuccess(200, $templates);
+    }
+
+    public function storeTemplate(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'description' => ['required', 'string', 'max:255'],
+                'monthly_amount' => ['required', 'numeric', 'min:0'],
+                'expense_type' => ['nullable', 'integer', 'in:1,2'],
+                'service_category_id' => ['nullable', 'integer', 'exists:service_categories,id'],
+                'annual_budget_id' => ['nullable', 'integer', 'exists:annual_budgets,id'],
+            ]);
+        } catch (ValidationException $e) {
+            return $this->returnFail(422, $e->validator->errors()->first());
+        }
+
+        $monthlyAmount = $validated['monthly_amount'];
+        $expense = Expense::create([
+            'description' => $validated['description'],
+            'monthly_amount' => $monthlyAmount,
+            'amount' => $monthlyAmount * 12,
+            'expense_type' => $validated['expense_type'] ?? 1,
+            'service_category_id' => $validated['service_category_id'] ?? null,
+            'annual_budget_id' => $validated['annual_budget_id'] ?? null,
+            'is_template' => true,
+            'status' => 4,
+        ]);
+
+        return $this->returnSuccess(200, $expense->load('serviceCategory:id,name'));
     }
 
     public function store(Request $request)
@@ -86,8 +119,10 @@ class AnnualBudgetController extends Controller
                 'total_monthly_budget' => ['nullable', 'numeric', 'min:0'],
                 'status' => ['nullable', 'integer', 'in:1,2,3'],
                 'expenses' => ['nullable', 'array'],
+                'expenses.*.id' => ['nullable', 'integer', 'exists:expenses,id'],
                 'expenses.*.description' => ['required_with:expenses', 'string', 'max:255'],
-                'expenses.*.amount' => ['required_with:expenses', 'numeric', 'min:0'],
+                'expenses.*.amount' => ['nullable', 'numeric', 'min:0'],
+                'expenses.*.monthly_amount' => ['required_with:expenses', 'numeric', 'min:0'],
                 'expenses.*.expense_type' => ['nullable', 'integer'],
                 'expenses.*.service_category_id' => ['nullable', 'integer'],
                 'expenses.*.sort_order' => ['nullable', 'integer'],
@@ -97,7 +132,7 @@ class AnnualBudgetController extends Controller
         }
 
         $expensesData = $validated['expenses'] ?? [];
-        $totalBudget = $validated['total_monthly_budget'] ?? collect($expensesData)->sum('amount');
+        $totalBudget = $validated['total_monthly_budget'] ?? collect($expensesData)->sum('monthly_amount');
 
         $budget = DB::transaction(function () use ($validated, $totalBudget, $expensesData) {
             $budget = AnnualBudget::create([
@@ -108,22 +143,33 @@ class AnnualBudgetController extends Controller
             ]);
 
             foreach ($expensesData as $index => $expense) {
-                Expense::create([
-                    'annual_budget_id' => $budget->id,
-                    'is_template' => true,
-                    'description' => $expense['description'],
-                    'amount' => $expense['amount'],
-                    'expense_type' => $expense['expense_type'] ?? 1,
-                    'service_category_id' => $expense['service_category_id'] ?? null,
-                    'sort_order' => $expense['sort_order'] ?? $index,
-                    'status' => 1,
-                ]);
+                $monthlyAmount = $expense['monthly_amount'];
+                if (! empty($expense['id'])) {
+                    Expense::where('id', $expense['id'])->update([
+                        'annual_budget_id' => $budget->id,
+                        'amount' => $monthlyAmount * 12,
+                        'monthly_amount' => $monthlyAmount,
+                        'sort_order' => $expense['sort_order'] ?? $index,
+                    ]);
+                } else {
+                    Expense::create([
+                        'annual_budget_id' => $budget->id,
+                        'is_template' => true,
+                        'description' => $expense['description'],
+                        'amount' => $monthlyAmount * 12,
+                        'monthly_amount' => $monthlyAmount,
+                        'expense_type' => $expense['expense_type'] ?? 1,
+                        'service_category_id' => $expense['service_category_id'] ?? null,
+                        'sort_order' => $expense['sort_order'] ?? $index,
+                        'status' => 4,
+                    ]);
+                }
             }
 
             return $budget;
         });
 
-        return $this->returnSuccess(201, $budget);
+        return $this->returnSuccess(200, $budget);
     }
 
     public function update(Request $request, int $id)
@@ -140,8 +186,10 @@ class AnnualBudgetController extends Controller
                 'total_monthly_budget' => ['nullable', 'numeric', 'min:0'],
                 'status' => ['nullable', 'integer', 'in:1,2,3'],
                 'expenses' => ['nullable', 'array'],
+                'expenses.*.id' => ['nullable', 'integer', 'exists:expenses,id'],
                 'expenses.*.description' => ['required_with:expenses', 'string', 'max:255'],
-                'expenses.*.amount' => ['required_with:expenses', 'numeric', 'min:0'],
+                'expenses.*.amount' => ['nullable', 'numeric', 'min:0'],
+                'expenses.*.monthly_amount' => ['required_with:expenses', 'numeric', 'min:0'],
                 'expenses.*.expense_type' => ['nullable', 'integer'],
                 'expenses.*.service_category_id' => ['nullable', 'integer'],
                 'expenses.*.sort_order' => ['nullable', 'integer'],
@@ -151,7 +199,7 @@ class AnnualBudgetController extends Controller
         }
 
         $expensesData = $validated['expenses'] ?? [];
-        $totalBudget = $validated['total_monthly_budget'] ?? collect($expensesData)->sum('amount');
+        $totalBudget = $validated['total_monthly_budget'] ?? collect($expensesData)->sum('monthly_amount');
 
         DB::transaction(function () use ($budget, $validated, $totalBudget, $expensesData) {
             $budget->update([
@@ -162,21 +210,35 @@ class AnnualBudgetController extends Controller
             ]);
 
             if ($expensesData !== []) {
+                $linkedIds = collect($expensesData)->pluck('id')->filter()->toArray();
+
                 Expense::where('annual_budget_id', $budget->id)
                     ->where('is_template', true)
+                    ->whereNotIn('id', $linkedIds)
                     ->delete();
 
                 foreach ($expensesData as $index => $expense) {
-                    Expense::create([
-                        'annual_budget_id' => $budget->id,
-                        'is_template' => true,
-                        'description' => $expense['description'],
-                        'amount' => $expense['amount'],
-                        'expense_type' => $expense['expense_type'] ?? 1,
-                        'service_category_id' => $expense['service_category_id'] ?? null,
-                        'sort_order' => $expense['sort_order'] ?? $index,
-                        'status' => 1,
-                    ]);
+                    $monthlyAmount = $expense['monthly_amount'];
+                    if (! empty($expense['id'])) {
+                        Expense::where('id', $expense['id'])->update([
+                            'annual_budget_id' => $budget->id,
+                            'amount' => $monthlyAmount * 12,
+                            'monthly_amount' => $monthlyAmount,
+                            'sort_order' => $expense['sort_order'] ?? $index,
+                        ]);
+                    } else {
+                        Expense::create([
+                            'annual_budget_id' => $budget->id,
+                            'is_template' => true,
+                            'description' => $expense['description'],
+                            'amount' => $monthlyAmount * 12,
+                            'monthly_amount' => $monthlyAmount,
+                            'expense_type' => $expense['expense_type'] ?? 1,
+                            'service_category_id' => $expense['service_category_id'] ?? null,
+                            'sort_order' => $expense['sort_order'] ?? $index,
+                            'status' => 4,
+                        ]);
+                    }
                 }
             }
         });

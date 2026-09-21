@@ -68,7 +68,8 @@ const statusOptions = [
   { value: null, name: 'Todos' },
   { value: 1, name: 'Pendiente' },
   { value: 2, name: 'Aprobado para pago' },
-  { value: 3, name: 'Pagado' }
+  { value: 3, name: 'Pagado' },
+  { value: 4, name: 'Plantilla' }
 ]
 
 const hasActiveFilter = computed(() => {
@@ -104,7 +105,8 @@ const statusClass = (status) => {
   const map = {
     1: 'bg-orange-500',
     2: 'bg-blue-500',
-    3: 'bg-green-600'
+    3: 'bg-green-600',
+    4: 'bg-purple-500'
   }
   return map[status] || 'bg-grey-6'
 }

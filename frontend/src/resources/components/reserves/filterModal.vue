@@ -129,7 +129,13 @@ import { useApartmentStore } from '@/services/store/apartment.store';
                     <radio :name="4" icon-size="1.3rem" label-position="left">Completadas</radio>
                   </div>
                   <div class="col-12 my-2" >
-                    <radio :name="7" icon-size="1.3rem" label-position="left">Todas</radio>
+                    <radio :name="5" icon-size="1.3rem" label-position="left">Pend. reembolso</radio>
+                  </div>
+                  <div class="col-12 my-2" >
+                    <radio :name="6" icon-size="1.3rem" label-position="left">Pend. devolución</radio>
+                  </div>
+                  <div class="col-12 my-2" >
+                    <radio :name="-1" icon-size="1.3rem" label-position="left">Todas</radio>
                   </div>
                 </radio-group>
               </div>

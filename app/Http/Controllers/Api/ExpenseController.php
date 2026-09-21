@@ -19,8 +19,7 @@ class ExpenseController extends Controller
             $validated = $request->validate([
                 'month' => ['nullable', 'integer', 'between:1,12'],
                 'year' => ['nullable', 'integer'],
-                'status' => ['nullable', 'integer', 'in:1,2,3'],
-                'expense_type' => ['nullable', 'integer', 'in:1,2'],
+                'status' => ['nullable', 'integer', 'in:1,2,3,4'],
                 'provider_id' => ['nullable', 'integer', 'exists:providers,id'],
                 'category_id' => ['nullable', 'integer', 'exists:service_categories,id'],
                 'date_from' => ['nullable', 'date'],
@@ -172,7 +171,7 @@ class ExpenseController extends Controller
             'unit' => ['nullable', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'attachment' => $attachmentRules,
-            'status' => ['nullable', 'integer', 'in:1,2,3'],
+            'status' => ['nullable', 'integer', 'in:1,2,3,4'],
         ], [
             'provider_id.required' => 'El proveedor es requerido.',
             'provider_id.exists' => 'El proveedor seleccionado no es válido.',

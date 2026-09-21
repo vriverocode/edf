@@ -19,7 +19,7 @@ const menu = [
   {
     title: 'Balance',
     icon: baccount,
-    link: '/balances',
+    link: 'https://edificiopacifik.com/descarga/balance-ago.pdf',
   },
   {
     title: 'Cuentas',
@@ -69,7 +69,11 @@ const menuByRol = computed(() => {
   return menu.filter(item => !item.roles || item.roles.includes(rol))
 })
 const goTo = (url) => {
-  router.push(url)
+  if (url?.startsWith('http://') || url?.startsWith('https://')) {
+    window.open(url, '_blank')
+  } else {
+    router.push(url)
+  }
 }
 </script>
 <template>

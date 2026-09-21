@@ -33,10 +33,12 @@ class WaterReadingController extends Controller
         $perPage = (int) ($validated['per_page'] ?? 12);
 
         $query = WaterReading::with(['departament.owner'])
-            ->where('month', $month)
-            ->where('year', $year)
-            ->orderBy('is_common', 'asc')
-            ->orderBy('departament_id', 'asc');
+            ->join('departaments', 'water_readings.departament_id', '=', 'departaments.id')
+            ->where('water_readings.month', $month)
+            ->where('water_readings.year', $year)
+            ->orderBy('water_readings.is_common', 'asc')
+            ->orderByRaw('CAST(SUBSTRING(departaments.number, 5) AS UNSIGNED)')
+            ->select('water_readings.*');
 
         if (isset($validated['is_common'])) {
             $query->where('is_common', (bool) $validated['is_common']);

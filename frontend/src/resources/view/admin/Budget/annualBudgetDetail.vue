@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { Notify } from 'quasar'
 import { useAnnualBudgetStore } from '@/services/store/annualBudget.store'
 import { useRoute, useRouter } from 'vue-router'
@@ -21,6 +21,27 @@ const statusColor = (status) => {
   const map = { 1: 'grey', 2: 'positive', 3: 'negative' }
   return map[status] || 'grey'
 }
+
+const groupedTemplates = computed(() => {
+  const templates = budget.value?.templates || []
+  const groups = {}
+  templates.forEach((t) => {
+    const catName = t.service_category?.name || 'Sin categoría'
+    if (!groups[catName]) {
+      groups[catName] = []
+    }
+    groups[catName].push(t)
+  })
+  return Object.entries(groups).map(([category, items]) => ({
+    category,
+    items,
+    total: items.reduce((sum, e) => sum + (parseFloat(e.monthly_amount) || 0), 0),
+  }))
+})
+
+const totalMonthly = computed(() => {
+  return groupedTemplates.value.reduce((sum, g) => sum + g.total, 0)
+})
 
 const fetchBudget = async () => {
   loading.value = true
@@ -63,7 +84,7 @@ onMounted(fetchBudget)
         <div class="flex justify-between items-center pb-2 px-6 pt-4" style="border-bottom: 1px solid lightgrey;">
           <div>
             <div class="text-h5 font-bold text-gray-900">{{ budget.name }}</div>
-            <div class="text-caption text-grey-6">Año {{ budget.year }}</div>
+            <div class="text-caption text-grey-8 text-bold">Año {{ budget.year }}</div>
           </div>
           <div class="flex items-center">
             <q-badge :color="statusColor(budget.status)" :label="statusLabel(budget.status)" class="q-mr-md" />
@@ -76,43 +97,64 @@ onMounted(fetchBudget)
         <div class="row px-6 pt-4">
           <div class="col-12 col-md-4 q-pa-xs">
             <div class="bg-blue-1 rounded-lg py-2 px-3 text-center">
-              <div class="text-caption text-grey-6">Total mensual</div>
+              <div class="text-caption text-grey-8 text-bold">Total mensual</div>
               <div class="text-h6 font-bold">S/. {{ Number(budget.total_monthly_budget || 0).toFixed(2) }}</div>
             </div>
           </div>
           <div class="col-12 col-md-4 q-pa-xs">
             <div class="bg-teal-1 rounded-lg py-2 px-3 text-center">
-              <div class="text-caption text-grey-6">Total anual</div>
+              <div class="text-caption text-grey-8 text-bold">Total anual</div>
               <div class="text-h6 font-bold">S/. {{ (Number(budget.total_monthly_budget || 0) * 12).toFixed(2) }}</div>
             </div>
           </div>
           <div class="col-12 col-md-4 q-pa-xs">
             <div class="bg-orange-1 rounded-lg py-2 px-3 text-center">
-              <div class="text-caption text-grey-6">Templates</div>
+              <div class="text-caption text-grey-8 text-bold">Gastos</div>
               <div class="text-h6 font-bold">{{ budget.templates?.length || 0 }}</div>
             </div>
           </div>
         </div>
-        <!-- Templates Table -->
+        <!-- Templates Grouped by Category -->
         <div class="px-6 pt-4 pb-6">
           <div class="text-subtitle1 font-bold text-gray-900 q-mb-sm">Gastos del presupuesto</div>
-          <q-table
-            flat
-            bordered
-            :rows="budget.templates || []"
-            :columns="[
-              { name: 'sort_order', label: '#', field: 'sort_order', align: 'center', style: 'width: 50px' },
-              { name: 'description', label: 'Descripción', field: 'description' },
-              { name: 'amount', label: 'Monto mensual', field: 'amount', format: v => `S/. ${Number(v || 0).toFixed(2)}`, align: 'right' },
-              { name: 'expense_type', label: 'Tipo', field: 'expense_type', format: v => v === 1 ? 'Ordinario' : 'Extraordinario' },
-            ]"
-            row-key="id"
-            hide-pagination
-            hide-bottom
-          />
+
+          <div v-if="groupedTemplates.length === 0" class="text-center text-grey-5 py-6">
+            No hay gastos registrados
+          </div>
+
+          <div v-for="group in groupedTemplates" :key="group.category" class="q-mb-md">
+            <div class="bg-grey-2 rounded-t-lg overflow-hidden">
+              <div class="row items-center">
+                <div class="col" style="padding: 8px 16px;">
+                  <div class="text-subtitle2 font-bold text-grey-8">{{ group.category }}</div>
+                </div>
+                <div style="width: 22.5%; padding: 8px 16px; text-align: right;">
+                  <div class="text-caption text-grey-7">S/. {{ group.total.toFixed(2) }}</div>
+                </div>
+                <div style="width: 22.5%;"></div>
+              </div>
+            </div>
+            <q-table
+              flat
+              bordered
+              :rows="group.items"
+              :columns="[
+                { name: 'description', label: 'Descripción', field: 'description', align: 'left', style: 'width: 55%' },
+                { name: 'monthly_amount', label: 'Monto mensual', field: 'monthly_amount', format: v => `S/. ${Number(v || 0).toFixed(2)}`, align: 'right', style: 'width: 22.5%' },
+                { name: 'amount', label: 'Monto anual', field: 'amount', format: v => `S/. ${Number(v || 0).toFixed(2)}`, align: 'right', style: 'width: 22.5%' },
+              ]"
+              row-key="id"
+              hide-pagination
+              hide-bottom
+              :rows-per-page-options="[0]"
+              class="rounded-b-lg cursor-pointer budget-detail-table"
+              @row-click="(evt, row) => goTo(`/admin/expenses/details/${row.id}`)"
+            />
+          </div>
+
           <div class="flex justify-end q-mt-sm">
             <div class="text-subtitle1 font-bold">
-              Total mensual: S/. {{ Number(budget.total_template_amount || 0).toFixed(2) }}
+              Total mensual: S/. {{ totalMonthly.toFixed(2) }}
             </div>
           </div>
         </div>
@@ -120,3 +162,13 @@ onMounted(fetchBudget)
     </div>
   </div>
 </template>
+
+<style lang="scss">
+.budget-detail-table .q-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+  &:hover {
+    background-color: #f0f7ff;
+  }
+}
+</style>

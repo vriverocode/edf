@@ -356,6 +356,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('annual-budgets')->name('annualBudgets.')->middleware('role_not:trabajador')->group(function () {
         Route::get('/', [AnnualBudgetController::class, 'index']);
         Route::get('/available-expenses', [AnnualBudgetController::class, 'availableExpenses']);
+        Route::post('/store-template', [AnnualBudgetController::class, 'storeTemplate'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::get('/{id}', [AnnualBudgetController::class, 'show']);
         Route::post('/', [AnnualBudgetController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/{id}', [AnnualBudgetController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');

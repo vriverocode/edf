@@ -1,9 +1,9 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { Notify } from 'quasar'
-import { useExpenseStore } from '@/services/store/expense.store'
+import { useAnnualBudgetStore } from '@/services/store/annualBudget.store'
 
-const expenseStore = useExpenseStore()
+const annualBudgetStore = useAnnualBudgetStore()
 
 const props = defineProps({
   dialog: {
@@ -18,7 +18,7 @@ const props = defineProps({
     type: Number,
     default: () => new Date().getFullYear()
   },
-  previouslySelectedIds: {
+  previouslySelected: {
     type: Array,
     default: () => []
   }
@@ -28,28 +28,10 @@ const emit = defineEmits(['closeModal', 'expensesSelected'])
 
 const dialogVisible = ref(props.dialog)
 const loading = ref(false)
-const expenses = ref([])
-const selectedIds = ref([])
+const templates = ref([])
+const selectedExpenses = ref([])
 
-const monthOptions = [
-  { value: 1, name: 'Enero' },
-  { value: 2, name: 'Febrero' },
-  { value: 3, name: 'Marzo' },
-  { value: 4, name: 'Abril' },
-  { value: 5, name: 'Mayo' },
-  { value: 6, name: 'Junio' },
-  { value: 7, name: 'Julio' },
-  { value: 8, name: 'Agosto' },
-  { value: 9, name: 'Septiembre' },
-  { value: 10, name: 'Octubre' },
-  { value: 11, name: 'Noviembre' },
-  { value: 12, name: 'Diciembre' }
-]
-
-const filterMonth = ref(props.currentMonth)
-const filterYear = ref(props.currentYear)
-
-const totalSelected = ref(0)
+const monthNames = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 const formatMoney = (value) => {
   const n = Number(value)
@@ -72,68 +54,74 @@ const close = () => {
   emit('closeModal')
 }
 
-const loadExpenses = async () => {
+const totalSelected = computed(() => {
+  return selectedExpenses.value.reduce((sum, e) => sum + Number(e.amount), 0)
+})
+
+const loadTemplates = async () => {
   loading.value = true
-  expenses.value = []
-  selectedIds.value = []
-  totalSelected.value = 0
+  templates.value = []
+  selectedExpenses.value = []
 
   try {
-    const response = await expenseStore.getUnassignedExpenses(filterMonth.value, filterYear.value)
-    expenses.value = response?.data?.expenses || []
+    const response = await annualBudgetStore.getAvailableExpenses()
+    const data = response?.data || []
+    templates.value = data
 
-    const validIds = expenses.value.map((e) => e.id)
-    selectedIds.value = props.previouslySelectedIds.filter((id) => validIds.includes(id))
-    calculateTotal()
+    // Pre-seleccionar todos los templates con su monthly_amount
+    selectedExpenses.value = data.map((t) => ({
+      template_id: t.id,
+      description: t.description,
+      service_category: t.service_category?.name || 'Sin categoría',
+      amount: Number(t.monthly_amount || t.amount),
+      sort_order: t.sort_order
+    }))
   } catch (error) {
-    showNotify('negative', error || 'Error al cargar gastos')
+    showNotify('negative', error || 'Error al cargar plantillas del presupuesto anual')
   } finally {
     loading.value = false
   }
 }
 
-const toggleExpense = (expense) => {
-  const index = selectedIds.value.indexOf(expense.id)
+const updateAmount = (templateId, newAmount) => {
+  const expense = selectedExpenses.value.find((e) => e.template_id === templateId)
+  if (expense) {
+    expense.amount = Number(newAmount) || 0
+  }
+}
+
+const toggleTemplate = (template) => {
+  const index = selectedExpenses.value.findIndex((e) => e.template_id === template.id)
   if (index === -1) {
-    selectedIds.value.push(expense.id)
+    selectedExpenses.value.push({
+      template_id: template.id,
+      description: template.description,
+      service_category: template.service_category?.name || 'Sin categoría',
+      amount: Number(template.monthly_amount || template.amount),
+      sort_order: template.sort_order
+    })
   } else {
-    selectedIds.value.splice(index, 1)
+    selectedExpenses.value.splice(index, 1)
   }
-  calculateTotal()
 }
 
-const isSelected = (id) => {
-  return selectedIds.value.includes(id)
-}
-
-const calculateTotal = () => {
-  totalSelected.value = expenses.value
-    .filter((e) => selectedIds.value.includes(e.id))
-    .reduce((sum, e) => sum + Number(e.amount), 0)
-}
-
-const selectAll = () => {
-  if (selectedIds.value.length === expenses.value.length) {
-    selectedIds.value = []
-  } else {
-    selectedIds.value = expenses.value.map((e) => e.id)
-  }
-  calculateTotal()
+const isSelected = (templateId) => {
+  return selectedExpenses.value.some((e) => e.template_id === templateId)
 }
 
 const submit = () => {
-  const selectedExpenses = expenses.value
-    .filter((e) => selectedIds.value.includes(e.id))
-    .map((e) => ({
-      id: e.id,
-      provider_name: e.provider?.name || 'Sin proveedor',
-      amount: Number(e.amount)
-    }))
+  if (selectedExpenses.value.length === 0) {
+    showNotify('warning', 'Selecciona al menos un gasto')
+    return
+  }
 
   emit('expensesSelected', {
     totalAmount: totalSelected.value,
-    expenseIds: [...selectedIds.value],
-    expenses: selectedExpenses
+    expenses: selectedExpenses.value.map((e) => ({
+      template_id: e.template_id,
+      description: e.description,
+      amount: e.amount
+    }))
   })
   close()
 }
@@ -143,9 +131,7 @@ watch(
   (open) => {
     dialogVisible.value = open
     if (open) {
-      filterMonth.value = props.currentMonth
-      filterYear.value = props.currentYear
-      loadExpenses()
+      loadTemplates()
     }
   }
 )
@@ -155,107 +141,70 @@ watch(dialogVisible, (open) => {
     close()
   }
 })
-
-watch([filterMonth, filterYear], () => {
-  if (dialogVisible.value) {
-    loadExpenses()
-  }
-})
 </script>
 
 <template>
   <q-dialog v-model="dialogVisible" @hide="close">
-    <q-card style="min-width: min(520px, 92vw); max-height: 80vh;" class="q-pa-md">
-      <div class="text-h6 q-mb-sm">Incluir gastos</div>
+    <q-card style="min-width: min(580px, 92vw); max-height: 85vh;" class="q-pa-md">
+      <div class="text-h6 q-mb-sm">Gastos del presupuesto anual</div>
       <div class="text-caption text-grey-7 q-mb-md">
-        Selecciona los gastos del mes para incluirlos en el presupuesto total a distribuir.
-      </div>
-
-      <div class="row q-col-gutter-sm q-mb-md">
-        <div class="col-6">
-          <div class="text-subtitle2 text-black">Mes</div>
-          <q-select
-            :model-value="props.currentMonth"
-            :options="monthOptions"
-            option-label="name"
-            option-value="value"
-            emit-value
-            map-options
-            dense
-            borderless
-            class="form__inputsR mt-1"
-            color="primary"
-            disable
-          />
-        </div>
-        <div class="col-6">
-          <div class="text-subtitle2 text-black">Año</div>
-          <q-input
-            :model-value="props.currentYear"
-            dense
-            borderless
-            type="number"
-            class="form__inputsR mt-1"
-            color="primary"
-            disable
-          />
-        </div>
+        Gastos precargados del presupuesto anual para {{ monthNames[props.currentMonth] }} {{ props.currentYear }}.
+        Puedes modificar montos antes de guardar.
       </div>
 
       <div v-if="loading" class="text-center q-py-lg">
         <q-spinner-dots size="30px" color="primary" />
-        <div class="text-caption text-grey-7 q-mt-sm">Cargando gastos...</div>
+        <div class="text-caption text-grey-7 q-mt-sm">Cargando plantillas...</div>
       </div>
 
-      <div v-else-if="expenses.length === 0" class="text-center q-py-lg">
+      <div v-else-if="templates.length === 0" class="text-center q-py-lg">
         <div class="text-caption text-grey-7">
-          No hay gastos sin asignar para este periodo.
+          No hay gastos configurados en el presupuesto anual activo.
         </div>
       </div>
 
       <div v-else>
-        <div class="row items-center q-mb-sm">
-          <q-checkbox
-            :model-value="selectedIds.length === expenses.length"
-            @update:model-value="selectAll"
-            label="Seleccionar todos"
-            color="primary"
-            class="text-caption"
-          />
-          <q-space />
-          <div class="text-caption text-grey-7">
-            {{ selectedIds.length }} de {{ expenses.length }} seleccionados
-          </div>
-        </div>
-
-        <div class="expenses-list" style="max-height: 300px; overflow-y: auto;">
+        <div class="expenses-list" style="max-height: 400px; overflow-y: auto;">
           <div
-            v-for="expense in expenses"
-            :key="expense.id"
-            class="expense-item row items-center q-pa-sm q-mb-xs"
-            :class="{ 'expense-selected': isSelected(expense.id) }"
-            @click="toggleExpense(expense)"
+            v-for="template in templates"
+            :key="template.id"
+            class="expense-item q-pa-sm q-mb-xs"
+            :class="{ 'expense-selected': isSelected(template.id) }"
           >
-            <q-checkbox
-              :model-value="isSelected(expense.id)"
-              @update:model-value="toggleExpense(expense)"
-              color="primary"
-              class="col-auto"
-            />
-            <div class="col">
-              <div class="text-body2 text-black text-weight-medium">
-                {{ expense.provider?.name || 'Sin proveedor' }}
+            <div class="row items-center">
+              <div class="col-auto">
+                <q-checkbox
+                  :model-value="isSelected(template.id)"
+                  @update:model-value="toggleTemplate(template)"
+                  color="primary"
+                />
               </div>
-              <div class="text-caption text-grey-7">
-                {{ expense.description }}
+              <div class="col">
+                <div class="text-body2 text-black text-weight-medium">
+                  {{ template.description }}
+                </div>
+                <div class="text-caption text-grey-7">
+                  {{ template.service_category?.name || 'Sin categoría' }}
+                </div>
               </div>
-              <div class="text-caption text-grey-7">
-                Fecha: {{ expense.issue_date }}
-              </div>
-            </div>
-            <div class="col-auto text-right">
-              <div class="text-body2 text-weight-bold" style="color: #18181b;">
-                S/ {{ formatMoney(expense.amount) }}
+              <div class="col-auto" style="min-width: 130px;">
+                <q-input
+                  v-if="isSelected(template.id)"
+                  :model-value="selectedExpenses.find((e) => e.template_id === template.id)?.amount"
+                  @update:model-value="updateAmount(template.id, $event)"
+                  dense
+                  borderless
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="form__inputsR"
+                  color="primary"
+                  prefix="S/"
+                  input-class="text-right text-weight-bold"
+                />
+                <div v-else class="text-body2 text-weight-bold text-right" style="color: #18181b;">
+                  S/ {{ formatMoney(template.monthly_amount || template.amount) }}
+                </div>
               </div>
             </div>
           </div>
@@ -263,7 +212,7 @@ watch([filterMonth, filterYear], () => {
 
         <div class="total-box q-mt-md q-pa-sm">
           <div class="row items-center">
-            <div class="text-subtitle2 text-black">Total seleccionado:</div>
+            <div class="text-subtitle2 text-black">Total mensual:</div>
             <q-space />
             <div class="text-h6 text-weight-bold" style="color: #18181b;">
               S/ {{ formatMoney(totalSelected) }}
@@ -276,9 +225,10 @@ watch([filterMonth, filterYear], () => {
         <q-btn flat label="Cancelar" color="grey" no-caps @click="close" />
         <q-btn
           color="primary"
-          label="Guardar"
+          label="Guardar gastos"
           no-caps
           :loading="loading"
+          :disable="selectedExpenses.length === 0"
           @click="submit"
         />
       </div>
@@ -292,19 +242,14 @@ watch([filterMonth, filterYear], () => {
     box-shadow: 0px 3px 4px 0px #bfbfbf48;
     border-radius: 0.5rem;
     border: 1px solid rgb(223, 223, 223);
-    padding: 0px 1rem;
+    padding: 0px 0.5rem;
   }
 }
 
 .expense-item {
   border: 1px solid rgb(223, 223, 223);
   border-radius: 0.5rem;
-  cursor: pointer;
   transition: all 0.15s ease;
-
-  &:hover {
-    background-color: #f4f4f5;
-  }
 
   &.expense-selected {
     background-color: #f0f7ff;

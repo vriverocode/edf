@@ -70,12 +70,12 @@ export const useAnnualBudgetStore = defineStore('AnnualBudget', {
         ApiService.setHeader()
         ApiService.post('/api/annual-budgets', payload)
           .then(({ data }) => {
-            if (data.code != 200) throw data
+            if (data.code != 200 && data.code != 201) throw data
             resolve(data)
           })
-          .catch(({ response }) => {
-            console.error(response)
-            reject(response?.data?.error || 'Error al crear presupuesto anual')
+          .catch((err) => {
+            console.error(err)
+            reject(err?.response?.data?.error || err?.error || (typeof err === 'string' ? err : 'Error al crear presupuesto anual'))
           })
       })
     },

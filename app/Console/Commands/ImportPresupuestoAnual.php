@@ -20,11 +20,9 @@ class ImportPresupuestoAnual extends Command
 
     private array $categories = [
         'SERVICIOS BASICOS' => ['start' => 7, 'end' => 10],
-        'ADMIN' => ['start' => 12, 'end' => 12],
         'MANTENIMIENTOS PREVENTIVOS' => ['start' => 15, 'end' => 20],
-        'GASTOS OPERATIVOS' => ['start' => 22, 'end' => 22],
         'MATERIALES CONSUMIBLES' => ['start' => 25, 'end' => 27],
-        'OTROS' => ['start' => 30, 'end' => 32],
+        'OTROS GASTOS ORDINARIOS' => ['start' => 30, 'end' => 32],
     ];
 
     public function handle(): int
@@ -110,12 +108,7 @@ class ImportPresupuestoAnual extends Command
 
             // Saltar si el monto es 0 o es una fórmula
             if ($monto === null || $monto === '' || (is_string($monto) && str_starts_with($monto, '='))) {
-                // Para ADMIN que es =20700*1.18, calcular
-                if (str_contains($concepto, 'ADMIN') && is_string($monto) && str_starts_with($monto, '=')) {
-                    $monto = 20700 * 1.18;
-                } else {
-                    continue;
-                }
+                continue;
             }
 
             $amount = (float) $monto;
@@ -128,7 +121,8 @@ class ImportPresupuestoAnual extends Command
             Expense::create([
                 'annual_budget_id' => $budget->id,
                 'service_category_id' => $categoryId,
-                'amount' => $amount,
+                'amount' => $amount * 12,
+                'monthly_amount' => $amount,
                 'expense_type' => 1, // Ordinario/Recurrente
                 'description' => $concepto,
                 'status' => 1,
@@ -155,11 +149,10 @@ class ImportPresupuestoAnual extends Command
     {
         $headers = [
             'SERVICIOS BASICOS',
-            'ADMIN',
             'MANTENIMIENTOS PREVENTIVOS',
-            'GASTOS OPERATIVOS / CONTINGENCIAS',
-            'GASTOS OPERATIVOS',
             'MATERIALES CONSUMIBLES',
+            'GASTOS OPERATIVOS / CONTINGENCIAS',
+            'OTROS GASTOS ORDINARIOS',
             'EGRESOS',
             'PP-año',
         ];
@@ -176,19 +169,22 @@ class ImportPresupuestoAnual extends Command
     private function resolveCategoryId(string $description): ?int
     {
         $mapping = [
-            'Agua' => 'Servicios Básicos',
+            'Telefonia' => 'Servicios Básicos',
             'Energia' => 'Servicios Básicos',
             'Internet' => 'Servicios Básicos',
-            'Telefonia' => 'Servicios Básicos',
-            'ADMIN' => 'Administración',
-            'Ascensores' => 'Mantenimiento',
-            'Mantenimientos' => 'Mantenimiento',
-            'GASTOS OPERATIVOS' => 'Gastos Operativos',
-            'Utiles' => 'Materiales',
-            'Materiales' => 'Materiales',
-            'Gastos legales' => 'Otros',
-            'Servicio app' => 'Otros',
-            'Gastos bancarios' => 'Otros',
+            'Ascensores' => 'Mantenimientos Preventivos',
+            'Aire' => 'Mantenimientos Preventivos',
+            'Areas verdes' => 'Mantenimientos Preventivos',
+            'Pantalla' => 'Mantenimientos Preventivos',
+            'Piscinas' => 'Mantenimientos Preventivos',
+            'Otros mantenimientos' => 'Mantenimientos Preventivos',
+            'Utiles de limpieza' => 'Materiales Consumibles',
+            'Materiales' => 'Materiales Consumibles',
+            'Utiles oficina' => 'Materiales Consumibles',
+            'Gastos legales' => 'Otros Gastos Ordinarios',
+            'Servicio app' => 'Otros Gastos Ordinarios',
+            'Gastos bancarios' => 'Otros Gastos Ordinarios',
+            'Agua' => 'Servicios Básicos',
         ];
 
         foreach ($mapping as $keyword => $categoryName) {
@@ -233,10 +229,6 @@ class ImportPresupuestoAnual extends Command
             }
 
             if ($monto === null || $monto === '' || (is_string($monto) && str_starts_with($monto, '='))) {
-                if (str_contains($concepto, 'ADMIN') && is_string($monto) && str_starts_with($monto, '=')) {
-                    $total += 20700 * 1.18;
-                }
-
                 continue;
             }
 
