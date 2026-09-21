@@ -156,31 +156,13 @@ watch(show, (val) => {
           </template>
         </q-select>
 
-        <!-- Info del pago seleccionado -->
-        <div v-if="selectedPayment" class="bg-blue-50 rounded-lg p-3 q-mb-sm">
-          <div class="text-caption text-grey-7">
-            <div class="flex justify-between">
-              <span>Monto del pago:</span>
-              <span class="text-bold">S/. {{ maxAmount.toFixed(2) }}</span>
-            </div>
-            <div class="flex justify-between mt-1">
-              <span>Ya aplicado como crédito:</span>
-              <span class="text-orange-7">S/. {{ Number(selectedPayment.credit_applied || 0).toFixed(2) }}</span>
-            </div>
-            <div class="flex justify-between mt-1" style="border-top: 1px dashed #90caf9; padding-top: 4px;">
-              <span class="text-bold">Disponible para crédito:</span>
-              <span class="text-bold text-green-7">S/. {{ remainingAvailable.toFixed(2) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Monto del crédito -->
+        <!-- Monto pagado -->
         <q-input
           v-model="creditAmount"
           type="number"
           outlined
           dense
-          label="Saldo a favor (S/.)"
+          label="Monto pagado (S/.)"
           :disable="!selectedPayment"
           :max="remainingAvailable"
           min="0.01"
@@ -200,6 +182,32 @@ watch(show, (val) => {
           color="teal"
           maxlength="500"
         />
+
+        <!-- Resumen -->
+        <div v-if="selectedPayment && creditAmount && Number(creditAmount) > 0" class="bg-green-50 rounded-lg p-3 mt-3">
+          <div class="text-caption text-grey-7">
+            <div class="flex justify-between">
+              <span>Monto del pago:</span>
+              <span>S/. {{ maxAmount.toFixed(2) }}</span>
+            </div>
+            <div class="flex justify-between mt-1">
+              <span>Monto pagado:</span>
+              <span>S/. {{ Number(creditAmount).toFixed(2) }}</span>
+            </div>
+            <div class="flex justify-between mt-1" style="border-top: 1px solid #a5d6a7; padding-top: 4px;">
+              <span class="text-bold">Saldo a favor a crear:</span>
+            </div>
+            <q-input
+              :model-value="Number(creditAmount).toFixed(2)"
+              readonly
+              disable
+              dense
+              outlined
+              class="q-mt-xs text-bold"
+              color="green"
+            />
+          </div>
+        </div>
       </q-card-section>
 
       <q-card-actions align="right" class="q-px-md q-pb-md">
