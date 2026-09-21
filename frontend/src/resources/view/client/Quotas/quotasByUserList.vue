@@ -67,6 +67,9 @@ const fetchCreditBalances = async () => {
 }
 
 const getCreditForQuota = (quota) => {
+  const maxMonth = Math.max(...quotas.value.map(q => q.month));
+  if (quota.month !== maxMonth) return 0;
+
   if (quota.details) {
     const balances = quota.details
       .map(d => creditBalances.value[d.departament?.id] || 0)
@@ -186,12 +189,6 @@ onMounted(() => {
                     </svg>
                     <span class="font-medium text-base">S/. {{ Number(quota.amount).toFixed(2) }}</span>
                   </div>
-                  <div v-if="getCreditForQuota(quota) > 0" class="text-xs">
-                    <q-badge color="green" class="text-white px-2 py-1">
-                      <q-icon name="eva-checkmark-circle-2-outline" size="0.85rem" class="mr-1" />
-                      Saldo a favor: S/. {{ getCreditForQuota(quota).toFixed(2) }}
-                    </q-badge>
-                  </div>
                   <div class="flex items-cente
                   r text-sm text-gray-700 col-7 col-md-8 justify-end md:justify-start">
                     <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,6 +197,12 @@ onMounted(() => {
                       </path>
                     </svg>
                     <span class="font-medium">Límite: {{ formatDate(quota.due_date) }}</span>
+                  </div>
+                  <div v-if="getCreditForQuota(quota) > 0" class="text-xs mt-1">
+                    <q-badge color="green" class="text-white px-2 py-1">
+                      <q-icon name="eva-checkmark-circle-2-outline" size="0.85rem" class="mr-1" />
+                      Saldo a favor: S/. {{ getCreditForQuota(quota).toFixed(2) }}
+                    </q-badge>
                   </div>
                 </div>
               </div>

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { usePayStore } from '@/services/store/pay.store'
 import { useRouter, useRoute } from 'vue-router'
+import creditCreateModal from '@/components/finance/creditCreateModal.vue'
 
 const credits = ref([])
 const totalBalance = ref(0)
@@ -10,6 +11,7 @@ const payStore = usePayStore()
 const router = useRouter()
 const route = useRoute()
 const search = ref('')
+const showCreateModal = ref(false)
 
 const getCredits = () => {
   loading.value = true
@@ -33,6 +35,10 @@ const goToDetail = (id) => {
   router.push(`/admin/credits/${id}`)
 }
 
+const onCreditCreated = () => {
+  getCredits()
+}
+
 onMounted(() => {
   getCredits()
 })
@@ -44,18 +50,38 @@ onMounted(() => {
       <div class="px-4 pt-4 md:px-36">
         <!-- Saldo total -->
         <div class="bg-primary text-white rounded-xl p-4 mb-4">
-          <div class="text-sm opacity-80 mb-1">Saldo total a favor</div>
-          <div class="text-2xl font-bold">S/. {{ totalBalance.toFixed(2) }}</div>
-          <div class="text-xs opacity-70 mt-1">{{ credits.length }} departamento{{ credits.length !== 1 ? 's' : '' }} con saldo</div>
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-sm opacity-80 mb-1">Saldo total a favor</div>
+              <div class="text-2xl font-bold">S/. {{ totalBalance.toFixed(2) }}</div>
+              <div class="text-xs opacity-70 mt-1">{{ credits.length }} departamento{{ credits.length !== 1 ? 's' : '' }} con saldo</div>
+            </div>
+          </div>
         </div>
 
         <!-- Buscador -->
-        <q-input dense outlined v-model="search" placeholder="Buscar por nombre o departamento..."
-          @keyup.enter="applySearch" clearable @clear="applySearch" color="teal">
-          <template v-slot:prepend>
-            <q-icon name="eva-search-outline" />
-          </template>
-        </q-input>
+        <div class="row">
+          <div class="col-12 col-md-6 md:pr-2 ">
+             <q-btn
+              unelevated
+              no-caps
+              color="primary"
+              icon="eva-plus-outline"
+              label="Crear saldo"
+              class="text-bold w-full"
+              style="border-radius: 0.2rem;"
+              @click="showCreateModal = true"
+            />
+          </div>
+          <div class="col-12 col-md-6 md:pl-2 mt-2 md:mt-0">
+            <q-input dense outlined v-model="search" placeholder="Buscar por nombre o departamento..."
+              @keyup.enter="applySearch" clearable @clear="applySearch" color="teal">
+              <template v-slot:prepend>
+                <q-icon name="eva-search-outline" />
+              </template>
+            </q-input>
+          </div>
+        </div>
       </div>
 
       <!-- Loading -->
@@ -97,5 +123,8 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Modal crear saldo -->
+    <creditCreateModal v-model="showCreateModal" @created="onCreditCreated" />
   </div>
 </template>

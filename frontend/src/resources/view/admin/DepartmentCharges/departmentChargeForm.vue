@@ -18,6 +18,7 @@ const saving = ref(false)
 const loadingDepartments = ref(false)
 const loadingExpenses = ref(false)
 const departments = ref([])
+const filteredDepartments = ref([])
 const expenses = ref([])
 
 const form = ref({
@@ -61,6 +62,7 @@ const fetchDepartments = async () => {
       label: `${d.number} — ${d.owner?.name || 'Sin propietario'}`,
       value: d.id,
     }))
+    filteredDepartments.value = departments.value
   } catch (err) {
     console.log(err)
     Notify.create({ color: 'negative', message: 'Error al cargar departamentos' })
@@ -69,18 +71,37 @@ const fetchDepartments = async () => {
   }
 }
 
+const filterDepartments = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filteredDepartments.value = departments.value
+    })
+    return
+  }
+  update(() => {
+    const needle = val.toLowerCase()
+    filteredDepartments.value = departments.value.filter(
+      v => v.label.toLowerCase().indexOf(needle) > -1
+    )
+  })
+}
+
 const fetchExpenses = async () => {
   loadingExpenses.value = true
   try {
     const res = await expenseStore.getExpenses({ expense_type: 2, status: 3 })
-    expenses.value = (res.data || []).map(e => ({
+    if(res.data.data.length <= 0){
+      return
+    }
+    expenses.value = (res.data.data || []).map(e => ({
       id: e.id,
       label: `${e.description} — S/. ${e.amount}`,
       value: e.id,
       amount: e.amount,
       description: e.description,
     }))
-  } catch {
+  } catch(e){
+    console.log(e)
     Notify.create({ color: 'negative', message: 'Error al cargar gastos' })
   } finally {
     loadingExpenses.value = false
@@ -153,7 +174,7 @@ onMounted(async () => {
           <div class="text-caption text-grey-7 q-mb-xs">Departamento *</div>
           <q-select
             v-model="form.departament_id"
-            :options="departments"
+            :options="filteredDepartments"
             emit-value
             map-options
             dense
@@ -161,7 +182,7 @@ onMounted(async () => {
             class="form__inputsR"
             use-input
             input-debounce="300"
-            @filter="(val, update) => update()"
+            @filter="filterDepartments"
             :loading="loadingDepartments"
             :rules="[(val) => !!val || 'Requerido']"
           />
@@ -183,7 +204,15 @@ onMounted(async () => {
             @update:model-value="onExpenseSelected"
             :loading="loadingExpenses"
             placeholder="Seleccionar gasto (opcional)"
-          />
+          >
+            <template v-slot:no-option>
+              <q-item>
+                <q-item-section class="text-grey">
+                  No hay gastos extraordinarios pagados disponibles
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
         </div>
         <div class="col-12">
           <div class="text-caption text-grey-7 q-mb-xs">Descripción *</div>

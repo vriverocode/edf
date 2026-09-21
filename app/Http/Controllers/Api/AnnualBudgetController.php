@@ -63,22 +63,16 @@ class AnnualBudgetController extends Controller
 
     public function availableExpenses()
     {
-        $budget = AnnualBudget::orderBy('year', 'desc')->first();
-        if (! $budget) {
-            return $this->returnSuccess(200, []);
-        }
-
-        $templates = Expense::where(function ($q) use ($budget) {
-                $q->where('annual_budget_id', $budget->id)
-                    ->orWhereNull('annual_budget_id');
-            })
-            ->where('is_template', true)
-            ->where('status', 4)
+        $templates = Expense::where('is_template', true)
+            ->whereNull('parent_template_id')
             ->with('serviceCategory:id,name')
             ->orderBy('sort_order')
             ->get(['id', 'description', 'amount', 'monthly_amount', 'expense_type', 'service_category_id', 'sort_order']);
 
-        return $this->returnSuccess(200, $templates);
+        // Filtrar duplicados por descripción para no mostrar el mismo gasto padre varias veces
+        $uniqueTemplates = $templates->unique('description')->values();
+
+        return $this->returnSuccess(200, $uniqueTemplates);
     }
 
     public function storeTemplate(Request $request)
@@ -126,9 +120,34 @@ class AnnualBudgetController extends Controller
                 'expenses.*.expense_type' => ['nullable', 'integer'],
                 'expenses.*.service_category_id' => ['nullable', 'integer'],
                 'expenses.*.sort_order' => ['nullable', 'integer'],
+            ], [
+                'year.required' => 'El año es obligatorio.',
+                'year.integer' => 'El año debe ser un número entero.',
+                'year.unique' => 'Ya existe un presupuesto para este año.',
+                'name.required' => 'El nombre es obligatorio.',
+                'name.string' => 'El nombre debe ser un texto.',
+                'name.max' => 'El nombre no debe exceder los 255 caracteres.',
+                'total_monthly_budget.numeric' => 'El presupuesto total debe ser un número.',
+                'total_monthly_budget.min' => 'El presupuesto total no puede ser negativo.',
+                'status.integer' => 'El estado debe ser un número entero.',
+                'status.in' => 'El estado seleccionado no es válido.',
+                'expenses.array' => 'Los gastos deben ser una lista válida.',
+                'expenses.*.id.integer' => 'El ID del gasto debe ser un número entero.',
+                'expenses.*.id.exists' => 'Uno de los gastos seleccionados no existe.',
+                'expenses.*.description.required_with' => 'La descripción del gasto es obligatoria.',
+                'expenses.*.description.string' => 'La descripción del gasto debe ser un texto.',
+                'expenses.*.description.max' => 'La descripción del gasto no debe exceder los 255 caracteres.',
+                'expenses.*.amount.numeric' => 'El monto anual del gasto debe ser un número.',
+                'expenses.*.amount.min' => 'El monto anual del gasto no puede ser negativo.',
+                'expenses.*.monthly_amount.required_with' => 'El monto mensual del gasto es obligatorio.',
+                'expenses.*.monthly_amount.numeric' => 'El monto mensual del gasto debe ser un número.',
+                'expenses.*.monthly_amount.min' => 'El monto mensual del gasto no puede ser negativo.',
+                'expenses.*.expense_type.integer' => 'El tipo de gasto debe ser un número entero.',
+                'expenses.*.service_category_id.integer' => 'La categoría del servicio debe ser un número entero.',
+                'expenses.*.sort_order.integer' => 'El orden debe ser un número entero.',
             ]);
         } catch (ValidationException $e) {
-            return $this->returnFail(422, $e->validator->errors()->first());
+            return $this->returnFail(404, $e->validator->errors()->first());
         }
 
         $expensesData = $validated['expenses'] ?? [];
@@ -145,12 +164,29 @@ class AnnualBudgetController extends Controller
             foreach ($expensesData as $index => $expense) {
                 $monthlyAmount = $expense['monthly_amount'];
                 if (! empty($expense['id'])) {
-                    Expense::where('id', $expense['id'])->update([
-                        'annual_budget_id' => $budget->id,
-                        'amount' => $monthlyAmount * 12,
-                        'monthly_amount' => $monthlyAmount,
-                        'sort_order' => $expense['sort_order'] ?? $index,
-                    ]);
+                    $existing = Expense::find($expense['id']);
+                    if ($existing && $existing->annual_budget_id && $existing->annual_budget_id !== $budget->id) {
+                        // El template pertenece a otro presupuesto, lo clonamos como hijo
+                        Expense::create([
+                            'annual_budget_id' => $budget->id,
+                            'parent_template_id' => $existing->id,
+                            'is_template' => true,
+                            'description' => $expense['description'],
+                            'amount' => $monthlyAmount * 12,
+                            'monthly_amount' => $monthlyAmount,
+                            'expense_type' => $expense['expense_type'] ?? 1,
+                            'service_category_id' => $expense['service_category_id'] ?? null,
+                            'sort_order' => $expense['sort_order'] ?? $index,
+                            'status' => 4,
+                        ]);
+                    } else {
+                        Expense::where('id', $expense['id'])->update([
+                            'annual_budget_id' => $budget->id,
+                            'amount' => $monthlyAmount * 12,
+                            'monthly_amount' => $monthlyAmount,
+                            'sort_order' => $expense['sort_order'] ?? $index,
+                        ]);
+                    }
                 } else {
                     Expense::create([
                         'annual_budget_id' => $budget->id,
@@ -193,6 +229,31 @@ class AnnualBudgetController extends Controller
                 'expenses.*.expense_type' => ['nullable', 'integer'],
                 'expenses.*.service_category_id' => ['nullable', 'integer'],
                 'expenses.*.sort_order' => ['nullable', 'integer'],
+            ], [
+                'year.required' => 'El año es obligatorio.',
+                'year.integer' => 'El año debe ser un número entero.',
+                'year.unique' => 'Ya existe un presupuesto para este año.',
+                'name.required' => 'El nombre es obligatorio.',
+                'name.string' => 'El nombre debe ser un texto.',
+                'name.max' => 'El nombre no debe exceder los 255 caracteres.',
+                'total_monthly_budget.numeric' => 'El presupuesto total debe ser un número.',
+                'total_monthly_budget.min' => 'El presupuesto total no puede ser negativo.',
+                'status.integer' => 'El estado debe ser un número entero.',
+                'status.in' => 'El estado seleccionado no es válido.',
+                'expenses.array' => 'Los gastos deben ser una lista válida.',
+                'expenses.*.id.integer' => 'El ID del gasto debe ser un número entero.',
+                'expenses.*.id.exists' => 'Uno de los gastos seleccionados no existe.',
+                'expenses.*.description.required_with' => 'La descripción del gasto es obligatoria.',
+                'expenses.*.description.string' => 'La descripción del gasto debe ser un texto.',
+                'expenses.*.description.max' => 'La descripción del gasto no debe exceder los 255 caracteres.',
+                'expenses.*.amount.numeric' => 'El monto anual del gasto debe ser un número.',
+                'expenses.*.amount.min' => 'El monto anual del gasto no puede ser negativo.',
+                'expenses.*.monthly_amount.required_with' => 'El monto mensual del gasto es obligatorio.',
+                'expenses.*.monthly_amount.numeric' => 'El monto mensual del gasto debe ser un número.',
+                'expenses.*.monthly_amount.min' => 'El monto mensual del gasto no puede ser negativo.',
+                'expenses.*.expense_type.integer' => 'El tipo de gasto debe ser un número entero.',
+                'expenses.*.service_category_id.integer' => 'La categoría del servicio debe ser un número entero.',
+                'expenses.*.sort_order.integer' => 'El orden debe ser un número entero.',
             ]);
         } catch (ValidationException $e) {
             return $this->returnFail(422, $e->validator->errors()->first());
@@ -220,12 +281,29 @@ class AnnualBudgetController extends Controller
                 foreach ($expensesData as $index => $expense) {
                     $monthlyAmount = $expense['monthly_amount'];
                     if (! empty($expense['id'])) {
-                        Expense::where('id', $expense['id'])->update([
-                            'annual_budget_id' => $budget->id,
-                            'amount' => $monthlyAmount * 12,
-                            'monthly_amount' => $monthlyAmount,
-                            'sort_order' => $expense['sort_order'] ?? $index,
-                        ]);
+                        $existing = Expense::find($expense['id']);
+                        if ($existing && $existing->annual_budget_id && $existing->annual_budget_id !== $budget->id) {
+                            // Pertenece a otro presupuesto, lo clonamos
+                            Expense::create([
+                                'annual_budget_id' => $budget->id,
+                                'parent_template_id' => $existing->id,
+                                'is_template' => true,
+                                'description' => $expense['description'],
+                                'amount' => $monthlyAmount * 12,
+                                'monthly_amount' => $monthlyAmount,
+                                'expense_type' => $expense['expense_type'] ?? 1,
+                                'service_category_id' => $expense['service_category_id'] ?? null,
+                                'sort_order' => $expense['sort_order'] ?? $index,
+                                'status' => 4,
+                            ]);
+                        } else {
+                            Expense::where('id', $expense['id'])->update([
+                                'annual_budget_id' => $budget->id,
+                                'amount' => $monthlyAmount * 12,
+                                'monthly_amount' => $monthlyAmount,
+                                'sort_order' => $expense['sort_order'] ?? $index,
+                            ]);
+                        }
                     } else {
                         Expense::create([
                             'annual_budget_id' => $budget->id,

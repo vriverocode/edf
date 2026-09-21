@@ -284,6 +284,34 @@ export const usePayStore = defineStore('Pay', {
           });
       })
     },
+    async getPaymentsForCredit() {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.get('/api/admin/credits/payments')
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener pagos');
+          });
+      })
+    },
+    async storeManualCredit(data) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.post('/api/admin/credits/store-manual', data)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al crear saldo a favor');
+          });
+      })
+    },
     formatFiltersQuery(filters) {
       const queryParams = new URLSearchParams();
       Object.keys(filters).forEach(key => {

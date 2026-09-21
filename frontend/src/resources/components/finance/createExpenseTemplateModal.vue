@@ -92,7 +92,7 @@ const submit = async () => {
       payload.annual_budget_id = props.budgetId
     }
     const response = await ApiService.post('/api/annual-budgets/store-template', payload)
-    if (response.data.code !== 201) throw response.data
+    if (response.data.code !== 200) throw response.data
     emit('created', response.data.data)
     showNotify('positive', 'Gasto creado')
     close()

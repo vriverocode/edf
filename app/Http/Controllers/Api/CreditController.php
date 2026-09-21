@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CreditTransaction;
 use App\Models\Departament;
+use App\Models\Pay;
 use App\Models\Rol;
 use App\Services\CreditService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class CreditController extends Controller
 {
@@ -123,5 +127,122 @@ class CreditController extends Controller
         $paginator = $creditService->getAllTransactions($filters);
 
         return $this->returnSuccess(200, $paginator);
+    }
+
+    public function getPaymentsForCredit(Request $request)
+    {
+        $payments = Pay::query()
+            ->where('type', 1)
+            ->whereIn('status', [1, 3])
+            ->with(['user', 'quotas.departament', 'payMethod'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($pay) {
+                $quotas = $pay->quotas;
+                $deptNumbers = $quotas->pluck('departament.number')->filter()->unique()->implode(', ');
+                $deptIds = $quotas->pluck('departament_id')->filter()->unique()->values()->all();
+                $userName = $pay->user?->name ?? '—';
+
+                return [
+                    'id' => $pay->id,
+                    'pay_id' => $pay->pay_id,
+                    'user_name' => $userName,
+                    'departament_numbers' => $deptNumbers ?: '—',
+                    'departament_ids' => $deptIds,
+                    'amount' => (float) $pay->amount,
+                    'reference' => $pay->reference ?? '—',
+                    'status' => $pay->status,
+                    'status_label' => $pay->status_label,
+                    'pay_date' => $pay->pay_date,
+                    'created_at' => $pay->created_at,
+                    'credit_applied' => (float) $pay->credit_applied,
+                ];
+            });
+
+        return $this->returnSuccess(200, $payments);
+    }
+
+    public function storeManualCredit(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'pay_id' => ['required', 'exists:pays,id'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'description' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $pay = Pay::with(['quotas.departament'])->find($request->pay_id);
+
+        if ((int) $pay->type !== 1) {
+            return $this->returnFail(422, 'El pago seleccionado no es una cuota.');
+        }
+
+        if (! in_array((int) $pay->status, [1, 3])) {
+            return $this->returnFail(422, 'El pago debe estar completado o pendiente de validación.');
+        }
+
+        $creditAmount = round((float) $request->amount, 2);
+        $payAmount = round((float) $pay->amount, 2);
+
+        if ($creditAmount > $payAmount) {
+            return $this->returnFail(422, 'El saldo a favor no puede ser mayor al monto del pago (S/. '.number_format($payAmount, 2).').');
+        }
+
+        $deptIds = $pay->quotas->pluck('departament_id')->filter()->unique()->values()->all();
+
+        if (empty($deptIds)) {
+            return $this->returnFail(422, 'El pago no tiene departamentos asociados.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $creditService = new CreditService;
+            $appliedTotal = 0.0;
+            $remaining = $creditAmount;
+
+            foreach ($deptIds as $deptId) {
+                if ($remaining <= 0) {
+                    break;
+                }
+
+                $dept = Departament::find($deptId);
+                if (! $dept) {
+                    continue;
+                }
+
+                $applyAmount = round(min($remaining, $creditAmount - $appliedTotal), 2);
+                if ($applyAmount <= 0) {
+                    break;
+                }
+
+                $creditService->createCredit($dept, $applyAmount, $pay);
+                $appliedTotal += $applyAmount;
+                $remaining = round($creditAmount - $appliedTotal, 2);
+            }
+
+            if ($request->description) {
+                foreach ($deptIds as $deptId) {
+                    CreditTransaction::where('pay_id', $pay->id)
+                        ->where('departament_id', $deptId)
+                        ->where('type', CreditTransaction::TYPE_CREATED)
+                        ->update(['description' => $request->description]);
+                }
+            }
+
+            DB::commit();
+
+            return $this->returnSuccess(200, [
+                'message' => 'Saldo a favor creado correctamente.',
+                'amount' => $appliedTotal,
+                'pay_id' => $pay->id,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return $this->returnFail(500, 'Error al crear el saldo a favor: '.$e->getMessage());
+        }
     }
 }

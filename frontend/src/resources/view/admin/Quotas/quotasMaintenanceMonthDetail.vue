@@ -50,6 +50,7 @@ const getQuotas = () => {
   if (selectedDept.value) {
     filters.deptSearch = selectedDept.value;
   }
+  syncToUrl();
   quotaStore
     .getAdminGroupedByOwnerForMonth(month.value, filters)
     .then((response) => {
@@ -69,6 +70,8 @@ const onChangeStatus = () => {
 };
 
 const onChangeDept = () => {
+  if (restoring.value) return;
+  syncToUrl();
   getQuotas();
 };
 
@@ -89,6 +92,34 @@ const filterDept = (val, update) => {
   });
 };
 
+const restoring = ref(false);
+
+const syncToUrl = () => {
+  const query = {};
+  const set = (k, v) => {
+    if (v === '' || v === null || v === undefined) return;
+    query[k] = v;
+  };
+  set('status', statusFilter.value !== 4 ? statusFilter.value : undefined);
+  set('search', searchName.value || undefined);
+  set('dept', selectedDept.value || undefined);
+  router.replace({ query });
+};
+
+const restoreFromQuery = () => {
+  restoring.value = true;
+  if (route.query.status !== undefined) {
+    statusFilter.value = Number(route.query.status);
+  }
+  if (route.query.search) {
+    searchName.value = route.query.search;
+  }
+  if (route.query.dept) {
+    selectedDept.value = route.query.dept;
+  }
+  restoring.value = false;
+};
+
 const fetchDepartments = () => {
   ApiService.setHeader();
   ApiService.get('/api/apartments/byFind')
@@ -104,10 +135,12 @@ const fetchDepartments = () => {
 };
 
 watch(statusFilter, () => {
+  if (restoring.value) return;
   getQuotas();
 });
 
 watch(searchName, () => {
+  if (restoring.value) return;
   getQuotas();
 });
 
@@ -182,6 +215,7 @@ const unitsInQuota = (quota) => {
 };
 
 onMounted(() => {
+  restoreFromQuery();
   getQuotas();
   fetchDepartments();
 });
@@ -222,12 +256,12 @@ onMounted(() => {
 
       <div v-else class="px-4 pt-0 md:px-28 pb-20">
        
-        <div v-if="quotas.length > 0" class=" md:px-5 row">
-          <div v-for="quota in quotas" :key="quota.id" class="col-md-4 col-12 md:px-2 mb-5 md:mb-4">
-            <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 col-md-4 col-12"
+        <div v-if="quotas.length > 0" class=" md:px-5 row flex items-stretch">
+          <div v-for="quota in quotas" :key="quota.id" class="col-md-4 col-12 md:px-2 mb-5 md:mb-4 flex">
+            <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden h-full w-full flex flex-col"
               style="position: relative; border: 1px solid lightgrey">
 
-              <div class="px-4 pb-2 pt-2 md:pt-4">
+              <div class="px-4 pb-2 pt-2 md:pt-4 flex-1">
                 <div class="flex justify-between items-start mb-0 pb-1" style="border-bottom: 1px dashed #111827;">
                   <div class="flex-1">
                     <h3 class="text-lg font-bold text-gray-900 mb-1">

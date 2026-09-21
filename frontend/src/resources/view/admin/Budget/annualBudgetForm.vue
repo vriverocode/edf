@@ -132,7 +132,7 @@ const fetchBudget = async () => {
   } catch (err) {
     const apiError = err?.error || err?.message || 'No se pudo cargar el presupuesto'
     Notify.create({ color: 'negative', message: apiError, timeout: 2000 })
-    router.push('/admin/budget/annual')
+    router.go(-1)
   } finally {
     loading.value = false
   }

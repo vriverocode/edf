@@ -297,6 +297,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('admin')->middleware('role:admin,super-admin')->group(function () {
         Route::get('/credits', [CreditController::class, 'listAll']);
         Route::get('/credits/transactions', [CreditController::class, 'listAllTransactions']);
+        Route::get('/credits/payments', [CreditController::class, 'getPaymentsForCredit']);
+        Route::post('/credits/store-manual', [CreditController::class, 'storeManualCredit']);
     });
 
     // ── Notices ──────────────────────────────────────────────

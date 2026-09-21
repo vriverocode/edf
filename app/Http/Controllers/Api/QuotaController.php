@@ -328,6 +328,7 @@ class QuotaController extends Controller
             'pays.payMethod',
             'responsiblePivot.user',
             'waterReading',
+            'departmentCharges.expense',
         ])->find($id);
         if (! $quota) {
             return $this->returnFail(404, 'Cuota no encontrada');
@@ -340,7 +341,21 @@ class QuotaController extends Controller
             }
         }
 
-        return $this->returnSuccess(200, $quota);
+        $month = $quota->month;
+        $year = $quota->year ?? ($quota->due_date ? Carbon::parse($quota->due_date)->year : now()->year);
+
+        $monthlyBill = MonthlyBills::query()
+            ->select('id', 'total_maintenance_budget')
+            ->where('month', $month)
+            ->where('year', $year)
+            ->latest('id')
+            ->first();
+
+        $data = $quota->toArray();
+        $data['maintenance_participation_percentage'] = $quota->departament?->participation_percentage;
+        $data['maintenance_budget_total'] = $monthlyBill?->total_maintenance_budget;
+
+        return $this->returnSuccess(200, $data);
     }
 
     public function clientWaterDetail(Request $request, string $id)

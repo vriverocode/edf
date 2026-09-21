@@ -240,12 +240,14 @@ const fetchAllQuotasByIds = async (ids) => {
     const totalAmount = quotas.reduce((sum, q) => sum + Number(q.amount || 0), 0)
     const totalMaintenance = quotas.reduce((sum, q) => sum + Number(q.maintenance_amount || 0), 0)
     const totalWater = quotas.reduce((sum, q) => sum + Number(q.water_amount || 0), 0)
+    const totalBudget = quotas.reduce((sum, q) => sum + Number(q.maintenance_budget_total || 0), 0)
 
     const breakdown = quotas.map(q => ({
       ...q,
       participation: Number(q.departament?.participation_percentage ?? 0),
       unit_number: q.departament?.number ?? q.number,
       unit_type: q.type ?? 1,
+      department_charges: q.department_charges ?? [],
     }))
 
     toPay.value = {
@@ -253,6 +255,7 @@ const fetchAllQuotasByIds = async (ids) => {
       amount: totalAmount,
       maintenance_amount: totalMaintenance,
       water_amount: totalWater,
+      maintenance_budget_total: totalBudget,
       consolidated_ids: ids,
       breakdown,
       _units_count: quotas.length,
@@ -490,6 +493,33 @@ watch(step, (toStep, fromStep) => {
                       <div class="pay-form-breakdown__detail mt-1">
                         <span>Monto</span>
                         <span>{{ amountPrefix }} {{ item.maintenanceAmount.toFixed(2) }}</span>
+                      </div>
+                      <div v-if="item.department_charges?.length" class="mt-2 pl-2">
+                        <div v-for="charge in item.department_charges" :key="'bcharge-' + charge.id"
+                          class="py-1" style="border-bottom: 1px dashed #e5e7eb;">
+                          <div class="pay-form-breakdown__detail">
+                            <span class="text-caption text-grey-7">{{ charge.description || charge.expense?.name || 'Recargo' }}</span>
+                            <span class="text-caption text-bold">{{ amountPrefix }} {{ Number(charge.monthly_amount).toFixed(2) }}</span>
+                          </div>
+                          <div class="pay-form-breakdown__detail">
+                            <span class="text-caption text-grey-6">Cuota {{ charge.pivot?.installment_number }}/{{ charge.installments }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="toPay.department_charges?.length" class="pt-3">
+                    <div class="text-subtitle2 text-grey-8 mb-2">Recargos asignados</div>
+                    <div v-for="charge in toPay.department_charges" :key="'charge-' + charge.id"
+                      class="py-2 mt-1" style="border-bottom: 1px solid #e5e7eb;">
+                      <div class="pay-form-breakdown__row">
+                        <span>{{ charge.description || charge.expense?.name || 'Recargo' }}</span>
+                        <span class="text-bold">{{ amountPrefix }} {{ Number(charge.monthly_amount).toFixed(2) }}</span>
+                      </div>
+                      <div class="pay-form-breakdown__detail">
+                        <span>Cuota {{ charge.pivot?.installment_number }} de {{ charge.installments }}</span>
+                        <span class="text-caption text-grey-6">{{ charge.status_label }}</span>
                       </div>
                     </div>
                   </div>

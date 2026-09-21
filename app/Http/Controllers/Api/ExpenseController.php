@@ -38,9 +38,7 @@ class ExpenseController extends Controller
             ->orderBy('issue_date', 'desc')
             ->paginate($perPage);
 
-        return $this->returnSuccess(200, [
-            'pagination' => $paginator,
-        ]);
+        return $this->returnSuccess(200, $paginator);
     }
 
     public function formOptions()

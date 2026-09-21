@@ -73,9 +73,9 @@ export const useAnnualBudgetStore = defineStore('AnnualBudget', {
             if (data.code != 200 && data.code != 201) throw data
             resolve(data)
           })
-          .catch((err) => {
-            console.error(err)
-            reject(err?.response?.data?.error || err?.error || (typeof err === 'string' ? err : 'Error al crear presupuesto anual'))
+          .catch(({ response }) => {
+            console.error(response)
+            reject(response?.data || 'Error al crear presupuesto anual')
           })
       })
     },
