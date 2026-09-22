@@ -138,6 +138,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/u/{id}', [ComunAreaController::class, 'updateArea'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/d/{id}', [ComunAreaController::class, 'deleteArea'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/toggle-status/{id}', [ComunAreaController::class, 'toggleAreaStatus'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::get('/{id}/blocked-dates', [ComunAreaController::class, 'getBlockedDates']);
+        Route::post('/{id}/blocked-dates', [ComunAreaController::class, 'storeBlockedDates'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::delete('/{id}/blocked-dates', [ComunAreaController::class, 'destroyBlockedDate'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Rules ────────────────────────────────────────────────

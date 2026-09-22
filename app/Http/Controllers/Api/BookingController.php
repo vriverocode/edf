@@ -92,6 +92,12 @@ class BookingController extends Controller
             }
 
             $date = date('Y-m-d', strtotime($request->date));
+
+            $blockedDates = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
+            if (in_array($date, $blockedDates)) {
+                return $this->returnFail(409, 'Esta fecha está bloqueada para reservas en esta área común.');
+            }
+
             if ($this->hasActiveReservationForDepartment($departament_id, (int) $request->comun_area)) {
                 return $this->returnFail(409, 'Ya tienes una reserva activa para esta área. Solo podrás reservarla nuevamente cuando finalice el día de tu reserva.');
             }
@@ -497,6 +503,18 @@ class BookingController extends Controller
 
         $dateStr = date('Y-m-d', strtotime($request->date));
         $isToday = $dateStr === date('Y-m-d');
+
+        $blockedDates = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
+        if (in_array($dateStr, $blockedDates)) {
+            return $this->returnSuccess(200, [
+                'blocks' => [
+                    'ma' => [],
+                    'ta' => [],
+                    'no' => [],
+                ],
+                'blocked' => true,
+            ]);
+        }
 
         $carbonDate = Carbon::parse($dateStr);
         $dayOfWeek = $carbonDate->dayOfWeek;

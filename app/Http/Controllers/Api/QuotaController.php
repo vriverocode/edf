@@ -355,6 +355,29 @@ class QuotaController extends Controller
         $data['maintenance_participation_percentage'] = $quota->departament?->participation_percentage;
         $data['maintenance_budget_total'] = $monthlyBill?->total_maintenance_budget;
 
+        // Consolidated quotas from the same payment
+        $consolidatedQuotas = collect([]);
+        $pay = null;
+        if ($quota->status == 3 && $quota->pays->isNotEmpty()) {
+            $pay = $quota->pays->first();
+            $quotaIds = $pay->consolidatedQuotaIds();
+            $otherIds = array_filter($quotaIds, fn ($id) => (int) $id !== (int) $quota->id);
+            if ($otherIds) {
+                $consolidatedQuotas = Quota::query()
+                    ->with([
+                        'departament:id,number,type,participation_percentage',
+                        'waterReading:id,departament_id,previous_reading,current_reading,m3_price',
+                    ])
+                    ->whereIn('id', $otherIds)
+                    ->get();
+            }
+        }
+
+        $data['consolidated_quotas'] = $consolidatedQuotas;
+        $data['pay'] = $pay
+            ? $pay->load('payMethod')
+            : null;
+
         return $this->returnSuccess(200, $data);
     }
 

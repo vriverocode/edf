@@ -136,7 +136,7 @@ class Quota extends Model
                     : now()->year;
                 $tenantPays = $quota->departament->tenant_pays_quota ?? false;
 
-                return $quota->month.'_'.$year.'_'.$tenantPays;
+                return $quota->month.'_'.$year.($tenantPays ? '_tenant' : '');
             })
             ->map(function ($group) {
                 $firstQuota = $group->first();

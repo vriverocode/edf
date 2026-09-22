@@ -254,6 +254,76 @@ class ComunAreaController extends Controller
         ]);
     }
 
+    public function getBlockedDates($id)
+    {
+        $area = ComunArea::find($id);
+        if (! $area) {
+            return $this->returnFail(404, 'Area común no encontrada');
+        }
+
+        $dates = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
+
+        return $this->returnSuccess(200, array_values($dates));
+    }
+
+    public function storeBlockedDates(Request $request, $id)
+    {
+        $user = $request->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'dates' => ['required', 'array'],
+            'dates.*' => ['date_format:Y-m-d'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $area = ComunArea::find($id);
+        if (! $area) {
+            return $this->returnFail(404, 'Area común no encontrada');
+        }
+
+        $existing = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
+        $merged = array_unique(array_merge($existing, $request->dates));
+        sort($merged);
+
+        $area->update(['not_available_days' => json_encode($merged)]);
+
+        return $this->returnSuccess(200, $merged);
+    }
+
+    public function destroyBlockedDate(Request $request, $id)
+    {
+        $user = $request->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
+            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'date' => ['required', 'date_format:Y-m-d'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $area = ComunArea::find($id);
+        if (! $area) {
+            return $this->returnFail(404, 'Area común no encontrada');
+        }
+
+        $existing = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
+        $filtered = array_values(array_filter($existing, fn ($d) => $d !== $request->date));
+
+        $area->update(['not_available_days' => empty($filtered) ? null : json_encode($filtered)]);
+
+        return $this->returnSuccess(200, $filtered);
+    }
+
     private function validateFieldsFromInput($inputs)
     {
         $rules = [
