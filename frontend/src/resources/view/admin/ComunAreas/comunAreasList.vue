@@ -5,6 +5,7 @@ import iconsApp from '@/assets/icons/index'
 import { useComunAreaStore } from '@/services/store/comunArea.store';
 import deleteAreaModal from '@/components/comunAreas/deleteAreaModal.vue';
 import toggleAreaStatusModal from '@/components/comunAreas/toggleAreaStatusModal.vue';
+import blockDatesModal from '@/components/comunAreas/blockDatesModal.vue';
 import { usePaginationState } from '@/composables/usePaginationState';
 
 const comunAreaStore = useComunAreaStore()
@@ -68,6 +69,16 @@ const selectStatusArea = (id) => {
 }
 const hideStatusModal = () => {
   statusDialog.value = false
+}
+
+const blockDatesArea = ref({})
+const blockDatesDialog = ref(false)
+const openBlockDates = (id) => {
+  blockDatesArea.value = comunAreas.value.find((area) => area.id == id)
+  blockDatesDialog.value = true
+}
+const hideBlockDatesModal = () => {
+  blockDatesDialog.value = false
 }
 const urlMedia = import.meta.env.VITE_LARAVEL_MEDIA_URL
 onMounted(() => {
@@ -139,6 +150,15 @@ onMounted(() => {
                 </q-btn>
               </div>
               <div class="position-relative relative">
+                <q-btn icon="eva-calendar-outline" class="mx-1" flat color="deep-orange" round size="0.85rem"
+                  @click="openBlockDates(comunArea.id)">
+                  <q-tooltip transition-show="flip-right" transition-hide="flip-left"
+                    :class="'bg-black text-body2 px-2'">
+                    Bloquear días feriados
+                  </q-tooltip>
+                </q-btn>
+              </div>
+              <div class="position-relative relative">
                 <q-btn :icon="materialIcons.outlinedFactCheck" class="mx-1" flat color="yellow-9" round size="0.85rem"
                   @click="goTo('/admin/comun-area/bookings/' + comunArea.id + '/list')">
                   <q-tooltip transition-show="flip-right" transition-hide="flip-left"
@@ -204,6 +224,10 @@ onMounted(() => {
     <template v-if="Object.values(statusModalArea).length > 0">
       <toggleAreaStatusModal :comunArea="statusModalArea" :dialog="statusDialog" @closeModal="hideStatusModal()"
         @updateList="hideStatusModal(); getComunArea()" />
+    </template>
+    <template v-if="Object.values(blockDatesArea).length > 0">
+      <blockDatesModal v-model="blockDatesDialog" :comunArea="blockDatesArea" @closeModal="hideBlockDatesModal()"
+        @updated="getComunArea()" />
     </template>
   </div>
 </template>

@@ -17,7 +17,7 @@ const payStore = usePayStore();
 const router = useRouter();
 const dialog = ref(false);
 const filters = ref({
-  status: 4,
+  status: 9,
   pay_method: '',
   type: '',
   date_from: '',

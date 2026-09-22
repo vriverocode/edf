@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuotaStore } from '@/services/store/quota.store'
 import iconsApp from '@/assets/icons/index';
@@ -18,6 +18,49 @@ const errorMessage = ref(null)
 const showVoucherModal = ref(false)
 const maintenanceBreakdown = ref(null)
 const waterBreakdown = ref(null)
+const consolidatedQuotas = ref([])
+const payData = ref(null)
+
+const departmentTypeLabel = (type) => {
+  const labels = { 1: 'DPT', 2: 'EST', 3: 'DPO', 4: 'LAV' }
+  return labels[type] || 'UNI'
+}
+
+const buildBreakdownItem = (quota, isCurrent = false) => ({
+  id: quota.id,
+  number: quota.departament?.number || quota.departament_number || '—',
+  type: quota.departament?.type,
+  typeLabel: departmentTypeLabel(quota.departament?.type),
+  maintenance_amount: quota.maintenance_amount,
+  water_amount: quota.water_amount,
+  extra_amount: quota.extra_amount,
+  amount: quota.amount,
+  has_water_reading: !!quota.water_reading_id,
+  water_reading_id: quota.water_reading_id,
+  waterReading: quota.waterReading || null,
+  isCurrent,
+})
+
+const allQuotasForBreakdown = computed(() => {
+  if (!quotaData.value) return []
+  const current = buildBreakdownItem(quotaData.value, true)
+  const others = consolidatedQuotas.value.map(q => buildBreakdownItem(q, false))
+  return [current, ...others]
+})
+
+const hasConsolidation = computed(() => consolidatedQuotas.value.length > 0)
+
+const totalMaintenance = computed(() =>
+  allQuotasForBreakdown.value.reduce((sum, q) => sum + (q.maintenance_amount || 0), 0)
+)
+
+const totalWater = computed(() =>
+  allQuotasForBreakdown.value.reduce((sum, q) => sum + (q.water_amount || 0), 0)
+)
+
+const totalExtras = computed(() =>
+  allQuotasForBreakdown.value.reduce((sum, q) => sum + (q.extra_amount || 0), 0)
+)
 // Función para obtener quota por ID
 const fetchQuotaById = async (id) => {
   try {
@@ -26,6 +69,8 @@ const fetchQuotaById = async (id) => {
 
     const response = await quotaStore.getQuotaById(id)
     quotaData.value = response.data
+    consolidatedQuotas.value = response.data.consolidated_quotas || []
+    payData.value = response.data.pay
 
   } catch (err) {
     console.error('Error al obtener la cuota:', err)
@@ -92,6 +137,8 @@ const reloadQuota = () => {
   if (currentQuotaId) {
     maintenanceBreakdown.value = null
     waterBreakdown.value = null
+    consolidatedQuotas.value = []
+    payData.value = null
     fetchQuotaById(currentQuotaId).then(() => fetchQuotaBreakdownDetails(currentQuotaId))
   }
 }
@@ -162,68 +209,102 @@ const reloadQuota = () => {
               </div>
             </div>
           </div>
-          <!-- Desglose de la cuota -->
+          <!-- Desglose de la cuota - Consolidado -->
           <div class="w-full md:p-5 px-4 pt-5 mb-5" style="border-top: 1px solid lightgray;">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Desglose de la cuota</h3>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b">
-                  <th class="text-left py-2 text-gray-600 font-medium">Concepto</th>
-                  <th class="text-right py-2 text-gray-600 font-medium">Monto</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Mantenimiento -->
-                <tr class="border-b">
-                  <td class="py-2">
-                    <div class="font-medium text-gray-900">Mantenimiento</div>
-                    <div v-if="maintenanceBreakdown" class="text-xs font-bold text-gray-400">
-                     % Participación: 
-                     {{ parseFloat(quotaData.departament?.participation_percentage).toFixed(6) }} 
-                      <span v-if="maintenanceBreakdown.maintenance_budget_total">
-                        de S/. {{ maintenanceBreakdown.maintenance_budget_total }}
-                      </span>
-                    </div>
-                  </td>
-                  <td class="text-right py-2 font-semibold">S/. {{ quotaData.maintenance_amount }}</td>
-                </tr>
-                <!-- Agua individual -->
-                <tr v-if="waterBreakdown" class="border-b">
-                  <td class="py-2">
-                    <div class="font-medium text-gray-900">Agua (consumo individual)</div>
-                    <div class="text-xs text-gray-500">
-                      {{ waterBreakdown.previous_reading }} → {{ waterBreakdown.current_reading }} m³
-                      ({{ waterBreakdown.water_consumption_m3 }} m³ × S/. {{ waterBreakdown.water_price_per_m3 }})
-                    </div>
-                  </td>
-                  <td class="text-right py-2 font-semibold">S/. {{ quotaData.water_amount }}</td>
-                </tr>
-                <!-- Agua sin lectura -->
-                <tr v-else-if="quotaData.water_amount > 0" class="border-b">
-                  <td class="py-2">
-                    <div class="font-medium text-gray-900">Agua</div>
-                  </td>
-                  <td class="text-right py-2 font-semibold">S/. {{ quotaData.water_amount }}</td>
-                </tr>
-                <!-- Cargo extra -->
-                <tr v-if="quotaData.extra_amount > 0" class="border-b">
-                  <td class="py-2">
-                    <div class="font-medium text-orange-700">Cargo extra</div>
-                    <div class="text-xs text-gray-500">Cobro especial a este departamento</div>
-                  </td>
-                  <td class="text-right py-2 font-semibold text-orange-700">S/. {{ quotaData.extra_amount }}</td>
-                </tr>
-                <!-- Total -->
-                <tr class="font-bold">
-                  <td class="py-3 text-gray-900">Total a pagar</td>
-                  <td class="text-right py-3 text-primary text-lg">S/. {{ quotaData.amount }}</td>
-                </tr>
-              </tbody>
-            </table>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">
+              {{ hasConsolidation ? 'Desglose consolidado' : 'Desglose de la cuota' }}
+            </h3>
+
+            <!-- Mantenimiento -->
+            <div class="mb-4">
+              <h4 class="text-sm font-bold text-gray-700 mb-2">Mantenimiento</h4>
+              <div v-if="maintenanceBreakdown" class="text-xs text-gray-400 mb-2">
+                Presupuesto total: S/. {{ maintenanceBreakdown.maintenance_budget_total }}
+              </div>
+              <div v-for="q in allQuotasForBreakdown" :key="'mnt-' + q.id"
+                class="flex justify-between items-center py-1.5 text-sm border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                  <router-link :to="{ name: 'viewQuota', params: { id: q.id } }"
+                    class="text-blue-600 hover:underline font-medium" :class="{ 'font-bold': q.isCurrent }">
+                    {{ q.number }}
+                  </router-link>
+                  <span v-if="q.isCurrent"
+                    class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-semibold">
+                    ESTA
+                  </span>
+                </div>
+                <span class="font-medium text-gray-800">S/. {{ q.maintenance_amount.toFixed(2) }}</span>
+              </div>
+              <div v-if="hasConsolidation"
+                class="flex justify-between items-center py-1.5 text-sm font-bold border-t border-gray-300 mt-1">
+                <span class="text-gray-900">Subtotal mantenimiento</span>
+                <span class="text-primary">S/. {{ totalMaintenance.toFixed(2) }}</span>
+              </div>
+            </div>
+
+            <!-- Consumo de agua -->
+            <div v-if="allQuotasForBreakdown.some(q => q.has_water_reading)" class="mb-4">
+              <h4 class="text-sm font-bold text-gray-700 mb-2">Consumo de agua</h4>
+              <div v-for="q in allQuotasForBreakdown.filter(q => q.has_water_reading)" :key="'water-' + q.id"
+                class="flex justify-between items-center py-1.5 text-sm border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                  <router-link :to="{ name: 'viewQuota', params: { id: q.id } }"
+                    class="text-blue-600 hover:underline font-medium" :class="{ 'font-bold': q.isCurrent }">
+                    {{ q.number }}
+                  </router-link>
+                  <span v-if="q.waterReading" class="text-xs text-gray-500">
+                    {{ q.waterReading.previous_reading }} → {{ q.waterReading.current_reading }} m³
+                  </span>
+                </div>
+                <router-link :to="{ name: 'quotaWaterDetailClient', params: { id: q.id } }"
+                  class="text-blue-600 hover:underline font-medium">
+                  S/. {{ q.water_amount.toFixed(2) }}
+                </router-link>
+              </div>
+              <div v-if="hasConsolidation"
+                class="flex justify-between items-center py-1.5 text-sm font-bold border-t border-gray-300 mt-1">
+                <span class="text-gray-900">Subtotal agua</span>
+                <span class="text-primary">S/. {{ totalWater.toFixed(2) }}</span>
+              </div>
+            </div>
+
+            <!-- Agua sin lectura (only for current quota if no consolidated) -->
+            <div v-else-if="quotaData.water_amount > 0" class="mb-4">
+              <h4 class="text-sm font-bold text-gray-700 mb-2">Agua</h4>
+              <div class="flex justify-between items-center py-1.5 text-sm border-b border-gray-100">
+                <span class="font-medium text-gray-800">Sin lectura individual</span>
+                <span class="font-medium text-gray-800">S/. {{ quotaData.water_amount.toFixed(2) }}</span>
+              </div>
+            </div>
+
+            <!-- Cargos extras -->
+            <div v-if="allQuotasForBreakdown.some(q => q.extra_amount > 0)" class="mb-4">
+              <h4 class="text-sm font-bold text-gray-700 mb-2">Cargos extras</h4>
+              <div v-for="q in allQuotasForBreakdown.filter(q => q.extra_amount > 0)" :key="'extra-' + q.id"
+                class="flex justify-between items-center py-1.5 text-sm border-b border-gray-100">
+                <router-link :to="{ name: 'viewQuota', params: { id: q.id } }"
+                  class="text-blue-600 hover:underline font-medium">
+                  {{ q.number }}
+                </router-link>
+                <span class="font-medium text-orange-700">S/. {{ q.extra_amount.toFixed(2) }}</span>
+              </div>
+              <div v-if="hasConsolidation"
+                class="flex justify-between items-center py-1.5 text-sm font-bold border-t border-gray-300 mt-1">
+                <span class="text-gray-900">Subtotal extras</span>
+                <span class="text-orange-700">S/. {{ totalExtras.toFixed(2) }}</span>
+              </div>
+            </div>
+
+            <!-- Total -->
+            <div v-if="hasConsolidation"
+              class="flex justify-between items-center py-3 text-base font-bold border-t-2 border-gray-200">
+              <span class="text-gray-900">Total consolidado</span>
+              <span class="text-primary text-lg">S/. {{ quotaData.amount }}</span>
+            </div>
           </div>
 
           <!-- Datos del pago -->
-          <div v-if="(quotaData.pays?.length ?? 0) > 0" class="w-full md:p-5 px-4 pt-5 mb-5" style="border-top: 1px solid lightgray;">
+          <div v-if="payData" class="w-full md:p-5 px-4 pt-5 mb-5" style="border-top: 1px solid lightgray;">
             <h3 class="text-lg font-bold text-gray-900 mb-4">Datos del pago</h3>
             <div class="space-y-3">
               <div class="flex justify-between items-center pb-2"
@@ -234,12 +315,22 @@ const reloadQuota = () => {
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Fecha de pago</span>
-                <span class="text-gray-900 font-semibold">{{ moment(quotaData.pays?.[0]?.pay_date).format('DD/MM/YYYY') ?? '—' }}</span>
+                <span class="text-gray-900 font-semibold">{{ moment(payData.pay_date).format('DD/MM/YYYY') ?? '—' }}</span>
               </div>
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Método de pago</span>
-                <span class="text-gray-900 font-semibold">{{ quotaData.pays?.[0]?.pay_method?.name ?? 'S/N' }}</span>
+                <span class="text-gray-900 font-semibold">{{ payData.pay_method?.name ?? 'S/N' }}</span>
+              </div>
+              <div v-if="payData.credit_applied > 0" class="flex justify-between items-center pb-2"
+                style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+                <span class="text-gray-600 font-medium">Saldo a favor aplicado</span>
+                <span class="font-semibold text-green-600">S/. {{ Number(payData.credit_applied).toFixed(2) }}</span>
+              </div>
+              <div v-if="hasConsolidation" class="flex justify-between items-center pb-2"
+                style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+                <span class="text-gray-600 font-medium">Cuotas consolidadas</span>
+                <span class="text-gray-900 font-semibold">{{ allQuotasForBreakdown.length }} cuotas</span>
               </div>
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
@@ -249,7 +340,7 @@ const reloadQuota = () => {
               <div class="flex justify-between items-center pb-2"
                 style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
                 <span class="text-gray-600 font-medium">Nro. de operación</span>
-                <span class="text-gray-900 font-semibold">#{{ quotaData.pays?.[0]?.reference ?? '—' }}</span>
+                <span class="text-gray-900 font-semibold">#{{ payData.reference ?? '—' }}</span>
               </div>
             </div>
             <div class="flex flex-center mt-4" @click="showVoucherModal = true">
@@ -272,8 +363,8 @@ const reloadQuota = () => {
             </button>
           </div>
         </div>
-        <template v-if="(quotaData.pays?.length ?? 0) > 0">
-          <voucherModal :vaucher="quotaData.pays?.[0]?.vaucher"  :dialog="showVoucherModal"  @closeModal="showVoucherModal = false"/>
+        <template v-if="payData">
+          <voucherModal :vaucher="payData.vaucher" :dialog="showVoucherModal" @closeModal="showVoucherModal = false" />
         </template>
 
       </div>

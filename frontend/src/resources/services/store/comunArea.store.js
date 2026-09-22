@@ -155,6 +155,48 @@ export const useComunAreaStore = defineStore('ComunArea', {
         });
         
       })
+    },
+    async getBlockedDates(areaId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.get(`/api/comun-area/${areaId}/blocked-dates`)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener fechas bloqueadas');
+          });
+      })
+    },
+    async storeBlockedDates(areaId, dates) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.post(`/api/comun-area/${areaId}/blocked-dates`, { dates })
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al guardar fechas bloqueadas');
+          });
+      })
+    },
+    async deleteBlockedDate(areaId, date) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.delete(`/api/comun-area/${areaId}/blocked-dates`, { data: { date } })
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al eliminar fecha bloqueada');
+          });
+      })
     }
     
   },

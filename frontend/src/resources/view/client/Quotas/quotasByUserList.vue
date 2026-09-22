@@ -56,27 +56,30 @@ const fetchCreditBalances = async () => {
       deptIds.add(q.departament.id);
     }
   });
-  for (const deptId of deptIds) {
-    try {
-      const res = await payStore.getCreditBalance(deptId);
-      if (res?.code === 200 && res.data?.balance > 0) {
-        creditBalances.value[deptId] = res.data.balance;
-      }
-    } catch {}
-  }
+  if (deptIds.size === 0) return;
+  try {
+    const res = await payStore.getCreditBalanceForDepartments([...deptIds]);
+    if (res?.code === 200 && res.data?.detail) {
+      creditBalances.value = res.data.detail;
+    }
+  } catch {}
 }
 
 const getCreditForQuota = (quota) => {
-  const maxMonth = Math.max(...quotas.value.map(q => q.month));
-  if (quota.month !== maxMonth) return 0;
+  const currentMonth = moment().month() + 1
+  const currentYear = moment().year()
+  if (quota.month !== currentMonth) return 0
 
   if (quota.details) {
-    const balances = quota.details
-      .map(d => creditBalances.value[d.departament?.id] || 0)
-      .filter(b => b > 0);
-    return balances.length > 0 ? Math.min(...balances) : 0;
+    return quota.details
+      .reduce((sum, d) => sum + (creditBalances.value[d.departament?.id] || 0), 0);
   }
   return creditBalances.value[quota.departament?.id] || 0;
+}
+
+const quotaAmountAfterCredit = (quota) => {
+  const credit = getCreditForQuota(quota);
+  return Math.max(0, Number(quota.amount) - credit);
 }
 
 const goTo = (quota) => {
@@ -181,16 +184,22 @@ onMounted(() => {
 
               <div class="space-y-2 pt-3">
                 <div class="row items-center ">
-                  <div class="flex items-center text-sm text-gray-700 col-5 col-md-4 ">
+                  <div class="flex items-center text-sm text-gray-700 col-5 col-md-4">
                     <svg class="w-5 h-5 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
                       </path>
                     </svg>
-                    <span class="font-medium text-base">S/. {{ Number(quota.amount).toFixed(2) }}</span>
+                    <div class="flex">
+                      <span class="font-medium text-base flex items-center" >
+                        <div v-if="getCreditForQuota(quota) > 0" class="text-sm text-gray-400 line-through mr-2">
+                          S/. {{ Number(quota.amount).toFixed(2) }}
+                        </div>
+                       S/. {{ quotaAmountAfterCredit(quota).toFixed(2) }}
+                      </span>
+                    </div>
                   </div>
-                  <div class="flex items-cente
-                  r text-sm text-gray-700 col-7 col-md-8 justify-end md:justify-start">
+                  <div class="flex items-center text-sm text-gray-700 col-7 col-md-8 justify-end md:justify-start">
                     <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
@@ -213,7 +222,10 @@ onMounted(() => {
               <div class="flex justify-center items-center">
                 <div class="flex items-center">
                   <q-icon :name="getStatusInfo(quota.status).icon" color="white" size="1.5rem" />
-                  <span class="ml-1 text-sm font-medium text-white">{{ getStatusInfo(quota.status).label }}</span>
+                  <span class="ml-1 text-sm font-medium text-white mr-2">{{ getStatusInfo(quota.status).label }}</span>
+                    <span  class="font-medium text-base text-white">
+                      S/. {{ quotaAmountAfterCredit(quota).toFixed(2) }}
+                    </span>
                 </div>
               </div>
             </div>

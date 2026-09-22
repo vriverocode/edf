@@ -87,9 +87,14 @@ const maintenanceAmount = computed(() => safeAmount(toPay.value?.maintenance_amo
 const waterAmount = computed(() => safeAmount(toPay.value?.water_amount))
 const waterConsumptionM3 = computed(() => safeAmount(toPay.value?.water_reading?.consumption))
 const waterPricePerM3 = computed(() => safeAmount(toPay.value?.water_reading?.m3_price))
-const maintenanceParticipation = computed(() => safeAmount(
-  toPay.value?.maintenance_participation_percentage ?? toPay.value?.departament?.participation_percentage
-))
+const maintenanceParticipation = computed(() => {
+  if (Array.isArray(toPay.value?.breakdown) && toPay.value.breakdown.length > 0) {
+    return toPay.value.breakdown.reduce((sum, item) => sum + safeAmount(item.participation), 0)
+  }
+  return safeAmount(
+    toPay.value?.maintenance_participation_percentage ?? toPay.value?.departament?.participation_percentage
+  )
+})
 const maintenanceBudget = computed(() => safeAmount(toPay.value?.maintenance_budget_total))
 const waterDetailsLink = computed(() => (
   toPay.value?.id ? `/client/quota/water-detail/${toPay.value.id}` : null
@@ -98,11 +103,13 @@ const maintenanceDetailsLink = computed(() => (
   toPay.value?.id ? `/client/quota/details/month/${toPay.value.month}` : null
 ))
 const quotaBreakdown = computed(() => {
+  console.log(toPay.value)
   const rows = Array.isArray(toPay.value?.breakdown) ? toPay.value.breakdown : []
   return rows.map((item) => {
     const info = getUnitInfo(Number(item?.unit_type ?? 1))
     return {
       quotaId: item?.id ?? '-',
+      unit_number: item?.unit_number ?? '-',
       unitLabel: `${info.name} ${item?.unit_number ?? '-'}`,
       participation: safeAmount(item?.participation),
       waterM3: safeAmount(item?.water_consumption_m3),
@@ -240,7 +247,7 @@ const fetchAllQuotasByIds = async (ids) => {
     const totalAmount = quotas.reduce((sum, q) => sum + Number(q.amount || 0), 0)
     const totalMaintenance = quotas.reduce((sum, q) => sum + Number(q.maintenance_amount || 0), 0)
     const totalWater = quotas.reduce((sum, q) => sum + Number(q.water_amount || 0), 0)
-    const totalBudget = quotas.reduce((sum, q) => sum + Number(q.maintenance_budget_total || 0), 0)
+    const totalBudget = Number(quotas[0]?.maintenance_budget_total || 0)
 
     const breakdown = quotas.map(q => ({
       ...q,
@@ -462,53 +469,64 @@ watch(step, (toStep, fromStep) => {
                   <div class="pay-form-title">PAGAR</div>
                   <p class="pay-form-subtitle">{{ paymentSubtitle }}</p>
                 </div>
-
-                <div class="pay-form-breakdown mt-3" v-if="isQuotaPayment">
-                  <div class="pb-1">
-                    <div class="pay-form-breakdown__detail">
-                      <span>Consumo:</span>
-                      <span>{{ waterConsumptionM3.toFixed(2) }} m3</span>
+                <div class="pt-1" v-if="quotaBreakdown.length">
+                  <div v-for="item in quotaBreakdown" :key="`quota-breakdown-inline-${item.quotaId}`"
+                    class="py-2 mt-2" style="border-bottom: 1px solid #e5e7eb;">
+                    <div class="flex justify-center w-full pb-1 ">
+                      <div class="text-bold text-subtitle1">{{ item.unitLabel }}</div>
                     </div>
                     <div class="pay-form-breakdown__detail">
-                      <span>Precio del m3:</span>
-                      <span> {{ amountPrefix }} {{ waterPricePerM3.toFixed(2) }}</span>
+                      <span>% Participación:</span>
+                      <span>{{ item.participation.toFixed(3) }} %</span>
                     </div>
-                    <div class="pay-form-breakdown__row mt-2" @click="goTo(waterDetailsLink)"
-                      style="text-decoration:underline">
-                      <span>Agua</span>
-                      <span>{{ amountPrefix }} {{ waterAmount.toFixed(2) }}</span>
+                    <div class="pay-form-breakdown__detail">
+                      <span>Presupuesto :</span>
+                      <span>{{ amountPrefix }} {{maintenanceBudget.toFixed(2) }}</span>
                     </div>
-                  </div>
-
-                  <div class="pt-1" v-if="quotaBreakdown.length">
-                    <div v-for="item in quotaBreakdown" :key="`quota-breakdown-inline-${item.quotaId}`"
-                      class="py-2 mt-2" style="border-bottom: 1px solid #e5e7eb;">
-                      <div class="flex justify-center w-full pb-1 ">
-                        <div class="text-bold text-subtitle1">{{ item.unitLabel }}</div>
-                      </div>
-                      <div class="pay-form-breakdown__detail">
-                        <span>% Participación:</span>
-                        <span>{{ item.participation.toFixed(2) }} %</span>
-                      </div>
-                      <div class="pay-form-breakdown__detail mt-1">
-                        <span>Monto</span>
-                        <span>{{ amountPrefix }} {{ item.maintenanceAmount.toFixed(2) }}</span>
-                      </div>
-                      <div v-if="item.department_charges?.length" class="mt-2 pl-2">
-                        <div v-for="charge in item.department_charges" :key="'bcharge-' + charge.id"
-                          class="py-1" style="border-bottom: 1px dashed #e5e7eb;">
-                          <div class="pay-form-breakdown__detail">
-                            <span class="text-caption text-grey-7">{{ charge.description || charge.expense?.name || 'Recargo' }}</span>
-                            <span class="text-caption text-bold">{{ amountPrefix }} {{ Number(charge.monthly_amount).toFixed(2) }}</span>
-                          </div>
-                          <div class="pay-form-breakdown__detail">
-                            <span class="text-caption text-grey-6">Cuota {{ charge.pivot?.installment_number }}/{{ charge.installments }}</span>
-                          </div>
+                    <div class="pay-form-breakdown__detail mt-1 pt-3" style="border-top: 1px solid #e5e7eb;">
+                      <span>Monto</span>
+                      <span>{{ amountPrefix }} {{ item.maintenanceAmount.toFixed(2) }}</span>
+                    </div>
+                    <div v-if="item.department_charges?.length" class="mt-2 pl-2">
+                      <div v-for="charge in item.department_charges" :key="'bcharge-' + charge.id"
+                        class="py-1" style="border-bottom: 1px dashed #e5e7eb;">
+                        <div class="pay-form-breakdown__detail">
+                          <span class="text-caption text-grey-7">{{ charge.description || charge.expense?.name || 'Recargo' }}</span>
+                          <span class="text-caption text-bold">{{ amountPrefix }} {{ Number(charge.monthly_amount).toFixed(2) }}</span>
+                        </div>
+                        <div class="pay-form-breakdown__detail">
+                          <span class="text-caption text-grey-6">Cuota {{ charge.pivot?.installment_number }}/{{ charge.installments }}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-
+                  <div class="pb-1 pt-2"  >
+                    <div class="text-subtitle1 text-black text-bold mb-2 text-center py-2">
+                      Lecturas de agua
+                    </div>
+                    <template  v-for="item in quotaBreakdown" :key="`water-breakdown-inline-${item.quotaId}`">
+                      <div>
+                        <div class="pay-form-breakdown__detail font-bold text-black text-center w-full" style="text-transform: uppercase; justify-content: center;">
+                          {{ item.unitLabel }}
+                        </div>
+                        <div class="pay-form-breakdown__detail" @click="goTo(waterDetailsLink)" style="text-decoration:underline">
+                          <span>Consumo:</span>
+                          <span>{{ waterConsumptionM3.toFixed(2) }} m3</span>
+                        </div>
+                        <div class="pay-form-breakdown__detail">
+                          <span>Precio del m3:</span>
+                          <span> {{ amountPrefix }} {{ waterPricePerM3.toFixed(2) }}</span>
+                        </div>
+                        <div class="pay-form-breakdown__detail mt-1 pt-3" style="border-top: 1px solid #e5e7eb;" 
+                          >
+                          <span>Monto</span>
+                          <span>{{ amountPrefix }} {{ waterAmount.toFixed(2) }}</span>
+                        </div>
+                      </div>
+                      </template>
+                  </div>
+                </div>
+                <div class="pay-form-breakdown mt-3" v-if="isQuotaPayment">
                   <div v-if="toPay.department_charges?.length" class="pt-3">
                     <div class="text-subtitle2 text-grey-8 mb-2">Recargos asignados</div>
                     <div v-for="charge in toPay.department_charges" :key="'charge-' + charge.id"
@@ -524,32 +542,37 @@ watch(step, (toStep, fromStep) => {
                     </div>
                   </div>
 
-                  <div class="pt-4">
+                  <div class="pt-0">
                     <div class="text-h6 text-bold pb-2">
                       Total:
                     </div>
                     <div class="pay-form-breakdown__detail">
-                      <span>% Participación:</span>
+                      <span>Total Participación:</span>
                       <span>{{ maintenanceParticipation.toFixed(2) }} %</span>
                     </div>
                     <div class="pay-form-breakdown__detail">
-                      <span>Total mantenimiento {{ toPay.month_label }}:</span>
+                      <span>Mantenimiento {{ toPay.month_label }}:</span>
                       <span>{{ amountPrefix }} {{ maintenanceBudget.toFixed(2) }}</span>
+                    </div>
+                    <div class="pay-form-breakdown__row2 mt-2" @click="goTo(maintenanceDetailsLink)"
+                      style="text-decoration:underline">
+                      <span>Total mantenimiento:</span>
+                      <span>{{ amountPrefix }} {{ maintenanceAmount.toFixed(2) }}</span>
                     </div>
                     <div class="pay-form-breakdown__row mt-2" @click="goTo(maintenanceDetailsLink)"
                       style="text-decoration:underline">
-                      <span>Mantenimiento</span>
-                      <span>{{ amountPrefix }} {{ maintenanceAmount.toFixed(2) }}</span>
+                      <span>Total lectura de agua:</span>
+                      <span>{{ amountPrefix }} {{ waterAmount.toFixed(2) }}</span>
                     </div>
                   </div>
                 </div>
 
-                <div v-if="hasCredit" class="mt-3 px-3 py-2 rounded-lg" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                <div  v-if="hasCredit" class="mt-3 px-3 py-2 rounded-lg" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
                   <div class="flex justify-between items-center text-sm mb-1">
                     <span class="text-gray-600">Cuota mensual</span>
                     <span class="text-gray-900">{{ amountPrefix }} {{ Number(toPay.amount).toFixed(2) }}</span>
                   </div>
-                  <div class="flex justify-between items-center text-sm" style="color: #16a34a;">
+                  <div  class="flex justify-between items-center text-sm" style="color: #16a34a;">
                     <span class="flex items-center gap-1">
                       <q-icon name="eva-checkmark-circle-2-outline" size="1rem" />
                       Saldo a favor
@@ -942,7 +965,7 @@ watch(step, (toStep, fromStep) => {
   padding: 0.8rem 1rem;
 }
 
-.pay-form-breakdown__row {
+.pay-form-breakdown__row, .pay-form-breakdown__row2 {
   display: flex;
   justify-content: space-between;
   align-items: center;

@@ -321,6 +321,17 @@ const daysAvailableForBook = (date) => {
 
   if (!isFutureOrToday) return false;
 
+  // Verificar fechas bloqueadas (feriados)
+  if (selectedComunArea.value?.not_available_days) {
+    try {
+      const blocked = typeof selectedComunArea.value.not_available_days === 'string'
+        ? JSON.parse(selectedComunArea.value.not_available_days)
+        : selectedComunArea.value.not_available_days
+      const dateFormatted = moment(date, 'YYYY/MM/DD').format('YYYY-MM-DD')
+      if (blocked.includes(dateFormatted)) return false
+    } catch {}
+  }
+
   // Para el área "Lounge", máximo 30 días de anticipación
   const isLounge = selectedComunArea.value?.name?.toLowerCase().includes('lounge');
   if (isLounge) {
