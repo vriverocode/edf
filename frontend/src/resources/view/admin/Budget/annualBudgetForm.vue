@@ -176,7 +176,7 @@ const submit = async () => {
       message: isEdit.value ? 'Presupuesto actualizado correctamente' : 'Presupuesto creado correctamente',
       timeout: 2000,
     })
-    router.push('/admin/budget/annual')
+    router.go(-1)
   } catch (err) {
     const apiError = err?.error || err?.message || 'No se pudo guardar el presupuesto'
     Notify.create({ color: 'negative', message: apiError, timeout: 2000 })
@@ -308,7 +308,7 @@ onMounted(fetchBudget)
                     @update:model-value="(val) => updateAmount(expense, val)"
                     dense
                     class="form__inputsRx"
-                    mask="#.###.###,##"
+                    mask="###.###.###,##"
                     reverse-fill-mask
                     inputmode="decimal"
                     :disable="!isSelected(expense)"

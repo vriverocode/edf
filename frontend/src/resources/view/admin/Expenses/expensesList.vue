@@ -128,7 +128,7 @@ const fetchExpenses = async () => {
     })
     if (response?.code !== 200) throw response
 
-    const pagination = response.data?.pagination || {}
+    const pagination = response.data || {}
     expenses.value = pagination.data || []
     lastPage.value = pagination.last_page || 1
     ready.value = true
