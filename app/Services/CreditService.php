@@ -98,10 +98,25 @@ class CreditService
         return $appliedAmount;
     }
 
+    public function wasAppliedToPay(Pay $pay): bool
+    {
+        return CreditTransaction::query()
+            ->where('pay_id', $pay->id)
+            ->where('type', CreditTransaction::TYPE_APPLIED)
+            ->exists();
+    }
+
     public function applyCreditToConsolidated(array $deptQuotas, float $creditToApply, Pay $pay): float
     {
         if ($creditToApply <= 0 || empty($deptQuotas)) {
             return 0.0;
+        }
+
+        if ($this->wasAppliedToPay($pay)) {
+            return round((float) CreditTransaction::query()
+                ->where('pay_id', $pay->id)
+                ->where('type', CreditTransaction::TYPE_APPLIED)
+                ->sum('amount'), 2);
         }
 
         $totalApplied = 0.0;
@@ -117,7 +132,9 @@ class CreditService
                 continue;
             }
 
-            $creditBalance = CreditBalance::where('departament_id', $deptId)->first();
+            $creditBalance = CreditBalance::where('departament_id', $deptId)
+                ->lockForUpdate()
+                ->first();
             if (! $creditBalance || (float) $creditBalance->balance <= 0) {
                 continue;
             }

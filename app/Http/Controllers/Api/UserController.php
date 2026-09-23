@@ -517,6 +517,51 @@ class UserController extends Controller
             ->whereIn('rol_id', [Rol::PROPIETARIO, Rol::FAMILIAR, Rol::AIRBNB, Rol::INQUILINO])
             ->get();
 
+        $userIds = $users->pluck('id');
+
+        $ownedByUser = Departament::with('owner:id,name')
+            ->whereIn('user_id', $userIds)
+            ->get()
+            ->groupBy('user_id');
+
+        $tenantPivots = PeoplesXDepartaments::with('departament.owner:id,name')
+            ->whereIn('user_id', $userIds)
+            ->where('type', Rol::INQUILINO)
+            ->get()
+            ->groupBy('user_id');
+
+        $users->each(function (User $user) use ($ownedByUser, $tenantPivots) {
+            $owned = ($ownedByUser->get($user->id) ?? collect())->map(fn (Departament $d) => [
+                'id' => $d->id,
+                'number' => $d->number,
+                'inter_number' => $d->inter_number,
+                'type' => $d->type,
+                'type_label' => $d->type_label,
+                'block' => $d->block,
+                'relation' => 'owner',
+            ]);
+
+            $tenanted = ($tenantPivots->get($user->id) ?? collect())
+                ->map(fn (PeoplesXDepartaments $p) => $p->departament)
+                ->filter()
+                ->map(fn (Departament $d) => [
+                    'id' => $d->id,
+                    'number' => $d->number,
+                    'inter_number' => $d->inter_number,
+                    'type' => $d->type,
+                    'type_label' => $d->type_label,
+                    'block' => $d->block,
+                    'relation' => 'tenant',
+                ]);
+
+            $units = $owned->values()
+                ->concat($tenanted->values())
+                ->unique('id')
+                ->values();
+
+            $user->setAttribute('units', $units);
+        });
+
         return $this->returnSuccess(200, $users);
     }
 

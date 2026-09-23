@@ -154,7 +154,7 @@ onMounted(() => {
                   @click="openBlockDates(comunArea.id)">
                   <q-tooltip transition-show="flip-right" transition-hide="flip-left"
                     :class="'bg-black text-body2 px-2'">
-                    Bloquear días feriados
+                    Bloquear fechas recurrentes
                   </q-tooltip>
                 </q-btn>
               </div>
@@ -226,8 +226,7 @@ onMounted(() => {
         @updateList="hideStatusModal(); getComunArea()" />
     </template>
     <template v-if="Object.values(blockDatesArea).length > 0">
-      <blockDatesModal v-model="blockDatesDialog" :comunArea="blockDatesArea" @closeModal="hideBlockDatesModal()"
-        @updated="getComunArea()" />
+      <blockDatesModal v-model="blockDatesDialog" :comunArea="blockDatesArea" @closeModal="hideBlockDatesModal()" />
     </template>
   </div>
 </template>

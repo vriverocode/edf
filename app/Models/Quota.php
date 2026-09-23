@@ -77,6 +77,28 @@ class Quota extends Model
             ->where('year', $year);
     }
 
+    public static function areCurrentCalendarMonth(Collection $quotas): bool
+    {
+        if ($quotas->isEmpty()) {
+            return false;
+        }
+
+        $now = Carbon::now();
+
+        return $quotas->every(function ($quota) use ($now) {
+            if ((int) $quota->month !== (int) $now->month) {
+                return false;
+            }
+
+            $year = $quota->year;
+            if ($year !== null && $year !== '' && (int) $year !== (int) $now->year) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
     public static function baseAdminQuery(): Builder
     {
         return static::query()
@@ -257,6 +279,14 @@ class Quota extends Model
                     ->unique()
                     ->values();
 
+                $typeOneDetail = collect($details)->first(
+                    fn ($d) => (int) ($d['departament']['type'] ?? 0) === 1
+                );
+                $hasTypeOne = $typeOneDetail !== null;
+                $sortInterNumber = (int) ($typeOneDetail['departament']['inter_number']
+                    ?? $firstQuota->departament->inter_number
+                    ?? 0);
+
                 return [
                     'id' => 'group-'.$group->pluck('id')->join('-'),
                     'month' => $firstQuota->month,
@@ -267,7 +297,8 @@ class Quota extends Model
                     'owner_name' => $owner ? $owner->name : 'Desconocido',
                     'owner_id' => $owner?->id,
                     'departament_number' => $detailNumbers->isNotEmpty() ? $detailNumbers->implode(' - ') : ($firstQuota->departament->number ?? ''),
-                    'departament_inter_number' => $firstQuota->departament->inter_number ?? 0,
+                    'departament_inter_number' => $sortInterNumber,
+                    'has_type_one' => $hasTypeOne,
                     'maintenance_amount' => $group->sum('maintenance_amount'),
                     'water_amount' => $group->sum('water_amount'),
                     'amount' => $group->sum('amount'),
@@ -279,8 +310,13 @@ class Quota extends Model
                     'details' => $details,
                 ];
             })
-            ->sortBy(function ($group) {
-                return $group['departament_inter_number'] ?? 0;
+            ->sort(function ($a, $b) {
+                $hasTypeOne = ((bool) ($b['has_type_one'] ?? false)) <=> ((bool) ($a['has_type_one'] ?? false));
+                if ($hasTypeOne !== 0) {
+                    return $hasTypeOne;
+                }
+
+                return ((int) ($a['departament_inter_number'] ?? 0)) <=> ((int) ($b['departament_inter_number'] ?? 0));
             })
             ->values();
     }

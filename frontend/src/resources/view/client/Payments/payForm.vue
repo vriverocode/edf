@@ -65,13 +65,34 @@ const notificationsStore = useNotificationsStore()
 const payMethods = ref([])
 const creditBalance = ref(0)
 
+const isEligibleMonth = computed(() => {
+  if (!isQuotaPayment.value) return false
+  const now = moment()
+  const rows =
+    Array.isArray(toPay.value?.breakdown) && toPay.value.breakdown.length
+      ? toPay.value.breakdown
+      : [toPay.value]
+
+  return rows.every((item) => {
+    if (!item || item.month == null || item.month === '') return false
+    if (Number(item.month) !== Number(now.month()) + 1) return false
+    if (item.year != null && item.year !== '' && Number(item.year) !== Number(now.year())) {
+      return false
+    }
+    return true
+  })
+})
+
 const amountToPay = computed(() => {
   const total = Number(toPay.value?.amount || 0)
   if (!isQuotaPayment.value) return total
+  if (!hasCredit.value) return total
   return Math.max(0, total - creditBalance.value)
 })
 
-const hasCredit = computed(() => isQuotaPayment.value && creditBalance.value > 0)
+const hasCredit = computed(
+  () => isQuotaPayment.value && isEligibleMonth.value && creditBalance.value > 0
+)
 
 const paymentSubtitle = computed(() => {
   if (!toPay.value || !Object.keys(toPay.value).length) return ''
@@ -276,7 +297,10 @@ const fetchAllQuotasByIds = async (ids) => {
 }
 
 const fetchCreditBalance = async () => {
-  if (!isQuotaPayment.value) return
+  if (!isQuotaPayment.value || !isEligibleMonth.value) {
+    creditBalance.value = 0
+    return
+  }
   try {
     const deptIds = []
     if (toPay.value.breakdown && toPay.value.breakdown.length) {
@@ -286,12 +310,17 @@ const fetchCreditBalance = async () => {
     } else if (toPay.value.departament_id) {
       deptIds.push(toPay.value.departament_id)
     }
-    if (deptIds.length === 0) return
+    if (deptIds.length === 0) {
+      creditBalance.value = 0
+      return
+    }
 
     const uniqueIds = [...new Set(deptIds)]
     const res = await payStore.getCreditBalanceForDepartments(uniqueIds)
     if (res?.code === 200) {
       creditBalance.value = res.data.total || 0
+    } else {
+      creditBalance.value = 0
     }
   } catch {
     creditBalance.value = 0
@@ -505,19 +534,19 @@ watch(step, (toStep, fromStep) => {
                       Lecturas de agua
                     </div>
                     <template  v-for="item in quotaBreakdown" :key="`water-breakdown-inline-${item.quotaId}`">
-                      <div>
-                        <div class="pay-form-breakdown__detail font-bold text-black text-center w-full" style="text-transform: uppercase; justify-content: center;">
+                      <div v-if="item.waterAmount > 0">
+                        <div class="pay-form-breakdown__detail font-bold text-black text-center w-full pb-2" style="text-transform: uppercase; justify-content: center;">
                           {{ item.unitLabel }}
                         </div>
                         <div class="pay-form-breakdown__detail" @click="goTo(waterDetailsLink)" style="text-decoration:underline">
                           <span>Consumo:</span>
-                          <span>{{ waterConsumptionM3.toFixed(2) }} m3</span>
+                          <span>{{ item.waterAmount }} m3</span>
                         </div>
                         <div class="pay-form-breakdown__detail">
                           <span>Precio del m3:</span>
                           <span> {{ amountPrefix }} {{ waterPricePerM3.toFixed(2) }}</span>
                         </div>
-                        <div class="pay-form-breakdown__detail mt-1 pt-3" style="border-top: 1px solid #e5e7eb;" 
+                        <div class="pay-form-breakdown__detail mt-1 py-3" style="border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;" 
                           >
                           <span>Monto</span>
                           <span>{{ amountPrefix }} {{ waterAmount.toFixed(2) }}</span>

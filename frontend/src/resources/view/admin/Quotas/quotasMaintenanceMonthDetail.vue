@@ -38,6 +38,31 @@ const pageTitle = computed(() => {
   return label ? `Mensualidad: ${label} ${year.value}` : `Cuotas del mes`;
 });
 
+const getDeptSortMeta = (quota) => {
+  const details = Array.isArray(quota?.details) ? quota.details : [];
+  const typeOne = details.find((item) => Number(item?.departament?.type) === 1);
+  if (typeOne) {
+    return {
+      hasTypeOne: true,
+      interNumber: Number(typeOne.departament?.inter_number ?? 0),
+    };
+  }
+  return {
+    hasTypeOne: false,
+    interNumber: Number(quota?.departament_inter_number ?? 0),
+  };
+};
+
+const sortByDeptInterNumber = (list) =>
+  [...list].sort((a, b) => {
+    const metaA = getDeptSortMeta(a);
+    const metaB = getDeptSortMeta(b);
+    if (metaA.hasTypeOne !== metaB.hasTypeOne) {
+      return metaA.hasTypeOne ? -1 : 1;
+    }
+    return metaA.interNumber - metaB.interNumber;
+  });
+
 const getQuotas = () => {
   loading.value = true;
   const filters = { year: year.value };
@@ -55,7 +80,7 @@ const getQuotas = () => {
     .getAdminGroupedByOwnerForMonth(month.value, filters)
     .then((response) => {
       if (response.code !== 200) throw response;
-      quotas.value = response.data;
+      quotas.value = sortByDeptInterNumber(response.data || []);
     })
     .catch((response) => {
       console.error(response);

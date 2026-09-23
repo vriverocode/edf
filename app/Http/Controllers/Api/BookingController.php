@@ -94,7 +94,7 @@ class BookingController extends Controller
             $date = date('Y-m-d', strtotime($request->date));
 
             $blockedDates = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
-            if (in_array($date, $blockedDates)) {
+            if ($this->isDateBlocked($date, $blockedDates)) {
                 return $this->returnFail(409, 'Esta fecha está bloqueada para reservas en esta área común.');
             }
 
@@ -260,6 +260,28 @@ class BookingController extends Controller
         $perPage = $request->integer('per_page', 10);
 
         return $this->returnSuccess(200, $bookings->paginate($perPage));
+    }
+
+    private function isDateBlocked(string $date, array $blockedDates): bool
+    {
+        $monthDay = date('m-d', strtotime($date));
+
+        foreach ($blockedDates as $blocked) {
+            $blocked = (string) $blocked;
+            if ($blocked === $date) {
+                return true;
+            }
+
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $blocked) && substr($blocked, 5) === $monthDay) {
+                return true;
+            }
+
+            if (preg_match('/^\d{2}-\d{2}$/', $blocked) && $blocked === $monthDay) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function applyFilter($query, Request $request)
@@ -505,7 +527,7 @@ class BookingController extends Controller
         $isToday = $dateStr === date('Y-m-d');
 
         $blockedDates = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
-        if (in_array($dateStr, $blockedDates)) {
+        if ($this->isDateBlocked($dateStr, $blockedDates)) {
             return $this->returnSuccess(200, [
                 'blocks' => [
                     'ma' => [],

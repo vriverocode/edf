@@ -254,6 +254,19 @@ class ComunAreaController extends Controller
         ]);
     }
 
+    private function normalizeBlockedDate(string $date): string
+    {
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return substr($date, 5);
+        }
+
+        if (preg_match('/^\d{2}-\d{2}$/', $date)) {
+            return $date;
+        }
+
+        return $date;
+    }
+
     public function getBlockedDates($id)
     {
         $area = ComunArea::find($id);
@@ -262,8 +275,10 @@ class ComunAreaController extends Controller
         }
 
         $dates = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
+        $dates = array_values(array_unique(array_map(fn ($d) => $this->normalizeBlockedDate((string) $d), $dates)));
+        sort($dates);
 
-        return $this->returnSuccess(200, array_values($dates));
+        return $this->returnSuccess(200, $dates);
     }
 
     public function storeBlockedDates(Request $request, $id)
@@ -275,7 +290,9 @@ class ComunAreaController extends Controller
 
         $validator = Validator::make($request->all(), [
             'dates' => ['required', 'array'],
-            'dates.*' => ['date_format:Y-m-d'],
+            'dates.*' => ['required', 'regex:/^(\d{4}-\d{2}-\d{2}|\d{2}-\d{2})$/'],
+        ], [
+            'dates.*.regex' => 'The dates.* field must match the format Y-m-d or m-d.',
         ]);
 
         if ($validator->fails()) {
@@ -288,7 +305,9 @@ class ComunAreaController extends Controller
         }
 
         $existing = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
-        $merged = array_unique(array_merge($existing, $request->dates));
+        $existing = array_map(fn ($d) => $this->normalizeBlockedDate((string) $d), $existing);
+        $incoming = array_map(fn ($d) => $this->normalizeBlockedDate((string) $d), $request->dates);
+        $merged = array_values(array_unique(array_merge($existing, $incoming)));
         sort($merged);
 
         $area->update(['not_available_days' => json_encode($merged)]);
@@ -304,7 +323,9 @@ class ComunAreaController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'date' => ['required', 'date_format:Y-m-d'],
+            'date' => ['required', 'regex:/^(\d{4}-\d{2}-\d{2}|\d{2}-\d{2})$/'],
+        ], [
+            'date.regex' => 'The date field must match the format Y-m-d or m-d.',
         ]);
 
         if ($validator->fails()) {
@@ -316,8 +337,11 @@ class ComunAreaController extends Controller
             return $this->returnFail(404, 'Area común no encontrada');
         }
 
+        $toRemove = $this->normalizeBlockedDate($request->date);
         $existing = $area->not_available_days ? json_decode($area->not_available_days, true) : [];
-        $filtered = array_values(array_filter($existing, fn ($d) => $d !== $request->date));
+        $filtered = array_values(array_filter($existing, function ($d) use ($toRemove) {
+            return $this->normalizeBlockedDate((string) $d) !== $toRemove;
+        }));
 
         $area->update(['not_available_days' => empty($filtered) ? null : json_encode($filtered)]);
 

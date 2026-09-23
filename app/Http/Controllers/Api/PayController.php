@@ -235,25 +235,30 @@ class PayController extends Controller
                 $pay->quotas()->sync($quotaIdsForPay);
             }
 
-            // Aplicar crédito (saldo a favor) si el usuario indica
-            $creditApplied = 0.0;
+            // Crédito (saldo a favor): solo mes calendario actual; se consume al aprobar
             if ((int) $request->type === 1 && ! empty($quotaIdsForPay)) {
                 $creditRequested = round((float) $request->input('credit_applied', 0), 2);
                 if ($creditRequested > 0) {
                     $quotasForCredit = Quota::whereIn('id', $quotaIdsForPay)->get();
-                    $deptQuotas = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
 
+                    if (! Quota::areCurrentCalendarMonth($quotasForCredit)) {
+                        DB::rollBack();
+
+                        return $this->returnFail(422, 'El saldo a favor solo aplica para cuotas del mes actual.');
+                    }
+
+                    $deptQuotas = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
                     $creditService = new CreditService;
                     $available = $creditService->getBalanceForDepartments(array_keys($deptQuotas));
-                    $effectiveCredit = min($creditRequested, $available['total']);
 
-                    if ($effectiveCredit > 0) {
-                        $creditApplied = $creditService->applyCreditToConsolidated($deptQuotas, $effectiveCredit, $pay);
+                    if ($creditRequested > round($available['total'], 2) + 0.009) {
+                        DB::rollBack();
+
+                        return $this->returnFail(422, 'El saldo a favor disponible no es suficiente.');
                     }
+
+                    $pay->update(['credit_applied' => $creditRequested]);
                 }
-            }
-            if ($creditApplied > 0) {
-                $pay->update(['credit_applied' => $creditApplied]);
             }
 
             $this->afterPayAction($pay);
@@ -388,6 +393,32 @@ class PayController extends Controller
                     return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'Una o más cuotas del pago consolidado no existen.']);
                 }
 
+                $creditService = new CreditService;
+                $creditRequested = round((float) ($pay->credit_applied ?? 0), 2);
+                $deptQuotasForCredit = [];
+
+                if ($creditRequested > 0) {
+                    $quotasForCredit = Quota::whereIn('id', $quotaIds)->get();
+                    $deptQuotasForCredit = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
+
+                    $creditConsumed = $creditService->applyCreditToConsolidated(
+                        $deptQuotasForCredit,
+                        $creditRequested,
+                        $pay
+                    );
+
+                    if (round($creditConsumed, 2) < $creditRequested) {
+                        DB::rollBack();
+
+                        return $this->returnFail(422, [
+                            'messageType' => 'negative',
+                            'message' => 'El saldo a favor disponible no es suficiente para aprobar este pago.',
+                        ]);
+                    }
+
+                    $pay->update(['credit_applied' => $creditConsumed]);
+                }
+
                 /** En este sistema el estado pagado efectivo es 3 ("Exitoso") */
                 Quota::query()->whereIn('id', $quotaIds)->update(['status' => 3]);
 
@@ -396,7 +427,6 @@ class PayController extends Controller
                 $shouldSendInvoice = true;
 
                 // Detectar sobrepago y crear crédito
-                $creditService = new CreditService;
                 $actualAmount = $request->has('actual_amount') ? round((float) $request->actual_amount, 2) : null;
                 $payAmount = round((float) $pay->amount, 2);
 
@@ -405,14 +435,13 @@ class PayController extends Controller
                     $firstQuota = Quota::with('departament')->find($quotaIds[0]);
                     if ($firstQuota && $creditAmount > 0) {
                         $creditService->createCredit($firstQuota->departament, $creditAmount, $pay);
-                        $pay->update(['overpayment_amount' => $actualAmount, 'credit_applied' => true]);
+                        $pay->update(['overpayment_amount' => $actualAmount]);
                     }
                 } elseif ($pay->overpayment_amount && (float) $pay->overpayment_amount > $payAmount) {
                     $creditAmount = round((float) $pay->overpayment_amount - $payAmount, 2);
                     $firstQuota = Quota::with('departament')->find($quotaIds[0]);
                     if ($firstQuota && $creditAmount > 0) {
                         $creditService->createCredit($firstQuota->departament, $creditAmount, $pay);
-                        $pay->update(['credit_applied' => true]);
                     }
                 }
             } elseif ((int) $pay->type === 2 && $pay->booking_id) {

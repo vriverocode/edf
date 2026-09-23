@@ -72,10 +72,11 @@ const ApiService = {
   /**
    * Send the DELETE HTTP request
    * @param resource
+   * @param config optional axios config (e.g. { data: { ... } })
    * @returns {*}
    */
-  delete(resource) {
-    return axios.delete(resource);
+  delete(resource, config = {}) {
+    return axios.delete(resource, config);
   }
 };
 

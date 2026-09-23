@@ -321,14 +321,21 @@ const daysAvailableForBook = (date) => {
 
   if (!isFutureOrToday) return false;
 
-  // Verificar fechas bloqueadas (feriados)
+  // Verificar fechas bloqueadas (recurrentes por día-mes, todos los años)
   if (selectedComunArea.value?.not_available_days) {
     try {
       const blocked = typeof selectedComunArea.value.not_available_days === 'string'
         ? JSON.parse(selectedComunArea.value.not_available_days)
         : selectedComunArea.value.not_available_days
       const dateFormatted = moment(date, 'YYYY/MM/DD').format('YYYY-MM-DD')
-      if (blocked.includes(dateFormatted)) return false
+      const monthDay = moment(date, 'YYYY/MM/DD').format('MM-DD')
+      const toMonthDay = (value) => {
+        const raw = String(value || '')
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.slice(5)
+        if (/^\d{2}-\d{2}$/.test(raw)) return raw
+        return raw
+      }
+      if (blocked.some((b) => toMonthDay(b) === monthDay || b === dateFormatted)) return false
     } catch {}
   }
 

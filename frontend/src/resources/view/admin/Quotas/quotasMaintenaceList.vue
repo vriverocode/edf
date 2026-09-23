@@ -62,8 +62,8 @@ onMounted(() => {
           <div
             v-for="row in months"
             :key="`${row.year}-${row.month}`"
-            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4 cursor-pointer col-md-4 col-12  "
-            style="position: relative; "
+            class="bg-white rounded-xl px-3 shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4 cursor-pointer col-md-4 col-12  "
+            style="position: relative;  "
             @click="goToMonth(row)"
           >
             <div class="px-4 pb-3 pt-5 card__month " style="">

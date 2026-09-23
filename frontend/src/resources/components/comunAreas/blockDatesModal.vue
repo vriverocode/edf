@@ -3,13 +3,19 @@ import { ref, watch, computed } from 'vue'
 import { useComunAreaStore } from '@/services/store/comunArea.store'
 import { Notify } from 'quasar'
 import moment from 'moment'
-
+moment.locale('es', {
+  monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
+  months:
+    'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split(
+      '_'
+    ),
+})
 const props = defineProps({
   modelValue: Boolean,
   comunArea: { type: Object, default: () => ({}) },
 })
 
-const emit = defineEmits(['update:modelValue', 'updated'])
+const emit = defineEmits(['update:modelValue', 'closeModal'])
 
 const comunAreaStore = useComunAreaStore()
 const loading = ref(false)
@@ -18,30 +24,39 @@ const selectedDates = ref([])
 
 const show = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val),
+  set: (val) => {
+    emit('update:modelValue', val)
+    if (!val) emit('closeModal')
+  },
 })
 
-const predefinedHolidays = [
-  { date: '01-01', label: 'Año Nuevo' },
-  { date: '01-05', label: 'Día del Trabajador' },
-  { date: '07-06', label: 'San Pedro y San Pablo' },
-  { date: '28-07', label: 'Fiestas Patrias' },
-  { date: '29-06', label: 'San Pedro y San Pablo (obs)' },
-  { date: '30-08', label: 'Santa Rosa de Lima' },
-  { date: '08-10', label: 'Combate de Angamos' },
-  { date: '01-11', label: 'Todos los Santos' },
-  { date: '08-12', label: 'Inmaculada Concepción' },
-  { date: '24-12', label: 'Nochebuena' },
-  { date: '25-12', label: 'Navidad' },
-  { date: '31-12', label: 'Año Nuevo (Noche)' },
-]
+const toMonthDay = (value) => {
+  const raw = String(value || '')
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.slice(5)
+  if (/^\d{2}-\d{2}$/.test(raw)) return raw
+  const m = moment(raw, ['YYYY-MM-DD', 'YYYY/MM/DD'], true)
+  return m.isValid() ? m.format('MM-DD') : raw
+}
+
+const isMonthDayBlocked = (monthDay) => {
+  return blockedDates.value.some((d) => toMonthDay(d) === monthDay)
+}
 
 const blockedDatesFormatted = computed(() => {
   return blockedDates.value
-    .map(d => ({
-      raw: d,
-      label: moment(d, 'YYYY-MM-DD').format('dddd DD [de] MMMM [del] YYYY'),
-    }))
+    .map((d) => {
+      const monthDay = toMonthDay(d)
+      const isRecurring = /^\d{2}-\d{2}$/.test(monthDay)
+      if (isRecurring) {
+        const label = moment(monthDay, 'MM-DD').format('DD [de] MMMM')
+        return { raw: monthDay, label, recurring: true }
+      }
+      return {
+        raw: d,
+        label: moment(d, 'YYYY-MM-DD').format('dddd DD [de] MMMM [del] YYYY'),
+        recurring: false,
+      }
+    })
     .sort((a, b) => a.raw.localeCompare(b.raw))
 })
 
@@ -62,31 +77,18 @@ const addSelectedDates = async () => {
   if (!selectedDates.value.length || !props.comunArea?.id) return
   loading.value = true
   try {
-    const datesToAdd = selectedDates.value.map(d => moment(d, 'YYYY/MM/DD').format('YYYY-MM-DD'))
+    const datesToAdd = selectedDates.value.map((d) =>
+      moment(d, 'YYYY/MM/DD').format('MM-DD')
+    )
     await comunAreaStore.storeBlockedDates(props.comunArea.id, datesToAdd)
-    Notify.create({ color: 'positive', message: 'Fechas bloqueadas correctamente' })
+    Notify.create({
+      color: 'positive',
+      message: 'Fechas bloqueadas',
+    })
     selectedDates.value = []
     await fetchBlockedDates()
-    emit('updated')
   } catch (err) {
     Notify.create({ color: 'negative', message: err || 'Error al bloquear fechas' })
-  } finally {
-    loading.value = false
-  }
-}
-
-const addPredefinedHolidays = async () => {
-  if (!props.comunArea?.id) return
-  const currentYear = moment().year()
-  const dates = predefinedHolidays.map(h => `${currentYear}-${h.date}`)
-  loading.value = true
-  try {
-    await comunAreaStore.storeBlockedDates(props.comunArea.id, dates)
-    Notify.create({ color: 'positive', message: 'Feriados predefinidos agregados' })
-    await fetchBlockedDates()
-    emit('updated')
-  } catch (err) {
-    Notify.create({ color: 'negative', message: err || 'Error al agregar feriados' })
   } finally {
     loading.value = false
   }
@@ -96,10 +98,9 @@ const removeDate = async (date) => {
   if (!props.comunArea?.id) return
   loading.value = true
   try {
-    await comunAreaStore.deleteBlockedDate(props.comunArea.id, date)
+    await comunAreaStore.deleteBlockedDate(props.comunArea.id, toMonthDay(date))
     Notify.create({ color: 'positive', message: 'Fecha desbloqueada' })
     await fetchBlockedDates()
-    emit('updated')
   } catch (err) {
     Notify.create({ color: 'negative', message: err || 'Error al desbloquear fecha' })
   } finally {
@@ -108,7 +109,8 @@ const removeDate = async (date) => {
 }
 
 const isBlocked = (date) => {
-  return blockedDates.value.includes(moment(date, 'YYYY/MM/DD').format('YYYY-MM-DD'))
+  const monthDay = moment(date, 'YYYY/MM/DD').format('MM-DD')
+  return isMonthDayBlocked(monthDay)
 }
 
 const dateOptions = (date) => {
@@ -117,8 +119,8 @@ const dateOptions = (date) => {
 
 watch(show, (val) => {
   if (val) {
-    fetchBlockedDates()
     selectedDates.value = []
+    fetchBlockedDates()
   }
 })
 </script>
@@ -127,22 +129,25 @@ watch(show, (val) => {
   <q-dialog v-model="show" persistent>
     <q-card class="w-full" style="max-width: 520px; border-radius: 1rem;">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6 text-bold text-grey-9">Bloquear días feriados</div>
+        <div class="text-h6 text-bold text-grey-9">Bloquear fechas recurrentes</div>
         <q-space />
         <q-btn icon="eva-close-outline" flat round dense @click="show = false" />
       </q-card-section>
 
-      <q-card-section class="q-pt-md">
-        <div class="text-caption text-grey-6 mb-3">
-          Selecciona fechas para bloquearlas en el calendario de reservas de <strong>{{ comunArea?.name }}</strong>.
+      <q-card-section class="q-pt-md relative-position">
+        <div class="text-caption text-grey-8 mb-3">
+          Selecciona fechas para bloquearlas <strong>todos los años</strong> en el calendario
+          de reservas de <strong>{{ comunArea?.name }}</strong>.
+          <br />
+          Ejemplo: si seleccionas el <strong>31 de octubre</strong>, se bloquearán todos los
+          31 de octubre de todos los años.
         </div>
 
-        <!-- Calendario -->
         <q-date
           v-model="selectedDates"
           multiple
           mask="YYYY/MM/DD"
-          color="deep-orange"
+          color="primary"
           class="w-full"
           :options="dateOptions"
           :navigation-min-year-month="moment().format('YYYY/MM')"
@@ -152,12 +157,13 @@ watch(show, (val) => {
             months: 'Enero_Febrero_Marzo_Abril_Mayo_Junio_Julio_Agosto_Septiembre_Octubre_Noviembre_Diciembre'.split('_'),
             monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
             firstDayOfWeek: 1,
+            pluralDay: 'Días'
           }"
         >
           <template v-slot:day="{ date, selected }">
             <div
               :class="{
-                'bg-deep-orange text-white rounded-full': selected,
+                'bg-primary text-white rounded-full': selected,
                 'bg-red-1 text-red-7 rounded-full': isBlocked(date) && !selected,
               }"
               style="min-width: 28px; min-height: 28px; display: flex; align-items: center; justify-content: center;"
@@ -167,31 +173,20 @@ watch(show, (val) => {
           </template>
         </q-date>
 
-        <!-- Botones de acción -->
-        <div class="flex q-mt-sm q-gutter-sm">
+        <div class="q-mt-sm">
           <q-btn
             unelevated
             no-caps
-            color="deep-orange"
+            color="primary"
             icon="eva-calendar-outline"
-            label="Agregar seleccionadas"
-            class="flex-1"
+            label="Bloquear seleccionadas"
+            class="full-width"
             :loading="loading"
             :disable="!selectedDates.length"
             @click="addSelectedDates"
           />
-          <q-btn
-            outline
-            no-caps
-            color="orange"
-            icon="eva-star-outline"
-            label="Feriados del año"
-            :loading="loading"
-            @click="addPredefinedHolidays"
-          />
         </div>
 
-        <!-- Lista de fechas bloqueadas -->
         <div class="q-mt-md">
           <div class="text-subtitle2 text-grey-8 q-mb-sm">
             Fechas bloqueadas ({{ blockedDatesFormatted.length }})
@@ -209,14 +204,16 @@ watch(show, (val) => {
               {{ item.label }}
             </q-chip>
           </div>
-          <div v-else class="text-caption text-grey-5 py-2 text-center">
+          <div v-else-if="!loading" class="text-caption text-grey-5 py-2 text-center">
             No hay fechas bloqueadas
           </div>
         </div>
+
+        <q-inner-loading :showing="loading" color="primary" />
       </q-card-section>
 
       <q-card-actions align="right" class="q-px-md q-pb-md">
-        <q-btn flat label="Cerrar" color="grey-7" @click="show = false" />
+        <!-- <q-btn flat label="Cerrar" color="primary" @click="show = false" /> -->
       </q-card-actions>
     </q-card>
   </q-dialog>

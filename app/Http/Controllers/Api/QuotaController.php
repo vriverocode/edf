@@ -345,7 +345,6 @@ class QuotaController extends Controller
         $year = $quota->year ?? ($quota->due_date ? Carbon::parse($quota->due_date)->year : now()->year);
 
         $monthlyBill = MonthlyBills::query()
-            ->select('id', 'total_maintenance_budget')
             ->where('month', $month)
             ->where('year', $year)
             ->latest('id')
@@ -354,6 +353,144 @@ class QuotaController extends Controller
         $data = $quota->toArray();
         $data['maintenance_participation_percentage'] = $quota->departament?->participation_percentage;
         $data['maintenance_budget_total'] = $monthlyBill?->total_maintenance_budget;
+
+        $tenantPays = (bool) ($quota->departament?->tenant_pays_quota);
+        $responsibleUserId = ($tenantPays && $quota->responsiblePivot?->user_id)
+            ? $quota->responsiblePivot->user_id
+            : $quota->departament?->user_id;
+
+        $responsibleUnits = collect();
+        if ($responsibleUserId) {
+            $responsibleUnits = Departament::query()
+                ->where('user_id', $responsibleUserId)
+                ->orderBy('type')
+                ->orderBy('number')
+                ->get(['id', 'number', 'type', 'area', 'participation_percentage']);
+        }
+
+        $data['responsible_units'] = $responsibleUnits;
+        $data['predio'] = $responsibleUnits->pluck('number')->filter()->values();
+
+        $unitQuotas = collect();
+        if ($responsibleUnits->isNotEmpty()) {
+            $unitQuotas = Quota::query()
+                ->with([
+                    'departament:id,number,type,participation_percentage,tenant_pays_quota',
+                    'waterReading:id,departament_id,month,year,previous_reading,current_reading,m3_price',
+                ])
+                ->whereIn('departament_id', $responsibleUnits->pluck('id'))
+                ->where('month', $month)
+                ->where(function ($q) use ($year) {
+                    $q->where('year', $year)
+                        ->orWhereNull('year');
+                })
+                ->orderBy('type')
+                ->orderBy('number')
+                ->get()
+                ->map(fn ($item) => [
+                    'id' => $item->id,
+                    'departament_id' => $item->departament_id,
+                    'number' => $item->departament?->number,
+                    'type' => $item->departament?->type,
+                    'type_short' => match ((int) ($item->departament?->type)) {
+                        1 => 'DPT',
+                        2 => 'EST',
+                        3 => 'DPO',
+                        4 => 'LAV',
+                        default => 'UNI',
+                    },
+                    'type_label' => $item->departament?->type_label,
+                    'maintenance_amount' => (float) $item->maintenance_amount,
+                    'water_amount' => (float) $item->water_amount,
+                    'extra_amount' => (float) $item->extra_amount,
+                    'amount' => (float) $item->amount,
+                    'status' => $item->status,
+                    'status_label' => $item->status_label,
+                    'status_color' => $item->status_color,
+                    'participation_percentage' => $item->departament?->participation_percentage,
+                    'has_water_reading' => (bool) $item->water_reading_id,
+                    'water_reading_id' => $item->water_reading_id,
+                    'waterReading' => $item->waterReading,
+                    'is_current' => (int) $item->id === (int) $quota->id,
+                ]);
+        }
+
+        $data['unit_quotas'] = $unitQuotas->values();
+        $data['unit_quotas_total'] = round((float) $unitQuotas->sum('amount'), 2);
+
+        $data['owner_profile'] = [
+            'name' => $quota->departament?->owner?->name,
+            'document' => $quota->departament?->owner?->dni,
+            'email' => $quota->departament?->owner?->email,
+            'type_label' => $quota->departament?->type_label,
+        ];
+
+        $expenses = $monthlyBill
+            ? $monthlyBill->expenses()
+                ->with(['provider:id,name', 'serviceCategory:id,name'])
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+                ->map(fn ($expense) => [
+                    'id' => $expense->id,
+                    'description' => $expense->description,
+                    'amount' => (float) $expense->amount,
+                    'invoice_number' => $expense->invoice_number,
+                    'expense_type' => $expense->expense_type,
+                    'provider' => $expense->provider?->name,
+                    'service_category' => $expense->serviceCategory?->name,
+                ])
+            : collect();
+
+        $waterReading = $quota->waterReading;
+        $waterConsumption = 0;
+        $waterPricePerM3 = 0.0;
+        if ($waterReading) {
+            $waterConsumption = max(
+                0,
+                (float) $waterReading->current_reading - (float) $waterReading->previous_reading
+            );
+            $waterPricePerM3 = (float) ($waterReading->m3_price ?: $monthlyBill?->water_price_per_m3 ?: 0);
+        } elseif ($monthlyBill) {
+            $waterPricePerM3 = (float) $monthlyBill->water_price_per_m3;
+        }
+
+        $collectionRate = ($monthlyBill && $monthlyBill->total_maintenance_budget > 0)
+            ? round(($monthlyBill->monthly_budget / $monthlyBill->total_maintenance_budget) * 100, 4)
+            : 0;
+
+        $data['monthly_bill'] = $monthlyBill
+            ? [
+                'id' => $monthlyBill->id,
+                'month' => $monthlyBill->month,
+                'year' => $monthlyBill->year,
+                'water_price_per_m3' => (float) $monthlyBill->water_price_per_m3,
+                'total_water_bill_amount' => (float) $monthlyBill->total_water_bill_amount,
+                'total_water_consumption_m3' => (float) $monthlyBill->total_water_consumption_m3,
+                'common_water_consumption_m3' => (float) $monthlyBill->common_water_consumption_m3,
+                'common_water_cost' => round(
+                    (float) $monthlyBill->common_water_consumption_m3 * (float) $monthlyBill->water_price_per_m3,
+                    2
+                ),
+                'monthly_budget' => (float) $monthlyBill->monthly_budget,
+                'total_maintenance_budget' => (float) $monthlyBill->total_maintenance_budget,
+            ]
+            : null;
+
+        $data['expenses'] = $expenses->values();
+        $data['total_expenses'] = round((float) $expenses->sum('amount'), 2);
+
+        $dueDateFormatted = null;
+        if ($quota->due_date) {
+            $dueDateFormatted = Carbon::parse($quota->due_date)->format('d/m/Y');
+        }
+
+        $data['receipt'] = [
+            'due_date' => $dueDateFormatted,
+            'collection_rate' => $collectionRate,
+            'water_consumption' => round($waterConsumption, 3),
+            'water_price_per_m3' => round($waterPricePerM3, 4),
+        ];
 
         // Consolidated quotas from the same payment
         $consolidatedQuotas = collect([]);
@@ -366,7 +503,7 @@ class QuotaController extends Controller
                 $consolidatedQuotas = Quota::query()
                     ->with([
                         'departament:id,number,type,participation_percentage',
-                        'waterReading:id,departament_id,previous_reading,current_reading,m3_price',
+                        'waterReading:id,departament_id,month,year,previous_reading,current_reading,m3_price',
                     ])
                     ->whereIn('id', $otherIds)
                     ->get();

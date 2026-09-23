@@ -31,7 +31,7 @@ class WaterReading extends Model
             'Diciembre',
         ];
 
-        return $monthOptions[$this->month];
+        return $monthOptions[$this->month] ?? '';
     }
 
     public function getConsumptionAttribute()

@@ -32,11 +32,9 @@ const selectedUserId = ref(null)
 const userOptions = ref([])
 const userSearch = ref('')
 
-// Step 1b: Department selector
+// Step 1b: Department selector (type=2 only; type=1 uses chips from selectedUser.units)
 const selectedDept = ref(null)
-const selectedDepts = ref([])
 const departments = ref([])
-const deptSearch = ref('')
 
 // Derived user from selected department (for type=2)
 const selectedUser = computed(() => {
@@ -46,12 +44,55 @@ const selectedUser = computed(() => {
   return selectedDept.value?.owner || null
 })
 
+const userUnits = computed(() => selectedUser.value?.units || [])
+
+const unitTypeShort = (type) => {
+  const map = { 1: 'DPT', 2: 'EST', 3: 'DPO', 4: 'LAV' }
+  return map[Number(type)] || 'UNI'
+}
+
+const unitChipLabel = (u) => {
+  const base = `${unitTypeShort(u.type)} ${u.number}`
+  return u.block ? `${base} · B${u.block}` : base
+}
+
+const unitMatch = (unit, q) => {
+  if (!q) return false
+  const inter = String(unit.inter_number ?? '')
+  const number = String(unit.number ?? '')
+  const block = String(unit.block ?? '')
+  return (
+    inter.includes(q) ||
+    number.toLowerCase().includes(q) ||
+    block.toLowerCase().includes(q)
+  )
+}
+
+const monthLabel = computed(() => {
+  if (!selectedMonth.value) return ''
+  const opt = monthOptions.find(m => m.value === selectedMonth.value)
+  if (!opt) return ''
+  const year = selectedYear.value || currentYear
+  const label = opt.label.charAt(0).toUpperCase() + opt.label.slice(1)
+  return `${label} ${year}`
+})
+
+const reserveDeptSearch = ref('')
+
+const filteredDepts = computed(() => {
+  if (!reserveDeptSearch.value) return departments.value
+  const q = reserveDeptSearch.value.toLowerCase()
+  return departments.value.filter(
+    d => String(d.number).toLowerCase().includes(q) || d.block?.toLowerCase().includes(q),
+  )
+})
+
 // Step 2a: Month/Year for quotas
 const selectedMonth = ref(null)
 const selectedYear = ref(null)
 const currentYear = new Date().getFullYear()
 const monthOptions = Array.from({ length: 12 }, (_, i) => ({
-  label: new Date(2000, i).toLocaleString('es-PE', { month: 'long' }),
+  label: new Date(2000, i).toLocaleString('es-Ve', { month: 'long' }).toLocaleUpperCase(),
   value: i + 1,
 }))
 const yearOptions = Array.from({ length: 5 }, (_, i) => ({
@@ -75,9 +116,55 @@ const paymentForm = ref({
 })
 
 const payMethods = ref([])
+const creditBalance = ref(0)
 
 const isQuotaType = computed(() => Number(selectedType.value) === 1)
 const isReserveType = computed(() => Number(selectedType.value) === 2)
+
+const isEligibleMonth = computed(() => {
+  if (!isQuotaType.value || !selectedQuotas.value.length) return false
+  const now = new Date()
+  const currentMonth = now.getMonth() + 1
+  const currentYear = now.getFullYear()
+  return selectedQuotas.value.every((q) => {
+    if (Number(q.month) !== currentMonth) return false
+    const year = q.year ?? (q.due_date ? new Date(q.due_date).getFullYear() : null)
+    if (year != null && Number(year) !== currentYear) return false
+    return true
+  })
+})
+
+const hasCredit = computed(
+  () => isQuotaType.value && isEligibleMonth.value && creditBalance.value > 0,
+)
+
+const creditToApply = computed(() => {
+  if (!hasCredit.value) return 0
+  return Math.min(creditBalance.value, totalSelectedAmount.value)
+})
+
+const amountToPay = computed(() => {
+  const total = totalSelectedAmount.value
+  if (!hasCredit.value) return total
+  return Math.max(0, Math.round((total - creditToApply.value) * 100) / 100)
+})
+
+const fetchCreditBalance = async () => {
+  creditBalance.value = 0
+  if (!isQuotaType.value || !isEligibleMonth.value || !selectedQuotas.value.length) return
+  const deptIds = [...new Set(
+    selectedQuotas.value.map((q) => q.departament_id).filter(Boolean),
+  )]
+  if (!deptIds.length) return
+  try {
+    const res = await payStore.getCreditBalanceForDepartments(deptIds)
+    if (res?.code === 200) {
+      creditBalance.value = res.data.total || 0
+    }
+  } catch {
+    creditBalance.value = 0
+  }
+}
 
 const selectedPayMethodCommission = computed(() => {
   if (!paymentForm.value.pay_method) return 0
@@ -97,16 +184,15 @@ const netAmount = computed(() => {
 
 const filteredUsers = computed(() => {
   if (!userSearch.value) return userOptions.value
-  const q = userSearch.value.toLowerCase()
-  return userOptions.value.filter(u => u.name?.toLowerCase().includes(q))
-})
-
-const filteredDepts = computed(() => {
-  if (!deptSearch.value) return departments.value
-  const q = deptSearch.value.toLowerCase()
-  return departments.value.filter(
-    d => String(d.number).toLowerCase().includes(q) || d.block?.toLowerCase().includes(q),
-  )
+  const q = userSearch.value.trim().toLowerCase()
+  if (!q) return userOptions.value
+  const digits = q.replace(/\D/g, '')
+  return userOptions.value.filter((u) => {
+    if (u.name?.toLowerCase().includes(q)) return true
+    const units = u.units || []
+    if (digits && units.some((unit) => unitMatch(unit, digits))) return true
+    return units.some((unit) => unitMatch(unit, q))
+  })
 })
 
 const loadUsers = async () => {
@@ -152,18 +238,16 @@ const loadPendingQuotas = async () => {
   selectedItem.value = null
   selectedQuotas.value = []
   try {
-    const deptIds = isQuotaType.value && selectedDepts.value.length
-      ? selectedDepts.value.map(d => d.id)
-      : undefined
     const res = await quotaStore.getQuotaByMonth(selectedMonth.value, {
       year: selectedYear.value || currentYear,
       owner: selectedUser.value.id,
       status: 1,
-      departament_ids: deptIds,
     })
     pendingQuotas.value = res.data || []
+    selectedQuotas.value = [...pendingQuotas.value]
   } catch {
     pendingQuotas.value = []
+    selectedQuotas.value = []
   }
 }
 
@@ -194,11 +278,11 @@ watch(selectedType, (val) => {
   selectedItem.value = null
   selectedQuotas.value = []
   selectedDept.value = null
-  selectedDepts.value = []
   selectedUserId.value = null
   departments.value = []
   pendingQuotas.value = []
   pendingBookings.value = []
+  creditBalance.value = 0
   if (Number(val) === 1) {
     loadUsers()
   } else if (Number(val) === 2) {
@@ -207,23 +291,15 @@ watch(selectedType, (val) => {
 })
 
 watch(selectedUserId, (id) => {
-  selectedDepts.value = []
   departments.value = []
   pendingQuotas.value = []
   selectedItem.value = null
   selectedQuotas.value = []
-  if (id) {
-    loadDepartmentsByUser(id)
-  }
+  creditBalance.value = 0
+  if (!id) return
+  if (isReserveType.value) loadDepartmentsByUser(id)
+  if (isQuotaType.value && selectedMonth.value) loadPendingQuotas()
 })
-
-watch(selectedDepts, () => {
-  selectedItem.value = null
-  selectedQuotas.value = []
-  if (isQuotaType.value && selectedUser.value && selectedMonth.value) {
-    loadPendingQuotas()
-  }
-}, { deep: true })
 
 watch([selectedMonth, selectedYear], () => {
   if (isQuotaType.value && selectedUser.value) loadPendingQuotas()
@@ -244,9 +320,12 @@ watch(selectedItem, (item) => {
 
 watch(selectedQuotas, (items) => {
   if (isQuotaType.value && items.length) {
-    paymentForm.value.amount = totalSelectedAmount.value
-  } else if (isQuotaType.value) {
-    paymentForm.value.amount = null
+    fetchCreditBalance().then(() => {
+      paymentForm.value.amount = amountToPay.value
+    })
+  } else {
+    if (isQuotaType.value) paymentForm.value.amount = null
+    creditBalance.value = 0
   }
 }, { deep: true })
 
@@ -258,6 +337,24 @@ const toggleQuota = (quota) => {
     selectedQuotas.value.push(quota)
   }
 }
+
+const isQuotaSelected = (quota) => selectedQuotas.value.some(q => q.id === quota.id)
+
+const allQuotasSelected = computed(
+  () => pendingQuotas.value.length > 0 && selectedQuotas.value.length === pendingQuotas.value.length,
+)
+
+const toggleAllQuotas = () => {
+  if (allQuotasSelected.value) {
+    selectedQuotas.value = []
+  } else {
+    selectedQuotas.value = [...pendingQuotas.value]
+  }
+}
+
+const selectedUnitsCount = computed(
+  () => new Set(selectedQuotas.value.map((q) => q.departament_id).filter(Boolean)).size,
+)
 
 const selectItem = (item) => {
   selectedItem.value = item
@@ -287,7 +384,9 @@ const submitPay = async () => {
     }
   }
 
-  if (!paymentForm.value.amount || paymentForm.value.amount <= 0) {
+  const amountValue = Number(paymentForm.value.amount)
+  const creditCoversAll = hasCredit.value && creditToApply.value >= totalSelectedAmount.value
+  if ((!Number.isFinite(amountValue) || amountValue <= 0) && !creditCoversAll) {
     Notify.create({ color: 'negative', message: 'El monto debe ser mayor a cero' })
     return
   }
@@ -311,6 +410,10 @@ const submitPay = async () => {
     formData.append('consolidated_ids', JSON.stringify(ids))
   } else {
     formData.append('to_pay_id', selectedItem.value.id)
+  }
+
+  if (hasCredit.value && creditToApply.value > 0) {
+    formData.append('credit_applied', creditToApply.value)
   }
 
   if (paymentForm.value.vaucher) {
@@ -357,7 +460,7 @@ loadPayMethods()
           />
         </div>
 
-        <!-- Step 1a: Cuota type — User then Departments -->
+        <!-- Step 1a: Cuota type — User + unit chips -->
         <div v-if="isQuotaType" class="space-y-4 mb-6">
           <div>
             <div class="text-sm font-medium text-gray-700 mb-1">Usuario</div>
@@ -372,7 +475,7 @@ loadPayMethods()
               fill-input
               hide-selected
               behavior="menu"
-              placeholder="Buscar por nombre..."
+              placeholder="Nombre o n° de unidad (ej. 101)..."
               clearable
               dense
               borderless
@@ -389,57 +492,44 @@ loadPayMethods()
                   </q-item-section>
                   <q-item-section>
                     <q-item-label class="text-sm font-semibold">{{ opt.name }}</q-item-label>
+                    <q-item-label v-if="opt.units?.length" caption class="text-xs">
+                      {{ opt.units.map(u => `${unitTypeShort(u.type)} ${u.number}`).join(' · ') }}
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </template>
               <template v-slot:selected-item="{ opt }">
-                <span>{{ opt.name }}</span>
+                <span>
+                  {{ opt.name }}
+                  <span v-if="opt.units?.length" class="text-grey-7 text-xs">
+                    · {{ opt.units[0].number }}<template v-if="opt.units.length > 1"> +{{ opt.units.length - 1 }}</template>
+                  </span>
+                </span>
               </template>
             </q-select>
           </div>
-          <div v-if="selectedUserId">
-            <div class="text-sm font-medium text-gray-700 mb-1">Unidades</div>
-            <q-select
-              v-model="selectedDepts"
-              :options="filteredDepts"
-              option-label="number"
-              option-value="id"
-              use-input
-              behavior="menu"
-              multiple
-              use-chips
-              placeholder="Seleccionar unidades..."
-              clearable
-              dense
-              borderless
-              input-debounce="0"
-              class="form__inputsR"
-              @filter="(val, update) => { deptSearch = val; update() }"
-              @filter-abort="() => { deptSearch = '' }"
-            >
-              <template v-slot:option="{ itemProps, opt }">
-                <q-item v-bind="itemProps" dense style="border-bottom: 1px solid lightgrey;" class="my-1 py-1">
-                  <q-item-section avatar class="min-w-[36px]">
-                    <q-avatar size="28px" color="teal" text-color="white" class="text-xs font-bold">
-                      {{ String(opt.number || '?')[0] }}
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-sm font-semibold">
-                      {{ opt.number }}<span v-if="opt.block" class="text-grey-6 font-normal"> · Bloque {{ opt.block }}</span>
-                    </q-item-label>
-                    <q-item-label caption class="text-xs">
-                      {{ opt._relation === 'tenant' ? 'Inquilino' : 'Propietario' }}
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-              <template v-slot:selected-item="{ opt }">
-                <q-chip removable @remove="selectedDepts = selectedDepts.filter(d => d.id !== opt.id)" dense class="q-mr-xs">
-                  {{ opt.number }}<span v-if="opt.block"> · B{{ opt.block }}</span>
-                </q-chip>
-              </template>
-            </q-select>
+
+          <div v-if="userUnits.length">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-sm font-medium text-gray-700">Unidades del usuario</div>
+              <div class="text-xs text-gray-500">{{ userUnits.length }} unidades (todas en la cuota)</div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <q-chip
+                v-for="unit in userUnits"
+                :key="unit.id"
+                dense
+                size="sm"
+                :color="unit.relation === 'tenant' ? 'amber-3' : 'teal-1'"
+                text-color="grey-9"
+                class="text-xs"
+              >
+                <span class="font-semibold">{{ unitChipLabel(unit) }}</span>
+                <span class="ml-1 opacity-70">
+                  {{ unit.relation === 'tenant' ? 'Inq.' : 'Prop.' }}
+                </span>
+              </q-chip>
+            </div>
           </div>
         </div>
 
@@ -460,8 +550,8 @@ loadPayMethods()
             dense
             borderless
             class="form__inputsR"
-            @filter="(val, update) => { deptSearch = val; update() }"
-            @filter-abort="() => { deptSearch = '' }"
+            @filter="(val, update) => { reserveDeptSearch = val; update() }"
+            @filter-abort="() => { reserveDeptSearch = '' }"
           >
             <template v-slot:option="{ itemProps, opt }">
               <q-item v-bind="itemProps" dense style="border-bottom: 1px solid lightgrey;" class="my-1 py-1">
@@ -520,27 +610,66 @@ loadPayMethods()
           </div>
         </div>
 
-        <!-- Step 2b: Pending items list -->
+        <!-- Step 2b: Pending items list — Cuota global -->
         <div v-if="isQuotaType && pendingQuotas.length" class="mb-6">
-          <div class="text-sm font-medium text-gray-700 mb-2">Cuotas pendientes</div>
+          <div class="rounded-xl border border-gray-200 bg-gray-50/80 p-4 mb-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <div class="text-sm font-semibold text-gray-900">Cuota global · {{ monthLabel }}</div>
+                <div class="text-xs text-gray-500">
+                  {{ pendingQuotas.length }} cuotas · {{ selectedUnitsCount }} unidades seleccionadas
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-lg font-bold text-gray-900">S/. {{ totalSelectedAmount.toFixed(2) }}</div>
+                <div v-if="hasCredit" class="text-xs" style="color: #16a34a;">
+                  − saldo S/. {{ creditToApply.toFixed(2) }}
+                </div>
+              </div>
+            </div>
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <q-checkbox
+                :model-value="allQuotasSelected"
+                color="primary"
+                dense
+                @update:model-value="toggleAllQuotas"
+              />
+              <span class="text-sm font-medium text-gray-700">
+                {{ allQuotasSelected ? 'Todas las unidades seleccionadas' : 'Seleccionar todas las unidades' }}
+              </span>
+            </label>
+          </div>
+
           <div class="space-y-2">
             <div
               v-for="quota in pendingQuotas"
               :key="quota.id"
               class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors"
-              :class="selectedQuotas.some(q => q.id === quota.id) ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'"
+              :class="isQuotaSelected(quota) ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'"
               @click="toggleQuota(quota)"
             >
               <div class="flex items-center gap-3">
                 <q-checkbox
-                  :model-value="selectedQuotas.some(q => q.id === quota.id)"
+                  :model-value="isQuotaSelected(quota)"
                   color="primary"
                   dense
                   @update:model-value="toggleQuota(quota)"
                 />
-                <div>
-                  <div class="text-sm font-semibold text-gray-900">{{ quota.month_label }}</div>
-                  <div class="text-xs text-gray-500">Unidad {{ quota.departament?.number || '—' }}</div>
+                <div class="flex items-center gap-2">
+                  <q-badge
+                    :color="quota.departament ? 'blue-1' : 'grey-3'"
+                    text-color="grey-9"
+                    class="text-xs font-semibold"
+                  >
+                    {{ unitTypeShort(quota.departament?.type) }}
+                  </q-badge>
+                  <div>
+                    <div class="text-sm font-semibold text-gray-900">
+                      Unidad {{ quota.departament?.number || '—' }}
+                      <span v-if="quota.departament?.block" class="text-grey-6 font-normal">· B{{ quota.departament.block }}</span>
+                    </div>
+                    <div class="text-xs text-gray-500">{{ quota.month_label || monthLabel }}</div>
+                  </div>
                 </div>
               </div>
               <div class="text-right">
@@ -553,6 +682,9 @@ loadPayMethods()
           </div>
           <div v-if="selectedQuotas.length" class="mt-3 text-right text-sm font-semibold text-gray-900">
             Total seleccionado: S/. {{ totalSelectedAmount.toFixed(2) }}
+            <span v-if="hasCredit" class="ml-2 font-medium" style="color: #16a34a;">
+              · Saldo a favor: - S/. {{ creditToApply.toFixed(2) }}
+            </span>
           </div>
         </div>
 
@@ -581,8 +713,8 @@ loadPayMethods()
         </div>
 
         <!-- Empty states -->
-        <div v-if="isQuotaType && selectedUserId && selectedDepts.length && selectedMonth && !pendingQuotas.length && !loading" class="text-center py-6 text-gray-400 text-sm">
-          No hay cuotas pendientes para las unidades seleccionadas y mes.
+        <div v-if="isQuotaType && selectedUserId && selectedMonth && !pendingQuotas.length && !loading" class="text-center py-6 text-gray-400 text-sm">
+          No hay cuotas pendientes para este usuario en el mes seleccionado.
         </div>
         <div v-if="isReserveType && selectedDept && !pendingBookings.length && !loading" class="text-center py-6 text-gray-400 text-sm">
           No hay reservas pendientes de pago para esta unidad.
@@ -604,6 +736,31 @@ loadPayMethods()
                 prefix="S/."
                 borderless
               />
+            </div>
+            <div v-if="hasCredit" class="col-span-full">
+              <div class="px-3 py-2 rounded-lg" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                <div class="flex justify-between items-center text-sm mb-1">
+                  <span class="text-gray-600">Cuota mensual</span>
+                  <span class="text-gray-900">S/. {{ totalSelectedAmount.toFixed(2) }}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm" style="color: #16a34a;">
+                  <span class="flex items-center gap-1">
+                    <q-icon name="eva-checkmark-circle-2-outline" size="1rem" />
+                    Saldo a favor
+                  </span>
+                  <span class="font-medium">- S/. {{ creditToApply.toFixed(2) }}</span>
+                </div>
+                <div
+                  class="flex justify-between items-center text-sm font-bold pt-1 mt-1"
+                  style="border-top: 1px dashed #86efac;"
+                >
+                  <span class="text-gray-900">Monto a pagar</span>
+                  <span class="text-gray-900">S/. {{ amountToPay.toFixed(2) }}</span>
+                </div>
+                <div v-if="creditBalance > creditToApply" class="text-xs text-gray-500 mt-1">
+                  Saldo total disponible: S/. {{ creditBalance.toFixed(2) }} (se aplica hasta cubrir la cuota)
+                </div>
+              </div>
             </div>
             <div>
               <div class="text-sm font-medium text-gray-700 mb-1">Método de pago *</div>

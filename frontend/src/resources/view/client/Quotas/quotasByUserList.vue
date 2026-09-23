@@ -222,10 +222,12 @@ onMounted(() => {
               <div class="flex justify-center items-center">
                 <div class="flex items-center">
                   <q-icon :name="getStatusInfo(quota.status).icon" color="white" size="1.5rem" />
-                  <span class="ml-1 text-sm font-medium text-white mr-2">{{ getStatusInfo(quota.status).label }}</span>
-                    <span  class="font-medium text-base text-white">
-                      S/. {{ quotaAmountAfterCredit(quota).toFixed(2) }}
-                    </span>
+                  <span class="ml-1 text-sm font-medium text-white mr-2">
+                    {{ getStatusInfo(quota.status).label }}
+                  </span>
+                  <span  class="font-medium text-base text-white">
+                    S/. {{ quotaAmountAfterCredit(quota).toFixed(2) }}
+                  </span>
                 </div>
               </div>
             </div>

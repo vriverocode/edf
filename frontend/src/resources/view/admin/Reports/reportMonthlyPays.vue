@@ -169,7 +169,7 @@ onMounted(fetchData)
       </div>
 
       <!-- Leyenda -->
-      <div class="col row items-center q-gutter-x-md q-gutter-y-xs flex-wrap">
+      <div class="col-12 col-md row items-center justify-center md:justify-start q-gutter-x-md q-gutter-y-xs flex-wrap">
         <div class="flex items-center q-gutter-x-xs">
           <span class="legend-dot" style="background: #e8f5e9; border: 1px solid #2e7d32;"></span>
           <span class="text-caption text-grey-7">Pagado</span>
