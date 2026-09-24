@@ -346,7 +346,7 @@ onMounted(() => {
                 <div class="space-y-2 pt-3">
                   <div class="row items-center ">
                     <!-- Monto -->
-                    <div class="flex items-center text-sm text-gray-700 pl-0 md:pl-0 col-4 col-md-3 ">
+                    <div class="flex items-center text-sm text-gray-700 pl-0 md:pl-0 col-4">
                       <svg class="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
@@ -354,7 +354,7 @@ onMounted(() => {
                       </svg>
                       <span class="font-medium">S/. {{ Number(quota.maintenance_amount).toFixed(2) }}</span>
                     </div>
-                    <div class="flex items-center text-sm text-gray-700 pl-2 md:pl-0 col-4 col-md-3 ">
+                    <div class="flex items-center text-sm text-gray-700 pl-2 md:pl-0 col-4">
                       <svg class="w-4 h-4 mr-1 text-gray-500" fill="#6a7282" version="1.1" id="Layer_1"
                         xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
                         viewBox="0 0 511.999 511.999" xml:space="preserve" stroke="#6a7282">
@@ -415,7 +415,7 @@ onMounted(() => {
                         S/. {{ Number(quota.water_amount).toFixed(2) }}
                       </span>
                     </div>
-                    <div class="flex items-center text-sm text-gray-700 pl-2 md:pl-0 col-4 col-md-3 ">
+                    <div class="flex items-center text-sm text-gray-700 pl-2 md:pl-0 col-4">
                       <svg fill="#6a7282" class="w-5 h-5 mr-2 text-gray-500" version="1.1" id="Layer_1"
                         xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
                         viewBox="0 0 480 480" xml:space="preserve" stroke="#6a7282" stroke-width="7.68">
@@ -575,7 +575,7 @@ onMounted(() => {
                       <span class="font-medium">{{ getPaymentProgress(quota) }}</span>
                     </div>
                     <!-- Fecha de pago -->
-                    <div class="flex items-center text-sm text-gray-700 col-7 pt-2 md:pt-2 col-md-7 ">
+                    <div class="flex items-center text-sm text-gray-700 col-7 pt-2 md:pt-2 col-md-12 ">
                       <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">

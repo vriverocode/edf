@@ -44,7 +44,9 @@ class CreditController extends Controller
             }
         }
 
-        $balance = $creditService->getBalance($dept);
+        $month = $request->filled('month') ? (int) $request->input('month') : null;
+        $year = $request->filled('year') ? (int) $request->input('year') : null;
+        $balance = $creditService->getBalance($dept, $month, $year);
 
         return $this->returnSuccess(200, [
             'departament' => $dept,
@@ -60,7 +62,9 @@ class CreditController extends Controller
         }
 
         $ids = array_map('intval', $ids);
-        $result = $creditService->getBalanceForDepartments($ids);
+        $month = $request->filled('month') ? (int) $request->input('month') : null;
+        $year = $request->filled('year') ? (int) $request->input('year') : null;
+        $result = $creditService->getBalanceForDepartments($ids, $month, $year);
 
         return $this->returnSuccess(200, $result);
     }
@@ -108,6 +112,8 @@ class CreditController extends Controller
                 'type' => $dept->type,
                 'owner_name' => $owner?->name ?? '—',
                 'balance' => (float) $balance->balance,
+                'applicable_month' => (int) $balance->applicable_month,
+                'applicable_year' => $balance->applicable_year,
             ];
         })->values();
 
@@ -222,6 +228,8 @@ class CreditController extends Controller
                 $appliedTotal += $applyAmount;
                 $remaining = round($creditAmount - $appliedTotal, 2);
             }
+
+            // Nota: createCredit usa fila flexible (applicable_month=0)
 
             if ($request->description) {
                 foreach ($deptIds as $deptId) {

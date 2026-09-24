@@ -221,11 +221,14 @@ export const usePayStore = defineStore('Pay', {
           });
       })
     },
-    async getCreditBalanceForDepartments(deptIds) {
+    async getCreditBalanceForDepartments(deptIds, month = null, year = null) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw '';
         ApiService.setHeader();
-        const params = deptIds.map(id => `ids[]=${id}`).join('&')
+        const parts = deptIds.map(id => `ids[]=${id}`)
+        if (month != null && month !== '') parts.push(`month=${month}`)
+        if (year != null && year !== '') parts.push(`year=${year}`)
+        const params = parts.join('&')
         ApiService.get(`/api/departments/credit-balance?${params}`)
           .then(({ data }) => {
             if (data.code !== 200) throw data;

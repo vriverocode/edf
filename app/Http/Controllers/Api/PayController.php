@@ -235,26 +235,31 @@ class PayController extends Controller
                 $pay->quotas()->sync($quotaIdsForPay);
             }
 
-            // Crédito (saldo a favor): solo mes calendario actual; se consume al aprobar
+            // Crédito (saldo a favor): mes abierto o mes fijado del crédito; se consume al aprobar
             if ((int) $request->type === 1 && ! empty($quotaIdsForPay)) {
                 $creditRequested = round((float) $request->input('credit_applied', 0), 2);
                 if ($creditRequested > 0) {
                     $quotasForCredit = Quota::whereIn('id', $quotaIdsForPay)->get();
+                    $period = Quota::resolvePeriod($quotasForCredit);
 
-                    if (! Quota::areCurrentCalendarMonth($quotasForCredit)) {
+                    if (! $period) {
                         DB::rollBack();
 
-                        return $this->returnFail(422, 'El saldo a favor solo aplica para cuotas del mes actual.');
+                        return $this->returnFail(422, 'El saldo a favor solo aplica cuando todas las cuotas son del mismo mes.');
                     }
 
                     $deptQuotas = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
                     $creditService = new CreditService;
-                    $available = $creditService->getBalanceForDepartments(array_keys($deptQuotas));
+                    $available = $creditService->getBalanceForDepartments(
+                        array_keys($deptQuotas),
+                        $period['month'],
+                        $period['year']
+                    );
 
                     if ($creditRequested > round($available['total'], 2) + 0.009) {
                         DB::rollBack();
 
-                        return $this->returnFail(422, 'El saldo a favor disponible no es suficiente.');
+                        return $this->returnFail(422, 'El saldo a favor disponible no es suficiente para este mes.');
                     }
 
                     $pay->update(['credit_applied' => $creditRequested]);
@@ -399,12 +404,24 @@ class PayController extends Controller
 
                 if ($creditRequested > 0) {
                     $quotasForCredit = Quota::whereIn('id', $quotaIds)->get();
+                    $period = Quota::resolvePeriod($quotasForCredit);
                     $deptQuotasForCredit = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
+
+                    if (! $period) {
+                        DB::rollBack();
+
+                        return $this->returnFail(422, [
+                            'messageType' => 'negative',
+                            'message' => 'El saldo a favor solo aplica cuando todas las cuotas son del mismo mes.',
+                        ]);
+                    }
 
                     $creditConsumed = $creditService->applyCreditToConsolidated(
                         $deptQuotasForCredit,
                         $creditRequested,
-                        $pay
+                        $pay,
+                        $period['month'],
+                        $period['year']
                     );
 
                     if (round($creditConsumed, 2) < $creditRequested) {

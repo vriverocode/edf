@@ -136,8 +136,11 @@ class ImportCreditBalances extends Command
         foreach ($amountsByDept as $departamentId => $amount) {
             $amount = round($amount, 2);
 
-            // Buscar saldo existente
-            $balance = CreditBalance::where('departament_id', $departamentId)->first();
+            // Buscar saldo del periodo septiembre 2026 (importación legacy)
+            $balance = CreditBalance::where('departament_id', $departamentId)
+                ->where('applicable_month', 9)
+                ->where('applicable_year', 2026)
+                ->first();
 
             if ($balance) {
                 $oldBalance = $balance->balance;
@@ -160,6 +163,8 @@ class ImportCreditBalances extends Command
                 CreditBalance::create([
                     'departament_id' => $departamentId,
                     'balance' => $amount,
+                    'applicable_month' => 9,
+                    'applicable_year' => 2026,
                 ]);
 
                 CreditTransaction::create([

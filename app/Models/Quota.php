@@ -99,6 +99,80 @@ class Quota extends Model
         });
     }
 
+    public static function resolvePeriod(Collection $quotas): ?array
+    {
+        if ($quotas->isEmpty()) {
+            return null;
+        }
+
+        $months = $quotas->map(fn ($q) => (int) $q->month)->unique()->values();
+        if ($months->count() !== 1) {
+            return null;
+        }
+
+        $years = $quotas->map(function ($q) {
+            if ($q->year !== null && $q->year !== '') {
+                return (int) $q->year;
+            }
+            if ($q->due_date) {
+                return (int) Carbon::parse($q->due_date)->year;
+            }
+
+            return (int) Carbon::now()->year;
+        })->unique()->values();
+
+        if ($years->count() !== 1) {
+            return null;
+        }
+
+        return ['month' => $months->first(), 'year' => $years->first()];
+    }
+
+    public static function isOpenPeriod(int $month, int $year, array $deptIds = []): bool
+    {
+        $now = Carbon::now();
+        $currentMonth = (int) $now->month;
+        $currentYear = (int) $now->year;
+
+        if ($month === $currentMonth && $year === $currentYear) {
+            return true;
+        }
+
+        $prev = $now->copy()->subMonthNoOverflow();
+        if ($month !== (int) $prev->month || $year !== (int) $prev->year) {
+            return false;
+        }
+
+        $base = fn () => static::query()
+            ->when(! empty($deptIds), fn ($q) => $q->whereIn('departament_id', $deptIds));
+
+        $hasByYear = $base()
+            ->where('month', $currentMonth)
+            ->where('year', $currentYear)
+            ->exists();
+
+        if ($hasByYear) {
+            return false;
+        }
+
+        return ! $base()
+            ->whereMonth('due_date', $currentMonth)
+            ->whereYear('due_date', $currentYear)
+            ->exists();
+    }
+
+    public static function areApplicableForCredit(Collection $quotas): bool
+    {
+        $period = static::resolvePeriod($quotas);
+        if (! $period) {
+            return false;
+        }
+
+        $deptIds = $quotas->pluck('departament_id')->filter()->unique()->values()->all();
+
+        return static::isOpenPeriod($period['month'], $period['year'], $deptIds);
+    }
+
     public static function baseAdminQuery(): Builder
     {
         return static::query()

@@ -65,23 +65,30 @@ const notificationsStore = useNotificationsStore()
 const payMethods = ref([])
 const creditBalance = ref(0)
 
-const isEligibleMonth = computed(() => {
-  if (!isQuotaPayment.value) return false
-  const now = moment()
+const quotaPeriod = computed(() => {
+  if (!isQuotaPayment.value) return null
   const rows =
     Array.isArray(toPay.value?.breakdown) && toPay.value.breakdown.length
       ? toPay.value.breakdown
       : [toPay.value]
 
-  return rows.every((item) => {
-    if (!item || item.month == null || item.month === '') return false
-    if (Number(item.month) !== Number(now.month()) + 1) return false
-    if (item.year != null && item.year !== '' && Number(item.year) !== Number(now.year())) {
-      return false
-    }
-    return true
-  })
+  const first = rows[0]
+  if (!first || first.month == null || first.month === '') return null
+
+  const month = Number(first.month)
+  let year = new Date().getFullYear()
+  if (first.year != null && first.year !== '') {
+    year = Number(first.year)
+  } else if (first.due_date) {
+    year = new Date(first.due_date).getFullYear()
+  } else if (first.month_label && /\d{4}/.test(String(first.month_label))) {
+    year = Number(String(first.month_label).match(/\d{4}/)[0])
+  }
+
+  return { month, year }
 })
+
+const isEligibleMonth = computed(() => isQuotaPayment.value && !!quotaPeriod.value)
 
 const amountToPay = computed(() => {
   const total = Number(toPay.value?.amount || 0)
@@ -315,8 +322,9 @@ const fetchCreditBalance = async () => {
       return
     }
 
+    const period = quotaPeriod.value
     const uniqueIds = [...new Set(deptIds)]
-    const res = await payStore.getCreditBalanceForDepartments(uniqueIds)
+    const res = await payStore.getCreditBalanceForDepartments(uniqueIds, period?.month, period?.year)
     if (res?.code === 200) {
       creditBalance.value = res.data.total || 0
     } else {

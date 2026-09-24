@@ -19,6 +19,7 @@ const payStore = usePayStore();
 const router = useRouter();
 const dialog = ref(false);
 const creditBalances = ref({});
+const creditItems = ref([]);
 const filters = ref({
   status: 4,
   quota_method: '',
@@ -61,20 +62,65 @@ const fetchCreditBalances = async () => {
     const res = await payStore.getCreditBalanceForDepartments([...deptIds]);
     if (res?.code === 200 && res.data?.detail) {
       creditBalances.value = res.data.detail;
+      creditItems.value = res.data.items || [];
     }
   } catch {}
 }
 
-const getCreditForQuota = (quota) => {
-  const currentMonth = moment().month() + 1
-  const currentYear = moment().year()
-  if (quota.month !== currentMonth) return 0
+const quotaYear = (quota) => {
+  if (quota.year != null && quota.year !== '') return Number(quota.year);
+  if (quota.due_date) return new Date(quota.due_date).getFullYear();
+  return moment().year();
+};
 
-  if (quota.details) {
-    return quota.details
-      .reduce((sum, d) => sum + (creditBalances.value[d.departament?.id] || 0), 0);
+const isOpenPeriod = (month, year) => {
+  const now = moment();
+  const currentMonth = now.month() + 1;
+  const currentYear = now.year();
+  if (month === currentMonth && year === currentYear) return true;
+
+  const prev = now.clone().subtract(1, 'month');
+  if (month !== prev.month() + 1 || year !== prev.year()) return false;
+
+  // Mes anterior solo es "abierto" si aún no hay cuotas del mes actual en la lista
+  const hasCurrentInList = quotas.value.some(
+    (q) => Number(q.month) === currentMonth && quotaYear(q) === currentYear
+  );
+  return !hasCurrentInList;
+};
+
+const getCreditForQuota = (quota) => {
+  const month = Number(quota.month);
+  const year = quotaYear(quota);
+  const open = isOpenPeriod(month, year);
+
+  const deptId = quota.departament?.id;
+  const detailIds = quota.details
+    ? quota.details.map(d => d.departament?.id).filter(Boolean)
+    : (deptId ? [deptId] : []);
+
+  if (!creditItems.value.length) {
+    // fallback legacy
+    if (!open && month !== moment().month() + 1) return 0;
+    if (quota.details) {
+      return quota.details.reduce((sum, d) => sum + (creditBalances.value[d.departament?.id] || 0), 0);
+    }
+    return creditBalances.value[deptId] || 0;
   }
-  return creditBalances.value[quota.departament?.id] || 0;
+
+  return creditItems.value.reduce((sum, item) => {
+    if (!detailIds.includes(item.departament_id)) return sum;
+    if (item.balance <= 0) return sum;
+    const m = Number(item.applicable_month || 0);
+    if (m === 0) {
+      return open ? sum + item.balance : sum;
+    }
+    const y = item.applicable_year;
+    if (m === month && (y == null || Number(y) === year)) {
+      return sum + item.balance;
+    }
+    return sum;
+  }, 0);
 }
 
 const quotaAmountAfterCredit = (quota) => {

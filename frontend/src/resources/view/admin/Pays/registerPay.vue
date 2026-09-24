@@ -121,18 +121,21 @@ const creditBalance = ref(0)
 const isQuotaType = computed(() => Number(selectedType.value) === 1)
 const isReserveType = computed(() => Number(selectedType.value) === 2)
 
-const isEligibleMonth = computed(() => {
-  if (!isQuotaType.value || !selectedQuotas.value.length) return false
-  const now = new Date()
-  const currentMonth = now.getMonth() + 1
-  const currentYear = now.getFullYear()
-  return selectedQuotas.value.every((q) => {
-    if (Number(q.month) !== currentMonth) return false
-    const year = q.year ?? (q.due_date ? new Date(q.due_date).getFullYear() : null)
-    if (year != null && Number(year) !== currentYear) return false
-    return true
-  })
+const selectedQuotaPeriod = computed(() => {
+  if (!selectedQuotas.value.length) return null
+  const months = new Set(selectedQuotas.value.map((q) => Number(q.month)))
+  if (months.size !== 1) return null
+  const years = new Set(selectedQuotas.value.map((q) => {
+    if (q.year != null && q.year !== '') return Number(q.year)
+    if (q.due_date) return new Date(q.due_date).getFullYear()
+    return new Date().getFullYear()
+  }))
+  if (years.size !== 1) return null
+  return { month: [...months][0], year: [...years][0] }
 })
+
+// Solo pedir saldo si todas las cuotas son del mismo mes (mes fijado o mes abierto)
+const isEligibleMonth = computed(() => isQuotaType.value && !!selectedQuotaPeriod.value)
 
 const hasCredit = computed(
   () => isQuotaType.value && isEligibleMonth.value && creditBalance.value > 0,
@@ -152,12 +155,14 @@ const amountToPay = computed(() => {
 const fetchCreditBalance = async () => {
   creditBalance.value = 0
   if (!isQuotaType.value || !isEligibleMonth.value || !selectedQuotas.value.length) return
+  const period = selectedQuotaPeriod.value
+  if (!period) return
   const deptIds = [...new Set(
     selectedQuotas.value.map((q) => q.departament_id).filter(Boolean),
   )]
   if (!deptIds.length) return
   try {
-    const res = await payStore.getCreditBalanceForDepartments(deptIds)
+    const res = await payStore.getCreditBalanceForDepartments(deptIds, period.month, period.year)
     if (res?.code === 200) {
       creditBalance.value = res.data.total || 0
     }
