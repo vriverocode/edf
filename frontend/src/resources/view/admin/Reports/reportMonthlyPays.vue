@@ -1,10 +1,12 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { Notify } from 'quasar'
 import { useQuotaStore } from '@/services/store/quota.store'
+import { useUserStore } from '@/services/store/users.store'
 import { useRouter } from 'vue-router'
 
 const quotaStore = useQuotaStore()
+const userStore = useUserStore()
 const router = useRouter()
 
 const now = new Date()
@@ -13,6 +15,16 @@ const loading = ref(false)
 const report = ref(null)
 const deptFilter = ref(null)
 const statusFilter = ref(null)
+const userIdFilter = ref(null)
+const userOptions = ref([])
+const userSearch = ref('')
+
+const filteredUsers = computed(() => {
+  if (!userSearch.value) return userOptions.value
+  const q = userSearch.value.trim().toLowerCase()
+  if (!q) return userOptions.value
+  return userOptions.value.filter((u) => u.name?.toLowerCase().includes(q))
+})
 
 const statusOptions = [
   { label: 'Todos', value: null },
@@ -95,7 +107,7 @@ const filteredTotals = computed(() => {
 const fetchData = async () => {
   loading.value = true
   try {
-    const res = await quotaStore.getMonthlyPaymentsReport(year.value)
+    const res = await quotaStore.getMonthlyPaymentsReport(year.value, userIdFilter.value)
     if (res?.code === 200) {
       report.value = res.data
     }
@@ -109,7 +121,7 @@ const fetchData = async () => {
 const exportToXls = async () => {
   loading.value = true
   try {
-    await quotaStore.exportMonthlyPaymentsReport(year.value)
+    await quotaStore.exportMonthlyPaymentsReport(year.value, userIdFilter.value)
     Notify.create({ color: 'positive', message: 'Archivo descargado correctamente' })
   } catch (e) {
     Notify.create({ color: 'negative', message: typeof e === 'string' ? e : 'Error al exportar archivo' })
@@ -117,11 +129,30 @@ const exportToXls = async () => {
     loading.value = false
   }
 }
+
+const loadUsers = async () => {
+  try {
+    const res = await userStore.getUsersOptions()
+    userOptions.value = res.data || []
+  } catch {
+    userOptions.value = []
+  }
+}
+
 const goTo = (quotaId) => {
   if (!quotaId) return
   router.push(`/client/quota/view/${quotaId}`)
 }
-onMounted(fetchData)
+
+watch(userIdFilter, () => {
+  deptFilter.value = null
+  fetchData()
+})
+
+onMounted(() => {
+  fetchData()
+  loadUsers()
+})
 </script>
 
 <template>
@@ -168,6 +199,48 @@ onMounted(fetchData)
         />
       </div>
 
+      <!-- Filtro por usuario (autocompletar por nombre) -->
+      <div class="col-6 col-md-3">
+        <q-select
+          v-model="userIdFilter"
+          :options="filteredUsers"
+          option-label="name"
+          option-value="id"
+          emit-value
+          map-options
+          use-input
+          fill-input
+          hide-selected
+          behavior="menu"
+          dense
+          borderless
+          class="form__inputsR"
+          label="Usuario"
+          clearable
+          @filter="(val, update) => { userSearch = val; update() }"
+          @filter-abort="() => { userSearch = '' }"
+        >
+          <template v-slot:option="{ itemProps, opt }">
+            <q-item v-bind="itemProps" dense class="py-1">
+              <q-item-section avatar class="min-w-[36px]">
+                <q-avatar size="28px" color="teal" text-color="white" class="text-xs font-bold">
+                  {{ String(opt.name || '?')[0] }}
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="text-sm font-semibold">{{ opt.name }}</q-item-label>
+                <q-item-label v-if="opt.units?.length" caption class="text-xs">
+                  {{ opt.units.map((u) => u.number).join(' · ') }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+          <template v-slot:selected-item="{ opt }">
+            {{ opt.name }}
+          </template>
+        </q-select>
+      </div>
+
       <!-- Leyenda -->
       <div class="col-12 col-md row items-center justify-center md:justify-start q-gutter-x-md q-gutter-y-xs flex-wrap">
         <div class="flex items-center q-gutter-x-xs">
@@ -208,7 +281,9 @@ onMounted(fetchData)
 
     <div v-else-if="allDepartments.length === 0" class="text-center text-grey-6 q-py-xl">
       <q-icon name="eva-info-outline" size="4rem" color="grey" />
-      <div class="text-h6 q-mt-sm">No hay datos para {{ year }}</div>
+      <div class="text-h6 q-mt-sm">
+        No hay datos para {{ year }}<template v-if="userIdFilter"> con el usuario seleccionado</template>
+      </div>
     </div>
 
     <div v-else class="table-wrapper">

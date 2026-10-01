@@ -208,6 +208,8 @@ class CreditController extends Controller
             $creditService = new CreditService;
             $appliedTotal = 0.0;
             $remaining = $creditAmount;
+            $assigned = [];
+            $payDate = $pay->pay_date ?? now();
 
             foreach ($deptIds as $deptId) {
                 if ($remaining <= 0) {
@@ -224,12 +226,21 @@ class CreditController extends Controller
                     break;
                 }
 
-                $creditService->createCredit($dept, $applyAmount, $pay);
+                // Asigna el crédito al primer mes calendario posterior al pago
+                // que aún no tenga cuota creada para este departamento.
+                [$creditMonth, $creditYear] = $creditService->nextMonthWithoutQuota($dept, $payDate);
+
+                $creditService->createCredit($dept, $applyAmount, $pay, $creditMonth, $creditYear);
                 $appliedTotal += $applyAmount;
                 $remaining = round($creditAmount - $appliedTotal, 2);
-            }
 
-            // Nota: createCredit usa fila flexible (applicable_month=0)
+                $assigned[] = [
+                    'departament_id' => (int) $dept->id,
+                    'number' => $dept->number,
+                    'month' => $creditMonth,
+                    'year' => $creditYear,
+                ];
+            }
 
             if ($request->description) {
                 foreach ($deptIds as $deptId) {
@@ -246,6 +257,7 @@ class CreditController extends Controller
                 'message' => 'Saldo a favor creado correctamente.',
                 'amount' => $appliedTotal,
                 'pay_id' => $pay->id,
+                'assigned' => $assigned,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

@@ -20,11 +20,13 @@ const bankStore = useBankAccountStore()
 const dialog = ref('')
 
 const refundAmount = (b) => {
-  if (b.kind === 'warranty') {
+  const payTotal = Number(pay.value?.amount ?? 0)
+  if (payTotal > 0) return payTotal
+  if (b?.kind === 'warranty') {
     const warrantyPrice = Number(b.comun_area?.warranty_price ?? 0)
     if (warrantyPrice > 0) return warrantyPrice
   }
-  return Number(b.amount ?? 0)
+  return Number(b?.amount ?? 0)
 }
 
 const isCurrentBookingRefundable = computed(() => {
@@ -107,7 +109,7 @@ const submitRefund = async () => {
   try {
     const formData = new FormData()
     formData.append('booking_id', booking.id)
-    formData.append('pay_id', booking.pay.id)
+    formData.append('pay_id', pay.value?.id ?? payId)
     formData.append('amount', refundAmount(booking))
     formData.append('bank_account_id', refundAccountId.value)
     formData.append('vaucher', refundVaucher.value)
@@ -116,6 +118,7 @@ const submitRefund = async () => {
     refundDialog.value = false
     getPayById(payId)
   } catch (e) {
+    console.log(e)
     showNotify('negative', e?.response?.data?.error || 'Error al registrar devolución')
   } finally {
     refundSubmitting.value = false
@@ -147,6 +150,19 @@ const overpaymentCredit = computed(() => {
   if (!showOverpaymentInfo.value) return 0
   return Number(approveForm.value.actual_amount) - Number(pay.value?.amount)
 })
+
+const creditApplied = computed(() => Number(pay.value?.credit_applied ?? 0))
+const totalCoveredByPay = computed(() => Number(pay.value?.amount ?? 0) + creditApplied.value)
+const unitCredits = computed(() => {
+  const units = pay.value?.unit_credits || []
+  const useApplied = units.some(u => Number(u.applied) > 0)
+  return units
+    .map(u => ({ ...u, shown: Number(useApplied ? u.applied : u.balance) }))
+    .filter(u => u.shown > 0)
+})
+const totalUnitCredits = computed(() =>
+  Math.round(unitCredits.value.reduce((sum, u) => sum + u.shown, 0) * 100) / 100
+)
 
 const financialAccountOptions = computed(() =>
   financialAccounts.value.map((a) => ({
@@ -459,11 +475,20 @@ const submitUploadVoucher = async () => {
               <span class="text-gray-600 font-medium">Cuota referencia</span>
               <span class="text-gray-900 font-semibold">{{ pay.quota?.month_label }}</span>
             </div>
-
+            <div v-if="creditApplied > 0 && isQuotaPay" class="flex justify-between items-center pb-2"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">Total de cuotas</span>
+              <span class="text-gray-900 font-semibold">S/. {{ totalCoveredByPay.toFixed(2) }}</span>
+            </div>
+            <div v-if="creditApplied > 0 && isQuotaPay" class="flex justify-between items-center pb-2"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">Saldo a favor aplicado</span>
+              <span class="text-green-600 font-semibold">- S/. {{ creditApplied.toFixed(2) }}</span>
+            </div>
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
-              <span class="text-gray-600 font-medium">Monto reportado</span>
-              <span class="text-gray-900 font-semibold">S/. {{ pay.amount.toFixed(2) }}</span>
+              <span class="text-gray-600 font-medium">Total a pagar</span>
+              <span class="text-gray-900 font-semibold">S/. {{ (totalCoveredByPay - creditApplied).toFixed(2) }}</span>
             </div>
 
             <div v-if="pay.commission_amount > 0" class="flex justify-between items-center pb-2"
@@ -518,6 +543,35 @@ const submitUploadVoucher = async () => {
                   </tr>
                 </tbody>
               </q-markup-table>
+            </div>
+          </template>
+
+
+          <!-- Resumen total cuotas − saldo a favor -->
+          <template v-if="isQuotaPay">
+            <div class="mt-4 bg-gray-50 rounded-xl border border-gray-200 px-4 py-3 space-y-2">
+              <div class="text-subtitle2 text-grey-9 mb-2">Resumen del pago</div>
+
+              <!-- Total bruto de cuotas -->
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-gray-600">Total cuotas</span>
+                <span class="font-semibold text-gray-900">S/. {{ totalCoveredByPay.toFixed(2) }}</span>
+              </div>
+
+              <!-- Saldo a favor (solo si aplica) -->
+              <div v-if="creditApplied > 0" class="flex justify-between items-center text-sm border-t border-gray-200 pt-2">
+                <span class="flex items-center gap-1 text-green-700">
+                  <q-icon name="eva-checkmark-circle-2-outline" size="16px" />
+                  Saldo a favor aplicado
+                </span>
+                <span class="font-semibold text-green-700">− S/. {{ creditApplied.toFixed(2) }}</span>
+              </div>
+
+              <!-- Total neto a pagar -->
+              <div class="flex justify-between items-center text-sm font-bold border-t-2 border-gray-300 pt-2 mt-1">
+                <span class="text-gray-900">Total a pagar</span>
+                <span class="text-primary text-base">S/. {{ (totalCoveredByPay - creditApplied).toFixed(2) }}</span>
+              </div>
             </div>
           </template>
 

@@ -24,7 +24,7 @@ class CheckUserMorosos extends Command
 
     public function handle(): int
     {
-        $cutoff = Carbon::now()->subMonthsNoOverflow(2);
+        $cutoff = Quota::oldDebtCutoff(2);
 
         $this->info('Fecha de corte: '.$cutoff->toDateString());
 
@@ -41,7 +41,8 @@ class CheckUserMorosos extends Command
     private function getOldPendingQuotas(Carbon $cutoff)
     {
         return Quota::whereIn('status', [1, 4])
-            ->where('due_date', '<', $cutoff)
+            ->where('amount', '>', 0)
+            ->where('due_date', '<=', $cutoff)
             ->with('departament.owner', 'responsiblePivot.user')
             ->get();
     }
@@ -99,7 +100,7 @@ class CheckUserMorosos extends Command
 
     private function restoreAlDia(array $currentDebtorIds): void
     {
-        $cutoff = Carbon::now()->subMonthsNoOverflow(2);
+        $cutoff = Quota::oldDebtCutoff(2);
 
         // Collect all users currently marked as moroso
         $allMorosos = User::where('status', 2)->pluck('id')->toArray();
@@ -112,7 +113,8 @@ class CheckUserMorosos extends Command
         // We verify directly against the DB so that quotas that moved to status=3
         // (approved/paid) are correctly excluded from "still has debt" check.
         $stillInDebt = Quota::whereIn('status', [1, 4])
-            ->where('due_date', '<', $cutoff)
+            ->where('amount', '>', 0)
+            ->where('due_date', '<=', $cutoff)
             ->where(function ($query) {
                 // Quota linked via responsiblePivot OR via departament owner
                 $query->whereHas('responsiblePivot.user', fn ($q) => $q->where('users.status', 2))

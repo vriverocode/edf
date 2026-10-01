@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { usePayStore } from '@/services/store/pay.store'
 import { Notify } from 'quasar'
+import moment from 'moment'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -39,7 +40,20 @@ const paymentOptionLabel = (pay) => {
 
 const paymentOptionSub = (pay) => {
   const statusText = pay.status === 3 ? 'Completado' : 'Pendiente'
-  return `S/. ${Number(pay.amount).toFixed(2)} | Ref: ${pay.reference} | ${statusText}`
+  const payDate = pay.pay_date ? moment(pay.pay_date).format('DD/MM/YYYY') : '—'
+  return `S/. ${Number(pay.amount).toFixed(2)} | Ref: ${pay.reference} | ${statusText} | Pago: ${payDate}`
+}
+
+const MONTH_LABELS = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+]
+
+const formatAssignedMonths = (assigned) => {
+  if (!Array.isArray(assigned) || !assigned.length) return ''
+  const labels = assigned.map((a) => `${MONTH_LABELS[(a.month || 1) - 1]} ${a.year || ''}`.trim())
+  const unique = [...new Set(labels)]
+  return unique.join(' y ')
 }
 
 const fetchPayments = async () => {
@@ -76,12 +90,18 @@ const submit = async () => {
 
   loading.value = true
   try {
-    await payStore.storeManualCredit({
+    const res = await payStore.storeManualCredit({
       pay_id: selectedPayment.value.id,
       amount,
       description: description.value || null,
     })
-    Notify.create({ color: 'positive', message: 'Saldo a favor creado correctamente' })
+    const months = formatAssignedMonths(res?.assigned)
+    Notify.create({
+      color: 'positive',
+      message: months
+        ? `Saldo creado — aplicable en ${months}`
+        : 'Saldo a favor creado correctamente',
+    })
     emit('created')
     show.value = false
     resetForm()
@@ -118,6 +138,7 @@ watch(show, (val) => {
       <q-card-section class="q-pt-md">
         <div class="text-caption text-grey-6 mb-3">
           Selecciona un pago de cuota (completado o pendiente) y define cuánto del monto es saldo a favor.
+          El saldo se asignará al primer mes calendario posterior al pago que aún no tenga cuota creada.
         </div>
 
         <!-- Select de pagos -->

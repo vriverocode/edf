@@ -7,6 +7,7 @@ use App\Jobs\SendNotificationJob;
 use App\Mail\PayClaims;
 use App\Models\BankAccount;
 use App\Models\Booking;
+use App\Models\CreditTransaction;
 use App\Models\DepartmentCharge;
 use App\Models\Expense;
 use App\Models\FinancialAccount;
@@ -50,11 +51,15 @@ class PayController extends Controller
         ])->find($id);
 
         if (! $pay) {
+            Log::warning('returnFail 404: Pago no encontrado');
+
             return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Pago no encontrado']);
         }
 
         $user = request()->user();
         if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]) && $pay->user_id !== $user->id) {
+            Log::warning('returnFail 403: No autorizado');
+
             return $this->returnFail(403, 'No autorizado');
         }
 
@@ -67,8 +72,42 @@ class PayController extends Controller
                     : collect([]);
             }
             $pay->setRelation('consolidated_quotas', $consolidated);
+
+            $unitCredits = collect([]);
+            if ($consolidated->isNotEmpty() && (float) ($pay->credit_applied ?? 0) > 0) {
+                $deptIds = $consolidated->pluck('departament_id')->unique()->values()->all();
+                $period = Quota::resolvePeriod($consolidated);
+
+                $appliedByDept = CreditTransaction::query()
+                    ->where('pay_id', $pay->id)
+                    ->where('type', CreditTransaction::TYPE_APPLIED)
+                    ->get()
+                    ->groupBy('departament_id')
+                    ->map(fn ($rows) => round((float) $rows->sum('amount'), 2));
+
+                $balances = (new CreditService)->getBalanceForDepartments(
+                    $deptIds,
+                    $period['month'] ?? null,
+                    $period['year'] ?? null
+                )['detail'];
+
+                $unitCredits = $consolidated->groupBy('departament_id')->map(function ($quotas, $deptId) use ($appliedByDept, $balances) {
+                    $dept = $quotas->first()->departament;
+
+                    return [
+                        'departament_id' => (int) $deptId,
+                        'number' => $dept?->number,
+                        'type' => (int) ($dept?->type ?? 1),
+                        'type_label' => $dept?->type_label ?? '',
+                        'applied' => round((float) ($appliedByDept[$deptId] ?? 0), 2),
+                        'balance' => round((float) ($balances[$deptId] ?? 0), 2),
+                    ];
+                })->values();
+            }
+            $pay->setRelation('unit_credits', $unitCredits);
         } else {
             $pay->setRelation('consolidated_quotas', collect([]));
+            $pay->setRelation('unit_credits', collect([]));
         }
 
         return $this->returnSuccess(200, $pay);
@@ -110,6 +149,8 @@ class PayController extends Controller
         ])->find($payId);
 
         if (! $pay) {
+            Log::warning('returnFail 404: Pago no encontrado');
+
             return $this->returnFail(404, 'Pago no encontrado');
         }
 
@@ -117,10 +158,14 @@ class PayController extends Controller
         $isAdmin = in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]);
         $isOwner = $pay->user_id === $user->id;
         if (! $isAdmin && ! $isOwner) {
+            Log::warning('returnFail 403: No autorizado');
+
             return $this->returnFail(403, 'No autorizado');
         }
 
         if ((int) $pay->status !== 2) {
+            Log::warning('returnFail 403: El recibo solo está disponible para pagos exitosos');
+
             return $this->returnFail(403, 'El recibo solo está disponible para pagos exitosos');
         }
 
@@ -142,12 +187,16 @@ class PayController extends Controller
     {
         $validated = $this->validateFieldsFromInput($request->all());
         if (count($validated) > 0) {
+            Log::warning('returnFail 400: '.$validated[0]);
+
             return $this->returnFail(400, $validated[0]);
         }
 
         if ((int) $request->type === 2) {
             $bookingExists = Booking::where('id', $request->to_pay_id)->exists();
             if (! $bookingExists) {
+                Log::warning('returnFail 404: La reserva que intentas pagar no existe o ha sido eliminada.');
+
                 return $this->returnFail(404, 'La reserva que intentas pagar no existe o ha sido eliminada.');
             }
 
@@ -157,6 +206,8 @@ class PayController extends Controller
                 ->exists();
 
             if ($hasActivePay) {
+                Log::warning('returnFail 409: La reserva ya tiene un pago registrado');
+
                 return $this->returnFail(409, ['messageType' => 'negative', 'message' => 'La reserva ya tiene un pago registrado']);
             }
         }
@@ -181,6 +232,8 @@ class PayController extends Controller
 
             foreach ($tenantQuotas as $tq) {
                 if ($tq->responsiblePivot?->user_id !== $request->user()->id) {
+                    Log::warning('returnFail 403: Esta cuota está asignada a un inquilino. El propietario no puede realizar el pago.');
+
                     return $this->returnFail(403, 'Esta cuota está asignada a un inquilino. El propietario no puede realizar el pago.');
                 }
             }
@@ -191,6 +244,8 @@ class PayController extends Controller
         if ($request->has('user_id') && in_array($authUser->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             $user = User::find((int) $request->user_id);
             if (! $user) {
+                Log::warning('returnFail 404: Usuario no encontrado');
+
                 return $this->returnFail(404, 'Usuario no encontrado');
             }
         }
@@ -245,6 +300,8 @@ class PayController extends Controller
                     if (! $period) {
                         DB::rollBack();
 
+                        Log::warning('returnFail 422: El saldo a favor solo aplica cuando todas las cuotas son del mismo mes.');
+
                         return $this->returnFail(422, 'El saldo a favor solo aplica cuando todas las cuotas son del mismo mes.');
                     }
 
@@ -258,6 +315,8 @@ class PayController extends Controller
 
                     if ($creditRequested > round($available['total'], 2) + 0.009) {
                         DB::rollBack();
+
+                        Log::warning('returnFail 422: El saldo a favor disponible no es suficiente para este mes.');
 
                         return $this->returnFail(422, 'El saldo a favor disponible no es suficiente para este mes.');
                     }
@@ -296,6 +355,8 @@ class PayController extends Controller
         $pay = Pay::with(['booking', 'payMethod', 'quotas'])->find($payId);
 
         if (! $payId) {
+            Log::warning('returnFail 404: Pago no encontrado');
+
             return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Pago no encontrado']);
         }
 
@@ -305,6 +366,8 @@ class PayController extends Controller
             ]);
             $this->payStatusActionByType($pay);
         } catch (Exception $th) {
+            Log::error('Error al cambiar estado del pago '.$payId.': '.$th->getMessage(), ['exception' => $th]);
+
             return $this->returnFail(500, ['messageType' => 'negative', 'message' => 'Error al cambiar estado de pago']);
         }
 
@@ -323,6 +386,8 @@ class PayController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::warning('returnFail 422: '.$validator->errors()->first());
+
             return $this->returnFail(422, ['messageType' => 'negative', 'message' => $validator->errors()->first()]);
         }
 
@@ -335,11 +400,15 @@ class PayController extends Controller
             if (! $pay) {
                 DB::rollBack();
 
+                Log::warning('returnFail 404: Pago no encontrado');
+
                 return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Pago no encontrado']);
             }
 
             if ((int) $pay->status !== 1) {
                 DB::rollBack();
+
+                Log::warning('returnFail 409: Este pago ya fue validado.');
 
                 return $this->returnFail(409, ['messageType' => 'negative', 'message' => 'Este pago ya fue validado.']);
             }
@@ -368,6 +437,8 @@ class PayController extends Controller
             if (Transaction::query()->where('pay_id', $pay->id)->exists()) {
                 DB::rollBack();
 
+                Log::warning('returnFail 409: Ya existe una transacción contable asociada a este pago.');
+
                 return $this->returnFail(409, ['messageType' => 'negative', 'message' => 'Ya existe una transacción contable asociada a este pago.']);
             }
 
@@ -377,6 +448,8 @@ class PayController extends Controller
                 $quotaIds = $pay->consolidatedQuotaIds();
                 if ($quotaIds === []) {
                     DB::rollBack();
+
+                    Log::warning('returnFail 422: No hay cuotas asociadas a este pago.');
 
                     return $this->returnFail(422, [
                         'messageType' => 'negative',
@@ -395,6 +468,8 @@ class PayController extends Controller
                 if ($lockedQuotas !== $quotaIds) {
                     DB::rollBack();
 
+                    Log::warning('returnFail 422: Una o más cuotas del pago consolidado no existen.');
+
                     return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'Una o más cuotas del pago consolidado no existen.']);
                 }
 
@@ -409,6 +484,8 @@ class PayController extends Controller
 
                     if (! $period) {
                         DB::rollBack();
+
+                        Log::warning('returnFail 422: El saldo a favor solo aplica cuando todas las cuotas son del mismo mes.');
 
                         return $this->returnFail(422, [
                             'messageType' => 'negative',
@@ -426,6 +503,8 @@ class PayController extends Controller
 
                     if (round($creditConsumed, 2) < $creditRequested) {
                         DB::rollBack();
+
+                        Log::warning('returnFail 422: El saldo a favor disponible no es suficiente para aprobar este pago.');
 
                         return $this->returnFail(422, [
                             'messageType' => 'negative',
@@ -473,6 +552,8 @@ class PayController extends Controller
 
             if (! $financialAccount || (int) $financialAccount->status !== 1) {
                 DB::rollBack();
+
+                Log::warning('returnFail 422: Cuenta financiera inválida o inactiva.');
 
                 return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'Cuenta financiera inválida o inactiva.']);
             }
@@ -529,6 +610,8 @@ class PayController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::warning('returnFail 422: '.$validator->errors()->first());
+
             return $this->returnFail(422, $validator->errors()->first());
         }
 
@@ -539,6 +622,8 @@ class PayController extends Controller
             if (! $pay || ! in_array((int) $pay->status, [2, 4, 6])) {
                 DB::rollBack();
 
+                Log::warning('returnFail 409: El pago no está en estado aprobado, reembolsado parcialmente o pendiente por devolución.');
+
                 return $this->returnFail(409, 'El pago no está en estado aprobado, reembolsado parcialmente o pendiente por devolución.');
             }
 
@@ -546,6 +631,8 @@ class PayController extends Controller
 
             if (! $booking) {
                 DB::rollBack();
+
+                Log::warning('returnFail 409: El pago no tiene una reserva asociada.');
 
                 return $this->returnFail(409, 'El pago no tiene una reserva asociada.');
             }
@@ -559,6 +646,8 @@ class PayController extends Controller
 
                 $this->notifyMissingBankAccount($booking);
 
+                Log::warning('returnFail 409: El usuario no tiene cuenta bancaria registrada. Se le notificó para que registre una.');
+
                 return $this->returnFail(409, 'El usuario no tiene cuenta bancaria registrada. Se le notificó para que registre una.');
             }
 
@@ -566,23 +655,29 @@ class PayController extends Controller
             if (! $bankAccount || (int) $bankAccount->user_id !== (int) $booking->user_id) {
                 DB::rollBack();
 
+                Log::warning('returnFail 403: La cuenta bancaria no pertenece al usuario de la reserva.');
+
                 return $this->returnFail(403, 'La cuenta bancaria no pertenece al usuario de la reserva.');
             }
 
             $isWarranty = $booking->kind === 'warranty';
             $kind = $isWarranty ? 'warranty' : 'cancellation';
 
-            $amount = (float) $request->amount;
-            $reason = $request->reason ?? 'Devolución por cancelación de reserva';
+            // El reembolso es siempre TOTAL: se devuelve el saldo restante del pago.
+            $alreadyRefunded = round((float) $pay->refunds()->sum('amount'), 2);
+            $amount = round((float) $pay->amount - $alreadyRefunded, 2);
 
-            if ($isWarranty) {
-                $warrantyPrice = (float) ($booking->comunArea?->warranty_price ?? 0);
-                $amount = $warrantyPrice > 0 ? $warrantyPrice : $amount;
-                $reason = 'Devolución de garantía por reserva completada';
+            if ($amount <= 0) {
+                DB::rollBack();
+
+                Log::warning('returnFail 409: Este pago ya fue reembolsado en su totalidad.');
+
+                return $this->returnFail(409, 'Este pago ya fue reembolsado en su totalidad.');
             }
 
-            $alreadyRefunded = $pay->refunds()->sum('amount');
-            $newTotal = $alreadyRefunded + $amount;
+            $reason = $request->reason ?? ($isWarranty
+                ? 'Devolución de garantía por reserva completada'
+                : 'Devolución por cancelación de reserva');
 
             $vaucherPath = $this->uploadRefundVaucher($request);
 
@@ -602,13 +697,11 @@ class PayController extends Controller
                 'status' => 'completed',
             ]);
 
-            $pay->update(['status' => $newTotal >= (float) $pay->amount ? 5 : 4]);
+            // Reembolso total → pago siempre queda como "Reembolsado"
+            $pay->update(['status' => 5]);
 
-            if ((int) $booking->status === Booking::STATUS_PENDING_DEVO) {
-                $booking->update([
-                    'status' => $isWarranty ? Booking::STATUS_COMPLETED : Booking::STATUS_CANCELLED,
-                ]);
-            }
+            // La reserva queda completada tras la devolución
+            $booking->update(['status' => Booking::STATUS_COMPLETED]);
 
             DB::commit();
 
@@ -621,6 +714,53 @@ class PayController extends Controller
 
             return $this->returnFail(500, 'Error al procesar la devolución: '.$e->getMessage());
         }
+    }
+
+    public function getRefunds(Request $request)
+    {
+        $refunds = Refund::query()
+            ->with(['booking.user', 'booking.departament', 'booking.comunArea', 'pay'])
+            ->when($request->filled('user'), function ($query) use ($request) {
+                $term = '%'.$request->input('user').'%';
+                $query->whereHas('booking.user', function ($userQuery) use ($term) {
+                    $userQuery->where(fn ($q) => $q->where('name', 'like', $term)->orWhere('email', 'like', $term));
+                });
+            })
+            ->when($request->filled('departament'), function ($query) use ($request) {
+                $term = '%'.$request->input('departament').'%';
+                $query->whereHas('booking.departament', fn ($q) => $q->where('number', 'like', $term));
+            })
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($refund) {
+                $booking = $refund->booking;
+
+                return [
+                    'id' => $refund->id,
+                    'created_at' => $refund->created_at,
+                    'booking_id' => $refund->booking_id,
+                    'booking_number' => $booking?->booking_number ?? '—',
+                    'user_name' => $booking?->user?->name ?? '—',
+                    'departament_number' => $booking?->departament?->number ?? '—',
+                    'comun_area' => $booking?->comunArea?->name ?? '—',
+                    'amount' => round((float) $refund->amount, 2),
+                    'kind' => $refund->kind,
+                    'kind_label' => match ($refund->kind) {
+                        'warranty' => 'Garantía',
+                        'cancellation' => 'Cancelación',
+                        default => '—',
+                    },
+                    'reason' => $refund->reason,
+                    'vaucher' => $refund->vaucher,
+                    'bank_name' => $refund->bank_account_snapshot['name'] ?? '—',
+                    'status' => $refund->status,
+                    'pay_status' => $refund->pay?->status,
+                    'pay_status_label' => $refund->pay?->status_label,
+                ];
+            })
+            ->values();
+
+        return $this->returnSuccess(200, $refunds);
     }
 
     public function getClaimSequence(Request $request)
@@ -637,6 +777,8 @@ class PayController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::warning('returnFail 422: '.$validator->errors()->first());
+
             return $this->returnFail(422, $validator->errors()->first());
         }
 
@@ -685,6 +827,8 @@ class PayController extends Controller
 
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
+            Log::warning('returnFail 400: '.$validator->errors()->first());
+
             return $this->returnFail(400, $validator->errors()->first());
         }
 
@@ -728,8 +872,12 @@ class PayController extends Controller
                 });
             }
 
+            Log::warning('returnFail 400: '.($culqiData['user_message'] ?? 'Pago rechazado'));
+
             return $this->returnFail(400, $culqiData['user_message'] ?? 'Pago rechazado');
         } catch (Exception $e) {
+            Log::error('Error procesando pago Culqi: '.$e->getMessage(), ['exception' => $e, 'user_id' => $request->user()?->id]);
+
             return $this->returnFail(500, 'Error procesando la operación');
         }
     }
@@ -766,6 +914,8 @@ class PayController extends Controller
                 'value' => $rawSequence + 1,
             ]);
         } catch (Exception $th) {
+            Log::error('Error en claimsByPay: '.$th->getMessage(), ['exception' => $th]);
+
             return $this->returnFail(500, $th->getMessage());
         }
 
@@ -879,12 +1029,16 @@ class PayController extends Controller
     {
         $pay = Pay::find($id);
         if (! $pay) {
+            Log::warning('returnFail 404: Pago no encontrado');
+
             return $this->returnFail(404, 'Pago no encontrado');
         }
 
         try {
             $this->uploadVaucher($request, $pay);
         } catch (Exception $e) {
+            Log::error('Error al subir voucher (pay '.$id.'): '.$e->getMessage(), ['exception' => $e, 'pay_id' => $pay->id, 'user_id' => $request->user()?->id]);
+
             return $this->returnFail(422, $e->getMessage());
         }
 
@@ -1119,12 +1273,16 @@ class PayController extends Controller
         $expense = Expense::find($expenseId);
 
         if (! $expense) {
+            Log::warning('returnFail 404: Gasto no encontrado');
+
             return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Gasto no encontrado']);
         }
 
         if ($expense->pay_id) {
             $existingPay = Pay::find($expense->pay_id);
             if ($existingPay && in_array($existingPay->status, [1, 2])) {
+                Log::warning('returnFail 409: Este gasto ya tiene un pago registrado');
+
                 return $this->returnFail(409, ['messageType' => 'negative', 'message' => 'Este gasto ya tiene un pago registrado']);
             }
         }
@@ -1149,6 +1307,8 @@ class PayController extends Controller
         ]);
 
         if ($validated->fails()) {
+            Log::warning('returnFail 422: '.$validated->errors()->first());
+
             return $this->returnFail(422, ['messageType' => 'negative', 'message' => $validated->errors()->first()]);
         }
 
@@ -1180,6 +1340,8 @@ class PayController extends Controller
 
             if (! $financialAccount || (int) $financialAccount->status !== 1) {
                 DB::rollBack();
+
+                Log::warning('returnFail 422: Cuenta financiera inválida o inactiva');
 
                 return $this->returnFail(422, ['messageType' => 'negative', 'message' => 'Cuenta financiera inválida o inactiva']);
             }

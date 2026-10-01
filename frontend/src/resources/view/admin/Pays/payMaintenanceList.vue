@@ -102,7 +102,6 @@ const onPageChange = (page) => {
 }
 
 const getCreditForPay = (pay) => {
-  console.log(pay)
   return ((pay?.overpayment_amount ?? 0) - pay.amount)|| 0
 }
 

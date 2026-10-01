@@ -145,6 +145,11 @@ const goTo = (quota) => {
   })
 }
 
+const goToDetail = (quota) => {
+  const id = quota.details?.[0]?.id ?? null
+  if (id) router.push({ name: 'viewQuota', params: { id } })
+}
+
 const showDialog = () => {
   dialog.value = true;
 }
@@ -209,7 +214,7 @@ onMounted(() => {
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
             style="position: relative; border: 1px solid lightgrey">
 
-            <div class="px-4 pb-2 pt-2 md:pt-4">
+            <div class="px-4 pb-2 pt-2 md:pt-4 cursor-pointer" @click="goToDetail(quota)">
               <div class="flex justify-between items-start mb-0 pb-1" style="border-bottom: 1px dashed #111827;">
                 <div class="flex-1">
                   <h3 class="text-lg font-bold text-gray-900 mb-1">
@@ -262,14 +267,13 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-
             <div class="px-4 py-2 md:py-3 border-t cursor-pointer" :class="`bg-${getStatusInfo(quota.status).color}`"
               @click="goTo(quota)">
               <div class="flex justify-center items-center">
                 <div class="flex items-center">
                   <q-icon :name="getStatusInfo(quota.status).icon" color="white" size="1.5rem" />
                   <span class="ml-1 text-sm font-medium text-white mr-2">
-                    {{ getStatusInfo(quota.status).label }}
+                    <span class="" v-if="quota.status ==1">Pagar</span> {{ getStatusInfo(quota.status).label }}
                   </span>
                   <span  class="font-medium text-base text-white">
                     S/. {{ quotaAmountAfterCredit(quota).toFixed(2) }}

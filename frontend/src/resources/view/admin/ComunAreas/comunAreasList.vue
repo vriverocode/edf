@@ -55,7 +55,7 @@ const getComunArea = () => {
     })
 }
 const selectArea = (id) => {
-  selectedArea.value = comunAreas.value.find((area) => area.id == id)
+  selectedArea.value = comunAreas.value.find((area) => area.id == id) ?? {}
   setTimeout(() => {
     dialog.value = true
   }, 500);
@@ -64,7 +64,7 @@ const hiddenModal = () => {
   dialog.value = false
 }
 const selectStatusArea = (id) => {
-  statusModalArea.value = comunAreas.value.find((area) => area.id == id)
+  statusModalArea.value = comunAreas.value.find((area) => area.id == id) ?? {}
   statusDialog.value = true
 }
 const hideStatusModal = () => {
@@ -74,7 +74,9 @@ const hideStatusModal = () => {
 const blockDatesArea = ref({})
 const blockDatesDialog = ref(false)
 const openBlockDates = (id) => {
-  blockDatesArea.value = comunAreas.value.find((area) => area.id == id)
+  const area = comunAreas.value.find((a) => a.id == id)
+  if (!area?.id) return
+  blockDatesArea.value = area
   blockDatesDialog.value = true
 }
 const hideBlockDatesModal = () => {

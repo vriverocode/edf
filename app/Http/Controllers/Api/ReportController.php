@@ -8,8 +8,10 @@ use App\Exports\BookingsExport;
 use App\Exports\DelinquentsExport;
 use App\Exports\MonthlyPaymentsExport;
 use App\Exports\PaymentsExport;
+use App\Exports\UserQuotasExport;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\CreditTransaction;
 use App\Models\Departament;
 use App\Models\Expense;
 use App\Models\Pay;
@@ -17,7 +19,9 @@ use App\Models\Provider;
 use App\Models\Quota;
 use App\Models\Rol;
 use App\Models\User;
+use App\Models\WaterReading;
 use App\Notifications\RealtimeNotification;
+use App\Services\CreditService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -160,13 +164,24 @@ class ReportController extends Controller
             return $this->returnFail(422, ['message' => 'Año inválido']);
         }
 
-        $departments = Departament::with([
+        $userId = (int) $request->query('user_id', 0);
+
+        $departmentsQuery = Departament::with([
             'owner:id,name',
             'peoples.user:id,name',
         ])->where('id', '>', 7)->where(function ($q) {
             $q->whereNotNull('user_id')
                 ->orWhereHas('peoples');
-        })->get()->sortBy(fn ($d) => [$d->type, $d->inter_number])->values();
+        });
+
+        if ($userId > 0) {
+            $departmentsQuery->where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                    ->orWhereHas('peoples', fn ($p) => $p->where('user_id', $userId)->where('type', Rol::INQUILINO));
+            });
+        }
+
+        $departments = $departmentsQuery->get()->sortBy(fn ($d) => [$d->type, $d->inter_number])->values();
 
         $quotas = Quota::where('year', $year)
             ->whereIn('departament_id', $departments->pluck('id'))
@@ -292,7 +307,7 @@ class ReportController extends Controller
     {
         $perPage = (int) $request->query('per_page', 15);
         $search = $request->query('search');
-        $twoMonthsAgo = now()->subMonths(2);
+        $twoMonthsAgo = Quota::oldDebtCutoff(2);
 
         $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL];
 
@@ -443,7 +458,7 @@ class ReportController extends Controller
             'message' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $twoMonthsAgo = now()->subMonths(2);
+        $twoMonthsAgo = Quota::oldDebtCutoff(2);
 
         $delinquentUsers = User::whereIn('id', $validated['user_ids'])
             ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL])
@@ -505,7 +520,7 @@ class ReportController extends Controller
 
     public function delinquentsMetrics(): JsonResponse
     {
-        $twoMonthsAgo = now()->subMonths(2);
+        $twoMonthsAgo = Quota::oldDebtCutoff(2);
         $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL];
 
         $totalOverdue = Quota::whereIn('status', [1, 4])
@@ -605,7 +620,7 @@ class ReportController extends Controller
     private function getDelinquentsData(Request $request)
     {
         $search = $request->query('search');
-        $twoMonthsAgo = now()->subMonths(2);
+        $twoMonthsAgo = Quota::oldDebtCutoff(2);
 
         $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL];
 
@@ -893,14 +908,24 @@ class ReportController extends Controller
     public function exportMonthlyPayments(Request $request): BinaryFileResponse
     {
         $year = (int) $request->query('year', now()->year);
+        $userId = (int) $request->query('user_id', 0);
 
-        $departments = Departament::with([
+        $departmentsQuery = Departament::with([
             'availableOwner:id,name',
             'peoples.user:id,name',
         ])->where('id', '>', 7)->where(function ($q) {
             $q->whereNotNull('user_id')
                 ->orWhereHas('peoples');
-        })->get()->sortBy(fn ($d) => [$d->type, $d->inter_number])->values();
+        });
+
+        if ($userId > 0) {
+            $departmentsQuery->where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                    ->orWhereHas('peoples', fn ($p) => $p->where('user_id', $userId)->where('type', Rol::INQUILINO));
+            });
+        }
+
+        $departments = $departmentsQuery->get()->sortBy(fn ($d) => [$d->type, $d->inter_number])->values();
 
         $quotas = Quota::where('year', $year)
             ->whereIn('departament_id', $departments->pluck('id'))
@@ -986,5 +1011,197 @@ class ReportController extends Controller
         }
 
         return Excel::download(new MonthlyPaymentsExport($data->toArray(), $totals, $year), 'reporte-cuotas-mensuales-'.$year.'.xlsx');
+    }
+
+    public function userQuotas(Request $request): JsonResponse
+    {
+        $year = (int) $request->query('year', now()->year);
+        $month = (int) $request->query('month', now()->month);
+        $search = trim((string) $request->query('search', ''));
+
+        if ($year < 2000 || $month < 1 || $month > 12) {
+            return $this->returnFail(422, ['message' => 'Año o mes inválido']);
+        }
+
+        return $this->returnSuccess(200, $this->buildUserQuotasReport($year, $month, $search));
+    }
+
+    public function exportUserQuotas(Request $request): BinaryFileResponse
+    {
+        $year = (int) $request->query('year', now()->year);
+        $month = (int) $request->query('month', now()->month);
+        $search = trim((string) $request->query('search', ''));
+
+        if ($year < 2000 || $month < 1 || $month > 12) {
+            abort(422, 'Año o mes inválido');
+        }
+
+        $report = $this->buildUserQuotasReport($year, $month, $search);
+
+        return Excel::download(
+            new UserQuotasExport($report['rows'], $report['totals'], $year, $month),
+            'reporte-cuotas-usuario-'.$month.'-'.$year.'.xlsx'
+        );
+    }
+
+    /**
+     * Cuotas de un mes agrupadas por usuario (propietario con respaldo de inquilino).
+     * Una fila por usuario con sus unidades: DPT (tipos 1 y 4), EST (2) y DPO (3).
+     */
+    private function buildUserQuotasReport(int $year, int $month, string $search): array
+    {
+        $departments = Departament::with([
+            'owner:id,name',
+            'peoples.user:id,name',
+        ])->where('id', '>', 7)->where(function ($q) {
+            $q->whereNotNull('user_id')
+                ->orWhereHas('peoples');
+        })->get(['id', 'number', 'type', 'user_id', 'participation_percentage']);
+
+        $unitIds = $departments->pluck('id')->all();
+
+        $quotasByDept = Quota::where('year', $year)
+            ->where('month', $month)
+            ->whereIn('departament_id', $unitIds)
+            ->get(['id', 'departament_id', 'maintenance_amount', 'water_amount'])
+            ->groupBy('departament_id');
+
+        $consumptionByDept = WaterReading::where('month', $month)
+            ->where('year', $year)
+            ->where('is_common', false)
+            ->whereIn('departament_id', $unitIds)
+            ->get(['departament_id', 'previous_reading', 'current_reading'])
+            ->groupBy('departament_id')
+            ->map(fn ($rows) => round((float) $rows->sum('consumption'), 3));
+
+        $appliedCreditByDept = CreditTransaction::where('type', CreditTransaction::TYPE_APPLIED)
+            ->whereIn('departament_id', $unitIds)
+            ->whereHas('pay.quotas', function ($q) use ($month, $year) {
+                $q->where('month', $month)->where('year', $year);
+            })
+            ->get(['departament_id', 'amount'])
+            ->groupBy('departament_id')
+            ->map(fn ($rows) => round((float) $rows->sum('amount'), 2));
+
+        $availableCreditByDept = (new CreditService)->getBalanceForDepartments($unitIds, $month, $year)['detail'];
+
+        $groups = [];
+        foreach ($departments as $dept) {
+            $owner = $dept->owner;
+            if ($owner) {
+                $key = (int) $owner->id;
+                $name = $owner->name;
+            } else {
+                $tenant = $dept->peoples->first()?->user;
+                $key = $tenant ? (int) $tenant->id : 'dept-'.$dept->id;
+                $name = $tenant?->name ?? '—';
+            }
+
+            $group = $groups[$key] ?? [
+                'user_id' => $key,
+                'user_name' => $name,
+                'dpts' => [],
+                'ests' => [],
+                'dpos' => [],
+                'dpt_pct' => 0.0,
+                'est_pct' => 0.0,
+                'dpo_pct' => 0.0,
+                'water_consumption' => 0.0,
+                'water_in_quotas' => 0.0,
+                'maintenance' => 0.0,
+                'discount' => 0.0,
+            ];
+
+            $type = (int) $dept->type;
+            $unit = [
+                'n' => strtoupper((string) $dept->number),
+                't' => $type,
+                'i' => (int) $dept->inter_number,
+            ];
+            $pct = (float) ($dept->participation_percentage ?? 0);
+
+            if ($type === Departament::TYPE_ESTACIONAMIENTO) {
+                $group['ests'][] = $unit;
+                $group['est_pct'] += $pct;
+            } elseif ($type === Departament::TYPE_DEPOSITO) {
+                $group['dpos'][] = $unit;
+                $group['dpo_pct'] += $pct;
+            } else {
+                // Tipos 1 (Departamento) y 4 (Lavandería) van en la columna DPT
+                $group['dpts'][] = $unit;
+                $group['dpt_pct'] += $pct;
+            }
+
+            $deptQuotas = $quotasByDept->get($dept->id, collect());
+            $group['water_in_quotas'] += (float) $deptQuotas->sum('water_amount');
+            $group['maintenance'] += (float) $deptQuotas->sum('maintenance_amount');
+            $group['water_consumption'] += (float) $consumptionByDept->get($dept->id, 0.0);
+            $group['discount'] += (float) ($appliedCreditByDept->get($dept->id, 0.0)
+                + ($availableCreditByDept[$dept->id] ?? 0.0));
+
+            $groups[$key] = $group;
+        }
+
+        $rows = [];
+        foreach ($groups as $group) {
+            $firstUnit = $this->sortUnits(array_merge($group['dpts'], $group['ests'], $group['dpos']))[0] ?? null;
+            $group['sort_type'] = (int) ($firstUnit['t'] ?? 0);
+            $group['sort_inter'] = (int) ($firstUnit['i'] ?? 0);
+            $group['dpts'] = implode(', ', array_column($this->sortUnits($group['dpts']), 'n'));
+            $group['ests'] = implode(', ', array_column($this->sortUnits($group['ests']), 'n'));
+            $group['dpos'] = implode(', ', array_column($this->sortUnits($group['dpos']), 'n'));
+            $group['dpt_pct'] = round($group['dpt_pct'], 5);
+            $group['est_pct'] = round($group['est_pct'], 5);
+            $group['dpo_pct'] = round($group['dpo_pct'], 5);
+            $group['pct_total'] = round($group['dpt_pct'] + $group['est_pct'] + $group['dpo_pct'], 5);
+            $group['water_consumption'] = round($group['water_consumption'], 3);
+            $group['water_in_quotas'] = round($group['water_in_quotas'], 2);
+            $group['maintenance'] = round($group['maintenance'], 2);
+            $group['discount'] = round($group['discount'], 2);
+            $group['total'] = round($group['water_in_quotas'] + $group['maintenance'] - $group['discount'], 2);
+
+            if ($search !== ''
+                && stripos($group['user_name'], $search) === false
+                && stripos($group['dpts'], $search) === false
+                && stripos($group['ests'], $search) === false
+                && stripos($group['dpos'], $search) === false) {
+                continue;
+            }
+
+            $rows[] = $group;
+        }
+
+        usort($rows, fn ($a, $b) => [$a['sort_type'], $a['sort_inter']] <=> [$b['sort_type'], $b['sort_inter']]
+            ?: strcasecmp($a['user_name'], $b['user_name']));
+
+        $totals = [
+            'water_consumption' => round((float) array_sum(array_column($rows, 'water_consumption')), 3),
+            'water_in_quotas' => round((float) array_sum(array_column($rows, 'water_in_quotas')), 2),
+            'maintenance' => round((float) array_sum(array_column($rows, 'maintenance')), 2),
+            'discount' => round((float) array_sum(array_column($rows, 'discount')), 2),
+            'total' => round((float) array_sum(array_column($rows, 'total')), 2),
+            'pct_total' => round((float) array_sum(array_column($rows, 'pct_total')), 5),
+        ];
+
+        return [
+            'year' => $year,
+            'month' => $month,
+            'rows' => $rows,
+            'totals' => $totals,
+        ];
+    }
+
+    /**
+     * Ordena unidades como reportMonthlyPays: por type y luego inter_number,
+     * de modo que DPT-101 aparece antes que DPT-102, y así.
+     *
+     * @param  array<int, array{n: string, t: int, i: int}>  $units
+     * @return array<int, array{n: string, t: int, i: int}>
+     */
+    private function sortUnits(array $units): array
+    {
+        usort($units, fn ($a, $b) => [$a['t'], $a['i']] <=> [$b['t'], $b['i']]);
+
+        return $units;
     }
 }

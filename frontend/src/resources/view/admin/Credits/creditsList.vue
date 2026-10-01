@@ -39,6 +39,18 @@ const onCreditCreated = () => {
   getCredits()
 }
 
+const MONTH_SHORT = [
+  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+]
+
+const monthLabel = (credit) => {
+  const m = Number(credit.applicable_month || 0)
+  if (!m) return 'Flexible'
+  const year = credit.applicable_year ? ` ${credit.applicable_year}` : ''
+  return `${MONTH_SHORT[m - 1] || m}${year}`
+}
+
 onMounted(() => {
   getCredits()
 })
@@ -108,6 +120,12 @@ onMounted(() => {
               <div class="text-right">
                 <div class="text-lg font-bold text-green-600">S/. {{ credit.balance.toFixed(2) }}</div>
                 <div class="text-xs text-gray-400">Saldo activo</div>
+                <q-badge
+                  :color="credit.applicable_month ? 'blue-2' : 'grey-3'"
+                  :text-color="credit.applicable_month ? 'blue-9' : 'grey-7'"
+                  class="q-mt-xs text-[11px]"
+                  :label="monthLabel(credit)"
+                />
               </div>
             </div>
           </div>

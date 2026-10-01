@@ -131,7 +131,6 @@ const maintenanceDetailsLink = computed(() => (
   toPay.value?.id ? `/client/quota/details/month/${toPay.value.month}` : null
 ))
 const quotaBreakdown = computed(() => {
-  console.log(toPay.value)
   const rows = Array.isArray(toPay.value?.breakdown) ? toPay.value.breakdown : []
   return rows.map((item) => {
     const info = getUnitInfo(Number(item?.unit_type ?? 1))
@@ -367,8 +366,6 @@ const createPay = () => {
     ? quotaStore.createQuotaPay
     : reserveStore.createReservePay
 
-
-
   const dataForm = dataToForm()
   loading.value = true
 
@@ -376,14 +373,15 @@ const createPay = () => {
     .then((response) => {
       showNotify('positive', 'Pago creado con exito')
       setTimeout(() => {
-        loading.value = false
         router.push('/client/pay/details/' + response.data.idPay)
       }, 1000);
     })
     .catch((response) => {
-      loading.value = false
-      showNotify('negative', 'Error al crear el pago')
+      showNotify('negative', response)
 
+    })
+    .finally(() => {
+      loading.value = false
     })
 }
 
@@ -464,11 +462,20 @@ const pegarTexto = async () => {
   }
   try {
     const textoDelPortapapeles = await navigator.clipboard.readText()
-    payFormData.value.reference = textoDelPortapapeles
+    payFormData.value.reference = String(textoDelPortapapeles).replace(/\D/g, '').slice(0, 12)
   } catch (err) {
     console.error('Error al intentar pegar: ', err)
   }
 }
+
+watch(
+  () => payFormData.value.reference,
+  (val) => {
+    if (val === null || val === undefined) return
+    const clean = String(val).replace(/\D/g, '').slice(0, 12)
+    if (clean !== String(val)) payFormData.value.reference = clean
+  }
+)
 
 const handleUpload = (event) => {
   const file = event.target.files[0]

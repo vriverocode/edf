@@ -160,10 +160,10 @@ export const useComunAreaStore = defineStore('ComunArea', {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw '';
         ApiService.setHeader();
-        ApiService.get(`/api/comun-area/${areaId}/blocked-dates`)
+        ApiService.get(`/api/comun-area/${areaId}/blocked-dates`, '', { timeout: 10000 })
           .then(({ data }) => {
-            if (data.code !== 200) throw data;
-            resolve(data);
+            if (!data || data.code !== 200) throw data;
+            resolve(Array.isArray(data.data) ? data.data : []);
           })
           .catch(({ response }) => {
             reject(response?.data?.error || 'Error al obtener fechas bloqueadas');
@@ -174,7 +174,7 @@ export const useComunAreaStore = defineStore('ComunArea', {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw '';
         ApiService.setHeader();
-        ApiService.post(`/api/comun-area/${areaId}/blocked-dates`, { dates })
+        ApiService.post(`/api/comun-area/${areaId}/blocked-dates`, { dates }, { timeout: 10000 })
           .then(({ data }) => {
             if (data.code !== 200) throw data;
             resolve(data);
@@ -188,7 +188,7 @@ export const useComunAreaStore = defineStore('ComunArea', {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw '';
         ApiService.setHeader();
-        ApiService.delete(`/api/comun-area/${areaId}/blocked-dates`, { data: { date } })
+        ApiService.delete(`/api/comun-area/${areaId}/blocked-dates`, { data: { date }, timeout: 10000 })
           .then(({ data }) => {
             if (data.code !== 200) throw data;
             resolve(data);

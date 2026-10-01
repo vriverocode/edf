@@ -268,6 +268,25 @@ export const usePayStore = defineStore('Pay', {
           });
       })
     },
+    async getRefunds(filters = {}) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        const query = new URLSearchParams()
+        Object.entries(filters).forEach(([k, v]) => {
+          if (v !== null && v !== '' && v !== undefined) query.append(k, v)
+        })
+        const qs = query.toString()
+        ApiService.get(`/api/pays/refunds${qs ? '?' + qs : ''}`)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data.data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener devoluciones');
+          });
+      })
+    },
     async getAllCreditTransactions(params = {}) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw '';

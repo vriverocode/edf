@@ -559,6 +559,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/pays/refunds',
+        component: () => import('@/view/admin/Pays/refundsList.vue'),
+        name: 'refundsList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Devoluciones',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/admin/credits',
         component: () => import('@/view/admin/Credits/creditsList.vue'),
         name: 'creditsList',
@@ -1580,6 +1592,18 @@ const routes = [
         meta: {
           title: 'PACIFIK',
           pagTitle: 'Pagos mensuales por unidad',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
+        path: '/admin/reports/user-quotas',
+        component: () => import('@/view/admin/Reports/reportUserQuotas.vue'),
+        name: 'reportUserQuotas',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Cuotas por usuario',
           roles: ['admin', 'super-admin'],
           depth: 3,
         },

@@ -228,6 +228,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/culqi-payment', [PayController::class, 'processCulqiPayment'])->middleware('throttle:payment');
         Route::post('/claims', [PayController::class, 'claimsByPay'])->middleware('throttle:payment');
         // Admin only
+        Route::get('/refunds', [PayController::class, 'getRefunds'])->middleware('role:admin,super-admin');
         Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/validate/{id}', [PayController::class, 'validatePayment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/refund', [PayController::class, 'refund'])->middleware('role:admin,super-admin', 'throttle:write');
@@ -487,6 +488,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/bookings/metrics', [ReportController::class, 'bookingsMetrics']);
         Route::get('/monthly-payments', [ReportController::class, 'monthlyPayments']);
         Route::get('/monthly-payments/export', [ReportController::class, 'exportMonthlyPayments']);
+        Route::get('/user-quotas', [ReportController::class, 'userQuotas']);
+        Route::get('/user-quotas/export', [ReportController::class, 'exportUserQuotas']);
         Route::get('/delinquents', [ReportController::class, 'delinquents']);
         Route::get('/delinquents/export', [ReportController::class, 'exportDelinquents']);
         Route::get('/delinquents/metrics', [ReportController::class, 'delinquentsMetrics']);

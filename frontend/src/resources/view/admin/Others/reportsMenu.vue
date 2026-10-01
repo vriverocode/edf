@@ -32,6 +32,12 @@ const menu = [
     link: '/admin/reports/monthly-pays',
   },
   {
+    title: 'Cuotas por usuario',
+    icon: cuotas,
+    subtitle: 'Cuotas del mes agrupadas por usuario',
+    link: '/admin/reports/user-quotas',
+  },
+  {
     title: 'Gastos por proveedor',
     icon: gastos2,
     subtitle: 'Matriz de gastos por proveedor y mes',

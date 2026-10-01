@@ -157,6 +157,7 @@ class QuotaController extends Controller
             'pays.payMethod',
             'departament.owner',
             'responsiblePivot.user',
+            'waterReading'
         ])->orderBy('created_at', 'desc');
 
         if ($request->filled('departament_ids')) {
@@ -180,7 +181,56 @@ class QuotaController extends Controller
             $quotas->whereYear('due_date', (int) $request->query('year'));
         }
 
-        return $this->returnSuccess(200, $quotas->get());
+        $quotaList = $quotas->get();
+
+        $year = $request->filled('year')
+            ? (int) $request->query('year')
+            : ($quotaList->first()?->due_date
+                ? Carbon::parse($quotaList->first()->due_date)->year
+                : now()->year);
+
+        $monthlyBill = MonthlyBills::query()
+            ->where('month', $month)
+            ->where('year', $year)
+            ->latest('id')
+            ->first();
+
+        $expenses = $monthlyBill
+            ? $monthlyBill->expenses()
+                ->with(['provider:id,name', 'serviceCategory:id,name'])
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+                ->map(fn ($expense) => [
+                    'id' => $expense->id,
+                    'description' => $expense->description,
+                    'amount' => (float) $expense->amount,
+                    'invoice_number' => $expense->invoice_number,
+                    'expense_type' => $expense->expense_type,
+                    'provider' => $expense->provider?->name,
+                    'service_category' => $expense->serviceCategory?->name,
+                ])
+            : collect();
+
+        return response()->json([
+            'code' => 200,
+            'data' => $quotaList,
+            'monthly_bill' => $monthlyBill
+                ? [
+                    'id' => $monthlyBill->id,
+                    'month' => $monthlyBill->month,
+                    'year' => $monthlyBill->year,
+                    'water_price_per_m3' => (float) $monthlyBill->water_price_per_m3,
+                    'total_water_bill_amount' => (float) $monthlyBill->total_water_bill_amount,
+                    'total_water_consumption_m3' => (float) $monthlyBill->total_water_consumption_m3,
+                    'common_water_consumption_m3' => (float) $monthlyBill->common_water_consumption_m3,
+                    'monthly_budget' => (float) $monthlyBill->monthly_budget,
+                    'total_maintenance_budget' => (float) $monthlyBill->total_maintenance_budget,
+                ]
+                : null,
+            'expenses' => $expenses->values(),
+            'total_expenses' => round((float) $expenses->sum('amount'), 2),
+        ], 200);
     }
 
     public function getByPay($payId)

@@ -67,7 +67,38 @@ class CreditService
         return ['total' => $total, 'detail' => $detail, 'items' => $items];
     }
 
-    public function createCredit(Departament $dept, float $amount, Pay $pay): CreditBalance
+    /**
+     * Primer mes calendario posterior a $fromDate que NO tenga cuota creada
+     * para el departamento. Ej.: pago 15/09 → candidate Oct; si Oct ya tiene
+     * cuota → Nov, y así sucesivamente (máx. 24 meses de búsqueda).
+     *
+     * @param  \DateTimeInterface|string  $fromDate  fecha del pago (día de pago)
+     * @return array{0: int, 1: int} [month, year]
+     */
+    public function nextMonthWithoutQuota(Departament $dept, $fromDate): array
+    {
+        $cursor = Carbon::parse($fromDate ?? now())->startOfMonth()->addMonth();
+
+        for ($i = 0; $i < 24; $i++) {
+            $exists = Quota::where('departament_id', $dept->id)
+                ->where('month', $cursor->month)
+                ->where(function ($q) use ($cursor) {
+                    $q->where('year', $cursor->year)
+                        ->orWhereNull('year');
+                })
+                ->exists();
+
+            if (! $exists) {
+                return [(int) $cursor->month, (int) $cursor->year];
+            }
+
+            $cursor->addMonth();
+        }
+
+        return [(int) $cursor->month, (int) $cursor->year];
+    }
+
+    public function createCredit(Departament $dept, float $amount, Pay $pay, ?int $month = null, ?int $year = null): CreditBalance
     {
         if ($amount <= 0) {
             throw new \InvalidArgumentException('El monto del crédito debe ser mayor a 0.');
@@ -76,8 +107,8 @@ class CreditService
         $creditBalance = CreditBalance::firstOrCreate(
             [
                 'departament_id' => $dept->id,
-                'applicable_month' => CreditBalance::MONTH_FLEXIBLE,
-                'applicable_year' => null,
+                'applicable_month' => $month !== null ? (int) $month : CreditBalance::MONTH_FLEXIBLE,
+                'applicable_year' => $month !== null ? $year : null,
             ],
             ['balance' => 0]
         );

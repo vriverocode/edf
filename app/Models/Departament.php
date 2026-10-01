@@ -93,7 +93,7 @@ class Departament extends Model
 
     public function dueQuotas()
     {
-        return $this->hasMany(Quota::class, 'departament_id')->where('status', '=', 4);
+        return $this->hasMany(Quota::class, 'departament_id')->overdueOrPendingOlderThan(2);
     }
 
     public function getTypeLabelAttribute()
@@ -112,9 +112,7 @@ class Departament extends Model
     protected function pendingAmountQuota(): Attribute
     {
         return Attribute::make(
-            get: fn () => Quota::where('departament_id', $this->id)
-                ->where('status', '!=', 3)
-                ->value('amount')
+            get: fn () => (float) $this->dueQuotas->sum('amount')
         );
     }
 

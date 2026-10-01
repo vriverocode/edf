@@ -7,14 +7,13 @@ namespace App\Exports;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEvents, WithMapping, WithStyles
+class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEvents, WithStyles
 {
     private array $departments;
 
@@ -74,12 +73,35 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
         $this->year = $year;
     }
 
+    /**
+     * Laravel Excel escribe desde la fila 1: el preludio (título, fila en
+     * blanco, cabecera y 3 filas de resumen) viaja aquí para que las filas de
+     * datos arranquen en la 7, donde registerEvents espera estilizarlas.
+     */
     public function collection()
     {
-        return collect($this->departments);
+        $width = 3 + count($this->months);
+
+        $title = array_fill(0, $width, null);
+        $title[0] = 'REPORTE DE PAGOS MENSUALES - '.$this->year;
+
+        $rows = [
+            $title,
+            array_fill(0, $width, null),
+            array_merge(['Unidad', 'Tipo', 'Responsable'], array_values($this->months)),
+            array_merge(['COBRADO'], array_fill(0, $width - 1, null)),
+            array_merge(['PENDIENTE'], array_fill(0, $width - 1, null)),
+            array_merge(['TOTAL'], array_fill(0, $width - 1, null)),
+        ];
+
+        foreach ($this->departments as $dept) {
+            $rows[] = $this->buildDeptRow($dept);
+        }
+
+        return collect($rows);
     }
 
-    public function map($dept): array
+    private function buildDeptRow($dept): array
     {
         $this->rowIndex++;
 
@@ -169,7 +191,7 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
 
                             if ($m) {
                                 $sheet->setCellValue($cell, round($m['amount'], 2));
-                                $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('S/. #,##0.00');
+                                $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('"S/." #,##0.00');
 
                                 $status = $m['status'];
                                 if ($status === self::STATUS_PAID) {
@@ -223,7 +245,7 @@ class MonthlyPaymentsExport implements FromCollection, WithColumnWidths, WithEve
             $value = $this->totals[$num][$key] ?? 0;
             $cell = $col.$rowNum;
             $sheet->setCellValue($cell, round($value, 2));
-            $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('S/. #,##0.00');
+            $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('"S/." #,##0.00');
             $col = $this->nextColumn($col);
         }
 

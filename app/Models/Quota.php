@@ -220,7 +220,13 @@ class Quota extends Model
     public function scopeOverdueOrPendingOlderThan(Builder $query, int $months): Builder
     {
         return $query->whereIn('status', [1, 4])
-            ->where('due_date', '<=', now()->subMonths($months));
+            ->where('amount', '>', 0)
+            ->where('due_date', '<=', self::oldDebtCutoff($months));
+    }
+
+    public static function oldDebtCutoff(int $months): Carbon
+    {
+        return Carbon::now()->subMonthsNoOverflow($months)->endOfMonth();
     }
 
     public static function groupConsolidatedByMonth(Collection $quotas): Collection

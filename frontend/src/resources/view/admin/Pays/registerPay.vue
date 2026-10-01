@@ -52,7 +52,7 @@ const unitTypeShort = (type) => {
 }
 
 const unitChipLabel = (u) => {
-  const base = `${unitTypeShort(u.type)} ${u.number}`
+  const base = `${u.number}`
   return u.block ? `${base} · B${u.block}` : base
 }
 

@@ -8,6 +8,7 @@ import { computed } from 'vue';
 import pagosCuotas from '@/assets/img/menu/cuotas2.png'
 import pagosReservas from '@/assets/img/menu/historial-pagos.png'
 import saldosFavor from '@/assets/img/menu/balance-cuentas.png'
+import devoluciones from '@/assets/img/menu/cuotas-especiales.png'
 
 
 const { user } = storeToRefs(useAuthStore())
@@ -29,6 +30,12 @@ const menu = [
     icon: saldosFavor,
     link: '/admin/credits',
     roles: [1]
+  },
+  {
+    title: 'Devoluciones',
+    icon: devoluciones,
+    link: '/admin/pays/refunds',
+    roles: [1, 8]
   },
 ];
 const menuByRol = computed(() => {

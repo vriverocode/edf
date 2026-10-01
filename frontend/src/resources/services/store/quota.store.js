@@ -254,11 +254,12 @@ export const useQuotaStore = defineStore('Quota', {
       })
 
     },
-    async getMonthlyPaymentsReport(year) {
+    async getMonthlyPaymentsReport(year, userId = null) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw ''
         ApiService.setHeader()
-        ApiService.get('/api/reports/monthly-payments?year=' + year)
+        const userParam = userId ? '&user_id=' + userId : ''
+        ApiService.get('/api/reports/monthly-payments?year=' + year + userParam)
           .then(({ data }) => {
             if (data.code !== 200) throw data
             resolve(data)
@@ -268,11 +269,12 @@ export const useQuotaStore = defineStore('Quota', {
           })
       })
     },
-    async exportMonthlyPaymentsReport(year) {
+    async exportMonthlyPaymentsReport(year, userId = null) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw ''
         const token = ApiService.getToken()
-        const url = import.meta.env.VITE_LARAVEL_API_URL + '/api/reports/monthly-payments/export?year=' + year
+        const userParam = userId ? '&user_id=' + userId : ''
+        const url = import.meta.env.VITE_LARAVEL_API_URL + '/api/reports/monthly-payments/export?year=' + year + userParam
         fetch(url, { headers: { Authorization: 'Bearer ' + token } })
           .then((res) => {
             if (!res.ok) throw new Error('Error al exportar')
@@ -283,6 +285,49 @@ export const useQuotaStore = defineStore('Quota', {
             const a = document.createElement('a')
             a.href = downloadUrl
             a.download = 'reporte-cuotas-mensuales-' + year + '.xlsx'
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+            resolve(true)
+          })
+          .catch((err) => {
+            console.error(err)
+            reject('Error al descargar el archivo')
+          })
+      })
+    },
+    async getUserQuotasReport(year, month, search = '') {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        const params = `year=${year}&month=${month}&search=${encodeURIComponent(search || '')}`
+        ApiService.get('/api/reports/user-quotas?' + params)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al cargar reporte de cuotas por usuario')
+          })
+      })
+    },
+    async exportUserQuotasReport(year, month, search = '') {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        const token = ApiService.getToken()
+        const params = `year=${year}&month=${month}&search=${encodeURIComponent(search || '')}`
+        const url = import.meta.env.VITE_LARAVEL_API_URL + '/api/reports/user-quotas/export?' + params
+        fetch(url, { headers: { Authorization: 'Bearer ' + token } })
+          .then((res) => {
+            if (!res.ok) throw new Error('Error al exportar')
+            return res.blob()
+          })
+          .then((blob) => {
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            a.download = 'reporte-cuotas-usuario-' + month + '-' + year + '.xlsx'
             document.body.appendChild(a)
             a.click()
             a.remove()

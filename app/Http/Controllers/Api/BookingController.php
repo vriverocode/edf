@@ -662,7 +662,7 @@ class BookingController extends Controller
         $status = 'Disponible';
         if ($availableSpots == 0) {
             $status = 'Ocupado';
-        } elseif ($availableSpots > 0 && $availableSpots <= max(1, round($capacity * 0.3))) {
+        } elseif ($availableSpots > 0 && $availableSpots < $capacity && $availableSpots <= max(1, round($capacity * 0.3))) {
             $status = 'Últimos';
         }
 

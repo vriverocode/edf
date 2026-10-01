@@ -78,36 +78,99 @@ const allQuotasForBreakdown = computed(() => {
 
 const hasConsolidation = computed(() => consolidatedQuotas.value.length > 0)
 
+// Todas las cuotas del mes del responsable (todas las unidades), con fallback al comportamiento anterior
+const allMonthQuotas = computed(() =>
+  sortedUnitQuotas.value.length ? sortedUnitQuotas.value : allQuotasForBreakdown.value
+)
+
 const totalMaintenance = computed(() =>
-  allQuotasForBreakdown.value.reduce((sum, q) => sum + (q.maintenance_amount || 0), 0)
+  allMonthQuotas.value.reduce((sum, q) => sum + Number(q.maintenance_amount || 0), 0)
 )
 
 const totalWater = computed(() =>
-  allQuotasForBreakdown.value.reduce((sum, q) => sum + (q.water_amount || 0), 0)
+  allMonthQuotas.value.reduce((sum, q) => sum + Number(q.water_amount || 0), 0)
 )
 
 const totalExtras = computed(() =>
-  allQuotasForBreakdown.value.reduce((sum, q) => sum + (q.extra_amount || 0), 0)
+  allMonthQuotas.value.reduce((sum, q) => sum + Number(q.extra_amount || 0), 0)
 )
 
 const totalExpenses = computed(() =>
   expenses.value.reduce((sum, e) => sum + Number(e.amount || 0), 0)
 )
 
-const participationRate = computed(() =>
-  parseFloat(quotaData.value?.maintenance_participation_percentage || 0) / 100
-)
+// % total = suma de participación de todas las unidades del responsable
+const totalParticipationPct = computed(() => {
+  const units = sortedUnitQuotas.value.length ? sortedUnitQuotas.value : responsibleUnits.value
+  const sum = units.reduce((s, u) => s + Number(u.participation_percentage || 0), 0)
+  if (sum > 0) return sum
+  return Number(quotaData.value?.maintenance_participation_percentage || 0)
+})
 
-const expenseAmountByPercentTotal = computed(() =>
-  expenses.value.reduce(
-    (sum, e) => sum + Number(e.amount || 0) * participationRate.value,
-    0
-  )
-)
+const participationRate = computed(() => totalParticipationPct.value / 100)
+
+// Redondeo idéntico a PHP/MySQL (half-away sobre la representación decimal):
+// round2(49.605) → 49.61 igual que round() en PHP, a diferencia de toFixed.
+const round2 = (value) => {
+  const n = Number(value || 0)
+  if (!Number.isFinite(n)) return 0
+  const sign = n < 0 ? -1 : 1
+  return (sign * Math.round(Number(Math.abs(n) + 'e2'))) / 100
+}
+
+// % de participación de cada unidad (mismo criterio que usa el backend)
+const unitPcts = computed(() => {
+  const units = sortedUnitQuotas.value.length ? sortedUnitQuotas.value : responsibleUnits.value
+  return units.map(u => Number(u.participation_percentage || 0)).filter(p => p > 0)
+})
+
+// Prorratea un monto por unidad y redondea POR UNIDAD, igual que el backend
+// (maintenance_amount = round2(presupuesto × %unidad) / por eso la Σ
+// de maintenance_amount puede diferir 1 centavo de redondear una sola vez).
+const expenseShareOf = (amount) => {
+  const pcts = unitPcts.value
+  if (pcts.length) {
+    return pcts.reduce((sum, pct) => sum + round2(Number(amount || 0) * pct / 100), 0)
+  }
+  return round2(Number(amount || 0) * participationRate.value)
+}
+
+const expenseAmountByPercentTotal = computed(() => expenseShareOf(totalExpenses.value))
+
+// Ajuste de redondeo (mayor resto): cada línea muestra su share redondeado a 2 decimales,
+// corregido para que la Σ de las líneas sea EXACTAMENTE el subtotal de la sección.
+const expenseShares = computed(() => {
+  const list = expenses.value
+  const map = new Map()
+  if (!list.length) return map
+  const target = expenseAmountByPercentTotal.value
+  const rate = participationRate.value
+  const raw = list.map(e => Math.max(0, Number(e.amount || 0)) * rate)
+  const floors = raw.map(v => Math.floor(v * 100 + 1e-9) / 100)
+  const assigned = floors.reduce((s, v) => s + v, 0)
+  let remainingCents = Math.round((target - assigned) * 100)
+  if (remainingCents !== 0) {
+    const order = raw
+      .map((v, i) => ({ i, frac: v * 100 - Math.floor(v * 100 + 1e-9) }))
+      .sort((a, b) => b.frac - a.frac)
+    const sign = remainingCents > 0 ? 1 : -1
+    let k = 0
+    while (remainingCents !== 0 && order.length) {
+      const idx = order[k % order.length].i
+      floors[idx] = round2(floors[idx] + sign * 0.01)
+      remainingCents -= sign
+      k++
+    }
+  }
+  list.forEach((e, i) => map.set(e.id, floors[i]))
+  return map
+})
+
+const shareOfExpense = (expense) =>
+  expenseShares.value.get(expense.id) ?? expenseShareOf(expense.amount)
 
 const expensesByCategory = computed(() => {
   const groups = new Map()
-  const pct = participationRate.value
   for (const expense of expenses.value) {
     const key = expense.service_category || 'Sin categoría'
     if (!groups.has(key)) {
@@ -121,20 +184,33 @@ const expensesByCategory = computed(() => {
     const group = groups.get(key)
     group.items.push(expense)
     group.total += Number(expense.amount || 0)
-    group.totalByPercent += Number(expense.amount || 0) * pct
+    group.totalByPercent += shareOfExpense(expense)
   }
   return Array.from(groups.values())
 })
 
 const subOtherCharges = computed(() => expenseAmountByPercentTotal.value)
 
-const subWater = computed(() => Number(quotaData.value?.water_amount || 0))
+const subWater = computed(() => totalWater.value)
 
-const subMaintenance = computed(() => Number(quotaData.value?.maintenance_amount || 0))
+const subMaintenance = computed(() => totalMaintenance.value)
 
-const subExtras = computed(() => Number(quotaData.value?.extra_amount || 0))
+const subExtras = computed(() => totalExtras.value)
 
-const grandTotal = computed(() => Number(quotaData.value?.amount || 0))
+// `amount` en BD es double (ej. 153.1039524) y `maintenance_amount`/`water_amount` son
+// decimal(15,2) redondeados por fila; la diferencia de redondeo (< 0.01) se resuelve
+// usando la Σ de componentes para que todos los totales coincidan. Diferencias mayores
+// son montos intencionales (legacy) y se respeta `amount`.
+const quotaTotal = (q) => {
+  const components =
+    Number(q.maintenance_amount || 0) + Number(q.water_amount || 0) + Number(q.extra_amount || 0)
+  const amount = Number(q.amount || 0)
+  return Math.abs(components - amount) < 0.01 ? components : amount
+}
+
+const grandTotal = computed(() =>
+  allMonthQuotas.value.reduce((sum, q) => sum + quotaTotal(q), 0)
+)
 
 const predioLabel = computed(() => {
   const predio = quotaData.value?.predio
@@ -149,24 +225,59 @@ const predioLabel = computed(() => {
 
 const waterReading = computed(() => quotaData.value?.waterReading || null)
 
+// Filas de lectura de agua de TODAS las unidades del responsable
+const waterUnitsRows = computed(() => {
+  const rows = sortedUnitQuotas.value.filter(u => u.has_water_reading && u.waterReading)
+  const currentId = Number(quotaData.value?.id)
+  if (waterReading.value && !rows.some(r => Number(r.id) === currentId)) {
+    rows.unshift({
+      id: currentId,
+      number: quotaData.value?.departament?.number,
+      type: quotaData.value?.departament?.type,
+      waterReading: waterReading.value,
+      water_amount: Number(quotaData.value?.water_amount || 0),
+      has_water_reading: true,
+    })
+  }
+  return rows
+})
+
+const waterConsumptionOf = (reading) => {
+  if (!reading) return 0
+  return Math.max(0, Number(reading.current_reading || 0) - Number(reading.previous_reading || 0))
+}
+
+const waterFactorOf = (reading) => {
+  if (reading?.m3_price != null && Number(reading.m3_price) > 0) {
+    return Number(reading.m3_price)
+  }
+  if (quotaData.value?.receipt?.water_price_per_m3 != null) {
+    return Number(quotaData.value.receipt.water_price_per_m3)
+  }
+  return Number(quotaData.value?.monthly_bill?.water_price_per_m3 || 0)
+}
+
+const totalWaterConsumptionM3 = computed(() =>
+  waterUnitsRows.value.reduce((sum, u) => sum + waterConsumptionOf(u.waterReading), 0)
+)
+
+const totalWaterReadingAmount = computed(() =>
+  waterUnitsRows.value.reduce((sum, u) => sum + Number(u.water_amount || 0), 0)
+)
+
 const waterConsumption = computed(() => {
   if (quotaData.value?.receipt?.water_consumption != null) {
     return Number(quotaData.value.receipt.water_consumption)
   }
-  const reading = waterReading.value
-  if (!reading) return 0
-  return Math.max(0, Number(reading.current_reading || 0) - Number(reading.previous_reading || 0))
+  return waterConsumptionOf(waterReading.value)
 })
 
-const waterFactor = computed(() => {
-  if (quotaData.value?.receipt?.water_price_per_m3 != null) {
-    return Number(quotaData.value.receipt.water_price_per_m3)
-  }
-  return Number(waterReading.value?.m3_price || quotaData.value?.monthly_bill?.water_price_per_m3 || 0)
-})
+const waterFactor = computed(() => waterFactorOf(waterReading.value))
 
 const hasWaterSection = computed(() =>
-  !!waterReading.value || Number(quotaData.value?.water_amount || 0) > 0
+  waterUnitsRows.value.length > 0 ||
+  !!waterReading.value ||
+  Number(quotaData.value?.water_amount || 0) > 0
 )
 
 const currentDepartamentId = computed(() =>
@@ -186,7 +297,7 @@ const sortedUnitQuotas = computed(() => {
 })
 
 const unitQuotasTotal = computed(() =>
-  sortedUnitQuotas.value.reduce((sum, q) => sum + Number(q.amount || 0), 0)
+  sortedUnitQuotas.value.reduce((sum, q) => sum + quotaTotal(q), 0)
 )
 
 const unitQuotaForMonth = (unit) => {
@@ -288,7 +399,7 @@ const reloadQuota = () => {
 }
 
 const expenseAmountByPercent = (expense) => {
-  return (Number(expense || 0) * participationRate.value).toFixed(2)
+  return shareOfExpense(expense).toFixed(2)
 }
 
 watch(
@@ -347,7 +458,7 @@ loadQuota(route.params.id || route.query.id)
               <span class="invoice-info-item__label">Predio</span>
               <span class="invoice-info-item__value">{{ predioLabel }}</span>
             </div>
-            <div class="invoice-info-item">
+            <div class="invoice-info-item items-end">
               <span class="invoice-info-item__label">Propietario</span>
               <span class="invoice-info-item__value">{{ quotaData.owner_profile?.name ?? quotaData.departament?.owner?.name ?? '—' }}</span>
             </div>
@@ -355,25 +466,25 @@ loadQuota(route.params.id || route.query.id)
               <span class="invoice-info-item__label">Responsable de pago</span>
               <span class="invoice-info-item__value">{{ quotaData.responsible_pivot?.user?.name ?? quotaData.departament?.owner?.name ?? '—' }}</span>
             </div>
-            <div class="invoice-info-item">
-              <span class="invoice-info-item__label">Total cuota mes</span>
+            <div class="invoice-info-item items-end">
+              <span class="invoice-info-item__label">Total mes (todas las unidades)</span>
               <span class="invoice-info-item__value">{{ amountPrefix }} {{ money(grandTotal) }}</span>
             </div>
             <div class="invoice-info-item">
               <span class="invoice-info-item__label">Fecha de emisión</span>
               <span class="invoice-info-item__value">{{ moment(quotaData.created_at).format('DD/MM/YYYY') }}</span>
             </div>
-            <div class="invoice-info-item">
+            <div class="invoice-info-item items-end">
               <span class="invoice-info-item__label">Vencimiento</span>
               <span class="invoice-info-item__value">
                 {{ quotaData.receipt?.due_date || (quotaData.due_date ? moment(quotaData.due_date).format('DD/MM/YYYY') : '—') }}
               </span>
             </div>
             <div class="invoice-info-item">
-              <span class="invoice-info-item__label">% Participación</span>
-              <span class="invoice-info-item__value">{{ quotaData.maintenance_participation_percentage ?? '—' }}%</span>
+              <span class="invoice-info-item__label">% Participación total</span>
+              <span class="invoice-info-item__value">{{ totalParticipationPct ? totalParticipationPct + '%' : '—' }}</span>
             </div>
-            <div class="invoice-info-item">
+            <div class="invoice-info-item items-end">
               <span class="invoice-info-item__label">Tipo de área</span>
               <span class="invoice-info-item__value">{{ quotaData.departament?.type_label ?? departmentTypeLabel(quotaData.departament?.type) }}</span>
             </div>
@@ -398,12 +509,6 @@ loadQuota(route.params.id || route.query.id)
                 {{ unit.number }}
               </button>
               <span class="text-xs text-gray-500">{{ departmentTypeLabel(unit.type) }}</span>
-              <span
-                v-if="isCurrentUnit(unit)"
-                class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-semibold"
-              >
-                ESTA
-              </span>
             </div>
             <span v-if="unit.area != null" class="text-xs text-gray-500">{{ Number(unit.area).toFixed(2) }} m²</span>
           </div>
@@ -432,13 +537,16 @@ loadQuota(route.params.id || route.query.id)
                 <div class="flex justify-between items-start gap-3">
                   <div class="flex-1">
                     <div class="font-semibold text-gray-800">{{ expense.description }}</div>
+                    <div class="text-gray-500 text-xs mt-2">
+                     {{ amountPrefix }} {{ expense.amount }} x {{ totalParticipationPct ? totalParticipationPct + '%' : '—' }}
+                    </div>
                     <div class="text-gray-600">{{ expense.provider || '' }}</div>
                     <div class="text-gray-500 text-xs">
                       <span v-if="expense.invoice_number">Fact. {{ expense.invoice_number }}</span>
                     </div>
                   </div>
                   <span class="font-medium text-gray-800 whitespace-nowrap">
-                    {{ amountPrefix }} {{ expenseAmountByPercent(expense.amount) }}
+                    {{ amountPrefix }} {{ expenseAmountByPercent(expense) }}
                   </span>
                 </div>
               </div>
@@ -470,7 +578,6 @@ loadQuota(route.params.id || route.query.id)
                 <div>
                   <div class="invoice-table__unit-label">
                     {{ getUnitInfo(uq.type).label }}
-                    <span v-if="uq.is_current" class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-semibold ml-1">ESTA</span>
                   </div>
                   <div class="invoice-table__unit-number">
                     <router-link
@@ -480,13 +587,13 @@ loadQuota(route.params.id || route.query.id)
                     >
                       {{ uq.number }}
                     </router-link>
-                    <span
-                      v-if="uq.status_label"
-                      class="text-[10px] px-1.5 py-0.5 rounded border border-gray-200 text-gray-500 ml-1"
-                    >
-                      {{ uq.status_label }}
-                    </span>
                   </div>
+                  <span
+                    v-if="uq.status_label"
+                    class="text-[10px] px-0 py-0.5 rounded border border-gray-200 text-gray-500"
+                  >
+                    {{ uq.status_label }}
+                  </span>
                 </div>
               </div>
               <div class="invoice-table__col invoice-table__col--amount">
@@ -499,7 +606,21 @@ loadQuota(route.params.id || route.query.id)
                 <span v-else class="text-gray-400">---</span>
               </div>
               <div class="invoice-table__col invoice-table__col--total">
-                {{ amountPrefix }} {{ formatCurrency(uq.amount) }}
+                {{ amountPrefix }} {{ formatCurrency(quotaTotal(uq)) }}
+              </div>
+            </div>
+            <div class="invoice-table__row" style="background: #f9fafb; font-weight: 700;">
+              <div class="invoice-table__col invoice-table__col--unit">
+                TOTAL <br> ({{ sortedUnitQuotas.length }} unidades)
+              </div>
+              <div class="invoice-table__col invoice-table__col--amount">
+                {{ amountPrefix }} {{ money(totalMaintenance) }}
+              </div>
+              <div class="invoice-table__col invoice-table__col--amount">
+                {{ amountPrefix }} {{ money(totalWater) }}
+              </div>
+              <div class="invoice-table__col invoice-table__col--total">
+                {{ amountPrefix }} {{ money(grandTotal) }}
               </div>
             </div>
           </div>
@@ -595,13 +716,67 @@ loadQuota(route.params.id || route.query.id)
         <!-- ═══ Lectura de agua ═══ -->
         <div v-if="hasWaterSection" class="invoice-section">
           <div class="invoice-section__title">Lectura de agua</div>
-          <div v-if="waterReading" class="text-xs text-gray-400 mb-2">
+          <div v-if="waterReading || waterUnitsRows.length" class="text-xs text-gray-400 mb-2">
             Agua común mes: {{ amountPrefix }} {{ money(quotaData.monthly_bill?.common_water_cost) }}
             <span v-if="quotaData.monthly_bill?.common_water_consumption_m3 != null">
               ({{ quotaData.monthly_bill.common_water_consumption_m3 }} m³)
             </span>
           </div>
-          <div class="invoice-table">
+          <div v-if="waterUnitsRows.length" class="invoice-table">
+            <div class="invoice-table__header">
+              <div class="invoice-table__col invoice-table__col--unit">Unidad / Concepto</div>
+              <div class="invoice-table__col invoice-table__col--amount">Ant. (A)</div>
+              <div class="invoice-table__col invoice-table__col--amount">Act. (B)</div>
+              <div class="invoice-table__col invoice-table__col--amount">Consumo</div>
+              <div class="invoice-table__col invoice-table__col--amount">Factor</div>
+              <div class="invoice-table__col invoice-table__col--total">Importe</div>
+            </div>
+            <div v-for="row in waterUnitsRows" :key="'wr-' + row.id" class="invoice-table__row">
+              <div class="invoice-table__col invoice-table__col--unit">
+                <div>
+                  <div class="invoice-table__unit-label">{{ getUnitInfo(row.type).label }}</div>
+                  <router-link
+                    v-if="Number(row.id) !== Number(quotaData.id)"
+                    :to="{ name: 'viewQuota', params: { id: row.id } }"
+                    class="invoice-table__unit-number text-blue-600 hover:underline"
+                  >
+                    {{ row.number }}
+                  </router-link>
+                  <span v-else class="invoice-table__unit-number">{{ row.number }}</span>
+                </div>
+              </div>
+              <div class="invoice-table__col invoice-table__col--amount">
+                {{ Number(row.waterReading.previous_reading).toFixed(3) }}
+              </div>
+              <div class="invoice-table__col invoice-table__col--amount">
+                {{ Number(row.waterReading.current_reading).toFixed(3) }}
+              </div>
+              <div class="invoice-table__col invoice-table__col--amount">
+                {{ waterConsumptionOf(row.waterReading).toFixed(3) }}
+              </div>
+              <div class="invoice-table__col invoice-table__col--amount">
+                {{ waterFactorOf(row.waterReading).toFixed(2) }}
+              </div>
+              <div class="invoice-table__col invoice-table__col--total">
+                {{ amountPrefix }} {{ money(row.water_amount) }}
+              </div>
+            </div>
+            <div class="invoice-table__row" style="background: #f9fafb; font-weight: 700;">
+              <div class="invoice-table__col invoice-table__col--unit">
+                TOTAL ({{ waterUnitsRows.length }} unidades)
+              </div>
+              <div class="invoice-table__col invoice-table__col--amount">—</div>
+              <div class="invoice-table__col invoice-table__col--amount">—</div>
+              <div class="invoice-table__col invoice-table__col--amount">
+                {{ totalWaterConsumptionM3.toFixed(3) }}
+              </div>
+              <div class="invoice-table__col invoice-table__col--amount">—</div>
+              <div class="invoice-table__col invoice-table__col--total">
+                {{ amountPrefix }} {{ money(totalWaterReadingAmount) }}
+              </div>
+            </div>
+          </div>
+          <div v-else class="invoice-table">
             <div class="invoice-table__header">
               <div class="invoice-table__col invoice-table__col--unit">Concepto</div>
               <div class="invoice-table__col invoice-table__col--amount">Ant. (A)</div>
@@ -743,14 +918,24 @@ loadQuota(route.params.id || route.query.id)
 
 /* ── Container ── */
 .invoice-container {
-  max-width: 540px;
+  max-width: 70%;
   margin: 0 auto;
   padding: 1.25rem 1rem 2rem;
+  border: 1px dashed rgb(173, 173, 173);
+  border-radius: 1rem;
+  margin-bottom: 2rem;
 }
 
 @media (min-width: 768px) {
   .invoice-container {
     padding: 2rem 1.5rem 3rem;
+  }
+}
+@media (max-width: 768px) {
+  .invoice-container {
+    max-width: 100%;
+    width: 95%;
+    padding:  0.5rem 0.5rem 2rem;
   }
 }
 

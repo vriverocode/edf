@@ -32,20 +32,22 @@ const ApiService = {
    * Send the GET HTTP request
    * @param resource
    * @param slug
+   * @param config optional axios config (e.g. { timeout: 10000 })
    * @returns {*}
    */
-  get(resource, slug = "") {
-    return axios.get(`${resource}${slug}`);
+  get(resource, slug = "", config = {}) {
+    return axios.get(`${resource}${slug}`, config);
   },
 
   /**
    * Set the POST HTTP request
    * @param resource
    * @param params
+   * @param config optional axios config (e.g. { timeout: 10000 })
    * @returns {*}
    */
-  post(resource, params) {
-    return axios.post(`${resource}`, params);
+  post(resource, params, config = {}) {
+    return axios.post(`${resource}`, params, config);
   },
 
   /**
