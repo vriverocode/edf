@@ -189,7 +189,7 @@ export const useReportStore = defineStore('Report', {
         const params = new URLSearchParams()
         if (!filter || typeof filter !== 'object') return ''
         if (filter.search) params.set('search', String(filter.search))
-        if (filter.status !== undefined && Number(filter.status) !== 4) params.set('status', String(filter.status))
+        if (filter.status !== undefined && filter.status !== null && Number(filter.status) >= 0) params.set('status', String(filter.status))
         if (filter.include_cancelled) params.set('include_cancelled', '1')
         if (filter.area_id) params.set('area_id', String(filter.area_id))
         if (filter.rol_id) params.set('rol_id', String(filter.rol_id))

@@ -6,6 +6,7 @@ namespace App\Exports;
 
 use App\Models\Booking;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -13,6 +14,16 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 
 class BookingsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping
 {
+    private const DAY_NAMES = [
+        0 => 'Domingo',
+        1 => 'Lunes',
+        2 => 'Martes',
+        3 => 'Miércoles',
+        4 => 'Jueves',
+        5 => 'Viernes',
+        6 => 'Sábado',
+    ];
+
     private array $filters;
 
     public function __construct(array $filters)
@@ -22,60 +33,55 @@ class BookingsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMap
 
     public function query(): Builder
     {
-        $query = Booking::with(['user', 'departament', 'comunArea', 'pay'])
+        $query = Booking::with(['user.rol', 'departament', 'comunArea', 'pay'])
             ->filter($this->filters);
 
-        if (! ($this->filters['include_cancelled'] ?? false)) {
+        $hasStatusFilter = isset($this->filters['status']) && (int) $this->filters['status'] !== -1;
+
+        if (! ($this->filters['include_cancelled'] ?? false) && ! $hasStatusFilter) {
             $query->where('status', '>', 0);
         }
 
-        return $query->orderBy('created_at', 'desc');
+        return $query;
     }
 
     public function headings(): array
     {
         return [
-            'N° Reserva',
+            'Día',
+            'Fec. Uso',
+            'Horario',
+            'Amb. Común',
+            'Dpto',
+            'Fec. Registro',
             'Usuario',
-            'Email',
-            'Departamento',
-            'Área Común',
-            'Fecha',
-            'Hora Inicio',
-            'Hora Fin',
-            'Monto',
+            'Tipo',
+            'Cod Pago',
+            'Total',
+            'Fec. Pago',
             'Estado',
-            'Estado Pago',
-            'Nota',
-            'Creado',
         ];
     }
 
     public function map($booking): array
     {
-        $payStatus = match (true) {
-            ! $booking->pay => 'Sin pago',
-            (int) $booking->pay->status === 0 => 'Anulado',
-            (int) $booking->pay->status === 1 => 'Pendiente',
-            (int) $booking->pay->status === 2 => 'Aprobado',
-            (int) $booking->pay->status === 3 => 'Exitoso',
-            default => '—',
-        };
+        $horario = collect([$booking->time_from, $booking->time_to])
+            ->filter()
+            ->implode(' - ');
 
         return [
-            $booking->booking_number ?? '—',
-            $booking->user?->name ?? '—',
-            $booking->user?->email ?? '—',
-            $booking->departament?->number ?? '—',
+            $booking->date ? (self::DAY_NAMES[(int) $booking->date->dayOfWeek] ?? '—') : '—',
+            $booking->date ? $booking->date->format('d/m/Y') : '—',
+            $horario,
             $booking->comunArea?->name ?? '—',
-            $booking->date?->format('d/m/Y'),
-            $booking->time_from,
-            $booking->time_to,
+            $booking->departament?->number ?? '—',
+            $booking->created_at?->format('d/m/Y') ?? '—',
+            $booking->user?->name ?? '—',
+            $booking->user?->rol?->name ?? '—',
+            $booking->booking_number ?? '—',
             (float) $booking->amount,
+            $booking->pay?->pay_date ? Carbon::parse($booking->pay->pay_date)->format('d/m/Y') : '—',
             $booking->status_label,
-            $payStatus,
-            $booking->note ?? '—',
-            $booking->created_at?->format('d/m/Y H:i'),
         ];
     }
 }

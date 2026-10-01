@@ -173,7 +173,7 @@ class BookingController extends Controller
 
         $perPage = $request->integer('per_page', 10);
 
-        return $this->returnSuccess(200, $bookings->paginate($perPage));
+        return $this->returnSuccess(200, $bookings->orderBy('date', 'desc')->paginate($perPage));
     }
 
     public function exportBookings(Request $request): BinaryFileResponse

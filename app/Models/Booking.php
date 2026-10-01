@@ -172,6 +172,20 @@ class Booking extends Model
     /* -------------------------------------------------------------------------- */
     public function scopeFilter(Builder $query, array $filters): void
     {
+        $searchCallback = $filters['searchCallback'] ?? null;
+
+        if (is_callable($searchCallback)) {
+            $query->where($searchCallback);
+        } elseif ($filters['search'] ?? null) {
+            $term = $filters['search'];
+            $query->where(function ($sub) use ($term) {
+                $sub->where('booking_number', 'like', "%{$term}%")
+                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$term}%"))
+                    ->orWhereHas('departament', fn ($d) => $d->where('number', 'like', "%{$term}%"))
+                    ->orWhereHas('comunArea', fn ($a) => $a->where('name', 'like', "%{$term}%"));
+            });
+        }
+
         $query->when(isset($filters['status']) && (int) $filters['status'] !== -1, fn ($q) => $q->where('status', (int) $filters['status']))
             ->when(isset($filters['rol_id']) && (int) $filters['rol_id'] !== -1, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('rol_id', (int) $filters['rol_id'])))
             ->when($filters['area_id'] ?? null, fn ($q, $areaId) => $q->where('comun_area_id', (int) $areaId))

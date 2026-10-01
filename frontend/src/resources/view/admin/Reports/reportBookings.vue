@@ -252,9 +252,13 @@ async function handleExport() {
     const params = {
       search: search.value || null,
       status: filters.value.status,
+      rol_id: filters.value.rol_id,
       area_id: filters.value.area_id,
       date_from: filters.value.date_from,
       date_to: filters.value.date_to,
+      sort_by: filters.value.sort_by,
+      sort_dir: filters.value.sort_dir,
+      include_cancelled: filters.value.include_cancelled,
     }
     await reportStore.exportBookings(params)
     $q.notify({ type: 'positive', message: 'Reporte exportado exitosamente' })
