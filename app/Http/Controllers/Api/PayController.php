@@ -227,14 +227,33 @@ class PayController extends Controller
         if ((int) $request->type === 1 && ! empty($quotaIdsForPay)) {
             $tenantQuotas = Quota::whereIn('id', $quotaIdsForPay)
                 ->whereNotNull('peoples_x_departments_id')
-                ->with('responsiblePivot')
+                ->with(['responsiblePivot.user', 'departament'])
                 ->get();
 
-            foreach ($tenantQuotas as $tq) {
-                if ($tq->responsiblePivot?->user_id !== $request->user()->id) {
-                    Log::warning('returnFail 403: Esta cuota está asignada a un inquilino. El propietario no puede realizar el pago.');
+            $authId = (int) $request->user()->id;
+            $isAdmin = in_array($request->user()->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]);
 
-                    return $this->returnFail(403, 'Esta cuota está asignada a un inquilino. El propietario no puede realizar el pago.');
+            foreach ($tenantQuotas as $tq) {
+                $tenantUser = $tq->responsiblePivot?->user;
+                $isTenantActive = $tenantUser && ! $tenantUser->trashed() && (int) $tenantUser->status !== 3;
+                $isTenant = $isTenantActive && (int) $tq->responsiblePivot?->user_id === $authId;
+                $isDepartmentOwner = (int) $tq->departament?->user_id === $authId;
+
+                // Si el inquilino fue eliminado o ya no está activo, y quien paga es el propietario:
+                // se normaliza la cuota desvinculando el inquilino para que pase a ser de la unidad
+                if (! $isTenantActive && $isDepartmentOwner) {
+                    $tq->update(['peoples_x_departments_id' => null]);
+                    if ($tq->departament && ! $tq->departament->activeTenantPivot()) {
+                        $tq->departament->update(['tenant_pays_quota' => false]);
+                    }
+
+                    continue;
+                }
+
+                if (! $isTenant && ! $isDepartmentOwner && ! $isAdmin) {
+                    Log::warning('returnFail 403: Esta cuota está asignada a un inquilino. No tienes permisos para realizar el pago.');
+
+                    return $this->returnFail(403, 'Esta cuota está asignada a un inquilino. No tienes permisos para realizar el pago.');
                 }
             }
         }

@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Departament;
 use App\Models\Notice;
 use App\Models\PeoplesXDepartaments;
+use App\Models\Quota;
 use App\Models\Rol;
 use App\Models\User;
 use App\Models\Visit;
@@ -911,6 +912,29 @@ class UserController extends Controller
         if ($user->rol_id == 5) {
             AirbnbRent::where('assing_to', $user->id)->update(['status' => 4]);
         }
+
+        // Liberar cuotas pendientes asignadas a este usuario y actualizar departamentos
+        $pivotRecords = PeoplesXDepartaments::where('user_id', $id)->get();
+        if ($pivotRecords->isNotEmpty()) {
+            $pivotIds = $pivotRecords->pluck('id');
+            Quota::whereIn('peoples_x_departments_id', $pivotIds)
+                ->where('status', 1)
+                ->update(['peoples_x_departments_id' => null]);
+
+            $deptIds = $pivotRecords->pluck('departament_id')->unique();
+            foreach ($deptIds as $deptId) {
+                $hasOtherActiveTenant = PeoplesXDepartaments::where('departament_id', $deptId)
+                    ->where('user_id', '!=', $id)
+                    ->where('type', Rol::INQUILINO)
+                    ->whereHas('user', fn ($q) => $q->whereNull('deleted_at')->where('status', '!=', 3))
+                    ->exists();
+
+                if (! $hasOtherActiveTenant) {
+                    Departament::where('id', $deptId)->update(['tenant_pays_quota' => false]);
+                }
+            }
+        }
+
         $user->delete();
 
         return $this->returnSuccess(200, 'Usuario eliminado con éxito');
