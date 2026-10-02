@@ -520,7 +520,7 @@ watch(step, (toStep, fromStep) => {
                       <div class="text-bold text-subtitle1">{{ item.unitLabel }}</div>
                     </div>
                     <div class="pay-form-breakdown__detail">
-                      <span>% Participación:</span>
+                      <span>% Participaciónsss:</span>
                       <span>{{ item.participation.toFixed(3) }} %</span>
                     </div>
                     <div class="pay-form-breakdown__detail">

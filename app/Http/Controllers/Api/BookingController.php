@@ -192,7 +192,7 @@ class BookingController extends Controller
             'per_page' => 10000,
         ];
 
-        $filename = 'reporte-reservas-'.now()->format('Y-m-d-His').'.xlsx';
+        $filename = 'reporte-reservas-' . now()->format('Y-m-d-His') . '.xlsx';
 
         return Excel::download(new BookingsExport($filters), $filename);
     }
@@ -483,7 +483,7 @@ class BookingController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            return $this->returnFail(500, 'Error al cancelar la reserva: '.$e->getMessage());
+            return $this->returnFail(500, 'Error al cancelar la reserva: ' . $e->getMessage());
         }
     }
 
@@ -493,11 +493,7 @@ class BookingController extends Controller
         if (! $booking) {
             return $this->returnFail(400, 'Reserva no encontrada');
         }
-        if (! in_array($booking->status, [
-            Booking::STATUS_PENDING_PAY,
-            Booking::STATUS_PENDING_APPROVAL,
-            Booking::STATUS_SUCCESS,
-        ])) {
+        if (! in_array($booking->status, [Booking::STATUS_PENDING_PAY,Booking::STATUS_PENDING_APPROVAL,Booking::STATUS_SUCCESS,])) {
             return $this->returnFail(400, 'La reserva no está en un estado válido para completarse');
         }
 

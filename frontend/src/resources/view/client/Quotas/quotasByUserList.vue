@@ -170,7 +170,8 @@ const getMonthName = (monthNumber) => {
 
 const hasTenantPays = (quota) => {
   if (!quota.details || !quota.details.length) return false
-  return quota.details.some(d => d.departament?.tenant_pays_quota === true)
+  
+  return quota.details.some(d => d.departament?.tenant_pays_quota == true)
 }
 
 const getTitleQuota = (quota) => {
