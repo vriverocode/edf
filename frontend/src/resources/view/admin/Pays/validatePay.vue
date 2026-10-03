@@ -33,6 +33,7 @@ const isCurrentBookingRefundable = computed(() => {
   const b = pay.value?.booking
   if (!b || !pay.value) return false
   return b.amount > 0
+    && b.type !== 4
     && [0, 6].includes(b.status)
     && [2, 6].includes(pay.value.status)
 })

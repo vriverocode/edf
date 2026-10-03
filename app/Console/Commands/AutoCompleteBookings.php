@@ -12,7 +12,7 @@ class AutoCompleteBookings extends Command
 {
     protected $signature = 'app:auto-complete-bookings';
 
-    protected $description = 'Cada 30 min: completa automáticamente reservas en estado Exitoso cuyo horario ya finalizó. Si el área tiene garantía, pasa a Pend. devolución.';
+    protected $description = 'Cada 30 min: completa automáticamente reservas en estado Exitoso cuyo horario ya finalizó. Si el área tiene garantía, pasa a Pend. devolución (las extensiones type 4 se completan directo, sin reembolso).';
 
     public function handle(): int
     {
@@ -28,7 +28,9 @@ class AutoCompleteBookings extends Command
                         continue;
                     }
 
-                    $needsRefund = (float) ($booking->comunArea->warranty_price ?? 0) > 0
+                    // Extensiones (type 4): sin reembolso, se completan directo
+                    $needsRefund = (int) $booking->type !== 4
+                        && (float) ($booking->comunArea->warranty_price ?? 0) > 0
                         && $booking->pay != null
                         && (int) $booking->pay->status == 2;
 

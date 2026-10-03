@@ -656,6 +656,14 @@ class PayController extends Controller
                 return $this->returnFail(409, 'El pago no tiene una reserva asociada.');
             }
 
+            if ((int) $booking->type === 4) {
+                DB::rollBack();
+
+                Log::warning('returnFail 409: Las reservas de tipo extensión no tienen reembolso. (booking '.$booking->id.')');
+
+                return $this->returnFail(409, 'Las reservas de tipo extensión no tienen reembolso.');
+            }
+
             $hasBankAccount = BankAccount::where('user_id', $booking->user_id)
                 ->where('status', true)
                 ->exists();
@@ -1001,8 +1009,9 @@ class PayController extends Controller
     {
         $APPROVE_VALUE = 3;
         $booking = Booking::find($pay->booking_id);
+        // Extensiones (lounge, type 4): sin reembolso, al aprobar el pago pasan directo a Completada
         $booking->update([
-            'status' => $APPROVE_VALUE,
+            'status' => (int) $booking->type === 4 ? Booking::STATUS_COMPLETED : $APPROVE_VALUE,
             'pay_id' => $pay->id,
         ]);
     }

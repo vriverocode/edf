@@ -383,7 +383,8 @@ class BookingController extends Controller
         try {
             $pay = $booking->pay;
 
-            if ($isPaidBookingNotCompleted && $pay && in_array((int) $pay->status, [1, 2, 4])) {
+            // Extensiones (type 4): sin reembolso, se cancelan directamente
+            if ($isPaidBookingNotCompleted && (int) $booking->type !== 4 && $pay && in_array((int) $pay->status, [1, 2, 4])) {
                 $booking->update([
                     'status' => Booking::STATUS_PENDING_DEVO,
                     'motive' => $request->motive ?? '',
@@ -447,7 +448,9 @@ class BookingController extends Controller
 
         $motive = $request->motive;
         $pay = $booking->pay;
-        $isPaidBooking = (float) $booking->amount > 0
+        // Extensiones (type 4): sin reembolso, se cancelan directamente
+        $isPaidBooking = (int) $booking->type !== 4
+            && (float) $booking->amount > 0
             && $pay
             && in_array((int) $pay->status, [1, 2, 4]);
 
@@ -501,7 +504,9 @@ class BookingController extends Controller
             return $this->returnFail(400, 'La reserva no está en un estado válido para completarse');
         }
 
-        $needsRefund = (float) ($booking->comunArea?->warranty_price ?? 0) > 0
+        // Extensiones (type 4): nunca tienen reembolso, se completan directo
+        $needsRefund = (int) $booking->type !== 4
+            && (float) ($booking->comunArea?->warranty_price ?? 0) > 0
             && $booking->pay != null
             && $booking->pay->status == 2;
 
