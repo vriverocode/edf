@@ -38,20 +38,11 @@ class ReportController extends Controller
 
         $perPage = (int) ($filters['per_page'] ?? 25);
 
-        $query = Booking::with(['user', 'departament', 'comunArea', 'pay'])
+        $query = Booking::with(['user.rol', 'departament', 'comunArea', 'pay'])
             ->filter($filters);
 
-        if (! $filters['include_cancelled']) {
+        if (! $filters['include_cancelled'] && (int) $filters['status'] === -1) {
             $query->where('status', '>', 0);
-        }
-
-        if ($filters['search']) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('booking_number', 'like', "%{$search}%")
-                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('departament', fn ($d) => $d->where('number', 'like', "%{$search}%"));
-            });
         }
 
         $bookings = $query->orderBy('date', 'desc')->paginate($perPage);
@@ -62,18 +53,6 @@ class ReportController extends Controller
     public function exportBookings(Request $request): BinaryFileResponse
     {
         $filters = $this->getValidatedFilters($request);
-
-        if ($filters['search']) {
-            $search = $filters['search'];
-            $filters['searchCallback'] = function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('booking_number', 'like', "%{$search}%")
-                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('departament', fn ($d) => $d->where('number', 'like', "%{$search}%"))
-                        ->orWhereHas('comunArea', fn ($a) => $a->where('name', 'like', "%{$search}%"));
-                });
-            };
-        }
 
         $filename = 'reporte-reservas-'.now()->format('Y-m-d-His').'.xlsx';
 
@@ -492,11 +471,10 @@ class ReportController extends Controller
                 $defaultMessage .= 'Administración EDF';
 
                 $message = $validated['message'] ?? $defaultMessage;
-
                 $delinquent->notify(new RealtimeNotification(
                     title: 'Recordatorio de cuotas pendientes',
                     message: $message,
-                    url: '/client/quotas',
+                    url: '/client/balance/list',
                     meta: [
                         'type' => 'delinquent_reminder',
                         'total_debt' => $totalDebt,
