@@ -141,7 +141,7 @@ const goTo = (quota) => {
     : [quota.id]
   router.push({
     path: `/client/quota/pay/${ids[0]}`,
-    query: ids.length > 1 ? { quota_ids: ids.join(',') } : {}
+    query: ids.length > 0 ? { quota_ids: ids.join(',') } : {}
   })
 }
 
@@ -168,7 +168,7 @@ const getMonthName = (monthNumber) => {
   return months[monthNumber - 1] || '';
 }
 
-const hasTenantPays = (quota) => {
+const hasTenantPays = (quota) => {  
   if (!quota.details || !quota.details.length) return false
   
   return quota.details.some(d => d.departament?.tenant_pays_quota == true)

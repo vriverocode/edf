@@ -8,6 +8,7 @@ use App\Models\MonthlyBills;
 use App\Models\Pay;
 use App\Models\Quota;
 use App\Models\Rol;
+use App\Models\User;
 use App\Services\MonthlyQuotaService;
 use Carbon\Carbon;
 use Exception;
@@ -18,15 +19,39 @@ use Illuminate\Support\Facades\Validator;
 
 class QuotaController extends Controller
 {
+    private function isPrivileged(?User $user): bool
+    {
+        return in_array($user?->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN], true);
+    }
+
+    /**
+     * Un usuario ve las cuotas de las unidades que posee y las de las unidades
+     * donde tiene el pivote como responsable del pago (peoples_x_departments_id).
+     *
+     * El tercer caso cubre los departamentos con tenant_pays_quota activo donde
+     * el pivote de la cuota aun es NULL: al generarse la cuota antes de que el
+     * propietario activara el flag, la columna nunca quedo seteada y el
+     * inquilino veia la lista vacia. Aqui se resuelve por departamento, que es
+     * la misma fuente de verdad que usa /api/user para el header.
+     */
+    private function scopeVisibleToUser(Builder $query, int $userId): Builder
+    {
+        return $query->where(function (Builder $queryBuilder) use ($userId) {
+            $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $userId))
+                ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $userId))
+                ->orWhereHas('departament.peoples', fn (Builder $builder) => $builder
+                    ->where('user_id', $userId)
+                    ->where('type', Rol::INQUILINO)
+                    ->where('departaments.tenant_pays_quota', true));
+        });
+    }
+
     private function findQuotaForAuthUser(string $id, Request $request): Quota
     {
         $query = Quota::query();
 
-        if ($request->user()->rol_id !== Rol::ADMIN) {
-            $query->where(function (Builder $queryBuilder) use ($request) {
-                $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $request->user()->id))
-                    ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $request->user()->id));
-            });
+        if (! $this->isPrivileged($request->user())) {
+            $this->scopeVisibleToUser($query, (int) $request->user()->id);
         }
 
         return $query->findOrFail($id);
@@ -48,11 +73,8 @@ class QuotaController extends Controller
     {
         $query = Quota::baseAdminQuery();
 
-        if ($request->user()->rol_id !== Rol::ADMIN) {
-            $query->where(function (Builder $queryBuilder) use ($request) {
-                $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $request->user()->id))
-                    ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $request->user()->id));
-            });
+        if (! $this->isPrivileged($request->user())) {
+            $this->scopeVisibleToUser($query, (int) $request->user()->id);
         }
 
         $groupedQuotas = Quota::groupConsolidatedByMonth($query->get());
@@ -157,7 +179,7 @@ class QuotaController extends Controller
             'pays.payMethod',
             'departament.owner',
             'responsiblePivot.user',
-            'waterReading'
+            'waterReading',
         ])->orderBy('created_at', 'desc');
 
         if ($request->filled('departament_ids')) {
@@ -165,10 +187,7 @@ class QuotaController extends Controller
         } else {
             $userQuota = $request->owner ?? $request->user()->id;
 
-            $quotas->where(function (Builder $queryBuilder) use ($userQuota) {
-                $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $userQuota))
-                    ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $userQuota));
-            });
+            $this->scopeVisibleToUser($quotas, (int) $userQuota);
         }
 
         $quotas->where('month', $month);
@@ -371,25 +390,21 @@ class QuotaController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Request $request, string $id)
     {
-        $quota = Quota::with([
+        // findQuotaForAuthUser ya cubre a los propietarios, al responsable del
+        // pago (peoples_x_departments_id) y al inquilino responsable del departamento.
+        // El chequeo anterior basado en $user->units() solo cubria unidades
+        // propias, por lo que un inquilino responsable recibia 403.
+        $quota = $this->findQuotaForAuthUser($id, $request);
+
+        $quota->load([
             'departament.owner',
             'pays.payMethod',
             'responsiblePivot.user',
             'waterReading',
             'departmentCharges.expense',
-        ])->find($id);
-        if (! $quota) {
-            return $this->returnFail(404, 'Cuota no encontrada');
-        }
-        $user = request()->user();
-        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
-            $userDepartments = $user->units()->pluck('id');
-            if (! $userDepartments->contains($quota->departament_id)) {
-                return $this->returnFail(403, 'No autorizado');
-            }
-        }
+        ]);
 
         $month = $quota->month;
         $year = $quota->year ?? ($quota->due_date ? Carbon::parse($quota->due_date)->year : now()->year);

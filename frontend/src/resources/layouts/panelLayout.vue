@@ -37,10 +37,14 @@ const reserveAreaActive = ref(false)
 const homePagesNameToHeader = ['dashboardAdmin', 'financePage', 'usersAdmin', 'ProfileMenu']
 const budgetBannerOffset = ref(0)
 
-const hasPendingToPay = computed(() => {
+const ownerPendingToPay = computed(() => {
   const units = user.value?.units ?? []
   return units.reduce((sum, unit) => sum + (unit.pending_quotas_count || 0), 0)
 })
+
+const tenantPendingToPay = computed(() => user.value?.tenant_pending_count || 0)
+
+const hasPendingToPay = computed(() => ownerPendingToPay.value + tenantPendingToPay.value > 0)
 
 const headerSizeClass = computed(() => {
   if (reserveAreaActive.value && route.name === 'reserveClientAdd') return 'header--reserve'

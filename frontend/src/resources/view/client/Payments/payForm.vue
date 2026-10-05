@@ -248,7 +248,10 @@ const getQuotaById = () => {
     ? queryIds.split(',').map(Number).filter(Boolean)
     : null
 
-  if (ids && ids.length > 1) {
+
+    console.log(ids)
+
+  if (ids && ids.length > 0) {
     return fetchAllQuotasByIds(ids)
   }
 
@@ -513,14 +516,15 @@ watch(step, (toStep, fromStep) => {
                   <div class="pay-form-title">PAGAR</div>
                   <p class="pay-form-subtitle">{{ paymentSubtitle }}</p>
                 </div>
-                <div class="pt-1" v-if="quotaBreakdown.length">
+               
+                <div class="pt-1" v-if="quotaBreakdown.length > 0">
                   <div v-for="item in quotaBreakdown" :key="`quota-breakdown-inline-${item.quotaId}`"
                     class="py-2 mt-2" style="border-bottom: 1px solid #e5e7eb;">
                     <div class="flex justify-center w-full pb-1 ">
                       <div class="text-bold text-subtitle1">{{ item.unitLabel }}</div>
                     </div>
                     <div class="pay-form-breakdown__detail">
-                      <span>% Participaciónsss:</span>
+                      <span>% Participación:</span>
                       <span>{{ item.participation.toFixed(3) }} %</span>
                     </div>
                     <div class="pay-form-breakdown__detail">

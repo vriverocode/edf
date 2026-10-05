@@ -221,10 +221,7 @@ onMounted(() => {
                 </div>
                 
                 <div class="col-12 my-4 px-2 md:px-12 flex items-center justify-between">
-                    <q-btn flat color="grey-9" class="q-mr-sm" @click="router.go(-1)">
-                        Volver
-                    </q-btn>
-                    <q-btn color="primary" style="border-radius: 0.5rem" no-caps type="submit" :loading="loading">
+                    <q-btn color="primary" style="border-radius: 0.5rem" no-caps type="submit" class="w-full" :loading="loading">
                         <div class="px-10 py-1">
                             Guardar cambios
                         </div>

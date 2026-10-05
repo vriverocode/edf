@@ -41,13 +41,18 @@ watch(route, (newRoute) => {
 
 const hasPendingToPay = computed(() => {
   let quotas = 0;
-  user.value.units.forEach(unit => {
-    quotas += unit.pending_quotas_count;
+  const units = user.value?.units ?? [];
+  units.forEach(unit => {
+    quotas += unit.pending_quotas_count || 0;
   });
   return quotas;
 })
 
-const tenantPendingToPay = computed(() => user.value.tenant_pending_count || 0)
+const tenantPendingToPay = computed(() => user.value?.tenant_pending_count || 0)
+
+const tenantPendingAmount = computed(() => Number(user.value?.tenant_pending_amount ?? 0).toFixed(2))
+
+const ownerPendingAmount = computed(() => Number(user.value?.total_peding_quotas ?? 0).toFixed(2))
 
 const goTo = (url) => {
   router.push(url)
@@ -80,14 +85,14 @@ onMounted(() => {
             <div class="mant-title">Mantenimiento</div>
             <div class="text-amtHeader" style="">{{ user.currency_symbol }}
 
-              {{ user.total_peding_quotas.toFixed(2) }}
+              {{ ownerPendingAmount }}
 
             </div>
           </div>
           <div class="text-white" v-if="ifTenant && tenantPendingToPay > 0">
             <div class="mant-title">Mantenimiento</div>
             <div class="text-amtHeader" style="">{{ user.currency_symbol }}
-              {{ user.tenant_pending_amount.toFixed(2) }}
+              {{ tenantPendingAmount }}
             </div>
           </div>
 

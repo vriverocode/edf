@@ -65,7 +65,7 @@ onMounted(() => {
 
 <template>
   <div class="row w-full">
-    <div class="col-12 px-2 md:px-12">
+    <div class="col-12 px-2 md:px-0">
       <div class="text-subtitle1 text-bold text-primary mb-3">
         Selecciona las áreas comunes que podrá reservar
       </div>

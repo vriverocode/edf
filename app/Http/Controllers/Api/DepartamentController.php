@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Departament;
 use App\Models\PeoplesXDepartaments;
+use App\Models\Quota;
 use App\Models\Rol;
+use App\Services\MonthlyQuotaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -331,12 +333,34 @@ class DepartamentController extends Controller
             return $this->returnFail(403, 'No tienes permisos para modificar este departamento');
         }
 
+        $tenantPays = ! $apartment->tenant_pays_quota;
+
         $apartment->update([
-            'tenant_pays_quota' => ! $apartment->tenant_pays_quota,
+            'tenant_pays_quota' => $tenantPays,
         ]);
+
+        $this->syncPendingQuotasTenantPivot($apartment, $tenantPays);
 
         return $this->returnSuccess(200, [
             'tenant_pays_quota' => $apartment->tenant_pays_quota,
         ]);
+    }
+
+    /**
+     * Mantiene alineadas las cuotas pendientes con el flag del departamento.
+     * Sin esto, las cuotas ya generadas quedan con peoples_x_departments_id NULL
+     * y el inquilino responsable no las ve en su listado.
+     */
+    private function syncPendingQuotasTenantPivot(Departament $apartment, bool $tenantPays): void
+    {
+        $pivotId = $tenantPays ? MonthlyQuotaService::findActiveTenantPivotId($apartment->id) : null;
+
+        if ($tenantPays && $pivotId === null) {
+            return;
+        }
+
+        Quota::where('departament_id', $apartment->id)
+            ->where('status', 1)
+            ->update(['peoples_x_departments_id' => $pivotId]);
     }
 }
