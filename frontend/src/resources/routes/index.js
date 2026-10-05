@@ -1484,7 +1484,7 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Control de visitas',
-          roles: ['trabajador'],
+          roles: ['trabajador', 'admin', 'super-admin'],
           depth: 2,
         },
       },
@@ -1510,6 +1510,18 @@ const routes = [
           pagTitle: 'Reservas',
           roles: ['trabajador'],
           depth: 2,
+        },
+      },
+      {
+        path: '/security/reserves/:id/guests',
+        component: () => import('@/view/security/Reserves/guestListSecurity.vue'),
+        name: 'guestListSecurity',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Lista de invitados',
+          roles: ['admin', 'super-admin', 'trabajador'],
+          depth: 3,
         },
       },
       {

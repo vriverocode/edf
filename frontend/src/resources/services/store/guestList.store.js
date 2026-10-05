@@ -71,5 +71,39 @@ export const useGuestListStore = defineStore('GuestList', {
           })
       })
     },
+    async getGuestsForSecurity(bookingId) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.get('/api/security/bookings/' + bookingId + '/guests')
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al obtener invitados')
+          })
+      })
+    },
+    async toggleGuestArrived(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw ''
+        }
+        ApiService.setHeader()
+        ApiService.put('/api/security/guests/' + id + '/arrived')
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al actualizar la llegada')
+          })
+      })
+    },
   },
 })

@@ -319,6 +319,9 @@ onMounted(() => {
                       <q-tooltip v-else-if="!reserve.pay && reserve.amount > 0">No pagado</q-tooltip>
                     </q-icon>
                   </div>
+                  <div class=" flex flex-center pt-2" v-if="reserve.type == 4">
+                    <q-badge size="small" color="primary" label="Extension" class="py-1" />
+                  </div>
                   <!-- Refund badge -->
                   <div v-if="needsRefund(reserve)"
                     class="q-mt-xs text-caption text-orange-8 flex items-center">

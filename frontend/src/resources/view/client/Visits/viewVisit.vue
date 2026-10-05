@@ -151,11 +151,11 @@ const reloadVisit = () => {
             </div>
           </div>
           
-          <div class="w-full pb-4 px-4">
+          <!-- <div class="w-full pb-4 px-4">
              <button @click="goToHome" class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
               Volver a la lista
              </button>
-          </div>
+          </div> -->
         </div>
       </div>
 

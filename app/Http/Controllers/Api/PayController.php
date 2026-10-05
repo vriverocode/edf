@@ -1007,11 +1007,11 @@ class PayController extends Controller
 
     private function approveBooking($pay)
     {
-        $APPROVE_VALUE = 3;
         $booking = Booking::find($pay->booking_id);
-        // Extensiones (lounge, type 4): sin reembolso, al aprobar el pago pasan directo a Completada
+        // Al aprobar el pago la reserva pasa a Exitosa (también las extensiones type 4);
+        // el cron app:auto-complete-bookings las completará al finalizar el horario (sin reembolso).
         $booking->update([
-            'status' => (int) $booking->type === 4 ? Booking::STATUS_COMPLETED : $APPROVE_VALUE,
+            'status' => Booking::STATUS_SUCCESS,
             'pay_id' => $pay->id,
         ]);
     }

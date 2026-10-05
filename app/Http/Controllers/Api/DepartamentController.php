@@ -120,7 +120,31 @@ class DepartamentController extends Controller
 
     public function getApartmentsByUser(Request $request)
     {
-        $apartments = Departament::with(['owner', 'dueQuotas', 'peoples.user:name,id'])->where('user_id', $request->user()->id)->get();
+        $user = $request->user();
+        $isStaff = in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR]);
+
+        if ($isStaff) {
+            // Admin/super-admin/trabajador: todos los departamentos (selector al registrar visita)
+            $apartments = Departament::with(['owner', 'peoples.user:name,id,status'])
+                ->where('type', Departament::TYPE_DEPARTAMENTO)
+                ->orderBy('number')
+                ->get()
+                ->map(function ($departament) {
+                    $tenantUser = $departament->peoples->first(function ($people) {
+                        return (int) $people->type === Rol::INQUILINO
+                            && $people->user
+                            && (int) $people->user->status !== 3;
+                    })?->user;
+
+                    return array_merge($departament->toArray(), [
+                        'responsable' => $tenantUser?->name ?? $departament->owner?->name,
+                    ]);
+                });
+
+            return $this->returnSuccess(200, $apartments);
+        }
+
+        $apartments = Departament::with(['owner', 'dueQuotas', 'peoples.user:name,id'])->where('user_id', $user->id)->get();
 
         if (! $apartments) {
             return $this->returnFail(400, 'Departamentos no encontrados');

@@ -777,7 +777,6 @@ watch(step,
                           <div class="text-dateBlockTitle">Fecha elegida</div>
                           <div class="text-primary text-bold text-dateBlock">
                             {{ formData.date ? moment(formData.date, 'YYYY/MM/DD').format('dddd DD') : '-----' }}
-                             {{ formData.date ? moment(formData.date, 'YYYY/MM/DD').format('DD/mm/yyyy') : '-----' }}
                             - 
                             {{  hrsFormat(formData.typeOfReserve == 2 
                               ? selectedComunArea.max_time_reserve_exclusive 

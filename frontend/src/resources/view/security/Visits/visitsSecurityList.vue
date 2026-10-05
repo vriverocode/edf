@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useVisitStore } from '@/services/store/visits.store';
 import moment from 'moment';
 import { Notify, Dialog } from 'quasar';
@@ -10,6 +11,8 @@ moment.locale('es', {
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split('_'),
 })
 
+const route = useRoute()
+const router = useRouter()
 const visitStore = useVisitStore()
 const ready = ref(false)
 const visits = ref([])
@@ -102,6 +105,14 @@ const confirmArrived = (visit) => {
 }
 
 onMounted(() => {
+  const statusParam = route.query.status
+  if (statusParam) {
+    filters.value.status = String(statusParam)
+      .split(',')
+      .map((value) => Number(value))
+      .filter((value) => !Number.isNaN(value))
+    isUsingFilter()
+  }
   loadFilterOptions()
   getVisits()
 })
@@ -111,7 +122,11 @@ onMounted(() => {
   <div class="h-full">
     <template v-if="ready">
       <div class="h-full" style="overflow: hidden;">
-        <div class="flex justify-end md:mx-24 md:px-12 px-4 pt-4">
+        <div class="flex justify-end items-center gap-2 md:mx-24 md:px-12 px-4 pt-4">
+          <q-btn color="primary" unelevated no-caps icon="eva-plus-outline" style="border-radius: 0.5rem;"
+            padding="sm md" @click="router.push('/client/visit/add')">
+            Registrar visita
+          </q-btn>
           <q-btn outline color="primary" :class="activeFilterSearch" icon="eva-funnel-outline"
             @click="modal = 'filter'" />
         </div>

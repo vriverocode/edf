@@ -13,6 +13,8 @@ use App\Notifications\RealtimeNotification;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 
 class VisitController extends Controller
@@ -98,12 +100,16 @@ class VisitController extends Controller
         }
 
         $user = $request->user();
-        $ownedIds = $user->apartaments()->pluck('id');
-        $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
-        $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
+        $isStaff = in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR]);
 
-        if (! $apartmentIds->contains((int) $request->departament_id)) {
-            return $this->returnFail(403, 'No puedes registrar visitas para este departamento');
+        if (! $isStaff) {
+            $ownedIds = $user->apartaments()->pluck('id');
+            $residentIds = PeoplesXDepartaments::where('user_id', $user->id)->pluck('departament_id');
+            $apartmentIds = $ownedIds->merge($residentIds)->unique()->values();
+
+            if (! $apartmentIds->contains((int) $request->departament_id)) {
+                return $this->returnFail(403, 'No puedes registrar visitas para este departamento');
+            }
         }
 
         try {
@@ -121,10 +127,90 @@ class VisitController extends Controller
             return $this->returnFail(500, $e->getMessage());
         }
 
+        $this->sendVisitCreatedNotification($visit);
+
+        if ($isStaff) {
+            $this->sendVisitResponsibleNotification($visit, $user);
+        }
+
         return $this->returnSuccess(200, [
             'message' => 'Visita registrada con éxito',
             'id' => $visit->id,
         ]);
+    }
+
+    /**
+     * Notifica a admin, super-admin y trabajadores cuando se crea una visita.
+     */
+    private function sendVisitCreatedNotification(Visit $visit): void
+    {
+        try {
+            $visit->loadMissing('departament');
+
+            $users = User::whereIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR])
+                ->where('status', 1)
+                ->get();
+
+            if ($users->isEmpty()) {
+                return;
+            }
+
+            $date = Carbon::parse($visit->date)->format('d/m/Y');
+            $hour = $visit->hour ? ' a las '.$visit->hour : '';
+
+            Notification::send($users, new RealtimeNotification(
+                title: 'Nueva visita registrada',
+                message: 'Visita de '.$visit->fullname.' - Apt. '.($visit->departament?->number ?? '-').' el '.$date.$hour.' (pendiente de llegada)',
+                url: '/security/visit/list?status=1',
+                meta: [
+                    'visit_id' => $visit->id,
+                    'departament_id' => $visit->departament_id,
+                    'icon' => 'person',
+                ]
+            ));
+        } catch (\Throwable $e) {
+            // Silenciar errores de notificación para no romper el alta de la visita
+            Log::error('Error al notificar nueva visita: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Notifica al responsable del departamento (inquilino activo o propietario)
+     * cuando la visita es creada por admin/super-admin/trabajador.
+     */
+    private function sendVisitResponsibleNotification(Visit $visit, User $creator): void
+    {
+        try {
+            $visit->loadMissing('departament.owner');
+            $departament = $visit->departament;
+
+            if (! $departament) {
+                return;
+            }
+
+            $responsible = $departament->activeTenantPivot()?->user ?: $departament->owner;
+
+            if (! $responsible || (int) $responsible->id === (int) $creator->id) {
+                return;
+            }
+
+            $date = Carbon::parse($visit->date)->format('d/m/Y');
+            $hour = $visit->hour ? ' a las '.$visit->hour : '';
+
+            $responsible->notify(new RealtimeNotification(
+                title: 'Visita registrada en tu departamento',
+                message: 'Se registró la visita de '.$visit->fullname.' en el Apt. '.$departament->number.' el '.$date.$hour.' (pendiente de llegada)',
+                url: '/client/visits/view/'.$visit->id,
+                meta: [
+                    'visit_id' => $visit->id,
+                    'departament_id' => $visit->departament_id,
+                    'icon' => 'person',
+                ]
+            ));
+        } catch (\Throwable $e) {
+            // Silenciar errores de notificación para no romper el alta de la visita
+            Log::error('Error al notificar visita al responsable del departamento: '.$e->getMessage());
+        }
     }
 
     /**
@@ -459,8 +545,8 @@ class VisitController extends Controller
         $rules = [
             'departament_id' => ['required', 'numeric'],
             'fullname' => ['required', 'regex:/^[a-zA-ZÀ-ÿ0-9 .\-]+$/u'],
-            'dni' => ['required', 'regex:/^[0-9A-Za-z.\-]+$/'],
-            'type' => ['required', 'numeric', 'between:1,4'],
+            'dni' => ['nullable', 'regex:/^[0-9A-Za-z.\-]+$/'],
+            'type' => ['required', 'numeric', 'between:1,5'],
             'date' => ['required', 'date'],
             'hour' => ['nullable', 'regex:/^[0-9]{2}:[0-9]{2}$/'],
             'description' => ['nullable', 'string'],

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { Notify } from 'quasar'
 import { useApartmentStore } from '@/services/store/apartment.store'
 import { useVisitStore } from '@//services/store/visits.store'
+import moment from 'moment'
 
 const router = useRouter()
 const apartmentStore = useApartmentStore()
@@ -11,15 +12,16 @@ const visitStore = useVisitStore();
 const loading = ref(false)
 const hasNoApartments = ref(false)
 const apartmentsOptions = ref([
-  { id: 0, number: 'Selecciona un departamento', area: null },
+  { id: 0, number: 'Selecciona un departamento', label: 'Selecciona un departamento', area: null },
 ])
+const filteredApartments = ref([])
 
 const typeOptions = ref([
   { id: '', title: 'Selecciona el motivo de la visita' },
   { id: 1, title: '👤 Visita personal' },
   { id: 2, title: '📦 Entrega' },
-  { id: 3, title: '🔧 Servicio técnico' },
-  // { id: 4, title: '🏠 Airbnb' },
+  { id: 3, title: '🏠 Airbnb' },
+  { id: 4, title: '🔧 Servicio' },
   { id: 5, title: '💬 Otro' },
 ])
 
@@ -27,6 +29,7 @@ const formData = ref({
   apartment: {
     id: 0,
     number: 'Selecciona un departamento',
+    label: 'Selecciona un departamento',
   },
   fullname: '',
   dni: '',
@@ -54,22 +57,48 @@ const getApartmentsByUser = () => {
 
       if (apartments.length === 0) {
         apartmentsOptions.value = []
+        filteredApartments.value = []
         return
       }
 
       apartmentsOptions.value = [
-        { id: 0, number: 'Selecciona un departamento', area: null },
-        ...apartments,
+        { id: 0, number: 'Selecciona un departamento', label: 'Selecciona un departamento', area: null },
+        ...apartments.map((apt) => ({
+          ...apt,
+          label: Object.prototype.hasOwnProperty.call(apt, 'responsable')
+            ? `#${apt.number}${apt.responsable ? ` — ${apt.responsable}` : ''}`
+            : `#${apt.number}`,
+        })),
       ]
+      filteredApartments.value = apartmentsOptions.value
 
       if (apartments.length === 1) {
-        formData.value.apartment = apartments[0]
+        formData.value.apartment = apartmentsOptions.value[1]
       }
     })
     .catch(() => {
       hasNoApartments.value = true
       apartmentsOptions.value = []
+      filteredApartments.value = []
     })
+}
+
+const filterApartments = (val, update) => {
+  update(() => {
+    const needle = (val || '').trim().toLowerCase()
+    if (!needle) {
+      filteredApartments.value = apartmentsOptions.value
+      return
+    }
+
+    filteredApartments.value = apartmentsOptions.value.filter((opt) => {
+      if (opt.id === 0) return false
+      const number = String(opt.number ?? '').toLowerCase()
+      const responsable = String(opt.responsable ?? '').toLowerCase()
+      const owner = String(opt.owner?.name ?? '').toLowerCase()
+      return number.includes(needle) || responsable.includes(needle) || owner.includes(needle)
+    })
+  })
 }
 
 const handleSubmit = () => {
@@ -176,7 +205,8 @@ onMounted(() => {
             Departamento
           </div>
           <q-select v-if="!hasNoApartments" borderless dense class="form__inputsCR mt-2" v-model="formData.apartment"
-            option-value="id" option-label="number" :options="apartmentsOptions" behavior="menu">
+            option-value="id" option-label="label" :options="filteredApartments" use-input fill-input hide-selected
+            input-debounce="0" @filter="filterApartments" behavior="menu">
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
                 <div class="w-full">
@@ -184,7 +214,11 @@ onMounted(() => {
                     <div class="text-subtitle1" style="font-weight: 500">
                       {{ scope.opt.id != 0 ? '#' : '' }} {{ scope.opt.number }}
                     </div>
-                    <div v-if="scope.opt.id != 0" class="text-positive text-subtitle2 pl-2">
+                    <div v-if="scope.opt.id != 0 && scope.opt.responsable !== undefined"
+                      class="text-blue text-subtitle2 pl-2">
+                      {{ scope.opt.responsable || 'Sin responsable' }}
+                    </div>
+                    <div v-else-if="scope.opt.id != 0" class="text-positive text-subtitle2 pl-2">
                       Tu departamento
                     </div>
                   </div>
@@ -227,7 +261,7 @@ onMounted(() => {
         </div> -->
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-bold text-black">
+          <div class="text-subtitle2 text-bold text-black md:pt-0">
             Tipo de visita
           </div>
           <q-select borderless dense class="form__inputsCR mt-2" v-model="formData.type" option-value="id"
@@ -235,7 +269,7 @@ onMounted(() => {
         </div>
 
         <div class="col-12 col-md-6 md:my-0 my-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-bold text-black pt-2">
+          <div class="text-subtitle2 text-bold text-black pt-2 md:pt-0">
             Motivo o empresa (opcional)
           </div>
           <q-input borderless clearable type="textarea" autogrow dense class="form__inputsCR mt-2" color="primary"
@@ -243,7 +277,7 @@ onMounted(() => {
         </div>
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-bold text-black pt-2">
+          <div class="text-subtitle2 text-bold text-black pt-2 md:pt-4">
             Fecha de ingreso
           </div>
           <q-input borderless dense class="form__inputsCR mt-2" v-model="formData.date" mask="date" :rules="['date']">
@@ -253,7 +287,7 @@ onMounted(() => {
                   <q-date v-model="formData.date" minimal :locale="myLocale"
                     :options="(date) => date.replace(/\//g, '-') >= new Date().toISOString().split('T')[0]">
                     <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="Cerrar" color="primary" flat />
+                      <q-btn v-close-popup label="Aceptar" color="primary" flat />
                     </div>
                   </q-date>
                 </q-popup-proxy>
@@ -263,7 +297,7 @@ onMounted(() => {
         </div>
 
         <div class="col-md-6 md:my-0 col-12 my-1 px-2 md:px-12">
-          <div class="text-subtitle2 text-bold text-black md:mt-2">
+          <div class="text-subtitle2 text-bold text-black pt-2 md:pt-4">
             Hora aproximada de ingreso
           </div>
           <q-input borderless dense class="form__inputsCR mt-2" v-model="formData.hour" mask="time">
@@ -272,7 +306,7 @@ onMounted(() => {
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                   <q-time v-model="formData.hour" format24h :options="visitTimeLimit"  >
                     <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="Cerrar" color="primary" flat />
+                      <q-btn v-close-popup label="Aceptar" color="primary" flat />
                     </div>
                   </q-time>
                 </q-popup-proxy>
@@ -282,7 +316,7 @@ onMounted(() => {
         </div>
 
         <div class="col-12 my-4 px-2 md:px-12 flex items-center justify-between">
-          <q-btn flat color="grey-9" class="q-mr-sm" @click="router.push('/client/visit/list')">
+          <q-btn  color="grey-9" class="q-mr-sm" @click="router.push('/client/visit/list')">
             Volver
           </q-btn>
           <q-btn color="primary" style="border-radius: 0.5rem" type="submit" :loading="loading"

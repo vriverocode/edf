@@ -92,7 +92,9 @@ const downloadReceipt = async () => {
 const goToHome = () => {
   router.push('/client/reserves/list')
 }
-
+const goTo = (url) => {
+  router.push(url)
+}
 // Obtener el ID del booking desde la URL o props
 const bookingId = route.params.id || route.query.id
 
@@ -178,6 +180,18 @@ const reloadBooking = () => {
                 <div class="text-primary text-md font-bold " style="text-transform:uppercase">{{ booking.departament?.number ? '#' + booking.departament.number : '-' }}</div>
               </div>
             </div>
+            <div class="col-12 flex justify-end pt-4 pb-2 px-2">
+              <q-btn rounded no-caps color="indigo-7" size="sm" class="ml-3"
+                v-if="booking.status == 3 && booking.comun_area?.type == 4"
+                @click="goTo('/client/reserves/guests/' + booking.id)">
+                <q-tooltip class="bg-primary text-white text-body2" :offset="[10, 10]">
+                  Lista de invitados
+                </q-tooltip>
+                <div class="text-sm">
+                  Lista de invitados
+                </div>
+              </q-btn>
+            </div>
           </div>
           <!-- Tarjeta de detalles -->
           <div class=" w-full  md:p-5  px-4 pt-5 mb-5" style="border-top: 1px solid lightgray;">
@@ -239,7 +253,7 @@ const reloadBooking = () => {
 
 
             </div>
-            <div class="flex flex-center mt-4" @click="dialog = true" v-if="booking.pay">
+            <div class="flex flex-center mt-4 " @click="dialog = true" v-if="booking.pay">
               <div class="text-center text-subtitle1 text-primary text-bold font-medium cursor-pointer text__vaucher"
                 style="text-decoration:dotted">
                 Voucher de pago
@@ -270,17 +284,17 @@ const reloadBooking = () => {
             </div>
           </div>
           <!-- Botones de acción -->
-          <div class="w-full  space-y-4">
+          <div class="w-full  space-y-4 md:px-5 md:pb-8 px-8">
           <!-- Botón de descargar recibo -->
-          <button @click="downloadReceipt" v-if="booking.pay"
-            class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-              </path>
-            </svg>
-            <span>Descargar Recibo</span>
-          </button>
+            <button @click="downloadReceipt" v-if="booking.pay"
+              class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+              </svg>
+              <span>Descargar Recibo</span>
+            </button>
           </div>
         </div>
         <template v-if="booking.pay">

@@ -80,7 +80,9 @@ class Booking extends Model
     protected function bookingHour(): Attribute
     {
         return Attribute::make(
-            get: fn () => Carbon::parse($this->time_to)->diffInHours(Carbon::parse($this->time_from))
+            get: fn () => (! $this->time_to || ! $this->time_from)
+                ? 0
+                : (int) round(abs(Carbon::parse($this->time_to)->diffInHours(Carbon::parse($this->time_from))))
         );
     }
 

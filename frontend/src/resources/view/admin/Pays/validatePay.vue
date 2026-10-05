@@ -470,6 +470,11 @@ const submitUploadVoucher = async () => {
               <span class="text-gray-600 font-medium">Reserva</span>
               <span class="text-gray-900 font-semibold">#{{ pay.booking?.booking_number ?? '—' }}</span>
             </div>
+            <div v-if="pay.booking.type==4" class="flex justify-between items-center pb-2"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">Tipo de Reserva</span>
+              <span class="text-gray-900 font-semibold">Extension</span>
+            </div>
 
             <div class="flex justify-between items-center pb-2" v-if="isQuotaPay && pay.quota"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">

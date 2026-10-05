@@ -6,6 +6,8 @@ import { Notify } from 'quasar'
 import moment from 'moment'
 
 moment.locale('es', {
+  weekdays: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'),
+  weekdaysShort: 'Dom_Lun_Mar_Mie_Jue_Vie_Sab'.split('_'),
   monthsShort: 'Ene_Feb_Mar_Abr_May_Jun_Jul_Ago_Sep_Oct_Nov_Dic'.split('_'),
   months: 'enero_febrero_marzo_abril_mayo_junio_julio_agosto_septiembre_octubre_noviembre_diciembre'.split('_'),
 })
@@ -192,15 +194,13 @@ onMounted(() => {
           </div>
           <div class="flex justify-between items-center mb-1">
             <span class="text-grey-7">Duración</span>
-            <span class="text-bold">{{ selectedSlot.duration }} hora(s)</span>
+            <span class="text-bold">{{ Math.abs(selectedSlot.duration) }} hora(s)</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-grey-7">Costo extensión</span>
             <span class="text-bold text-primary">S/ {{ extensionCost().toFixed(2) }}</span>
           </div>
-          <div v-if="area?.extension_price" class="text-caption text-grey-6 mt-1">
-            (S/ {{ parseFloat(area.extension_price).toFixed(2) }} x hora)
-          </div>
+   
         </div>
       </div>
     </div>

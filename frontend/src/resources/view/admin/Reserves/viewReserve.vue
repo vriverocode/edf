@@ -85,7 +85,7 @@ const downloadReceipt = async () => {
 }
 
 const goToGuests = () => {
-  router.push('/client/reserves/guests/' + booking.value?.id)
+  router.push('/security/reserves/' + booking.value?.id + '/guests')
 }
 
 const goBack = () => {
@@ -277,7 +277,7 @@ const reloadBooking = () => {
             </div>
           </div>
           <!-- Botones de acción -->
-          <div class="w-full space-y-4">
+          <div class="w-full space-y-4 md:px-5 md:pb-8 px-2 pb-4">
             <button @click="goToGuests" v-if="booking.comun_area.type == 4"
               class="w-full py-4 rounded-xl font-medium bg-primary text-white hover:bg-primary transition-colors flex items-center justify-center space-x-2">
               <q-icon name="eva-people-outline" size="1.2rem" />

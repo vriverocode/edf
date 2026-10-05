@@ -12,6 +12,8 @@ import events from '@/assets/img/menu/eventos-admin.png'
 import report from '@/assets/img/menu/reports.png'
 import maintenance from '@/assets/img/menu/worker.png'
 import atencion from '@/assets/img/menu/atencion.svg'
+import iconsApp from '@/assets/icons/index';
+
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -37,6 +39,12 @@ const menu = [
   { title: 'Mantenimientos', icon: maintenance, subtitle: 'Programa y consulta mantenimientos', link: '/admin/maintenances', badgeKey: '' },
   { title: 'Incidencias', icon: atencion, subtitle: 'Gestiona las incidencias reportadas', link: '/admin/incidents', badgeKey: '' },
   { title: 'Reportes', icon: report, subtitle: 'Reportes', link: '/admin/reports', badgeKey: '' },
+  {
+    title: 'Visitas',
+    icon: iconsApp.visitor,
+    link: '/security/visit/list',
+    roles: [6]
+  },
 ]
 
 const goTo = (url) => router.push(url)
@@ -129,7 +137,8 @@ onMounted(() => {
               {{ badgeCount(item.badgeKey) }}
             </div>
             <div class="flex justify-center items-center h-full w-full p-1">
-              <img :src="item.icon" class="md:w-auto" :class="{ 'h-3/5': !item.title.includes('Incidencias') , 
+              <div v-html="item.icon" class="flex justify-center mt-0" v-if="item.title == 'Visitas'" />
+              <img v-else :src="item.icon" class="md:w-auto" :class="{ 'h-3/5': !item.title.includes('Incidencias') , 
                 'h-full pt-1': item.title.includes('Incidencias')}" />
             </div>
           </div>

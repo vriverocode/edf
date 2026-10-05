@@ -35,7 +35,7 @@ const addGuest = () => {
     .then(() => {
       loading.value = false
       emit('guestAdded')
-      emit('closeModal')
+      // emit('closeModal')
       resetForm()
     })
     .catch((error) => {

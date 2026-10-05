@@ -40,6 +40,49 @@ class GuestListController extends Controller
         ]);
     }
 
+    /**
+     * Lista de invitados de una reserva para admin/super-admin/trabajador (control de llegadas).
+     */
+    public function getForStaff($bookingId)
+    {
+        $booking = Booking::with(['comunArea', 'user', 'departament'])->find($bookingId);
+
+        if (! $booking) {
+            return $this->returnFail(404, 'Reserva no encontrada');
+        }
+
+        $guests = GuestList::where('booking_id', $bookingId)->orderBy('created_at', 'asc')->get();
+
+        return $this->returnSuccess(200, [
+            'booking' => $booking,
+            'guests' => $guests,
+            'arrived_count' => $guests->where('status', 2)->count(),
+            'total' => $guests->count(),
+        ]);
+    }
+
+    /**
+     * Marca/desmarca la llegada de un invitado (status 1 pendiente <-> 2 llegó).
+     * updated_at queda como fecha/hora de llegada. No aplica isLocked.
+     */
+    public function toggleArrived($id)
+    {
+        $guest = GuestList::find($id);
+
+        if (! $guest) {
+            return $this->returnFail(404, 'Invitado no encontrado');
+        }
+
+        $arrived = (int) $guest->status !== 2;
+        $guest->status = $arrived ? 2 : 1;
+        $guest->save();
+
+        return $this->returnSuccess(200, [
+            'message' => $arrived ? 'Llegada confirmada' : 'Llegada desmarcada',
+            'guest' => $guest,
+        ]);
+    }
+
     public function store(Request $request, $bookingId)
     {
         $booking = Booking::with('comunArea')->find($bookingId);
@@ -97,13 +140,18 @@ class GuestListController extends Controller
             return $this->returnFail(404, 'Invitado no encontrado');
         }
 
+        $user = $request->user();
         $booking = $guest->booking;
 
-        if ($booking->user_id !== request()->user()->id) {
+        if ($booking->user_id !== $user->id && $user->rol_id !== Rol::SUPER_ADMIN) {
             return $this->returnFail(403, 'No autorizado');
         }
 
-        if ($this->isLocked($booking)) {
+        if ((int) $guest->status === 2 && $user->rol_id !== Rol::SUPER_ADMIN) {
+            return $this->returnFail(403, 'No se puede editar un invitado que ya llegó. Solo el super-admin puede hacerlo');
+        }
+
+        if ($this->isLocked($booking) && $user->rol_id !== Rol::SUPER_ADMIN) {
             return $this->returnFail(400, 'No se pueden editar invitados. Ya falta 1 hora o menos para el inicio de la reserva');
         }
 
@@ -133,13 +181,18 @@ class GuestListController extends Controller
             return $this->returnFail(404, 'Invitado no encontrado');
         }
 
+        $user = request()->user();
         $booking = $guest->booking;
 
-        if ($booking->user_id !== request()->user()->id) {
+        if ($booking->user_id !== $user->id && $user->rol_id !== Rol::SUPER_ADMIN) {
             return $this->returnFail(403, 'No autorizado');
         }
 
-        if ($this->isLocked($booking)) {
+        if ((int) $guest->status === 2 && $user->rol_id !== Rol::SUPER_ADMIN) {
+            return $this->returnFail(403, 'No se puede eliminar un invitado que ya llegó. Solo el super-admin puede hacerlo');
+        }
+
+        if ($this->isLocked($booking) && $user->rol_id !== Rol::SUPER_ADMIN) {
             return $this->returnFail(400, 'No se pueden eliminar invitados. Ya falta 1 hora o menos para el inicio de la reserva');
         }
 

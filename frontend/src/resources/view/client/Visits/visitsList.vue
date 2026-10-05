@@ -165,7 +165,7 @@ onMounted(() => {
           <div class="pt-0 md:pt-4 pb-8"  style="height:87%; overflow:auto">
             <div class="px-4 md:px-32">
               <q-slide-item v-for="visit in visits" :key="visit.id" @right="() => deleteItem(visit)"
-                right-color="red-8" class="my-3 listVisit-container" style="border-radius: 12px!important;">
+                right-color="red-8" class="my-3 listVisit-container" style="border-radius: 12px!important; overflow:hidden">
                 <template v-slot:right>
                   <div class="row items-center" style="border-radius: 12px;">
                     <q-icon name="eva-trash-2-outline" />

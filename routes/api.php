@@ -112,18 +112,22 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ── Apartments ───────────────────────────────────────────
-    Route::prefix('apartments')->name('apartment.')->middleware('role_not:trabajador')->group(function () {
-        // Read
-        Route::get('/', [DepartamentController::class, 'paginationApartment']);
-        Route::get('/byId/{id}', [DepartamentController::class, 'getApartmentById']);
-        Route::get('/byFind', [DepartamentController::class, 'apartmentsByfind']);
+    Route::prefix('apartments')->name('apartment.')->group(function () {
+        // Disponible también para trabajador (selector de dptos al registrar visita)
         Route::get('/byUser', [DepartamentController::class, 'getApartmentsByUser']);
-        Route::get('/byOwner/{id}', [DepartamentController::class, 'getDepartmentsByOwnerId'])->middleware('role:admin,super-admin');
-        // Write - admin only
-        Route::post('/', [DepartamentController::class, 'storeApartment'])->middleware('role:admin,super-admin', 'throttle:write');
-        Route::post('/u/{id}', [DepartamentController::class, 'updateApartment'])->middleware('role:admin,super-admin', 'throttle:write');
-        // Propietario puede alternar quién paga la cuota de su propia unidad
-        Route::post('/toggle-tenant-quota/{id}', [DepartamentController::class, 'toggleTenantPaysQuota'])->middleware('role:propietario,parcial,admin,super-admin', 'throttle:write');
+
+        Route::middleware('role_not:trabajador')->group(function () {
+            // Read
+            Route::get('/', [DepartamentController::class, 'paginationApartment']);
+            Route::get('/byId/{id}', [DepartamentController::class, 'getApartmentById']);
+            Route::get('/byFind', [DepartamentController::class, 'apartmentsByfind']);
+            Route::get('/byOwner/{id}', [DepartamentController::class, 'getDepartmentsByOwnerId'])->middleware('role:admin,super-admin');
+            // Write - admin only
+            Route::post('/', [DepartamentController::class, 'storeApartment'])->middleware('role:admin,super-admin', 'throttle:write');
+            Route::post('/u/{id}', [DepartamentController::class, 'updateApartment'])->middleware('role:admin,super-admin', 'throttle:write');
+            // Propietario puede alternar quién paga la cuota de su propia unidad
+            Route::post('/toggle-tenant-quota/{id}', [DepartamentController::class, 'toggleTenantPaysQuota'])->middleware('role:propietario,parcial,admin,super-admin', 'throttle:write');
+        });
     });
 
     // ── Comun Areas ──────────────────────────────────────────
@@ -276,18 +280,30 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ── Security (trabajador) ────────────────────────────────
-    Route::prefix('security')->name('security.visit.')->middleware('role:trabajador')->group(function () {
-        Route::get('/visits', [VisitController::class, 'getVisitsForSecurity']);
-        Route::get('/visits/search', [VisitController::class, 'getVisitsForSecurity']);
-        Route::get('/visits/filter-options', [VisitController::class, 'getVisitFilterOptionsForSecurity']);
-        Route::post('/visits/arrived/{id}', [VisitController::class, 'markVisitArrived']);
-        Route::get('/airbnb', [VisitController::class, 'getAirbnbForSecurity']);
-        Route::get('/airbnb/filter-options', [VisitController::class, 'getAirbnbFilterOptionsForSecurity']);
-        Route::get('/bookings', [BookingController::class, 'getBookingsForSecurity']);
-        Route::post('/bookings/cancel-maintenance/{id}', [BookingController::class, 'cancelBookingForMaintenance']);
-        Route::post('/bookings/complete/{id}', [BookingController::class, 'completeBooking']);
-        Route::get('/departments/inhabited', [DepartamentController::class, 'getInhabitedDepartments']);
-        Route::get('/departments/{id}/residents', [DepartamentController::class, 'getDepartmentResidents']);
+    Route::prefix('security')->name('security.visit.')->group(function () {
+        // Visitas: también disponibles para admin/super-admin (notificación de nuevas visitas)
+        Route::middleware('role:trabajador,admin,super-admin')->group(function () {
+            Route::get('/visits', [VisitController::class, 'getVisitsForSecurity']);
+            Route::get('/visits/search', [VisitController::class, 'getVisitsForSecurity']);
+            Route::get('/visits/filter-options', [VisitController::class, 'getVisitFilterOptionsForSecurity']);
+            Route::post('/visits/arrived/{id}', [VisitController::class, 'markVisitArrived']);
+        });
+
+        // Control de invitados de reservas (lista de invitados)
+        Route::middleware('role:trabajador,admin,super-admin')->group(function () {
+            Route::get('/bookings/{id}/guests', [GuestListController::class, 'getForStaff']);
+            Route::put('/guests/{id}/arrived', [GuestListController::class, 'toggleArrived']);
+        });
+
+        Route::middleware('role:trabajador')->group(function () {
+            Route::get('/airbnb', [VisitController::class, 'getAirbnbForSecurity']);
+            Route::get('/airbnb/filter-options', [VisitController::class, 'getAirbnbFilterOptionsForSecurity']);
+            Route::get('/bookings', [BookingController::class, 'getBookingsForSecurity']);
+            Route::post('/bookings/cancel-maintenance/{id}', [BookingController::class, 'cancelBookingForMaintenance']);
+            Route::post('/bookings/complete/{id}', [BookingController::class, 'completeBooking']);
+            Route::get('/departments/inhabited', [DepartamentController::class, 'getInhabitedDepartments']);
+            Route::get('/departments/{id}/residents', [DepartamentController::class, 'getDepartmentResidents']);
+        });
     });
 
     // ── Credits (Saldo a favor) ────────────────────────────────

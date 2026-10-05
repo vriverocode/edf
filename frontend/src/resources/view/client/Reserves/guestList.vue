@@ -31,10 +31,14 @@ const selectedGuest = ref({})
 const guestCount = computed(() => guests.value.length)
 const canAddGuest = computed(() => !isLocked.value && guestCount.value < maxGuests.value)
 
+const isArrived = (guest) => Number(guest.status) === 2
+const formatArrival = (date) => (date ? moment(date).format('DD MMM YYYY HH:mm') : '')
+
 const lockMinutesRemaining = computed(() => {
   if (!booking.value) return null
   const bookingDateTime = moment(moment(booking.value.date).format('YYYY-MM-DD') + ' ' + booking.value.time_from)
   const diff = bookingDateTime.diff(now.value, 'minutes')
+
   return diff > 0 ? diff : 0
 })
 
@@ -49,7 +53,7 @@ const startTimer = () => {
     now.value = moment()
     if (booking.value) {
       const bookingDateTime = moment(moment(booking.value.date).format('YYYY-MM-DD') + ' ' + booking.value.time_from)
-      isLocked.value = now.value.diff(bookingDateTime, 'minutes') <= 60
+      isLocked.value = bookingDateTime.diff(now.value, 'minutes') <= 60
     }
   }, 30000)
 }
@@ -142,8 +146,10 @@ onUnmounted(() => {
           </div>
           <q-btn color="positive" unelevated rounded size="sm" :disable="!canAddGuest"
             @click="openAddModal()">
-            <q-icon name="eva-plus-outline" class="q-mr-xs" />
-            Agregar invitado
+            <q-icon name="eva-plus-outline" class="q-mr-xs " />
+            <div class="py-2 px-2">
+              Agregar invitado
+            </div>
           </q-btn>
         </div>
 
@@ -156,14 +162,22 @@ onUnmounted(() => {
                 <div class="text-body1 font-bold text-grey-9">{{ guest.name }}</div>
                 <div v-if="guest.dni" class="text-caption text-grey-6">DNI: {{ guest.dni }}</div>
                 <div v-if="guest.age" class="text-caption text-grey-6">Edad: {{ guest.age }}</div>
+                <div v-if="isArrived(guest)" class="text-caption text-primary">
+                  Llegó: {{ formatArrival(guest.updated_at) }}
+                </div>
               </div>
-              <div class="row items-center q-gutter-xs" v-if="!isLockedDisplay">
-                <q-btn flat round icon="eva-edit-2-outline" color="warning" size="sm" @click="openEditModal(guest)">
-                  <q-tooltip>Editar</q-tooltip>
-                </q-btn>
-                <q-btn flat round icon="eva-trash-2-outline" color="negative" size="sm" @click="openDeleteModal(guest)">
-                  <q-tooltip>Eliminar</q-tooltip>
-                </q-btn>
+              <div class="row items-center q-gutter-xs">
+                <q-badge :color="guest.status_color || (isArrived(guest) ? 'primary' : 'warning')"
+                  :label="guest.status_label || (isArrived(guest) ? 'Llegó' : 'Pendiente')" />
+                <template v-if="!isLockedDisplay && !isArrived(guest)">
+                  <q-btn flat round icon="eva-edit-2-outline" color="warning" size="sm" @click="openEditModal(guest)">
+                    <q-tooltip>Editar</q-tooltip>
+                  </q-btn>
+                  <q-btn flat round icon="eva-trash-2-outline" color="negative" size="sm"
+                    @click="openDeleteModal(guest)">
+                    <q-tooltip>Eliminar</q-tooltip>
+                  </q-btn>
+                </template>
               </div>
             </div>
           </div>
