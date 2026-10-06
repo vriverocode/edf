@@ -36,14 +36,7 @@ class QuotaController extends Controller
      */
     private function scopeVisibleToUser(Builder $query, int $userId): Builder
     {
-        return $query->where(function (Builder $queryBuilder) use ($userId) {
-            $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $userId))
-                ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $userId))
-                ->orWhereHas('departament.peoples', fn (Builder $builder) => $builder
-                    ->where('user_id', $userId)
-                    ->where('type', Rol::INQUILINO)
-                    ->where('departaments.tenant_pays_quota', true));
-        });
+        return $query->visibleToUser($userId);
     }
 
     private function findQuotaForAuthUser(string $id, Request $request): Quota

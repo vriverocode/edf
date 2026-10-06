@@ -515,7 +515,7 @@ class UserController extends Controller
     {
         $users = User::select('id', 'name')
             ->orderBy('name', 'asc')
-            ->whereIn('rol_id', [Rol::PROPIETARIO, Rol::FAMILIAR, Rol::AIRBNB, Rol::INQUILINO])
+            ->whereIn('rol_id', [Rol::PROPIETARIO, Rol::FAMILIAR, Rol::AIRBNB, Rol::INQUILINO, Rol::PARCIAL])
             ->get();
 
         $userIds = $users->pluck('id');

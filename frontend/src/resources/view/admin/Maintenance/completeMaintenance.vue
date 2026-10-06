@@ -19,6 +19,12 @@ const formData = ref({
   description: '',
 })
 
+const completeSeries = ref(false)
+
+const seriesTotal = computed(() => Number(maintenance.value?.series_total ?? 1))
+
+const hasSeries = computed(() => seriesTotal.value > 1)
+
 const showNotify = (type, text) => {
   Notify.create({ color: type, message: text, timeout: 2500 })
 }
@@ -59,6 +65,7 @@ const submit = () => {
   const payload = new FormData()
   payload.append('evidence', formData.value.evidence)
   payload.append('description', formData.value.description)
+  payload.append('complete_series', completeSeries.value ? 1 : 0)
 
   maintenanceStore.completeMaintenance(route.params.id, payload)
     .then(() => {
@@ -84,6 +91,7 @@ onMounted(async () => {
     error.value = e || 'Error al cargar el mantenimiento'
   } finally {
     loading.value = false
+    completeSeries.value = false
   }
 })
 </script>
@@ -168,6 +176,28 @@ onMounted(async () => {
                 placeholder="Describe brevemente el trabajo realizado..."
                 :rows="3"
                 maxlength="500" />
+            </div>
+
+            <div v-if="hasSeries" class="col-12 mt-4 px-2 md:px-12">
+              <div class="selectedDateBlock px-4 py-3">
+                <q-checkbox
+                  v-model="completeSeries"
+                  color="primary"
+                  dense
+                  class="mt-0"
+                >
+                  <span class="text-body1 text-black">
+                    Completar todo el mantenimiento ({{ seriesTotal }} días)
+                  </span>
+                </q-checkbox>
+                <div class="text-caption text-grey-7 mt-1 ml-8">
+                  {{
+                    completeSeries
+                      ? `Se marcarán como completados los ${seriesTotal} días de este mantenimiento y el área quedará libre.`
+                      : 'Solo se completará el día seleccionado. El área seguirá bloqueada para los demás días de la serie.'
+                  }}
+                </div>
+              </div>
             </div>
 
             <div class="col-12 row mb-2 px-2 md:px-12 pt-8 pb-8">

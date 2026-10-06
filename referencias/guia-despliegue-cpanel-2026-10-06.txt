@@ -1,0 +1,303 @@
+===============================================================================
+GUIA DE DESPLIEGUE EN CPANEL - Cambios del 06/10/2026
+===============================================================================
+
+Archivo generado: 06/10/2026
+IMPORTANTE: Reemplaza la RUTA_PROYECTO por la ruta real de tu proyecto en el
+servidor (la carpeta donde esta el archivo "artisan", NO la de public_html).
+
+
+===============================================================================
+RESUMEN DE LO QUE HAY QUE EJECUTAR
+===============================================================================
+
+[ ] 1. Tres migraciones nuevas (agrega columna series_id + dos indices)
+[ ] 2. Backfill: cuotas de inquilino responsable (peoples_x_departments_id)
+[ ] 3. Backfill: agrupar series de mantenimientos multipdia
+[ ] 4. Backfill: fijar periodo de saldos a favor ya consumidos
+[ ] 5. Cron job cada minuto (para la limpieza diaria de notificaciones)
+[ ] 6. Limpiar cache de Laravel
+
+Ademas quedo pendiente una decision tuya: 4 creditos de DPT-302, DPT-304,
+DPT-910 y DPT-1412 se consumieron en un mes distinto al que les correspondia.
+La seccion 5 solo tiene consultas de diagnostico (no modifica nada).
+
+
+===============================================================================
+VIA 1 - SSH O TERMINAL DE CPANEL (RECOMENDADA)
+===============================================================================
+
+-- Entrar a la carpeta raiz del proyecto (donde esta "artisan"):
+cd RUTA_PROYECTO
+
+-- 1.1 Ver que falta antes de tocar nada:
+php artisan migrate:status
+
+-- 1.2 Aplicar las 3 migraciones nuevas:
+php artisan migrate --force
+
+-- 1.3 Backfill cuotas de inquilino responsable
+--     (primero en seco para revisar, luego real):
+php artisan backfill:quotas-tenant-pivot --dry-run
+php artisan backfill:quotas-tenant-pivot
+
+-- 1.4 Backfill series de mantenimientos multipdia
+--     REVISA BIEN la salida del dry-run antes de aplicar.
+--     Si ves grupos raros, SALTATE este comando (es opcional):
+php artisan backfill:maintenances-series --dry-run
+php artisan backfill:maintenances-series
+
+-- 1.5 Limpiar cache (importante si hay config/cache.php generado):
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+
+-- 1.6 Verificar que todo quedo bien:
+php artisan migrate:status
+php artisan schedule:list
+
+-- 1.7 Probar la limpieza de notificaciones sin ejecutar el borrado:
+php artisan app:clean-old-notifications --dry-run
+
+
+-------------------------------------------------------------------------------
+LO QUE DEBE MOSTRAR CADA COMANDO
+-------------------------------------------------------------------------------
+
+php artisan migrate --force
+    INFO  Running migrations.
+    2026_10_06_000001_add_series_id_to_maintenances_table ..... DONE
+    2026_10_06_000002_add_created_at_index_to_notifications_table . DONE
+    2026_10_06_000003_backfill_applicable_period_... ........... DONE
+
+php artisan backfill:quotas-tenant-pivot --dry-run
+    Muestra una linea por departamento y al final:
+    "Dry-run: N cuota(s) se actualizarian."
+
+php artisan app:clean-old-notifications --dry-run
+    Notificaciones con created_at anterior a FECHA: N
+    [dry-run] Se eliminarian N notificacion(es). No se modifico nada.
+
+php artisan schedule:list
+    Debe aparecer al final:
+    0    3 * * *  php artisan app:clean-old-notifications
+
+
+===============================================================================
+VIA 2 - SOLO CON PHPMYADMIN (si no tienes terminal)
+===============================================================================
+
+--- 2.1 ALTER TABLE (el DDL de las migraciones) ------------------------------
+
+ALTER TABLE maintenances
+  ADD COLUMN series_id CHAR(36) NULL AFTER id,
+  ADD INDEX maintenances_series_id_index (series_id);
+
+ALTER TABLE notifications
+  ADD INDEX notifications_created_at_index (created_at);
+
+--- 2.2 Backfill de saldos a favor ya consumidos ------------------------------
+---     Solo filas del lote importado y con saldo 0.00.
+---     El NOT EXISTS evita chocar con el indice unico
+---     credit_balances_dept_month_year_unique.
+
+UPDATE credit_balances cb
+SET cb.applicable_month = 9, cb.applicable_year = 2026
+WHERE cb.applicable_month = 0
+  AND cb.applicable_year IS NULL
+  AND cb.balance = 0
+  AND cb.created_at = '2026-09-21 23:53:18'
+  AND NOT EXISTS (
+    SELECT 1 FROM (SELECT * FROM credit_balances) x
+    WHERE x.departament_id = cb.departament_id
+      AND x.applicable_month = 9 AND x.applicable_year = 2026
+  );
+
+--- 2.3 LIMPIAR NOTIFICACIONES VIEJAS (reemplaza el cron, correlo 1 vez) ------
+
+DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 2 MONTH);
+
+--- 2.4 REGISTRAR LAS MIGRACIONES (ESTE PASO NO SE OLVIDA) -------------------
+---     Si no lo haces, el proximo "php artisan migrate" va a intentar
+---     volver a correrlas y va a FALLAR.
+
+SELECT MAX(batch) FROM migrations;    -- anota el numero, sumale 1
+
+INSERT INTO migrations (migration, batch) VALUES
+ ('2026_10_06_000001_add_series_id_to_maintenances_table', NUMERO_BATCH),
+ ('2026_10_06_000002_add_created_at_index_to_notifications_table', NUMERO_BATCH),
+ ('2026_10_06_000003_backfill_applicable_period_on_consumed_credit_balances', NUMERO_BATCH);
+
+--- 2.5 Backfills que NO debes hacer a mano -----------------------------------
+---     backfill:quotas-tenant-pivot  -> necesita elegir UN inquilino por
+---         departamento, y hay departamentos con varios pivotes. Un JOIN a
+---         mano aplicaria el que toque.
+---     backfill:maintenances-series  -> agrupa por dias consecutivos.
+---     Hazlos por Terminal con artisan (Via 1).
+
+
+===============================================================================
+3. CRON JOB EN CPANEL (OBLIGATORIO)
+===============================================================================
+
+Panel cPanel  ->  Cron Jobs  ->  Agregar nuevo cron job
+
+-- Horario:  * * * * *
+-- Comando:
+
+cd RUTA_PROYECTO && php artisan schedule:run >> /dev/null 2>&1
+
+Esto es lo que hace que corran TODOS los trabajos programados:
+
+    0    8 * * *    app:monthly-quota              (dia 20 de cada mes)
+    */30 * * * *    app:booking-pending-pay-reminders
+    */30 * * * *    app:auto-complete-bookings
+    *    * * * *    app:active-ordesactive-air-bnb-users
+    *    * * * *    app:check-user-morosos
+    0    3 * * *    app:clean-old-notifications   <- el nuevo
+
+NOTA: la limpieza de notificaciones NO se va a ejecutar sola si no configuras
+este cron. Sin el, el comando solo existe pero nunca se dispara.
+
+
+===============================================================================
+4. COMANDOS DE VERIFICACION (solo lectura, corren sin riesgo)
+===============================================================================
+
+-- 4.1 Estado de las migraciones:
+php artisan migrate:status
+
+-- 4.2 Confirmar que la columna series_id existe:
+php artisan tinker --execute='
+echo in_array("series_id", Schema::getColumnListing("maintenances")) ? "OK existe" : "FALTA";
+'
+
+-- 4.3 Confirmar que NO quedan saldos flexibles (deben ser 0):
+php artisan tinker --execute='
+echo "flexibles: ".DB::table("credit_balances")->where("applicable_month",0)->count();
+'
+
+-- 4.4 Confirmar que los indices existen:
+php artisan tinker --execute='
+foreach(DB::select("SHOW INDEX FROM maintenances") as $i)
+  if($i->Column_name==="series_id") echo "indice: ".$i->Key_name."\n";
+foreach(DB::select("SHOW INDEX FROM notifications") as $i)
+  if($i->Column_name==="created_at") echo "indice: ".$i->Key_name."\n";
+'
+
+-- 4.5 Ver el reporte de cuotas de un mes (usar 6 = junio, 9 = septiembre):
+php artisan tinker --execute='
+$c = new App\Http\Controllers\Api\ReportController();
+$m = new ReflectionMethod($c,"buildUserQuotasReport"); $m->setAccessible(true);
+$rep = $m->invoke($c, 2026, 9, "");
+foreach($rep["rows"] as $r){ if(in_array($r["user_id"],[414,416]))
+  echo $r["user_name"]." ".$r["dpts"]." descuento=".$r["discount"]."\n"; }
+'
+
+
+===============================================================================
+5. DIAGNOSTICO DE LOS 4 CREDITOS CONSUMIDOS EN EL MES EQUIVOCADO
+===============================================================================
+
+ATENCION: esta seccion SOLO LEE datos. No modifica nada.
+
+Depto 26  DPT-302   credito 68.96  se consumio en la cuota de JUNIO 2026
+Depto 28  DPT-304   credito 82.15  se consumio en la cuota de AGOSTO 2026
+Depto 105 DPT-910   credito 142.82 se consumio en la cuota de JULIO 2026
+Depto 165 DPT-1412  credito 134.58 se consumio en la cuota de AGOSTO 2026
+
+(Los otros 5 creditos del lote si se consumieron en septiembre y estan bien.)
+
+-- 5.1 Ver los creditos que quedaron sin periodo fijo:
+SELECT cb.id, cb.departament_id, d.number, cb.balance,
+       cb.applicable_month, cb.applicable_year,
+       ct.pay_id, ct.amount AS credito_consumido, ct.created_at
+FROM credit_balances cb
+JOIN departaments d ON d.id = cb.departament_id
+LEFT JOIN credit_transactions ct
+       ON ct.departament_id = cb.departament_id AND ct.type = 'applied'
+WHERE cb.applicable_month = 0 OR cb.applicable_year IS NULL
+ORDER BY cb.departament_id;
+
+-- 5.2 Ver a que mes se aplico realmente cada credito:
+SELECT ct.id, ct.departament_id, d.number, ct.amount,
+       q.id AS cuota_id, q.month, q.year, p.pay_id AS pago
+FROM credit_transactions ct
+JOIN departaments d  ON d.id = ct.departament_id
+JOIN pay_quota pq    ON pq.pay_id = ct.pay_id
+JOIN quotas q        ON q.id = pq.quota_id
+JOIN pays p          ON p.id = ct.pay_id
+WHERE ct.type = 'applied'
+  AND ct.departament_id IN (26, 28, 105, 165)
+ORDER BY ct.departament_id;
+
+-- 5.3 Ver el estado de las cuotas de septiembre de esos departamentos:
+SELECT q.id, q.departament_id, d.number, q.month, q.year,
+       q.amount, q.status, q.peoples_x_departments_id
+FROM quotas q
+JOIN departaments d ON d.id = q.departament_id
+WHERE q.departament_id IN (26, 28, 105, 165)
+  AND q.year = 2026 AND q.month = 9;
+
+-- ESTADOS DE quota.status:
+--   1 = Pago pendiente
+--   2 = Pendiente de aprobacion
+--   3 = Pagada
+--   4 = Vencida (el codigo nunca la escribe, solo se usa en reportes)
+
+
+-------------------------------------------------------------------------------
+POR QUE NO SE CORRIGE ESTO CON UN UPDATE SIMPLE
+-------------------------------------------------------------------------------
+
+Reasignar un credito a septiembre no es cambiar una columna. Son 4 cosas a la
+vez:
+
+  a) Subir el monto de la cuota de junio/julio/agosto que ya fue descontada.
+     Esa cuota ya esta en status 3, su Pay esta APROBADO y su factura PDF ya
+     fue emitida al cliente.
+  b) Bajar el monto de la cuota de septiembre, que hoy sigue en status 1.
+  c) Corregir el saldo en credit_balances.
+  d) Mover la fila en credit_transactions al mes correcto.
+
+Si algo queda a medias, los totales de pays, las facturas PDFs y el reporte de
+pagos dejan de cuadrar.
+
+Los montos de las cuotas NO se guardan "descontados". La cuota conserva su
+monto original; el descuento vive en pays.credit_applied y en la fila de
+credit_transactions. Por eso el reporte reconstruye el descuento summingando
+esas tablas.
+
+RECOMENDACION: corre el diagnostico (5.1, 5.2, 5.3), pasame la salida y te
+armo el SQL exacto caso por caso con el orden de pasos, para que puedas
+revertir si algo sale mal. No conviene editar montos a ciegas.
+
+
+===============================================================================
+6. SI ALGO FALLA
+===============================================================================
+
+-- Ver el error real del log:
+tail -100 storage/logs/laravel.log
+
+-- Revertir la ultima migracion (solo si no corriste las de datos todavia):
+php artisan migrate:rollback --step=1 --force
+
+-- NOTA IMPORTANTE sobre la migracion 2026_10_06_000003 (saldos a favor):
+-- su down() es un NO-OP a proposito. Revertirla no aporta nada (solo toca
+-- filas con saldo 0.00, que ninguna consulta considera elegibles) y si es
+-- peligroso: cuando lo intente, termino deshaciendo 45 filas en lugar de las
+-- 9 correctas, porque 36 filas ya estaban fijadas por una migracion anterior
+-- y quedaban indistinguibles. Si necesitas deshacerla, avisame antes de
+-- correr el rollback.
+
+
+===============================================================================
+7. ORDEN RECOMENDADO
+===============================================================================
+
+  1. Hacer backup de la base de datos desde cPanel (MySQL Databases -> Export)
+  2. Via 1 completa (migraciones + backfills + cache)
+  3. Configurar el cron job
+  4. Verificar con la seccion 4
+  5. Correr el diagnostico de la seccion 5 y decidir sobre los 4 creditos

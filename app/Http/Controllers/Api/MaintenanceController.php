@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class MaintenanceController extends Controller
 {
@@ -36,6 +37,9 @@ class MaintenanceController extends Controller
         if (! $maintenance) {
             return $this->returnFail(404, 'Mantenimiento no encontrado');
         }
+
+        // El formulario de finalizacion usa esto para ofrecer marcar toda la serie.
+        $maintenance->setAttribute('series_total', $maintenance->seriesTotal());
 
         return $this->returnSuccess(200, $maintenance);
     }
@@ -74,9 +78,12 @@ class MaintenanceController extends Controller
                 (new DateTime($dateEnd))->modify('+1 day')
             );
 
+            $seriesId = (string) Str::uuid();
+
             $maintenances = [];
             foreach ($period as $day) {
                 $maintenances[] = Maintenance::create([
+                    'series_id' => $seriesId,
                     'title' => 'Mantenimiento programado: '.$area->name,
                     'description' => htmlspecialchars($request->motive),
                     'comun_area_id' => $area->id,
@@ -300,12 +307,16 @@ class MaintenanceController extends Controller
         );
     }
 
-    private function sendCompleteNotification($maintenance): void
+    private function sendCompleteNotification($maintenance, int $completedCount = 1): void
     {
+        $message = $completedCount > 1
+            ? "Se completaron {$completedCount} días del mantenimiento en {$maintenance->comunArea->name}."
+            : "Se completó el mantenimiento en {$maintenance->comunArea->name}.";
+
         $this->notifyMaintenanceUsers(
             maintenance: $maintenance,
             title: 'Mantenimiento completado',
-            message: "Se completó el mantenimiento en {$maintenance->comunArea->name}.",
+            message: $message,
         );
     }
 
@@ -439,12 +450,14 @@ class MaintenanceController extends Controller
         $validator = Validator::make($request->all(), [
             'evidence' => ['required', 'image', 'max:8192'],
             'description' => ['required', 'string', 'max:500'],
+            'complete_series' => ['nullable', 'boolean'],
         ], [
             'evidence.required' => 'Debes adjuntar una evidencia.',
             'evidence.image' => 'La evidencia debe ser una imagen.',
             'evidence.max' => 'La evidencia no puede superar los 8MB.',
             'description.required' => 'La descripción corta es requerida.',
             'description.max' => 'La descripción no puede superar los 500 caracteres.',
+            'complete_series.boolean' => 'El valor de complete_series no es válido.',
         ]);
 
         if ($validator->fails()) {
@@ -453,15 +466,19 @@ class MaintenanceController extends Controller
 
         try {
             $photoUrl = $this->storeEvidencePhoto($request->file('evidence'), $maintenance->id);
+            $completionDescription = htmlspecialchars($request->description);
 
             $maintenance->update([
                 'status' => Maintenance::STATUS_COMPLETED,
                 'evidence_photo' => $photoUrl,
-                'completion_description' => htmlspecialchars($request->description),
+                'completion_description' => $completionDescription,
                 'completed_at' => now(),
                 'completed_by' => $request->user()->id,
             ]);
-            $this->sendCompleteNotification($maintenance);
+
+            $completedCount = 1 + $this->completeRestOfSeries($maintenance, $request, $photoUrl, $completionDescription);
+
+            $this->sendCompleteNotification($maintenance, $completedCount);
 
             return $this->returnSuccess(200, 'Mantenimiento completado con éxito');
         } catch (Exception $e) {
@@ -469,6 +486,35 @@ class MaintenanceController extends Controller
 
             return $this->returnFail(500, 'No se pudo completar el mantenimiento');
         }
+    }
+
+    /**
+     * Si se solicito, completa el resto de dias de la misma serie para liberar
+     * el area comun antes de la fecha de finalizacion prevista.
+     *
+     * El guard series_id !== null es indispensable: sin el, una fila antigua
+     * sin series_id emparejaria con todas las demas filas sin series_id del
+     * area. Solo se tocan filas pendientes o pendientes de material, para no
+     * pisar dias ya completados o cancelados.
+     *
+     * @return int cantidad de filas adicionales completadas
+     */
+    private function completeRestOfSeries(Maintenance $maintenance, Request $request, string $photoUrl, string $completionDescription): int
+    {
+        if (! $request->boolean('complete_series') || $maintenance->series_id === null) {
+            return 0;
+        }
+
+        return Maintenance::inSeries($maintenance)
+            ->where('id', '!=', $maintenance->id)
+            ->whereIn('status', [Maintenance::STATUS_PENDING, Maintenance::STATUS_PENDING_MATERIAL])
+            ->update([
+                'status' => Maintenance::STATUS_COMPLETED,
+                'evidence_photo' => $photoUrl,
+                'completion_description' => $completionDescription,
+                'completed_at' => $maintenance->completed_at ?? now(),
+                'completed_by' => $request->user()->id,
+            ]);
     }
 
     public function changeStatus(Request $request, $id)

@@ -13,3 +13,5 @@ Schedule::command('app:auto-complete-bookings')->everyThirtyMinutes();
 // Schedule::command('app:active-ordesactive-air-bnb-users')->dailyAt('10:00');
 Schedule::command('app:active-ordesactive-air-bnb-users')->everyMinute();
 Schedule::command('app:check-user-morosos')->everyMinute();
+// Limpieza diaria de notificaciones con mas de 2 meses de antiguedad
+Schedule::command('app:clean-old-notifications')->dailyAt('03:00')->withoutOverlapping();

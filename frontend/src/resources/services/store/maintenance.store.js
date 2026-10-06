@@ -156,7 +156,7 @@ export const useMaintenanceStore = defineStore('Maintenance', {
                     throw '';
                 }
                 ApiService.setHeader();
-                ApiService.delete(`/api/maintenances/d/${id}`)
+                ApiService.post(`/api/maintenances/d/${id}`)
                     .then(({ data }) => {
                         if (data.code !== 200) throw data;
                         resolve(data);

@@ -59,59 +59,60 @@ onMounted(() => {
 
       <div v-else class="px-4 pt-2 md:px-28 pb-12 ">
         <div v-if="months.length > 0" class=" md:px-5 row">
-          <div
-            v-for="row in months"
-            :key="`${row.year}-${row.month}`"
-            class="bg-white rounded-xl px-3 shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4 cursor-pointer col-md-4 col-12  "
-            style="position: relative;  "
-            @click="goToMonth(row)"
-          >
-            <div class="px-4 pb-3 pt-5 card__month " style="">
-              <div class="flex justify-between items-start mb-0 pb-1" style="border-bottom: 1px dashed #111827;">
-                <h3 class="text-lg font-bold text-gray-900 m-0">
-                  Mensualidad: {{ row.month_label }} {{ row.year }}
-                </h3>
-                <q-badge
-                  v-if="row.has_pending_validation"
-                  color="warning"
-                  class="text-white px-3 py-1 badge__float"
-                >
-                  {{ row.pending_validation_count }} pago(s) por validar
-                </q-badge>
-              </div>
-
-              <div class="row  pt-2">
-                <div class="col-6 col-md-4 pt-2">
-                  <div class="text-caption text-grey-7">Total del mes</div>
-                  <div class="text-subtitle1 text-weight-bold text-primary">
-                    {{ formatMoney(row.total_amount) }}
+          <div class="col-md-4 col-12 px-3 " v-for="row in months"
+              :key="`${row.year}-${row.month}`">
+            <div
+              class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4 cursor-pointer   "
+              style="position: relative;  "
+              @click="goToMonth(row)"
+            >
+              <div class="px-4 pb-3 pt-5 card__month " style="">
+                <div class="flex justify-between items-start mb-0 pb-1" style="border-bottom: 1px dashed #111827;">
+                  <h3 class="text-lg font-bold text-gray-900 m-0">
+                    Mensualidad: {{ row.month_label }} {{ row.year }}
+                  </h3>
+                  <q-badge
+                    v-if="row.has_pending_validation"
+                    color="warning"
+                    class="text-white px-3 py-1 badge__float"
+                  >
+                    {{ row.pending_validation_count }} pago(s) por validar
+                  </q-badge>
+                </div>
+  
+                <div class="row  pt-2">
+                  <div class="col-6 col-md-4 pt-2">
+                    <div class="text-caption text-grey-7">Total del mes</div>
+                    <div class="text-subtitle1 text-weight-bold text-primary">
+                      {{ formatMoney(row.total_amount) }}
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 pt-2">
+                    <div class="text-caption text-grey-7">Pagado</div>
+                    <div class="text-subtitle1 text-weight-bold text-positive">
+                      {{ formatMoney(row.total_paid) }}
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 pt-2">
+                    <div class="text-caption text-grey-7">Pendiente</div>
+                    <div class="text-subtitle1 text-weight-bold text-warning">
+                      {{ formatMoney(row.total_pending) }}
+                    </div>
                   </div>
                 </div>
-                <div class="col-6 col-md-4 pt-2">
-                  <div class="text-caption text-grey-7">Pagado</div>
-                  <div class="text-subtitle1 text-weight-bold text-positive">
-                    {{ formatMoney(row.total_paid) }}
-                  </div>
-                </div>
-                <div class="col-6 col-md-4 pt-2">
-                  <div class="text-caption text-grey-7">Pendiente</div>
-                  <div class="text-subtitle1 text-weight-bold text-warning">
-                    {{ formatMoney(row.total_pending) }}
-                  </div>
+  
+                <div class="flex flex-wrap gap-2 text-sm text-gray-600 pt-3 md:pt-0">
+                  <span>{{ row.units_count }} unidad(es)</span> -
+                  <span>{{ row.owners_count }} propietario(s)</span>
+                  <span v-if="row.due_date">Fecha límite: {{ formatDate(row.due_date) }}</span>
                 </div>
               </div>
-
-              <div class="flex flex-wrap gap-2 text-sm text-gray-600 pt-3 md:pt-0">
-                <span>{{ row.units_count }} unidad(es)</span> -
-                <span>{{ row.owners_count }} propietario(s)</span>
-                <span v-if="row.due_date">Fecha límite: {{ formatDate(row.due_date) }}</span>
-              </div>
-            </div>
-
-            <div class="px-4 py-3 md:py-3 bg-primary border-t">
-              <div class="flex justify-center items-center text-white text-sm font-medium">
-                <q-icon name="eva-arrow-forward-outline" color="white" size="1.25rem" class="q-mr-xs" />
-                Ver cuotas del mes
+  
+              <div class="px-4 py-3 md:py-3 bg-primary border-t">
+                <div class="flex justify-center items-center text-white text-sm font-medium">
+                  <q-icon name="eva-arrow-forward-outline" color="white" size="1.25rem" class="q-mr-xs" />
+                  Ver cuotas del mes
+                </div>
               </div>
             </div>
           </div>

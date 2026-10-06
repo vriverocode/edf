@@ -4,30 +4,31 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Exports\BookingsExport;
-use App\Exports\DelinquentsExport;
-use App\Exports\MonthlyPaymentsExport;
-use App\Exports\PaymentsExport;
-use App\Exports\UserQuotasExport;
-use App\Http\Controllers\Controller;
-use App\Models\Booking;
-use App\Models\CreditTransaction;
-use App\Models\Departament;
-use App\Models\Expense;
+use Carbon\Carbon;
 use App\Models\Pay;
-use App\Models\Provider;
-use App\Models\Quota;
 use App\Models\Rol;
 use App\Models\User;
+use App\Models\Quota;
+use App\Models\Booking;
+use App\Models\Expense;
+use App\Models\Provider;
+use App\Models\Departament;
 use App\Models\WaterReading;
-use App\Notifications\RealtimeNotification;
-use App\Services\CreditService;
-use Carbon\Carbon;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
+use App\Exports\BookingsExport;
+use App\Exports\PaymentsExport;
+use App\Services\CreditService;
+use App\Exports\UserQuotasExport;
+use App\Models\CreditTransaction;
+use Illuminate\Http\JsonResponse;
+use App\Exports\DelinquentsExport;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\MonthlyPaymentsExport;
+use App\Notifications\RealtimeNotification;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
@@ -485,7 +486,7 @@ class ReportController extends Controller
                 $sent++;
             } catch (\Throwable $e) {
                 $failed++;
-                \Log::error("Error enviando recordatorio a usuario {$delinquent->id}: ".$e->getMessage());
+                Log::error("Error enviando recordatorio a usuario {$delinquent->id}: ".$e->getMessage());
             }
         }
 

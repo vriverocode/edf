@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Services\BillInvoiceService;
 use App\Services\BookingPendingPayNotifier;
 use App\Services\CreditService;
+use App\Services\QuotaPaymentEligibilityService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Exception;
@@ -36,9 +37,14 @@ class PayController extends Controller
 {
     private BillInvoiceService $billInvoiceService;
 
-    public function __construct(BillInvoiceService $billInvoiceService)
-    {
+    private QuotaPaymentEligibilityService $quotaEligibility;
+
+    public function __construct(
+        BillInvoiceService $billInvoiceService,
+        QuotaPaymentEligibilityService $quotaEligibility
+    ) {
         $this->billInvoiceService = $billInvoiceService;
+        $this->quotaEligibility = $quotaEligibility;
     }
 
     public function getPayById($id)
@@ -225,13 +231,24 @@ class PayController extends Controller
         }
 
         if ((int) $request->type === 1 && ! empty($quotaIdsForPay)) {
+            $authId = (int) $request->user()->id;
+            $isAdmin = in_array($request->user()->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]);
+
+            // Orden de meses y cuota pagable. Se evalua antes de abrir la
+            // transaccion para que un rechazo no deje nada a medias. Los admins
+            // quedan exentos: registerPay.vue existe para saldar morosidad.
+            if (! $isAdmin) {
+                $denied = $this->quotaEligibility->check($authId, $quotaIdsForPay);
+
+                if ($denied !== null) {
+                    return $this->returnFail($denied['code'], $denied['error']);
+                }
+            }
+
             $tenantQuotas = Quota::whereIn('id', $quotaIdsForPay)
                 ->whereNotNull('peoples_x_departments_id')
                 ->with(['responsiblePivot.user', 'departament'])
                 ->get();
-
-            $authId = (int) $request->user()->id;
-            $isAdmin = in_array($request->user()->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]);
 
             foreach ($tenantQuotas as $tq) {
                 $tenantUser = $tq->responsiblePivot?->user;

@@ -77,6 +77,71 @@ class Quota extends Model
             ->where('year', $year);
     }
 
+    /**
+     * Cuotas que el usuario puede ver: unidades que posee, unidades donde es
+     * responsable del pago (peoples_x_departments_id) y unidades donde tiene el
+     * pivote de inquilino con tenant_pays_quota activo.
+     *
+     * Vive en el modelo para que QuotaController y PayController compartan una
+     * sola definicion de "mis cuotas".
+     */
+    public function scopeVisibleToUser(Builder $query, int $userId): Builder
+    {
+        return $query->where(function (Builder $queryBuilder) use ($userId) {
+            $queryBuilder->whereHas('departament', fn (Builder $builder) => $builder->where('user_id', $userId))
+                ->orWhereHas('responsiblePivot', fn (Builder $builder) => $builder->where('user_id', $userId))
+                ->orWhereHas('departament.peoples', fn (Builder $builder) => $builder
+                    ->where('user_id', $userId)
+                    ->where('type', Rol::INQUILINO)
+                    ->where('departaments.tenant_pays_quota', true));
+        });
+    }
+
+    /**
+     * Deuda viva: pendiente de pago (1) y pendiente de aprobacion (2). El
+     * status 2 cuenta como deuda porque el dinero aun no esta saldado.
+     */
+    public function scopeOutstanding(Builder $query): Builder
+    {
+        return $query->whereIn('status', [1, 2]);
+    }
+
+    /**
+     * Solo cuotas mensuales (1-12). Las filas month = 0 son cargos anuales
+     * ("Cuota Periodo 2025") importados desde Excel y no participan en el orden
+     * de meses.
+     */
+    public function scopeMonthly(Builder $query): Builder
+    {
+        return $query->whereBetween('month', [1, 12]);
+    }
+
+    public function isMonthly(): bool
+    {
+        return (int) $this->month >= 1 && (int) $this->month <= 12;
+    }
+
+    /**
+     * Etiqueta legible del periodo para mensajes de error ylistados.
+     */
+    public function periodLabel(): string
+    {
+        $year = $this->year ?: ($this->due_date ? Carbon::parse($this->due_date)->year : null);
+
+        if (! $this->isMonthly()) {
+            return $year ? 'Cuota Periodo '.$year : 'Cuota Periodo';
+        }
+
+        $months = [
+            1 => 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+        ];
+
+        $month = $months[(int) $this->month] ?? 'Mes '.$this->month;
+
+        return $year ? "$month $year" : $month;
+    }
+
     public static function areCurrentCalendarMonth(Collection $quotas): bool
     {
         if ($quotas->isEmpty()) {

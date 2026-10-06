@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { Notify } from 'quasar'
 import { useQuotaStore } from '@/services/store/quota.store';
 import { usePayStore } from '@/services/store/pay.store';
 import { useRouter } from 'vue-router';
@@ -136,6 +137,15 @@ const goTo = (quota) => {
     }
     return
   }
+  if (isBlockedByOlderMonth(quota)) {
+    Notify.create({
+      color: 'warning',
+      icon: 'eva-alert-circle-outline',
+      message: `Primero debes pagar la cuota de ${oldestOwedLabel.value}.`,
+      timeout: 3000
+    })
+    return
+  }
   const ids = quota.details
     ? quota.details.map(d => d.id)
     : [quota.id]
@@ -168,15 +178,54 @@ const getMonthName = (monthNumber) => {
   return months[monthNumber - 1] || '';
 }
 
+const isMonthlyQuota = (quota) => Number(quota.month) >= 1 && Number(quota.month) <= 12
+
+// Comparable como numero: 202609 -> 202609. Se usa due_date como respaldo del
+// anio porque las filas antigas pueden venir sin year.
+const periodKey = (quota) => {
+  const month = Number(quota.month)
+  const year = Number(quota.year) || new Date(quota.due_date).getFullYear()
+  return year * 100 + month
+}
+
+// Status 2 (pago en revision) tambien cuenta como deuda: el dinero aun no esta
+// saldado, asi que el mes siguiente debe quedar bloqueado igual que en backend.
+const owedPeriods = computed(() =>
+  quotas.value.filter(q => isMonthlyQuota(q) && (Number(q.status) === 1 || Number(q.status) === 2))
+)
+
+const oldestOwedPeriod = computed(() => {
+  if (!owedPeriods.value.length) return null
+  return owedPeriods.value.reduce((oldest, q) => (periodKey(q) < periodKey(oldest) ? q : oldest))
+})
+
+const isBlockedByOlderMonth = (quota) => {
+  if (Number(quota.status) !== 1) return false
+  if (!isMonthlyQuota(quota)) return false
+  if (!oldestOwedPeriod.value) return false
+  return periodKey(quota) > periodKey(oldestOwedPeriod.value)
+}
+
+const oldestOwedLabel = computed(() => {
+  if (!oldestOwedPeriod.value) return ''
+  return getTitleQuota(oldestOwedPeriod.value).replace('Mensualidad: ', '')
+})
+
+const getTitleQuota = (quota) => {
+  // month = 0 corresponde a cargos anuales importados ("Cuota Periodo 2025"),
+  // no a un mes.
+  if (!isMonthlyQuota(quota)) {
+    const year = Number(quota.year) || new Date(quota.due_date).getFullYear()
+    return `Cuota Periodo ${year}`
+  }
+  // Utilizamos el mes que viene en la agrupación
+  return 'Mensualidad: ' + getMonthName(quota.month);
+}
+
 const hasTenantPays = (quota) => {  
   if (!quota.details || !quota.details.length) return false
   
   return quota.details.some(d => d.departament?.tenant_pays_quota == true)
-}
-
-const getTitleQuota = (quota) => {
-  // Utilizamos el mes que viene en la agrupación
-  return 'Mensualidad: ' + getMonthName(quota.month);
 }
 
 const getStatusInfo = (status) => {
@@ -268,7 +317,18 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            <div class="px-4 py-2 md:py-3 border-t cursor-pointer" :class="`bg-${getStatusInfo(quota.status).color}`"
+            <div v-if="isBlockedByOlderMonth(quota)"
+              class="px-4 py-2 md:py-3 border-t bg-grey-4">
+              <div class="flex justify-center items-center">
+                <div class="flex items-center">
+                  <q-icon name="eva-lock-outline" color="grey-8" size="1.5rem" />
+                  <span class="ml-1 text-sm font-medium text-grey-9">
+                    Paga primero {{ oldestOwedLabel }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="px-4 py-2 md:py-3 border-t cursor-pointer" :class="`bg-${getStatusInfo(quota.status).color}`"
               @click="goTo(quota)">
               <div class="flex justify-center items-center">
                 <div class="flex items-center">
