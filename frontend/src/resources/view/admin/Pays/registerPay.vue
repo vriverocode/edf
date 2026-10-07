@@ -179,12 +179,12 @@ const selectedPayMethodCommission = computed(() => {
 
 const commissionAmount = computed(() => {
   if (!selectedPayMethodCommission.value || !paymentForm.value.amount) return 0
-  return Math.round((paymentForm.value.amount * selectedPayMethodCommission.value / 100) * 100) / 100
+  return Number((Math.ceil((paymentForm.value.amount * selectedPayMethodCommission.value / 100) * 100) / 100).toFixed(2))
 })
 
 const netAmount = computed(() => {
   if (!paymentForm.value.amount) return 0
-  return Math.round((paymentForm.value.amount - commissionAmount.value) * 100) / 100
+  return Number((Math.ceil((paymentForm.value.amount - commissionAmount.value) * 100) / 100).toFixed(2))
 })
 
 const filteredUsers = computed(() => {

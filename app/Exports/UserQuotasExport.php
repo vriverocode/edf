@@ -44,6 +44,7 @@ class UserQuotasExport implements FromCollection, WithColumnWidths, WithEvents, 
         'Agua en cuotas',
         'Mantenimiento',
         'Descuento',
+        'Cargos extra',
         'Total',
     ];
 
@@ -107,6 +108,7 @@ class UserQuotasExport implements FromCollection, WithColumnWidths, WithEvents, 
             round((float) $row['water_in_quotas'], 2),
             round((float) $row['maintenance'], 2),
             round((float) $row['discount'], 2),
+            round((float) $row['extra'], 2),
             round((float) $row['total'], 2),
         ];
     }
@@ -116,7 +118,7 @@ class UserQuotasExport implements FromCollection, WithColumnWidths, WithEvents, 
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $lastCol = 'M'; // A=Usuario, B-M=DPT..Total (13 cols)
+                $lastCol = 'N'; // A=Usuario, B-N=DPT..Total (14 cols)
                 $dataStartRow = 4;
                 $dataEndRow = $dataStartRow + count($this->rows) - 1;
 
@@ -175,11 +177,11 @@ class UserQuotasExport implements FromCollection, WithColumnWidths, WithEvents, 
 
                         // Consumo de agua en m³ (I)
                         $sheet->getStyle('I'.$rowNum)->getNumberFormat()->setFormatCode('0.000');
-                        // Montos (J-M)
-                        $sheet->getStyle('J'.$rowNum.':M'.$rowNum)->getNumberFormat()->setFormatCode('"S/." #,##0.00');
+                        // Montos (J-N)
+                        $sheet->getStyle('J'.$rowNum.':N'.$rowNum)->getNumberFormat()->setFormatCode('"S/." #,##0.00');
 
-                        // Total (M) en negrita
-                        $sheet->getStyle('M'.$rowNum)->applyFromArray([
+                        // Total (N) en negrita
+                        $sheet->getStyle('N'.$rowNum)->applyFromArray([
                             'font' => ['bold' => true, 'size' => 10, 'name' => 'Calibri'],
                         ]);
 
@@ -211,7 +213,8 @@ class UserQuotasExport implements FromCollection, WithColumnWidths, WithEvents, 
             'J' => 'water_in_quotas',
             'K' => 'maintenance',
             'L' => 'discount',
-            'M' => 'total',
+            'M' => 'extra',
+            'N' => 'total',
         ];
         foreach ($money as $col => $key) {
             $sheet->setCellValue($col.$rowNum, round((float) ($this->totals[$key] ?? 0), 2));
@@ -262,6 +265,7 @@ class UserQuotasExport implements FromCollection, WithColumnWidths, WithEvents, 
             'K' => 16,
             'L' => 16,
             'M' => 16,
+            'N' => 16,
         ];
     }
 

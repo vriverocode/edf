@@ -173,6 +173,7 @@ class QuotaController extends Controller
             'departament.owner',
             'responsiblePivot.user',
             'waterReading',
+            'departmentCharges.expense',
         ])->orderBy('created_at', 'desc');
 
         if ($request->filled('departament_ids')) {

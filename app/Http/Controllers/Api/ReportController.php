@@ -1042,7 +1042,7 @@ class ReportController extends Controller
         $quotasByDept = Quota::where('year', $year)
             ->where('month', $month)
             ->whereIn('departament_id', $unitIds)
-            ->get(['id', 'departament_id', 'maintenance_amount', 'water_amount'])
+            ->get(['id', 'departament_id', 'maintenance_amount', 'water_amount', 'extra_amount'])
             ->groupBy('departament_id');
 
         $consumptionByDept = WaterReading::where('month', $month)
@@ -1088,6 +1088,7 @@ class ReportController extends Controller
                 'water_consumption' => 0.0,
                 'water_in_quotas' => 0.0,
                 'maintenance' => 0.0,
+                'extra' => 0.0,
                 'discount' => 0.0,
             ];
 
@@ -1114,6 +1115,7 @@ class ReportController extends Controller
             $deptQuotas = $quotasByDept->get($dept->id, collect());
             $group['water_in_quotas'] += (float) $deptQuotas->sum('water_amount');
             $group['maintenance'] += (float) $deptQuotas->sum('maintenance_amount');
+            $group['extra'] += (float) $deptQuotas->sum('extra_amount');
             $group['water_consumption'] += (float) $consumptionByDept->get($dept->id, 0.0);
             $group['discount'] += (float) ($appliedCreditByDept->get($dept->id, 0.0)
                 + ($availableCreditByDept[$dept->id] ?? 0.0));
@@ -1136,8 +1138,9 @@ class ReportController extends Controller
             $group['water_consumption'] = round($group['water_consumption'], 3);
             $group['water_in_quotas'] = round($group['water_in_quotas'], 2);
             $group['maintenance'] = round($group['maintenance'], 2);
+            $group['extra'] = round($group['extra'], 2);
             $group['discount'] = round($group['discount'], 2);
-            $group['total'] = round($group['water_in_quotas'] + $group['maintenance'] - $group['discount'], 2);
+            $group['total'] = round($group['water_in_quotas'] + $group['maintenance'] + $group['extra'] - $group['discount'], 2);
 
             if ($search !== ''
                 && stripos($group['user_name'], $search) === false
@@ -1157,6 +1160,7 @@ class ReportController extends Controller
             'water_consumption' => round((float) array_sum(array_column($rows, 'water_consumption')), 3),
             'water_in_quotas' => round((float) array_sum(array_column($rows, 'water_in_quotas')), 2),
             'maintenance' => round((float) array_sum(array_column($rows, 'maintenance')), 2),
+            'extra' => round((float) array_sum(array_column($rows, 'extra')), 2),
             'discount' => round((float) array_sum(array_column($rows, 'discount')), 2),
             'total' => round((float) array_sum(array_column($rows, 'total')), 2),
             'pct_total' => round((float) array_sum(array_column($rows, 'pct_total')), 5),

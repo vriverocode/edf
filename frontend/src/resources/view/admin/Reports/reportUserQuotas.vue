@@ -22,7 +22,7 @@ const monthOptions = monthNames.map((label, i) => ({ label, value: i + 1 }))
 const rows = computed(() => report.value?.rows || [])
 
 const totals = computed(() => {
-  const sum = { water_consumption: 0, water_in_quotas: 0, maintenance: 0, discount: 0, total: 0, pct_total: 0 }
+  const sum = { water_consumption: 0, water_in_quotas: 0, maintenance: 0, discount: 0, extra: 0, total: 0, pct_total: 0 }
   rows.value.forEach((r) => {
     Object.keys(sum).forEach((k) => { sum[k] += Number(r[k]) || 0 })
   })
@@ -134,6 +134,7 @@ onMounted(fetchData)
             <th class="col-num">Total Agua</th>
             <th class="col-num">Total mantenimiento</th>
             <th class="col-num">Descuento</th>
+            <th class="col-num">Cargos extra</th>
             <th class="col-num">Total cuota</th>
           </tr>
         </thead>
@@ -151,6 +152,7 @@ onMounted(fetchData)
             <td class="col-num text-right">{{ formatMoney(row.water_in_quotas) }}</td>
             <td class="col-num text-right">{{ formatMoney(row.maintenance) }}</td>
             <td class="col-num text-right text-positive">{{ formatMoney(row.discount) }}</td>
+            <td class="col-num text-right text-orange-7">{{ formatMoney(row.extra) }}</td>
             <td class="col-num text-right text-bold">{{ formatMoney(row.total) }}</td>
           </tr>
         </tbody>
@@ -168,6 +170,7 @@ onMounted(fetchData)
             <td class="col-num text-right">{{ formatMoney(totals.water_in_quotas) }}</td>
             <td class="col-num text-right">{{ formatMoney(totals.maintenance) }}</td>
             <td class="col-num text-right">{{ formatMoney(totals.discount) }}</td>
+            <td class="col-num text-right">{{ formatMoney(totals.extra) }}</td>
             <td class="col-num text-right">{{ formatMoney(totals.total) }}</td>
           </tr>
         </tfoot>

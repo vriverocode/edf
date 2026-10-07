@@ -51,6 +51,30 @@ const getDisplayPay = (quota) => {
   );
 };
 
+// Cargos extra (department_charges) vinculados a esta cuota en este mes.
+// Se muestra el monto de la cuota del cargo (monthly_amount), no el total del cargo.
+const chargesForQuota = (quota) => {
+  const charges = Array.isArray(quota.department_charges) ? quota.department_charges : [];
+  return charges.map((c) => ({
+    id: c.id,
+    description: c.description,
+    monthly: Number(c.monthly_amount || 0),
+    installment: c.pivot?.installment_number ?? null,
+    installments: Number(c.installments || 0),
+    statusLabel: c.status_label,
+  }));
+};
+
+// Saldo a favor de la unidad: lo disponible todavia + lo ya aplicado a un pago.
+// El aplicado se lee de pays.credit_applied porque el saldo disponible vuelve a 0
+// al consumirse, y asi el descuento queda siempre visible en la cuota que lo uso.
+const creditForQuota = (quota) => {
+  const deptId = quota.departament?.id;
+  const available = Number(creditBalances.value[deptId] || 0);
+  const applied = Number(getDisplayPay(quota)?.credit_applied || 0);
+  return { available, applied, total: available + applied };
+};
+
 const pendingPayForValidation = (quota) => {
   const pays = Array.isArray(quota.pays) ? quota.pays : [];
   return pays.find((p) => Number(p.status) === 1) ?? null;
@@ -167,9 +191,29 @@ const formatDateTime = (date) => {
   return moment(date).format('DD/MM/YYYY');
 }
 
-const hasPaymentInfo = (quota) => {
-  return getDisplayPay(quota) !== null || Number(quota.status) !== 1;
-}
+// Un pago consolidado cubre varias cuotas (una por unidad). Agrupamos para que el
+// "Detalle del pago" se imprima una sola vez en vez de repetirse por cada unidad.
+const paymentGroups = computed(() => {
+  const groups = new Map();
+  quotas.value.forEach((quota) => {
+    const pay = getDisplayPay(quota);
+    const key = pay?.id ?? `quota-${quota.id}`;
+    if (!groups.has(key)) {
+      groups.set(key, { key, pay, quotas: [] });
+    }
+    groups.get(key).quotas.push(quota);
+  });
+  return Array.from(groups.values());
+});
+
+// Las cuotas sin pago siguen mostrando su propio bloque de estado (sin voucher).
+const standaloneQuotas = computed(() => paymentGroups.value.filter((g) => !g.pay));
+const paidGroups = computed(() => paymentGroups.value.filter((g) => g.pay));
+
+// Suma de las cuotas cubiertas por un pago (para el resumen del card de pago).
+const groupQuotaTotal = (group) =>
+  group.quotas.reduce((sum, q) => sum + quotaTotal(q), 0);
+
 const totalParticipation = () => {
   let totalPart = 0;
   quotas.value.forEach(quota => {
@@ -424,79 +468,151 @@ onMounted(() => {
                     <div v-if="quota.number" class="flex items-center text-sm text-gray-600 pl-1   md:pt-4 pt-2 col-6 col-md-3">
                       <span><strong>N° cuota: #{{ quota.number }}</strong></span>
                     </div>
-                    
+
+                    <!-- Saldo a favor: disponible + ya aplicado, siempre visible -->
+                    <div v-if="creditForQuota(quota).total > 0"
+                      class="flex items-center text-sm text-gray-700 col-6 col-md-3 mt-2 md:mt-0">
+                      <q-icon name="eva-checkmark-circle-2-outline" size="20px" class="mr-1 text-green-600" />
+                      <span class="font-medium">
+                        Saldo a favor:
+                        <span class="font-semibold text-green-700">
+                          - S/. {{ formatMoney(creditForQuota(quota).total) }}
+                        </span>
+                        <span v-if="creditForQuota(quota).applied > 0" class="text-xs text-gray-500">
+                          (incluye S/. {{ formatMoney(creditForQuota(quota).applied) }} aplicado)
+                        </span>
+                      </span>
+                    </div>
+
                   </div>
 
-                </div>
-              </div>
-
-              <!-- Detalle del pago (estilo viewQuota / cliente) -->
-              <div v-if="hasPaymentInfo(quota)" class="px-4 py-3 md:px-5"
-                style="border-top: 1px solid rgba(211, 211, 211, 0.6); background: #fafafa;">
-                <div class="text-subtitle2 text-weight-bold text-grey-8 q-mb-sm">Detalle del pago</div>
-
-                <template v-if="getDisplayPay(quota)">
-                  <div class="quota-pay-detail">
-                    <div class="quota-pay-detail__row">
-                      <span class="text-gray-600 font-medium">Estado del pago</span>
-                      <span class="font-semibold" :class="'text-' + getDisplayPay(quota).status_color">
-                        {{ getDisplayPay(quota).status_label }}
-                      </span>
-                    </div>
-
-                    <div v-if="getDisplayPay(quota).amount" class="quota-pay-detail__row">
-                      <span class="text-gray-600 font-medium">Monto pagado</span>
-                      <span class="text-gray-900 font-semibold">
-                        S/. {{ formatMoney(getDisplayPay(quota).amount) }}
-                      </span>
-                    </div>
-
-                    <div v-if="quota.amount > 0" class="quota-pay-detail__row">
-                      <span class="text-gray-600 font-medium">Monto de la cuota</span>
-                      <span class="text-gray-900 font-semibold">S/. {{ formatMoney(quotaTotal(quota)) }}</span>
-                    </div>
-
-                    <div v-if="getDisplayPay(quota).pay_date" class="quota-pay-detail__row">
-                      <span class="text-gray-600 font-medium">Fecha de pago</span>
-                      <span class="text-gray-900 font-semibold">
-                        {{ formatDateTime(getDisplayPay(quota).pay_date) }}
-                      </span>
-                    </div>
-
-                    <div v-if="getDisplayPay(quota).pay_method" class="quota-pay-detail__row">
-                      <span class="text-gray-600 font-medium">Método de pago</span>
-                      <span class="text-gray-900 font-semibold">
-                        {{ getDisplayPay(quota).pay_method?.name || 'S/N' }}
-                      </span>
-                    </div>
-
-                    <div v-if="getDisplayPay(quota).reference" class="quota-pay-detail__row">
-                      <span class="text-gray-600 font-medium">Nro. de operación</span>
-                      <span class="text-gray-900 font-semibold">#{{ getDisplayPay(quota).reference }}</span>
-                    </div>
-
-                    <div v-if="getDisplayPay(quota).vaucher" class="flex flex-center q-mt-sm cursor-pointer"
-                      @click="openVoucher(getDisplayPay(quota), $event)">
-                      <div class="text-center text-subtitle2 text-primary text-bold font-medium text__vaucher"
-                        style="text-decoration: underline dotted;">
-                        Ver voucher de pago
-                      </div>
-                      <span class="ml-2" v-html="iconsApp.voucher" />
-                    </div>
+                  <!-- Cargos extra del mes (department_charges) -->
+                  <div v-if="chargesForQuota(quota).length"
+                    class="mt-2 pt-2" style="border-top: 1px dashed #e5e7eb;">
+                    <div class="text-xs text-gray-500 mb-1">Cargos extra del mes</div>
+                    <table class="w-full text-xs">
+                      <thead>
+                        <tr class="text-left text-gray-400">
+                          <th class="py-1 pr-2 font-medium">Descripción</th>
+                          <th class="py-1 pr-2 font-medium">Cuota</th>
+                          <th class="py-1 font-medium text-right">Monto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="charge in chargesForQuota(quota)" :key="'charge-' + charge.id"
+                          class="border-b border-gray-100">
+                          <td class="py-1 pr-2 text-gray-800">{{ charge.description }}</td>
+                          <td class="py-1 pr-2 text-gray-600">
+                            {{ charge.installment ? charge.installment : '—' }}/{{ charge.installments }}
+                            <span v-if="charge.statusLabel">({{ charge.statusLabel }})</span>
+                          </td>
+                          <td class="py-1 font-medium text-orange-700 text-right">
+                            S/. {{ formatMoney(charge.monthly) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                </template>
 
-                <div v-else class="text-sm text-grey-7">
-                  Aún no se ha registrado un comprobante de pago para esta cuota.
                 </div>
               </div>
 
               <div v-if="isAdminRoute" class="px-4 py-3 bg-primary border-t flex justify-center gap-2">
                 <q-btn icon="eva-edit-outline" rounded size="sm" color="white" text-color="primary"
                   @click="goToEdit(quota)" />
-                <q-btn v-if="canValidateQuota(quota)" unelevated rounded color="white" text-color="warning"
-                  label="Validar pago" icon="eva-checkmark-circle-2-outline" @click="goToValidate(quota)" />
               </div>
+            </div>
+          </div>
+
+          <!-- Pagos: un solo card por pago (consolidado cubre varias unidades) -->
+          <div v-for="group in paidGroups" :key="'pay-' + group.key"
+            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4"
+            style="position: relative; border: 1px solid lightgrey">
+            <div class="px-4 py-3 md:px-5"
+              style="border-top: 1px solid rgba(211, 211, 211, 0.6); background: #fafafa;">
+              <div class="text-subtitle2 text-weight-bold text-grey-8 q-mb-sm">Detalle del pago</div>
+
+              <div class="quota-pay-detail">
+                <div class="quota-pay-detail__row">
+                  <span class="text-gray-600 font-medium">Estado del pago</span>
+                  <span class="font-semibold" :class="'text-' + group.pay.status_color">
+                    {{ group.pay.status_label }}
+                  </span>
+                </div>
+
+                <div v-if="group.pay.amount" class="quota-pay-detail__row">
+                  <span class="text-gray-600 font-medium">Monto pagado</span>
+                  <span class="text-gray-900 font-semibold">
+                    S/. {{ formatMoney(group.pay.amount) }}
+                  </span>
+                </div>
+
+                <div v-if="groupQuotaTotal(group) > 0" class="quota-pay-detail__row">
+                  <span class="text-gray-600 font-medium">Monto de las cuotas</span>
+                  <span class="text-gray-900 font-semibold">S/. {{ formatMoney(groupQuotaTotal(group)) }}</span>
+                </div>
+
+                <div v-if="Number(group.pay.credit_applied || 0) > 0" class="quota-pay-detail__row">
+                  <span class="text-gray-600 font-medium">Saldo a favor aplicado</span>
+                  <span class="font-semibold text-green-700">
+                    - S/. {{ formatMoney(group.pay.credit_applied) }}
+                  </span>
+                </div>
+
+                <div v-if="group.pay.pay_date" class="quota-pay-detail__row">
+                  <span class="text-gray-600 font-medium">Fecha de pago</span>
+                  <span class="text-gray-900 font-semibold">
+                    {{ formatDateTime(group.pay.pay_date) }}
+                  </span>
+                </div>
+
+                <div v-if="group.pay.pay_method" class="quota-pay-detail__row">
+                  <span class="text-gray-600 font-medium">Método de pago</span>
+                  <span class="text-gray-900 font-semibold">
+                    {{ group.pay.pay_method?.name || 'S/N' }}
+                  </span>
+                </div>
+
+                <div v-if="group.pay.reference" class="quota-pay-detail__row">
+                  <span class="text-gray-600 font-medium">Nro. de operación</span>
+                  <span class="text-gray-900 font-semibold">#{{ group.pay.reference }}</span>
+                </div>
+
+                <div class="quota-pay-detail__row">
+                  <span class="text-gray-600 font-medium">Unidades cubiertas</span>
+                  <span class="text-gray-900 font-semibold text-right">
+                    {{ group.quotas.map(q => q.departament?.number).filter(Boolean).join(' - ') }}
+                    <span class="text-gray-500 font-normal">
+                      ({{ group.quotas.length }} cuota{{ group.quotas.length === 1 ? '' : 's' }})
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              <div v-if="group.pay.vaucher" class="flex flex-center q-mt-sm cursor-pointer"
+                @click="openVoucher(group.pay, $event)">
+                <div class="text-center text-subtitle2 text-primary text-bold font-medium text__vaucher"
+                  style="text-decoration: underline dotted;">
+                  Ver voucher de pago
+                </div>
+                <span class="ml-2" v-html="iconsApp.voucher" />
+              </div>
+            </div>
+
+            <div v-if="isAdminRoute" class="px-4 py-3 bg-primary border-t flex justify-center gap-2">
+              <q-btn v-if="canValidateQuota(group.quotas[0])" unelevated rounded color="white" text-color="warning"
+                label="Validar pago" icon="eva-checkmark-circle-2-outline"
+                @click="goToValidate(group.quotas[0])" />
+            </div>
+          </div>
+
+          <!-- Cuotas sin pago: solo el aviso, sin card de pago -->
+          <div v-for="group in standaloneQuotas" :key="'nq-' + group.key"
+            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4"
+            style="position: relative; border: 1px solid lightgrey">
+            <div class="px-4 py-3 md:px-5 text-sm text-grey-7"
+              style="border-top: 1px solid rgba(211, 211, 211, 0.6); background: #fafafa;">
+              Aún no se ha registrado un comprobante de pago para esta cuota.
             </div>
           </div>
         </div>
