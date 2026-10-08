@@ -74,9 +74,9 @@ class BookingController extends Controller
                 return $this->returnFail(403, 'No tienes permisos para crear reservas en este departamento');
             }
 
-            if ($this->hasOverdueQuotas($user->id, $departament_id)) {
-                return $this->returnFail(505, 'No puede reservar: tiene cuotas pendientes o vencidas de dos o más meses.');
-            }
+            // if ($this->hasOverdueQuotas($user->id, $departament_id)) {
+            //     return $this->returnFail(505, 'No puede reservar: tiene cuotas pendientes o vencidas de dos o más meses.');
+            // }
 
             $allowedAreas = $user->availableComunAreas()->pluck('comun_area_id')->toArray();
             if (! empty($allowedAreas) && ! in_array((int) $request->comun_area, $allowedAreas)) {
