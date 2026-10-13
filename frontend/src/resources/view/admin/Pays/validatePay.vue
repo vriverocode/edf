@@ -171,6 +171,15 @@ const financialAccountOptions = computed(() =>
     value: a.id,
   }))
 )
+const filteredFinancialAccountOptions = ref([])
+const filterFinancialAccounts = (val, update) => {
+  update(() => {
+    const needle = val.toLowerCase()
+    filteredFinancialAccountOptions.value = financialAccountOptions.value.filter(
+      (opt) => opt.label.toLowerCase().includes(needle)
+    )
+  })
+}
 const categoryOptions = computed(() =>
   transactionCategories.value.map((c) => ({
     label: c.name,
@@ -646,8 +655,16 @@ const submitUploadVoucher = async () => {
           <div class="row q-col-gutter-sm items-end">
             <div class="col">
               <div class="text-subtitle2 text-black">Cuenta financiera</div>
-              <q-select dense borderless emit-value map-options class="form__inputsR mt-1" color="primary"
-                v-model="approveForm.financial_account_id" :options="financialAccountOptions" />
+              <q-select dense borderless emit-value map-options use-input input-debounce="0"
+                class="form__inputsR mt-1" color="primary"
+                v-model="approveForm.financial_account_id" :options="filteredFinancialAccountOptions"
+                @filter="filterFinancialAccounts">
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="text-grey">Sin resultados</q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
             </div>
             <div class="col-auto">
               <q-btn flat dense round color="primary" @click="createAccountDialog = true">

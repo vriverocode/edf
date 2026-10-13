@@ -155,6 +155,10 @@ const markAsComplete = async (reserveId) => {
 const getDepartmentNumber = (reserve) => {
   return reserve.departament?.number || reserve.apartment_number || reserve.user?.units?.[0]?.number || '—'
 }
+
+const goToGuests = (reserve) => {
+  router.push('/security/reserves/' + reserve.id + '/guests')
+}
 onMounted(() => {
   const today = moment().format('YYYY-MM-DD')
   filter.value = { ...filter.value, status: -1, date_from: today, date_to: today, sort_by: 'date', sort_dir: 'desc' }
@@ -229,7 +233,7 @@ onMounted(() => {
                       {{ formatTimeNoSeconds(reserve.time_from) }} - {{ formatTimeNoSeconds(reserve.time_to) }}
                     </span>
                   </div>
-                  <div class="flex items-center col-6 text-sm text-gray-700" style="margin-top: 3px;">
+                  <div class="flex items-center col-6 text-sm text-gray-700" style="margin-top: 5px;">
                     <div v-html="iconsApp.moneyIcon" />
                     <span class="font-medium">
                       {{ getPaymentAmount(reserve) }}
@@ -262,18 +266,36 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-                <q-btn
-                    v-if="reserve.status === 3"
-                    dense
-                    no-caps
-                    unelevated
-                    color="primary"
-                    class="w-full mt-3 py-1"
-                    icon="eva-checkmark-circle-2-outline"
-                    label="Completar reserva"
-                    style="border-radius: 0.4rem;"
-                    @click="completeReserve(reserve)"
+                <div class="row w-full justify-end">
+                  <div class="col-12 col-md-2 px-2">
+                    <q-btn
+                      v-if="reserve.status === 3"
+                      dense
+                      no-caps
+                      unelevated
+                      color="primary"
+                      class="w-full mt-3 py-1 md:py-2"
+                      icon="eva-checkmark-circle-2-outline"
+                      label="Completar reserva"
+                      style="border-radius: 0.4rem;"
+                      @click="completeReserve(reserve)"
                   />
+                  </div>
+                  <div class="col-12 col-md-2 px-2">
+                    <q-btn
+                      v-if="reserve.type === 3"
+                      dense
+                      no-caps
+                      unelevated
+                      color="blue-grey-7"
+                      class="w-full mt-3 py-1 md:py-2"
+                      icon="eva-people-outline"
+                      label="Ver invitados"
+                      style="border-radius: 0.4rem;"
+                      @click="goToGuests(reserve)"
+                    />
+                  </div>
+                </div>
               </div>
               
             </div>

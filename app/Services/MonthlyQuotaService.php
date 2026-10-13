@@ -155,7 +155,7 @@ class MonthlyQuotaService
                 $activeTenantPivot->user,
                 "Cuota general mes: $monthLabel",
                 "Hola, te hacemos llegar la cuota de mantenimiento por el mes: $monthLabel $periodYear. Por favor mantenerse al día",
-                '/client/quota/pay/'.$quota->id,
+                '/client/balance/list',
                 ['quota_id' => $quota->id, 'color' => 'amber-8'],
             );
 
@@ -165,7 +165,7 @@ class MonthlyQuotaService
                     $owner,
                     'Cuota de tu departamento asignada a inquilino',
                     "Se generó la cuota de $monthLabel $periodYear para tu departamento {$quota->departament->number}. El inquilino {$activeTenantPivot->user->name} es responsable del pago.",
-                    '/client/quota/pay/'.$quota->id,
+                    '/client/balance/list',
                     ['quota_id' => $quota->id, 'color' => 'amber-8', 'is_informative' => true],
                 );
             }
@@ -176,7 +176,7 @@ class MonthlyQuotaService
                     $owner,
                     "Cuota general mes: $monthLabel",
                     "Hola, te hacemos llegar la cuota de mantenimiento por el mes: $monthLabel $periodYear. Por favor mantenerse al día",
-                    '/client/quota/pay/'.$quota->id,
+                    '/client/balance/list',
                     ['quota_id' => $quota->id, 'color' => 'amber-8'],
                 );
             }

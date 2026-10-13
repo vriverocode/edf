@@ -44,6 +44,10 @@ const step = ref(1)
 const loading = ref(false)
 const disable = ref(true)
 const toPay = ref({})
+// Resultado de GET /api/quotas/payment-eligibility. null = sin verificacion
+// (reservas, o fallo de red: ahi el backend sigue siendo la red de seguridad).
+const eligibility = ref(null)
+const checkingEligibility = ref(false)
 const transitionName = ref('slide-next');
 const typePay = () => {
 
@@ -110,6 +114,9 @@ const paymentSubtitle = computed(() => {
       : 'PAGO'
 })
 const isQuotaPayment = computed(() => typePay() === 'quota')
+const isEligibilityBlocked = computed(
+  () => isQuotaPayment.value && eligibility.value?.payable === false
+)
 const safeAmount = (value) => Number(value ?? 0)
 const maintenanceAmount = computed(() => safeAmount(toPay.value?.maintenance_amount))
 const waterAmount = computed(() => safeAmount(toPay.value?.water_amount))
@@ -260,6 +267,7 @@ const getQuotaById = () => {
       toPay.value = response.data
       ready.value = true
       fetchCreditBalance()
+      checkEligibility()
     })
     .catch((response) => {
       console.error(response)
@@ -302,6 +310,7 @@ const fetchAllQuotasByIds = async (ids) => {
   } finally {
     ready.value = true
     fetchCreditBalance()
+    checkEligibility()
   }
 }
 
@@ -335,6 +344,44 @@ const fetchCreditBalance = async () => {
   } catch {
     creditBalance.value = 0
   }
+}
+
+// payForm se entra tambien por deep-link (notificaciones de cuota, favoritos,
+// URL directa), sin pasar por quotasByUserList donde ya esta el candado. Sin
+// esta verificacion el backend igual rechaza en storePay, pero recien al final,
+// cuando el usuario ya subio el voucher.
+const checkEligibility = async () => {
+  if (!isQuotaPayment.value) return
+
+  const ids = Array.isArray(toPay.value?.consolidated_ids) && toPay.value.consolidated_ids.length
+    ? toPay.value.consolidated_ids
+    : [toPay.value?.id].filter(Boolean)
+
+  if (!ids.length) return
+
+  checkingEligibility.value = true
+  try {
+    eligibility.value = await quotaStore.getQuotaPaymentEligibility(ids)
+  } catch (err) {
+    console.error(err)
+    // Sin el verificado no bloqueamos el formulario: storePay sigue protegiendo.
+    eligibility.value = null
+  } finally {
+    checkingEligibility.value = false
+  }
+}
+
+const goToQuotaList = () => router.push('/client/balance/list')
+
+const goToBlockingQuota = () => {
+  const quotaId = eligibility.value?.blocked_by?.quota_id
+  if (!quotaId) {
+    goToQuotaList()
+    return
+  }
+  // El router-view usa :key="route.path", asi que el cambio de id remonta el
+  // componente y la verificacion se vuelve a ejecutar sobre la cuota correcta.
+  router.push(`/client/quota/pay/${quotaId}`)
 }
 
 const selectPayMethod = (value) => {
@@ -507,7 +554,11 @@ watch(step, (toStep, fromStep) => {
 <template>
   <div class=" h-full " style="overflow: hidden; position: relative;">
     <div class="h-full md:px-20 md:mx-16 " v-if="ready">
-      <q-form @submit="nextStep()" class="h-full pay-form-wrapper">
+      <!-- Evita el flash del formulario: primero sabemos si puede pagar. -->
+      <div v-if="checkingEligibility" class="flex flex-center h-full">
+        <q-spinner-dots color="primary" size="7rem" />
+      </div>
+      <q-form v-else-if="!isEligibilityBlocked" @submit="nextStep()" class="h-full pay-form-wrapper">
         <template v-if="ready">
           <div class="pay-form-body">
             <Transition :name="transitionName">
@@ -874,6 +925,40 @@ watch(step, (toStep, fromStep) => {
         </div>
 
       </q-form>
+      <!-- Estado bloqueado: no se pide el voucher de algo que el backend va a rechazar. -->
+      <div v-else class="pay-blocked">
+        <div class="pay-blocked__card">
+          <q-icon name="eva-lock-outline" color="amber-8" size="4.2rem" />
+          <div class="pay-blocked__title">
+            {{ eligibility?.reason === 'older_debt' ? 'Pago no disponible' : 'No puedes pagar esta cuota' }}
+          </div>
+          <p class="pay-blocked__text">
+            <template v-if="eligibility?.reason === 'older_debt' && eligibility?.blocked_by">
+              Primero debes pagar la cuota de
+              <span class="pay-blocked__period">{{ eligibility.blocked_by.label }}</span>.
+              <br />
+              <span class="pay-blocked__hint">
+                No puedes pagar meses posteriores mientras tengas cuotas anteriores pendientes.
+              </span>
+            </template>
+            <template v-else>
+              {{ eligibility?.message || 'Esta cuota no está disponible para pago.' }}
+            </template>
+          </p>
+          <div class="pay-blocked__actions">
+            <q-btn
+              v-if="eligibility?.reason === 'older_debt'"
+              unelevated
+              color="amber-8"
+              no-caps
+              class="pay-blocked__btn"
+              label="Ir a esa cuota"
+              @click="goToBlockingQuota"
+            />
+            <q-btn flat no-caps color="grey-8" label="Volver a mis cuotas" @click="goToQuotaList" />
+          </div>
+        </div>
+      </div>
     </div>
     <div id="textToPaste" />
   </div>
@@ -1251,5 +1336,60 @@ watch(step, (toStep, fromStep) => {
     border-top-right-radius: 1rem;
     box-shadow: 0px 0.2rem 1rem 0px rgb(155 155 155 / 53%);
   }
+}
+
+/* --- Estado bloqueado por cuota anterior pendiente --- */
+.pay-blocked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 2rem 0;
+}
+
+.pay-blocked__card {
+  width: 100%;
+  max-width: 26rem;
+  background: #fff;
+  border: 1px solid #f0e2c4;
+  border-radius: 1rem;
+  padding: 2.2rem 1.6rem;
+  text-align: center;
+  box-shadow: 0 0.2rem 1rem rgba(155, 155, 155, 0.25);
+}
+
+.pay-blocked__title {
+  margin-top: 0.8rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #1f2937;
+}
+
+.pay-blocked__text {
+  margin: 0.7rem 0 0;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.pay-blocked__period {
+  font-weight: 700;
+  color: #b08d3f;
+}
+
+.pay-blocked__hint {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.pay-blocked__actions {
+  margin-top: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pay-blocked__btn {
+  padding: 0 1.6rem;
 }
 </style>

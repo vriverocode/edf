@@ -10,6 +10,7 @@ use App\Models\Quota;
 use App\Models\Rol;
 use App\Models\User;
 use App\Services\MonthlyQuotaService;
+use App\Services\QuotaPaymentEligibilityService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
@@ -248,19 +249,51 @@ class QuotaController extends Controller
         ], 200);
     }
 
+    /**
+     * Detalle de un pago de cuotas para /client/pay/quotas/view/{id}.
+     *
+     * Un pago puede consolidar cuotas de varias unidades (propietario + inquilino
+     * encargado, o varias unidades de una misma persona). Quien no pago el
+     * consolidado completo solo ve las cuotas que le corresponden: las suyas o
+     * las que le fueron asignadas via peoples_x_departments_id / tenant_pays_quota.
+     *
+     * El chequeo anterior intersectaba con apartaments(), que solo trae los
+     * departamentos donde user_id = usuario, por lo que un inquilino encargado
+     * recibia 403 incluso viendo el pago de su propia cuota.
+     */
     public function getByPay($payId)
     {
         $pay = Pay::with(['quotas.departament.owner', 'quotas.waterReading', 'payMethod', 'user'])->find($payId);
         if (! $pay) {
             return $this->returnFail(404, 'Pago no encontrado');
         }
+
         $user = request()->user();
-        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
-            $userDepartments = $user->apartaments()->pluck('id');
-            $payDepartmentIds = $pay->quotas->pluck('departament_id');
-            if ($payDepartmentIds->intersect($userDepartments)->isEmpty()) {
-                return $this->returnFail(403, 'No autorizado');
-            }
+
+        if ($this->isPrivileged($user)) {
+            return $this->returnSuccess(200, $pay);
+        }
+
+        $quotaIds = $pay->quotas->modelKeys();
+        $visibleIds = Quota::visibleToUser((int) $user->id)
+            ->whereIn('id', $quotaIds)
+            ->pluck('id')
+            ->all();
+
+        if ($visibleIds === []) {
+            return $this->returnFail(403, 'No autorizado');
+        }
+
+        // Quien registro el pago ya ve el consolidado completo. Los demas se
+        // quedan solo con su cuota, conservando el orden original del pago.
+        if ((int) $pay->user_id !== (int) $user->id) {
+            $pay->setRelation('quotas', $pay->quotas
+                ->filter(fn (Quota $quota) => in_array($quota->id, $visibleIds))
+                ->values());
+
+            // El frontend usa scoped_view para no mostrar el monto consolidado
+            // del pago completo como si fuera el total del usuario.
+            $pay->setAttribute('scoped_view', true);
         }
 
         return $this->returnSuccess(200, $pay);
@@ -584,6 +617,42 @@ class QuotaController extends Controller
             : null;
 
         return $this->returnSuccess(200, $data);
+    }
+
+    /**
+     * GET /api/quotas/payment-eligibility/{id?}
+     *
+     * Le dice al formulario de pago (payForm.vue) si el usuario puede pagar las
+     * cuotas indicadas, y si no, que cuota bloqueante debe saldar primero.
+     *
+     * Acepta una cuota simple via el segmento {id} o un pago consolidado via
+     * ?quota_ids[]=. La regla de orden de meses vive en el service, que es la
+     * misma que usa PayController::storePay, de modo que lo que ve el frontend
+     * coincide con lo que decide el backend al registrar el pago.
+     */
+    public function paymentEligibility(Request $request, ?string $id = null): JsonResponse
+    {
+        $quotaIds = array_filter(array_map('intval', (array) $request->input('quota_ids', [])));
+
+        if ($quotaIds === [] && $id !== null) {
+            $quotaIds = [(int) $id];
+        }
+
+        if ($this->isPrivileged($request->user())) {
+            // Misma exencion que storePay: el administrador registra pagos de
+            // escritorio para saldar morosidad, el orden de meses no aplica.
+            return $this->returnSuccess(200, [
+                'payable' => true,
+                'reason' => null,
+                'blocked_by' => null,
+                'message' => null,
+            ]);
+        }
+
+        $result = (new QuotaPaymentEligibilityService)
+            ->checkPaymentReadiness((int) $request->user()->id, $quotaIds);
+
+        return $this->returnSuccess(200, $result);
     }
 
     public function clientWaterDetail(Request $request, string $id)

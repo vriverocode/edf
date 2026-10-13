@@ -51,7 +51,16 @@ const getData = () => {
 const quotas = computed(() => pay.value?.quotas || []);
 const totalMaintenance = computed(() => quotas.value.reduce((s, q) => s + Number(q.maintenance_amount || 0), 0));
 const totalWater = computed(() => quotas.value.reduce((s, q) => s + Number(q.water_amount || 0), 0));
-const totalAmount = computed(() => Number(pay.value?.amount || 0));
+// El backend recorta las cuotas a las que le corresponden al usuario cuando el
+// pago consolidado incluye otras unidades, y marca scoped_view. En ese caso
+// pay.amount sigue siendo el total consolidado, asi que se suma lo visible.
+const isScoped = computed(() => Boolean(pay.value?.scoped_view));
+const totalAmount = computed(() => {
+  if (isScoped.value) {
+    return quotas.value.reduce((s, q) => s + Number(q.amount || 0), 0);
+  }
+  return Number(pay.value?.amount || 0);
+});
 const monthLabel = computed(() => quotas.value.length > 0 ? quotas.value[0].month_label : '---');
 const yearLabel = computed(() => {
   if (!quotas.value.length || !quotas.value[0].due_date) return '';
@@ -97,7 +106,9 @@ onMounted(() => {
         <div class="invoice-header">
           <div class="invoice-header__top">
             <div>
-              <div class="invoice-header__label">Resumen de pago</div>
+              <div class="invoice-header__label">
+                {{ isScoped ? 'Resumen de tu cuota' : 'Resumen de pago' }}
+              </div>
               <div class="invoice-header__title">Cuotas {{ monthLabel }} {{ yearLabel }}</div>
             </div>
           </div>
@@ -124,7 +135,7 @@ onMounted(() => {
               <span class="invoice-info-item__value">#{{ pay.reference }}</span>
             </div>
             <div class="invoice-info-item" v-if="pay.user">
-              <span class="invoice-info-item__label">Propietario</span>
+              <span class="invoice-info-item__label">Encargado</span>
               <span class="invoice-info-item__value">{{ pay.user.name }}</span>
             </div>
           </div>

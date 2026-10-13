@@ -157,9 +157,9 @@ onMounted(() => {
                     </div>
                   </div>
                   <div class="flex items-start pt-1">
-                    <q-badge :color="guest.status_color" :label="guest.status_label" class="q-pa-xs" />
+                    <q-badge :color="guest.status_color" :label="guest.status_label" class="px-5 py-2" />
                   </div>
-                  <div class="w-full flex justify-end py-1">
+                  <div class="w-full flex justify-end pb-1">
                     <q-btn v-if="Number(guest.status) !== 2" color="primary" unelevated size="0.85rem"
                       style="border-radius: 0.5rem;" no-caps icon="eva-checkmark-outline"
                       :loading="loadingGuestId === guest.id" :disable="loadingGuestId !== null"

@@ -41,14 +41,22 @@ const pageTitle = computed(() => {
   return `Mensualidad: ${label} ${year}`;
 });
 
+// Misma prioridad que el backend: orderByRaw('FIELD(pays.status, 1, 2, 6, 5, 4, 3)')
+// en QuotaController::getByMonth / Quota::baseAdminQuery. Elegimos el pago aqui
+// con la misma regla en vez de confiar en el orden en que llega la API, porque el
+// mismo getDisplayPay alimenta el agrupamiento de pagos por pay_id.
+const PAY_STATUS_PRIORITY = [1, 2, 6, 5, 4, 3]
+
 const getDisplayPay = (quota) => {
   const pays = Array.isArray(quota.pays) ? quota.pays : [];
   if (!pays.length) return null;
-  return (
-    pays.find((p) => Number(p.status) === 1)
-    ?? pays.find((p) => Number(p.status) === 2)
-    ?? pays[0]
-  );
+
+  const rank = (pay) => {
+    const index = PAY_STATUS_PRIORITY.indexOf(Number(pay.status));
+    return index === -1 ? PAY_STATUS_PRIORITY.length : index;
+  };
+
+  return [...pays].sort((a, b) => rank(a) - rank(b))[0];
 };
 
 // Cargos extra (department_charges) vinculados a esta cuota en este mes.
@@ -206,13 +214,44 @@ const paymentGroups = computed(() => {
   return Array.from(groups.values());
 });
 
-// Las cuotas sin pago siguen mostrando su propio bloque de estado (sin voucher).
-const standaloneQuotas = computed(() => paymentGroups.value.filter((g) => !g.pay));
+// Las cuotas sin pago no se agrupan en card: no hay nada que mostrar hasta que
+// exista un comprobante registrado.
 const paidGroups = computed(() => paymentGroups.value.filter((g) => g.pay));
 
 // Suma de las cuotas cubiertas por un pago (para el resumen del card de pago).
 const groupQuotaTotal = (group) =>
   group.quotas.reduce((sum, q) => sum + quotaTotal(q), 0);
+
+// Monto a destacar en la cabecera del card de pago: el efectivamente pagado; si
+// no viene, se usa la suma de las cuotas cubiertas.
+const headerAmount = (group) => {
+  const paid = Number(group.pay?.amount || 0);
+  if (paid > 0) return paid;
+  return groupQuotaTotal(group);
+};
+
+// Lineas de apoyo bajo el monto: cuotas cubiertas (solo si difiere de lo pagado,
+// porque lo explica el saldo a favor) y saldo a favor aplicado.
+const headerMetaLines = (group) => {
+  const lines = [];
+  const paid = Number(group.pay?.amount || 0);
+  const quotaTotal = groupQuotaTotal(group);
+  const credit = Number(group.pay?.credit_applied || 0);
+
+  if (paid > 0 && quotaTotal > 0 && Math.abs(paid - quotaTotal) > 0.009) {
+    lines.push({ text: `Monto de las cuotas S/. ${formatMoney(quotaTotal)}`, tone: 'info' });
+  }
+  if (credit > 0) {
+    lines.push({ text: `- S/. ${formatMoney(credit)} de saldo a favor aplicado`, tone: 'credit' });
+  }
+
+  return lines;
+};
+
+// El pie solo existe si hay voucher o si el admin puede validar. Sin esto el
+// footer admin quedaba pintado de `bg-primary` aun cuando no habia accion.
+const hasPaymentActions = (group) => Boolean(group.pay?.vaucher)
+  || (isAdminRoute.value && canValidateQuota(group.quotas[0]));
 
 const totalParticipation = () => {
   let totalPart = 0;
@@ -528,91 +567,83 @@ onMounted(() => {
           <div v-for="group in paidGroups" :key="'pay-' + group.key"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4"
             style="position: relative; border: 1px solid lightgrey">
-            <div class="px-4 py-3 md:px-5"
+            <div class="px-4 py-3 md:px-5 quota-pay-body"
               style="border-top: 1px solid rgba(211, 211, 211, 0.6); background: #fafafa;">
-              <div class="text-subtitle2 text-weight-bold text-grey-8 q-mb-sm">Detalle del pago</div>
 
-              <div class="quota-pay-detail">
-                <div class="quota-pay-detail__row">
-                  <span class="text-gray-600 font-medium">Estado del pago</span>
-                  <span class="font-semibold" :class="'text-' + group.pay.status_color">
-                    {{ group.pay.status_label }}
-                  </span>
-                </div>
-
-                <div v-if="group.pay.amount" class="quota-pay-detail__row">
-                  <span class="text-gray-600 font-medium">Monto pagado</span>
-                  <span class="text-gray-900 font-semibold">
-                    S/. {{ formatMoney(group.pay.amount) }}
-                  </span>
-                </div>
-
-                <div v-if="groupQuotaTotal(group) > 0" class="quota-pay-detail__row">
-                  <span class="text-gray-600 font-medium">Monto de las cuotas</span>
-                  <span class="text-gray-900 font-semibold">S/. {{ formatMoney(groupQuotaTotal(group)) }}</span>
-                </div>
-
-                <div v-if="Number(group.pay.credit_applied || 0) > 0" class="quota-pay-detail__row">
-                  <span class="text-gray-600 font-medium">Saldo a favor aplicado</span>
-                  <span class="font-semibold text-green-700">
-                    - S/. {{ formatMoney(group.pay.credit_applied) }}
-                  </span>
-                </div>
-
-                <div v-if="group.pay.pay_date" class="quota-pay-detail__row">
-                  <span class="text-gray-600 font-medium">Fecha de pago</span>
-                  <span class="text-gray-900 font-semibold">
-                    {{ formatDateTime(group.pay.pay_date) }}
-                  </span>
-                </div>
-
-                <div v-if="group.pay.pay_method" class="quota-pay-detail__row">
-                  <span class="text-gray-600 font-medium">Método de pago</span>
-                  <span class="text-gray-900 font-semibold">
-                    {{ group.pay.pay_method?.name || 'S/N' }}
-                  </span>
-                </div>
-
-                <div v-if="group.pay.reference" class="quota-pay-detail__row">
-                  <span class="text-gray-600 font-medium">Nro. de operación</span>
-                  <span class="text-gray-900 font-semibold">#{{ group.pay.reference }}</span>
-                </div>
-
-                <div class="quota-pay-detail__row">
-                  <span class="text-gray-600 font-medium">Unidades cubiertas</span>
-                  <span class="text-gray-900 font-semibold text-right">
-                    {{ group.quotas.map(q => q.departament?.number).filter(Boolean).join(' - ') }}
-                    <span class="text-gray-500 font-normal">
-                      ({{ group.quotas.length }} cuota{{ group.quotas.length === 1 ? '' : 's' }})
+              <!-- Cabecera: estado + monto pagado -->
+              <div class="quota-pay-header">
+                <div class="quota-pay-header__main">
+                  <div class="quota-pay-header__label">Detalle del pago</div>
+                  <div v-if="headerAmount(group) > 0" class="quota-pay-header__amount">
+                    S/. {{ formatMoney(headerAmount(group)) }}
+                  </div>
+                  <div v-if="headerMetaLines(group).length" class="quota-pay-header__meta">
+                    <span v-for="line in headerMetaLines(group)" :key="line.text"
+                      :class="line.tone === 'credit' ? 'quota-pay-header__credit' : ''">
+                      {{ line.text }}
                     </span>
-                  </span>
+                  </div>
                 </div>
+                <q-chip dense class="quota-pay-header__chip" :color="group.pay.status_color" text-color="white"
+                  :icon="group.pay.status_icon">
+                  {{ group.pay.status_label }}
+                </q-chip>
               </div>
 
-              <div v-if="group.pay.vaucher" class="flex flex-center q-mt-sm cursor-pointer"
+              <!-- Datos del pago -->
+              <div class="quota-pay-grid">
+                <div v-if="group.pay.pay_date" class="quota-pay-grid__cell">
+                  <div class="quota-pay-grid__label">
+                    <q-icon name="eva-calendar-outline" size="14px" class="mr-1" />
+                    Fecha de pago
+                  </div>
+                  <div class="quota-pay-grid__value">{{ formatDateTime(group.pay.pay_date) }}</div>
+                </div>
+
+                <div v-if="group.pay.pay_method" class="quota-pay-grid__cell">
+                  <div class="quota-pay-grid__label">
+                    <q-icon name="eva-credit-card-outline" size="14px" class="mr-1" />
+                    Método de pago
+                  </div>
+                  <div class="quota-pay-grid__value">{{ group.pay.pay_method?.name || 'S/N' }}</div>
+                </div>
+
+                <div v-if="group.pay.reference" class="quota-pay-grid__cell">
+                  <div class="quota-pay-grid__label">
+                    <q-icon name="eva-hash-outline" size="14px" class="mr-1" />
+                    Nro. de operación
+                  </div>
+                  <div class="quota-pay-grid__value">#{{ group.pay.reference }}</div>
+                </div>
+
+                <!-- Solo aporta información cuando el pago es consolidado -->
+                <div v-if="group.quotas.length > 1" class="quota-pay-grid__cell">
+                  <div class="quota-pay-grid__label">
+                    <q-icon name="eva-home-outline" size="14px" class="mr-1" />
+                    Unidades cubiertas
+                  </div>
+                  <div class="quota-pay-grid__value">
+                    <span v-for="q in group.quotas" :key="'unit-' + q.id" class="quota-pay-unit-chip">
+                      {{ q.departament?.number }}
+                    </span>
+                    <span class="quota-pay-units-count">
+                      ({{ group.quotas.length }} cuotas)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="hasPaymentActions(group)" class="quota-pay-footer">
+              <q-btn v-if="group.pay.vaucher" outline color="primary" no-caps class="quota-pay-footer__btn"
                 @click="openVoucher(group.pay, $event)">
-                <div class="text-center text-subtitle2 text-primary text-bold font-medium text__vaucher"
-                  style="text-decoration: underline dotted;">
-                  Ver voucher de pago
-                </div>
-                <span class="ml-2" v-html="iconsApp.voucher" />
-              </div>
-            </div>
+                <span v-html="iconsApp.voucher" />
+                <span class="ml-1">Ver voucher de pago</span>
+              </q-btn>
 
-            <div v-if="isAdminRoute" class="px-4 py-3 bg-primary border-t flex justify-center gap-2">
-              <q-btn v-if="canValidateQuota(group.quotas[0])" unelevated rounded color="white" text-color="warning"
-                label="Validar pago" icon="eva-checkmark-circle-2-outline"
+              <q-btn v-if="isAdminRoute && canValidateQuota(group.quotas[0])" unelevated color="primary" no-caps
+                class="quota-pay-footer__btn" label="Validar pago" icon="eva-checkmark-circle-2-outline"
                 @click="goToValidate(group.quotas[0])" />
-            </div>
-          </div>
-
-          <!-- Cuotas sin pago: solo el aviso, sin card de pago -->
-          <div v-for="group in standaloneQuotas" :key="'nq-' + group.key"
-            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4"
-            style="position: relative; border: 1px solid lightgrey">
-            <div class="px-4 py-3 md:px-5 text-sm text-grey-7"
-              style="border-top: 1px solid rgba(211, 211, 211, 0.6); background: #fafafa;">
-              Aún no se ha registrado un comprobante de pago para esta cuota.
             </div>
           </div>
         </div>
@@ -633,29 +664,122 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
-.quota-pay-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+/* --- Card de pago: cabecera con estado y monto --- */
+.quota-pay-body {
+  padding-bottom: 1rem;
 }
 
-.quota-pay-detail__row {
+.quota-pay-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
-  padding-bottom: 0.5rem;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(211, 211, 211, 0.45);
+}
 
-  &:last-child {
-    border-bottom: none;
+.quota-pay-header__main {
+  min-width: 0;
+}
+
+.quota-pay-header__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.quota-pay-header__amount {
+  margin-top: 0.15rem;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.quota-pay-header__meta {
+  margin-top: 0.3rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.quota-pay-header__credit {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.quota-pay-header__chip {
+  flex-shrink: 0;
+}
+
+/* --- Datos del pago en cuadricula --- */
+.quota-pay-grid {
+  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .quota-pay-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-.text__vaucher {
-  transition: opacity 0.2s ease;
+.quota-pay-grid__label {
+  display: flex;
+  align-items: center;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+  font-weight: 600;
+}
 
-  &:hover {
-    opacity: 0.85;
-  }
+.quota-pay-grid__value {
+  margin-top: 0.15rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.quota-pay-unit-chip {
+  background: #eef2f7;
+  border-radius: 0.375rem;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.quota-pay-units-count {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+/* --- Pie: voucher y validacion --- */
+.quota-pay-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-top: 1px solid #f3f4f6;
+}
+
+.quota-pay-footer__btn {
+  min-width: 10rem;
 }
 </style>

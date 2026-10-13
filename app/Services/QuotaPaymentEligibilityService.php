@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Http\Controllers\Api\PayController;
 use App\Models\Quota;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 /**
@@ -83,14 +84,34 @@ class QuotaPaymentEligibilityService
     /**
      * Orden de pago: no se puede pagar un mes teniendo deuda de meses anteriores.
      *
+     * @param  Collection<int,Quota>  $requested
+     * @return array{code:int,error:string}|null
+     */
+    private function denyIfOlderDebtExists(int $userId, Collection $requested): ?array
+    {
+        $older = $this->findOlderDebt($userId, $requested);
+
+        if ($older === null) {
+            return null;
+        }
+
+        return [
+            'code' => 409,
+            'error' => $this->olderDebtMessage($older),
+        ];
+    }
+
+    /**
+     * Cuota pendiente/por devolucion mas antigua que bloquea el pago de las
+     * cuotas indicadas. Devuelve null cuando no hay bloqueo.
+     *
      * La comparacion usa due_date y no month porque las filas month = 0 (Cuota
      * Periodo 2025) se ordenarian como enero. Si el pago incluye una cuota
      * month = 0 la regla no aplica: ese cargo anual no participa del orden.
      *
      * @param  Collection<int,Quota>  $requested
-     * @return array{code:int,error:string}|null
      */
-    private function denyIfOlderDebtExists(int $userId, Collection $requested): ?array
+    private function findOlderDebt(int $userId, Collection $requested): ?Quota
     {
         $monthly = $requested->filter(fn (Quota $quota) => $quota->isMonthly());
 
@@ -100,22 +121,88 @@ class QuotaPaymentEligibilityService
 
         $boundary = $monthly->min(fn (Quota $quota) => $quota->due_date);
 
-        $older = Quota::visibleToUser($userId)
+        return Quota::visibleToUser($userId)
             ->monthly()
             ->outstanding()
             ->whereNotIn('id', $requested->modelKeys())
             ->where('due_date', '<', $boundary)
             ->orderBy('due_date')
             ->first();
+    }
+
+    private function olderDebtMessage(Quota $quota): string
+    {
+        return 'Primero debes pagar la cuota de '.$quota->periodLabel()
+            .'. No puedes pagar meses posteriores mientras tengas cuotas anteriores pendientes.';
+    }
+
+    /**
+     * Verificacion de elegibilidad para el formulario de pago (payForm.vue).
+     *
+     * check() devuelve un fallo HTTP para rechazar el registro; este metodo
+     * devuelve un resultado estructurado para que el frontend pueda mostrar el
+     * motivo y ofrecer ir a la cuota bloqueante antes de pedirle al usuario que
+     * complete el formulario.
+     *
+     * @param  array<int,int|string>  $quotaIds
+     * @return array{payable:bool,reason:?string,blocked_by:?array{label:string,due_date:string,quota_id:int},message:?string}
+     */
+    public function checkPaymentReadiness(int $userId, array $quotaIds): array
+    {
+        $quotaIds = array_values(array_unique(array_map('intval', $quotaIds)));
+        $quotaIds = array_filter($quotaIds);
+
+        if ($quotaIds === []) {
+            return $this->readinessFail('no_quotas', 'No se recibieron cuotas para pagar.');
+        }
+
+        $requested = Quota::visibleToUser($userId)
+            ->whereIn('id', $quotaIds)
+            ->get();
+
+        if ($requested->count() !== count($quotaIds)) {
+            return $this->readinessFail('not_visible', 'Una de las cuotas indicadas no existe o no te corresponde.');
+        }
+
+        $notPending = $requested->filter(fn (Quota $quota) => (int) $quota->status !== 1);
+
+        if ($notPending->isNotEmpty()) {
+            $quota = $notPending->first();
+
+            [$reason, $message] = match ((int) $quota->status) {
+                2 => ['pending_review', 'La cuota de '.$quota->periodLabel().' ya tiene un pago en revisión.'],
+                3 => ['already_paid', 'La cuota de '.$quota->periodLabel().' ya fue pagada.'],
+                default => ['unavailable', 'La cuota de '.$quota->periodLabel().' no está disponible para pago.'],
+            };
+
+            return $this->readinessFail($reason, $message);
+        }
+
+        $older = $this->findOlderDebt($userId, $requested);
 
         if ($older === null) {
-            return null;
+            return ['payable' => true, 'reason' => null, 'blocked_by' => null, 'message' => null];
         }
 
         return [
-            'code' => 409,
-            'error' => 'Primero debes pagar la cuota de '.$older->periodLabel()
-                .'. No puedes pagar meses posteriores mientras tengas cuotas anteriores pendientes.',
+            'payable' => false,
+            'reason' => 'older_debt',
+            'blocked_by' => [
+                'label' => $older->periodLabel(),
+                'due_date' => $older->due_date instanceof CarbonInterface
+                    ? $older->due_date->toDateString()
+                    : (string) $older->due_date,
+                'quota_id' => (int) $older->id,
+            ],
+            'message' => $this->olderDebtMessage($older),
         ];
+    }
+
+    /**
+     * @return array{payable:bool,reason:string,blocked_by:null,message:string}
+     */
+    private function readinessFail(string $reason, string $message): array
+    {
+        return ['payable' => false, 'reason' => $reason, 'blocked_by' => null, 'message' => $message];
     }
 }

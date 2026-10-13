@@ -257,6 +257,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byMonth/{id}', [QuotaController::class, 'getByMonth']);
         Route::get('/byPay/{id}', [QuotaController::class, 'getByPay']);
         Route::get('/byId/{id}', [QuotaController::class, 'show']);
+        Route::get('/payment-eligibility/{id?}', [QuotaController::class, 'paymentEligibility']);
         Route::get('/client-water-detail/{id}', [QuotaController::class, 'clientWaterDetail']);
         Route::get('/client-maintenance-detail/{id}', [QuotaController::class, 'clientMaintenanceDetail']);
         // Write - Admin only

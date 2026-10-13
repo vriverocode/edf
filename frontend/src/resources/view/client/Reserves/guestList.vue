@@ -145,9 +145,9 @@ onUnmounted(() => {
             <b>{{ guestCount }}</b> / {{ maxGuests }} invitados
           </div>
           <q-btn color="positive" unelevated rounded size="sm" :disable="!canAddGuest"
-            @click="openAddModal()">
+            @click="openAddModal()" no-caps>
             <q-icon name="eva-plus-outline" class="q-mr-xs " />
-            <div class="py-2 px-2">
+            <div class="md:py-2 md:px-2 px-1 text-xs">
               Agregar invitado
             </div>
           </q-btn>
@@ -168,7 +168,7 @@ onUnmounted(() => {
               </div>
               <div class="row items-center q-gutter-xs">
                 <q-badge :color="guest.status_color || (isArrived(guest) ? 'primary' : 'warning')"
-                  :label="guest.status_label || (isArrived(guest) ? 'Llegó' : 'Pendiente')" />
+                  :label="guest.status_label || (isArrived(guest) ? 'Llegó' : 'Pendiente')" class="px-5 py-1" />
                 <template v-if="!isLockedDisplay && !isArrived(guest)">
                   <q-btn flat round icon="eva-edit-2-outline" color="warning" size="sm" @click="openEditModal(guest)">
                     <q-tooltip>Editar</q-tooltip>

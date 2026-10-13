@@ -438,6 +438,35 @@ export const useQuotaStore = defineStore('Quota', {
       })
     },
 
+    // Verifica si el usuario puede pagar las cuotas indicadas antes de abrir el
+    // formulario de pago. Devuelve { payable, reason, blocked_by, message }.
+    // La regla vive en QuotaPaymentEligibilityService, la misma que usa
+    // storePay al registrar el pago.
+    async getQuotaPaymentEligibility(quotaIds) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        const params = new URLSearchParams();
+        (Array.isArray(quotaIds) ? quotaIds : [quotaIds])
+          .filter((id) => id !== null && id !== undefined && id !== '')
+          .forEach((id) => params.append('quota_ids[]', String(id)));
+        const qs = params.toString();
+
+        ApiService.get(`/api/quotas/payment-eligibility${qs ? '?' + qs : ''}`)
+          .then(({ data }) => {
+            if (data.code != 200) {
+              throw data;
+            }
+            resolve(data.data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'No se pudo verificar la cuota');
+          });
+      });
+    },
+
     filterQuery(filter) {
       try {
         const params = new URLSearchParams();

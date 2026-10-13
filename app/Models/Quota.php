@@ -98,12 +98,14 @@ class Quota extends Model
     }
 
     /**
-     * Deuda viva: pendiente de pago (1) y pendiente de aprobacion (2). El
-     * status 2 cuenta como deuda porque el dinero aun no esta saldado.
+     * Deuda viva: pendiente de pago (1), pendiente de aprobacion (2) y vencida
+     * (4). El status 2 cuenta como deuda porque el dinero aun no esta saldado; el
+     * 4 es el mismo caso pero con mas de dos meses de mora, y aparece en el
+     * reporte de morosos (ReportController::delinquents).
      */
     public function scopeOutstanding(Builder $query): Builder
     {
-        return $query->whereIn('status', [1, 2]);
+        return $query->whereIn('status', [1, 2, 4]);
     }
 
     /**
