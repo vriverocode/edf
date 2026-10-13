@@ -33,7 +33,13 @@ class ExpenseController extends Controller
         $perPage = $validated['per_page'] ?? 12;
 
         $paginator = Expense::query()
-            ->with(['provider:id,name', 'serviceCategory:id,name', 'monthlyBill:id,month,year'])
+            ->with([
+                'provider:id,name',
+                'serviceCategory:id,name',
+                'monthlyBill:id,month,year',
+                'pay.financialTransaction.financialAccount',
+                'pay.financialTransaction.transactionCategory',
+            ])
             ->filter($validated)
             ->orderBy('issue_date', 'desc')
             ->paginate($perPage);
@@ -96,7 +102,13 @@ class ExpenseController extends Controller
     public function show(int $id)
     {
         $expense = Expense::query()
-            ->with(['provider:id,name', 'serviceCategory:id,name', 'monthlyBill:id,month,year'])
+            ->with([
+                'provider:id,name',
+                'serviceCategory:id,name',
+                'monthlyBill:id,month,year',
+                'pay.financialTransaction.financialAccount',
+                'pay.financialTransaction.transactionCategory',
+            ])
             ->find($id);
 
         if (! $expense) {
@@ -211,6 +223,6 @@ class ExpenseController extends Controller
 
         $file->move($destination, $name);
 
-        return config('app.url')."/storage/images/expenses/{$name}";
+        return config('app.url')."storage/images/expenses/{$name}";
     }
 }

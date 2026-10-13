@@ -243,7 +243,9 @@ class Quota extends Model
         return static::query()
             ->with([
                 'pays' => function ($query) {
-                    $query->where('status', '!=', 0);
+                    $query->where('status', '!=', 0)
+                        ->orderByRaw('FIELD(pays.status, 1, 2, 6, 5, 4, 3)')
+                        ->orderByDesc('pay_date');
                 },
                 'departament.owner',
                 'responsiblePivot.user',

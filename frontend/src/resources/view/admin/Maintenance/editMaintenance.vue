@@ -116,7 +116,7 @@ const submit = () => {
     .then(() => {
       showNotify('positive', 'Mantenimiento actualizado con éxito')
       setTimeout(() => {
-        router.push(`/admin/maintenances/${route.params.id}`)
+        router.go(-1)
       }, 1000)
     })
     .catch((err) => {
@@ -128,7 +128,7 @@ const submit = () => {
 }
 
 const goBack = () => {
-  router.push(`/admin/maintenances/${route.params.id}`)
+  router.go(-1)
 }
 
 const handleUpload = (event) => {

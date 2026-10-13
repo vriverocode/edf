@@ -15,6 +15,7 @@ use App\Models\Quota;
 use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
+use App\Services\BookingExtensionCancellationService;
 use App\Services\BookingPendingPayNotifier;
 use Carbon\Carbon;
 use Exception;
@@ -74,9 +75,9 @@ class BookingController extends Controller
                 return $this->returnFail(403, 'No tienes permisos para crear reservas en este departamento');
             }
 
-            // if ($this->hasOverdueQuotas($user->id, $departament_id)) {
-            //     return $this->returnFail(505, 'No puede reservar: tiene cuotas pendientes o vencidas de dos o más meses.');
-            // }
+            if ($this->hasOverdueQuotas($user->id, $departament_id) && $departament_id != 43) {
+                return $this->returnFail(505, 'No puede reservar: tiene cuotas pendientes o vencidas de dos o más meses.');
+            }
 
             $allowedAreas = $user->availableComunAreas()->pluck('comun_area_id')->toArray();
             if (! empty($allowedAreas) && ! in_array((int) $request->comun_area, $allowedAreas)) {
@@ -192,7 +193,7 @@ class BookingController extends Controller
             'per_page' => 10000,
         ];
 
-        $filename = 'reporte-reservas-' . now()->format('Y-m-d-His') . '.xlsx';
+        $filename = 'reporte-reservas-'.now()->format('Y-m-d-His').'.xlsx';
 
         return Excel::download(new BookingsExport($filters), $filename);
     }
@@ -392,6 +393,11 @@ class BookingController extends Controller
                 ]);
                 $pay->update(['status' => 6]);
 
+                BookingExtensionCancellationService::cancelExtensionsFor(
+                    $booking,
+                    'Cancelada por cancelación de la reserva original #'.$booking->booking_number
+                );
+
                 DB::commit();
                 $this->cancelReserveNotification([
                     'admin' => User::find(1),
@@ -405,6 +411,12 @@ class BookingController extends Controller
                 'status' => Booking::STATUS_CANCELLED,
                 'motive' => $request->motive ?? '',
             ]);
+
+            BookingExtensionCancellationService::cancelExtensionsFor(
+                $booking,
+                'Cancelada por cancelación de la reserva original #'.$booking->booking_number
+            );
+
             DB::commit();
             $this->sendNotification($booking);
 
@@ -471,6 +483,11 @@ class BookingController extends Controller
                 ]);
             }
 
+            BookingExtensionCancellationService::cancelExtensionsFor(
+                $booking,
+                'Cancelada por cancelación de la reserva original #'.$booking->booking_number
+            );
+
             DB::commit();
 
             if ($isPaidBooking) {
@@ -486,7 +503,7 @@ class BookingController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            return $this->returnFail(500, 'Error al cancelar la reserva: ' . $e->getMessage());
+            return $this->returnFail(500, 'Error al cancelar la reserva: '.$e->getMessage());
         }
     }
 
@@ -496,7 +513,7 @@ class BookingController extends Controller
         if (! $booking) {
             return $this->returnFail(400, 'Reserva no encontrada');
         }
-        if (! in_array($booking->status, [Booking::STATUS_PENDING_PAY,Booking::STATUS_PENDING_APPROVAL,Booking::STATUS_SUCCESS,])) {
+        if (! in_array($booking->status, [Booking::STATUS_PENDING_PAY, Booking::STATUS_PENDING_APPROVAL, Booking::STATUS_SUCCESS])) {
             return $this->returnFail(400, 'La reserva no está en un estado válido para completarse');
         }
 
@@ -1206,12 +1223,8 @@ class BookingController extends Controller
 
     private function existingExtension($area, $booking)
     {
-        return Booking::where('type', 4)
-            ->where('comun_area_id', $area->id)
-            ->where('date', $booking->date)
-            ->where('user_id', $booking->user_id)
-            ->where('status', '>', 0)
-            ->where('note', 'like', '%'.$booking->booking_number.'%')
+        return Booking::query()
+            ->extensionOf($booking)
             ->exists();
     }
 

@@ -9,6 +9,8 @@ import moment from 'moment'
 import iconsApp from '@/assets/icons/index'
 import gastos from '@/assets/img/menu/gastos2.png'
 import expenseFilterModal from '@/components/expenses/expenseFilterModal.vue'
+import payExpenseModal from '@/components/finance/payExpenseModal.vue'
+import viewExpensePayModal from '@/components/finance/viewExpensePayModal.vue'
 import { usePaginationState } from '@/composables/usePaginationState'
 
 const router = useRouter()
@@ -21,6 +23,12 @@ const ready = ref(false)
 const showFilterDialog = ref(false)
 const lastPage = ref(1)
 const expenses = ref([])
+
+const showPayModal = ref(false)
+const selectedExpense = ref(null)
+
+const showViewPayModal = ref(false)
+const selectedPayExpense = ref(null)
 
 const providerOptions = ref([])
 const categoryOptions = ref([])
@@ -161,6 +169,21 @@ const clearFilters = () => {
 
 const goTo = (url) => router.push(url)
 
+const openPayModal = (expense) => {
+  selectedExpense.value = expense
+  showPayModal.value = true
+}
+
+const onPaySuccess = async () => {
+  showPayModal.value = false
+  await fetchExpenses()
+}
+
+const openViewPay = (expense) => {
+  selectedPayExpense.value = expense
+  showViewPayModal.value = true
+}
+
 const openAttachment = (url) => {
   if (url) window.open(url, '_blank')
 }
@@ -270,8 +293,29 @@ onMounted(() => {
                           <q-item clickable v-close-popup @click="goTo('/admin/expenses/details/' + expense.id)">
                             <q-item-section>Ver detalles</q-item-section>
                           </q-item>
-                          <q-item clickable v-close-popup @click="goTo('/admin/expenses/edit/' + expense.id)">
+                          <q-item
+                            v-if="Number(expense.status) !== 3 && !expense.is_template"
+                            clickable
+                            v-close-popup
+                            @click="goTo('/admin/expenses/edit/' + expense.id)"
+                          >
                             <q-item-section>Modificar</q-item-section>
+                          </q-item>
+                          <q-item
+                            v-if="Number(expense.status) !== 3 && !expense.is_template"
+                            clickable
+                            v-close-popup
+                            @click="openPayModal(expense)"
+                          >
+                            <q-item-section>Adjuntar pago</q-item-section>
+                          </q-item>
+                          <q-item
+                            v-if="Number(expense.status) === 3 || Number(expense.type) === 3 || Number(expense.expense_type) === 3"
+                            clickable
+                            v-close-popup
+                            @click="openViewPay(expense)"
+                          >
+                            <q-item-section>Ver pago</q-item-section>
                           </q-item>
                         </q-list>
                       </q-menu>
@@ -341,6 +385,19 @@ onMounted(() => {
       :category-options="categoryOptions"
       @closeModal="showFilterDialog = false"
       @applyFilter="applyFilter"
+    />
+
+    <payExpenseModal
+      :dialog="showPayModal"
+      :expense="selectedExpense"
+      @close-modal="showPayModal = false"
+      @paid="onPaySuccess"
+    />
+
+    <viewExpensePayModal
+      :dialog="showViewPayModal"
+      :expense="selectedPayExpense"
+      @close-modal="showViewPayModal = false"
     />
   </div>
 </template>

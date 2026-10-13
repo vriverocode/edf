@@ -82,6 +82,10 @@ watch(() => props.dialog, (newValue) => {
                 En caso de haber realizado el pago de la reserva, el importe abonado será reembolsado en su totalidad.
               </div>
 
+              <div v-if="reserve.has_extension" class="my-3 text-orange-8">
+                Esta reserva tiene una extensión asociada; la extensión también será cancelada.
+              </div>
+
               <div class="mt-2">
                 <div>
                   Motivo de cancelación:

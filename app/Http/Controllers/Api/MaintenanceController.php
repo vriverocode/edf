@@ -10,6 +10,7 @@ use App\Models\Notice;
 use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
+use App\Services\BookingExtensionCancellationService;
 use DateInterval;
 use DatePeriod;
 use DateTime;
@@ -131,6 +132,11 @@ class MaintenanceController extends Controller
             $bookingsToCancel = $this->cancelConflictingBookings($area->id, $dateStart, $dateEnd, $timeFrom, $timeTo);
 
             foreach ($bookingsToCancel as $booking) {
+                if ((int) $booking->type === 4) {
+                    BookingExtensionCancellationService::cancelExtension($booking, 'Cancelada por mantenimiento');
+
+                    continue;
+                }
                 $motive = 'Cancelada por mantenimiento';
                 if ($booking->type != 1 && $booking->amount > 0) {
                     $motive .= '. El dinero será reembolsado';
@@ -139,6 +145,7 @@ class MaintenanceController extends Controller
                     'status' => 0,
                     'motive' => $motive,
                 ]);
+                BookingExtensionCancellationService::cancelExtensionsFor($booking, 'Cancelada por mantenimiento');
                 $this->sendBookingCancelNotification($booking);
             }
 
@@ -226,6 +233,11 @@ class MaintenanceController extends Controller
             $bookingsToCancel = $this->cancelConflictingBookings($maintenance->comun_area_id, $dateStart, $dateEnd, $timeFrom, $timeTo);
 
             foreach ($bookingsToCancel as $booking) {
+                if ((int) $booking->type === 4) {
+                    BookingExtensionCancellationService::cancelExtension($booking, 'Cancelada por mantenimiento');
+
+                    continue;
+                }
                 $motive = 'Cancelada por mantenimiento';
                 if ($booking->type != 1 && $booking->amount > 0) {
                     $motive .= '. El dinero será reembolsado';
@@ -234,6 +246,7 @@ class MaintenanceController extends Controller
                     'status' => 0,
                     'motive' => $motive,
                 ]);
+                BookingExtensionCancellationService::cancelExtensionsFor($booking, 'Cancelada por mantenimiento');
                 $this->sendBookingCancelNotification($booking);
             }
 

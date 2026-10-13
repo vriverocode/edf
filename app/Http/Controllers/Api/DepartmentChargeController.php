@@ -152,7 +152,8 @@ class DepartmentChargeController extends Controller
         }
 
         $history = $charge->quotas->map(function ($quota) {
-            $pay = $quota->pays->firstWhere('status', 2) ?? $quota->pays->first();
+            $pay = $quota->pays->firstWhere('status', 2)
+                ?? $quota->pays->where('status', '!=', 0)->first();
 
             return [
                 'quota_id' => $quota->id,

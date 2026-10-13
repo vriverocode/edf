@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Notify } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { useExpenseStore } from '@/services/store/expense.store'
@@ -74,6 +74,36 @@ const formData = ref({
   attachment: null,
   attachment_url: ''
 })
+
+const getTodayFormatted = (separator = '/') => {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}${separator}${month}${separator}${day}`
+}
+
+const todayDateFormatted = computed(() => getTodayFormatted('-'))
+const maxYearMonth = computed(() => getTodayFormatted('/').slice(0, 7))
+
+const issueDateOptions = (date) => {
+  return date <= getTodayFormatted('/')
+}
+
+const dueDateOptions = (date) => {
+  if (!formData.value.issue_date) return false
+  const issueDateFormatted = formData.value.issue_date.replaceAll('-', '/')
+  return date > issueDateFormatted
+}
+
+watch(
+  () => formData.value.issue_date,
+  (newVal, oldVal) => {
+    if (oldVal && newVal && formData.value.due_date && formData.value.due_date <= newVal) {
+      formData.value.due_date = ''
+    }
+  }
+)
 
 const hasInvoiceAttachment = computed(() => {
   return !!formData.value.attachment || !!formData.value.attachment_url
@@ -344,13 +374,22 @@ onMounted(async () => {
             borderless
             class="form__inputsR mt-1"
             v-model="formData.issue_date"
-            :rules="[val => !!val || 'La fecha de emisión es requerida']"
+            :rules="[
+              val => !!val || 'La fecha de emisión es requerida',
+              val => val <= todayDateFormatted || 'La fecha de emisión no puede ser posterior a hoy'
+            ]"
             lazy-rules
           >
             <template v-slot:append>
               <q-icon name="eva-calendar-outline" class="cursor-pointer">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                  <q-date mask="YYYY-MM-DD" v-model="formData.issue_date" :locale="esLocale">
+                  <q-date
+                    mask="YYYY-MM-DD"
+                    v-model="formData.issue_date"
+                    :locale="esLocale"
+                    :options="issueDateOptions"
+                    :navigation-max-year-month="maxYearMonth"
+                  >
                     <div class="row items-center justify-end">
                       <q-btn v-close-popup label="Aceptar" color="primary" flat />
                     </div>
@@ -368,14 +407,26 @@ onMounted(async () => {
             borderless
             class="form__inputsR mt-1"
             v-model="formData.due_date"
-            :rules="[val => !!val || 'La fecha de vencimiento es requerida']"
+            :rules="[
+              val => !!val || 'La fecha de vencimiento es requerida',
+              val => (!formData.issue_date || val > formData.issue_date) || 'La fecha de vencimiento debe ser posterior a la fecha de emisión'
+            ]"
             lazy-rules
           >
             <template v-slot:append>
               <q-icon name="eva-calendar-outline" class="cursor-pointer">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                  <q-date mask="YYYY-MM-DD" v-model="formData.due_date" :locale="esLocale">
-                    <div class="row items-center justify-end">
+                  <q-date
+                    mask="YYYY-MM-DD"
+                    v-model="formData.due_date"
+                    :locale="esLocale"
+                    :options="dueDateOptions"
+                  >
+                    <div class="row items-center justify-between q-px-sm">
+                      <span v-if="!formData.issue_date" class="text-caption text-negative">
+                        Selecciona primero la fecha de emisión
+                      </span>
+                      <q-space v-if="formData.issue_date" />
                       <q-btn v-close-popup label="Aceptar" color="primary" flat />
                     </div>
                   </q-date>

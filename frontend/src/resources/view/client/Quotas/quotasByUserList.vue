@@ -129,9 +129,20 @@ const quotaAmountAfterCredit = (quota) => {
   return Math.max(0, Number(quota.amount) - credit);
 }
 
+const resolvePayId = (quota) => {
+  if (quota.pay) return quota.pay
+  const pays = quota.details && quota.details[0] && quota.details[0].pays
+    ? quota.details[0].pays.filter(p => ![0].includes(p.status))
+    : []
+  const preferred = pays.find(p => p.status === 1)
+    ?? pays.find(p => p.status === 2)
+    ?? pays[0]
+  return preferred ? preferred.id : null
+}
+
 const goTo = (quota) => {
   if (quota.status == 2 || quota.status == 3) {
-    const payId = quota.pay || (quota.details && quota.details[0] && quota.details[0].pays && quota.details[0].pays[0] && quota.details[0].pays[0].id)
+    const payId = resolvePayId(quota)
     if (payId) {
       router.push(`/client/pay/quotas/view/${payId}`)
     }

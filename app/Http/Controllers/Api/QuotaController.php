@@ -167,7 +167,9 @@ class QuotaController extends Controller
     {
         $quotas = Quota::with([
             'pays' => function ($query) {
-                $query->where('status', '!=', 0)->orderByDesc('pay_date');
+                $query->where('status', '!=', 0)
+                    ->orderByRaw('FIELD(pays.status, 1, 2, 6, 5, 4, 3)')
+                    ->orderByDesc('pay_date');
             },
             'pays.payMethod',
             'departament.owner',
@@ -394,6 +396,11 @@ class QuotaController extends Controller
 
         $quota->load([
             'departament.owner',
+            'pays' => function ($query) {
+                $query->where('status', '!=', 0)
+                    ->orderByRaw('FIELD(pays.status, 1, 2, 6, 5, 4, 3)')
+                    ->orderByDesc('pay_date');
+            },
             'pays.payMethod',
             'responsiblePivot.user',
             'waterReading',
@@ -555,7 +562,9 @@ class QuotaController extends Controller
         $consolidatedQuotas = collect([]);
         $pay = null;
         if ($quota->status == 3 && $quota->pays->isNotEmpty()) {
-            $pay = $quota->pays->first();
+            $pay = $quota->pays->firstWhere('status', 2)
+                ?? $quota->pays->firstWhere('status', 1)
+                ?? $quota->pays->first();
             $quotaIds = $pay->consolidatedQuotaIds();
             $otherIds = array_filter($quotaIds, fn ($id) => (int) $id !== (int) $quota->id);
             if ($otherIds) {

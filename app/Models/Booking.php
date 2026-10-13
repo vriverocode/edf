@@ -159,12 +159,8 @@ class Booking extends Model
     protected function hasExtension(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->type != 4 && Booking::where('type', 4)
-                ->where('comun_area_id', $this->comun_area_id)
-                ->where('date', $this->date)
-                ->where('user_id', $this->user_id)
-                ->where('status', '>', 0)
-                ->where('note', 'like', '%'.$this->booking_number.'%')
+            get: fn () => $this->type != 4 && Booking::query()
+                ->extensionOf($this)
                 ->exists()
         );
     }
@@ -172,6 +168,16 @@ class Booking extends Model
     /* -------------------------------------------------------------------------- */
     /* Query Scopes (Filtros extraídos del Controlador) */
     /* -------------------------------------------------------------------------- */
+    public function scopeExtensionOf(Builder $query, Booking $parent): Builder
+    {
+        return $query->where('type', 4)
+            ->where('comun_area_id', $parent->comun_area_id)
+            ->where('date', $parent->date)
+            ->where('user_id', $parent->user_id)
+            ->where('status', '>', 0)
+            ->where('note', 'like', '%'.$parent->booking_number.'%');
+    }
+
     public function scopeFilter(Builder $query, array $filters): void
     {
         $searchCallback = $filters['searchCallback'] ?? null;

@@ -20,6 +20,7 @@ use App\Models\Sequence;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\BillInvoiceService;
+use App\Services\BookingExtensionCancellationService;
 use App\Services\BookingPendingPayNotifier;
 use App\Services\CreditService;
 use App\Services\QuotaPaymentEligibilityService;
@@ -54,6 +55,8 @@ class PayController extends Controller
             'user',
             'quotas.departament',
             'payMethod',
+            'financialTransaction.financialAccount',
+            'financialTransaction.transactionCategory',
         ])->find($id);
 
         if (! $pay) {
@@ -456,6 +459,10 @@ class PayController extends Controller
                     $this->cancelBooking($pay->booking_id);
                 }
 
+                if ((int) $pay->type === 1) {
+                    $this->releaseQuotasOnRejection($pay);
+                }
+
                 DB::commit();
 
                 if ((int) $pay->type === 2) {
@@ -671,14 +678,6 @@ class PayController extends Controller
                 Log::warning('returnFail 409: El pago no tiene una reserva asociada.');
 
                 return $this->returnFail(409, 'El pago no tiene una reserva asociada.');
-            }
-
-            if ((int) $booking->type === 4) {
-                DB::rollBack();
-
-                Log::warning('returnFail 409: Las reservas de tipo extensión no tienen reembolso. (booking '.$booking->id.')');
-
-                return $this->returnFail(409, 'Las reservas de tipo extensión no tienen reembolso.');
             }
 
             $hasBankAccount = BankAccount::where('user_id', $booking->user_id)
@@ -985,15 +984,34 @@ class PayController extends Controller
         }
     }
 
+    /**
+     * Al rechazar un pago de cuotas, devuelve las cuotas a "Pago pendiente" (1)
+     * para que el cliente pueda volver a pagar. Solo toca las cuotas que este
+     * pago dejó en "Pendiente de aprob." (2); nunca pisa cuotas ya pagadas (3).
+     */
+    private function releaseQuotasOnRejection(Pay $pay): void
+    {
+        $quotaIds = $pay->consolidatedQuotaIds();
+        if ($quotaIds === []) {
+            return;
+        }
+
+        Quota::query()
+            ->whereIn('id', $quotaIds)
+            ->where('status', 2)
+            ->update(['status' => 1]);
+    }
+
     private function quotaActionByStatus($pay)
     {
-        $newStatus = $pay->status == 0 ? 1 : 3;
+        $payStatus = (int) $pay->status;
+        $newStatus = in_array($payStatus, [0, 3], true) ? 1 : 3;
         foreach ($pay->quotas as $quota) {
             $quota->update(['status' => $newStatus]);
         }
 
-        // Enviar recibos por correo cuando se aprueba el pago (status 3)
-        if ($newStatus === 3) {
+        // Enviar recibos por correo solo cuando se aprueba el pago (status 2)
+        if ($payStatus === 2) {
             $this->billInvoiceService->sendBillInvoicesForPay($pay);
         }
     }
@@ -1020,6 +1038,11 @@ class PayController extends Controller
         $booking->update([
             'status' => $CANCEL_VALUE,
         ]);
+
+        BookingExtensionCancellationService::cancelExtensionsFor(
+            $booking,
+            'Cancelada por rechazo de pago de la reserva original #'.$booking->booking_number
+        );
     }
 
     private function approveBooking($pay)
@@ -1337,7 +1360,7 @@ class PayController extends Controller
             'financial_account_id' => ['required', 'exists:financial_accounts,id'],
             'transaction_category_id' => ['required', 'exists:transaction_categories,id'],
             'reference' => ['nullable', 'string'],
-            'pay_date' => ['required', 'date', 'before_or_equal:today'],
+            'pay_date' => ['required', 'date', 'before_or_equal:'.now()->format('Y-m-d')],
             'vaucher' => ['nullable', 'file', 'max:10240'],
         ], [
             'amount.required' => 'El monto es requerido',
@@ -1354,7 +1377,7 @@ class PayController extends Controller
         if ($validated->fails()) {
             Log::warning('returnFail 422: '.$validated->errors()->first());
 
-            return $this->returnFail(422, ['messageType' => 'negative', 'message' => $validated->errors()->first()]);
+            return $this->returnFail(422, ['messageType' => 'negative', 'message' => $validated->errors()->first(), 'date' => now()->format('Y-m-d')]);
         }
 
         DB::beginTransaction();
