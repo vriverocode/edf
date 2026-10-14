@@ -16,6 +16,12 @@ const menu = [
     icon: cuotas,
     roles: [1],
   },
+  {
+    title: 'Crear cuotas',
+    link: '/admin/quotas/create',
+    icon: cuotas,
+    roles: [1, 8],
+  },
   // {
   //   title: 'Cuotas especiales',
   //   icon: especial,

@@ -112,7 +112,10 @@ const filterDept = (val, update) => {
   update(() => {
     const needle = val.toLowerCase();
     deptOptions.value = allDeptOptions.value.filter(
-      (opt) => opt.label.toLowerCase().includes(needle)
+      (opt) =>
+        opt.label.toLowerCase().includes(needle) ||
+        opt.inter_number.includes(needle) ||
+        opt.block.toLowerCase().includes(needle)
     );
   });
 };
@@ -151,9 +154,14 @@ const fetchDepartments = () => {
     .then(({ data }) => {
       if (data.code !== 200) throw data;
       allDeptOptions.value = (data.data || [])
-        .filter((d) => d.type === 1)
+        .filter((d) => d.type === 1 || d.type === 4)
         .sort((a, b) => a.inter_number - b.inter_number)
-        .map((d) => ({ label: d.number, value: d.number }));
+        .map((d) => ({
+          label: d.number,
+          value: d.number,
+          inter_number: String(d.inter_number ?? ''),
+          block: String(d.block ?? ''),
+        }));
       deptOptions.value = allDeptOptions.value;
     })
     .catch(() => {});

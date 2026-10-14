@@ -437,6 +437,20 @@ export const useQuotaStore = defineStore('Quota', {
           })
       })
     },
+    async createQuotasBatch(payload) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw ''
+        ApiService.setHeader()
+        ApiService.post('/api/quotas/admin/batch', payload)
+          .then(({ data }) => {
+            if (data.code != 200) throw data
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al crear cuotas')
+          })
+      })
+    },
 
     // Verifica si el usuario puede pagar las cuotas indicadas antes de abrir el
     // formulario de pago. Devuelve { payable, reason, blocked_by, message }.

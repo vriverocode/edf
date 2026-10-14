@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Departament;
+use App\Models\DepartmentCharge;
 use App\Models\MonthlyBills;
 use App\Models\Pay;
 use App\Models\Quota;
@@ -16,6 +17,7 @@ use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class QuotaController extends Controller
@@ -413,6 +415,154 @@ class QuotaController extends Controller
             'month' => $month,
             'year' => $year,
             'message' => "{$created} cuotas generadas para {$month}/{$year}",
+        ]);
+    }
+
+    /**
+     * Creación manual masiva de cuotas para las unidades de un usuario.
+     *
+     * El admin selecciona usuario, mes y año (globales) y por cada departamento
+     * ingresa monto total, monto de agua y opcionalmente gastos (DepartmentCharge).
+     * Los departamentos que ya tengan cuota en ese periodo se omiten y se reportan.
+     */
+    public function storeBatch(Request $request): JsonResponse
+    {
+        if ($denied = $this->ensureAdmin($request)) {
+            return $denied;
+        }
+
+        $validator = Validator::make($request->all(), [
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'month' => ['required', 'integer', 'between:1,12'],
+            'year' => ['required', 'integer', 'min:2020'],
+            'departments' => ['required', 'array', 'min:1'],
+            'departments.*.departament_id' => ['required', 'integer', 'exists:departaments,id'],
+            'departments.*.total_amount' => ['required', 'numeric', 'min:0'],
+            'departments.*.water_amount' => ['nullable', 'numeric', 'min:0'],
+            'departments.*.charges' => ['nullable', 'array'],
+            'departments.*.charges.*.id' => ['nullable', 'integer', 'exists:department_charges,id'],
+            'departments.*.charges.*.description' => ['required_without:departments.*.charges.*.id', 'string', 'max:500'],
+            'departments.*.charges.*.total_amount' => ['required_without:departments.*.charges.*.id', 'numeric', 'min:0.01'],
+            'departments.*.charges.*.installments' => ['required_without:departments.*.charges.*.id', 'integer', 'min:1'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->returnFail(422, $validator->errors()->first());
+        }
+
+        $month = (int) $request->month;
+        $year = (int) $request->year;
+
+        $created = 0;
+        $skipped = [];
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($request->departments as $deptInput) {
+                $departamentId = (int) $deptInput['departament_id'];
+
+                $exists = Quota::where('departament_id', $departamentId)
+                    ->where('month', $month)
+                    ->where('year', $year)
+                    ->exists();
+
+                if ($exists) {
+                    $skipped[] = [
+                        'departament_id' => $departamentId,
+                        'number' => Departament::where('id', $departamentId)->value('number'),
+                        'reason' => 'Ya existe una cuota para este periodo',
+                    ];
+
+                    continue;
+                }
+
+                $departament = Departament::findOrFail($departamentId);
+
+                $chargesToLink = [];
+                foreach ($deptInput['charges'] ?? [] as $chargeInput) {
+                    if (! empty($chargeInput['id'])) {
+                        $existingCharge = DepartmentCharge::find($chargeInput['id']);
+                        if ($existingCharge && $existingCharge->departament_id == $departamentId) {
+                            $chargesToLink[] = $existingCharge;
+                        }
+
+                        continue;
+                    }
+
+                    $monthlyAmount = round($chargeInput['total_amount'] / $chargeInput['installments'], 2);
+
+                    $charge = DepartmentCharge::create([
+                        'departament_id' => $departamentId,
+                        'description' => $chargeInput['description'],
+                        'total_amount' => $chargeInput['total_amount'],
+                        'monthly_amount' => $monthlyAmount,
+                        'installments' => $chargeInput['installments'],
+                        'paid_installments' => 0,
+                        'status' => 1,
+                        'start_month' => $month,
+                        'start_year' => $year,
+                    ]);
+
+                    $chargesToLink[] = $charge;
+                }
+
+                $extraAmount = round(collect($chargesToLink)->sum('monthly_amount'), 2);
+
+                $waterAmount = round((float) ($deptInput['water_amount'] ?? 0), 2);
+                $totalAmount = round((float) $deptInput['total_amount'], 2);
+                $maintenanceAmount = round($totalAmount - $waterAmount, 2);
+                $amount = round($totalAmount + $extraAmount, 2);
+
+                $tenantPivotId = MonthlyQuotaService::findActiveTenantPivotId($departamentId);
+                $tenantPays = $departament->tenant_pays_quota ?? false;
+
+                $months = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+                $quota = Quota::create([
+                    'departament_id' => $departamentId,
+                    'peoples_x_departments_id' => ($tenantPays && $tenantPivotId) ? $tenantPivotId : null,
+                    'month' => $month,
+                    'year' => $year,
+                    'due_date' => Carbon::create($year, $month, 1)->endOfMonth()->format('Y-m-d'),
+                    'maintenance_amount' => $maintenanceAmount,
+                    'water_amount' => $waterAmount,
+                    'extra_amount' => $extraAmount,
+                    'amount' => $amount,
+                    'number' => 'A'.substr($departament->number, -3).'-'.$month.rand(1000, 9999),
+                    'type' => $departament->type == 1 ? 1 : 2,
+                    'description' => 'Cuota manual: '.$months[$month].' - '.$year,
+                    'status' => 1,
+                ]);
+
+                // Vincular los charges a la cuota recien creada
+                foreach ($chargesToLink as $charge) {
+                    $monthIndex = ($year * 12 + $month) - ($charge->start_year * 12 + $charge->start_month) + 1;
+                    if ($monthIndex < 1) {
+                        continue;
+                    }
+                    DB::table('charge_quota')->updateOrInsert(
+                        ['department_charge_id' => $charge->id, 'quota_id' => $quota->id],
+                        ['installment_number' => $monthIndex]
+                    );
+                }
+
+                $created++;
+            }
+
+            DB::commit();
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return $this->returnFail(500, 'Error creando cuotas: '.$e->getMessage());
+        }
+
+        return $this->returnSuccess(200, [
+            'created' => $created,
+            'skipped' => $skipped,
+            'month' => $month,
+            'year' => $year,
+            'message' => "{$created} cuotas creadas, ".count($skipped).' omitidas',
         ]);
     }
 

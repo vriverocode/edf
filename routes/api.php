@@ -263,6 +263,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Write - Admin only
         Route::post('/', [QuotaController::class, 'store'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/generate', [QuotaController::class, 'generate'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/admin/batch', [QuotaController::class, 'storeBatch'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::put('/{quota}', [QuotaController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::delete('/{quota}', [QuotaController::class, 'destroy'])->middleware('role:admin,super-admin', 'throttle:write');
         // Admin only - reports

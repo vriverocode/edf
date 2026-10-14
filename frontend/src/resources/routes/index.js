@@ -966,6 +966,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/quotas/create',
+        component: () => import('@/view/admin/Quotas/quotaCreateForm.vue'),
+        name: 'quotaCreateForm',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Crear cuotas',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
         path: '/admin/quotas/maintenance/list',
         component: () => import('@/view/admin/Quotas/quotasMaintenaceList.vue'),
         name: 'quotasMaintenanceList',
