@@ -76,7 +76,7 @@ class BookingController extends Controller
             }
 
             if ($this->hasOverdueQuotas($user->id, $departament_id) && $departament_id != 43) {
-                return $this->returnFail(505, 'No puede reservar: tiene cuotas pendientes o vencidas de dos o más meses.');
+                return $this->returnFail(505, 'No puede reservar: usted se encuentra moroso.');
             }
 
             $allowedAreas = $user->availableComunAreas()->pluck('comun_area_id')->toArray();
@@ -857,7 +857,7 @@ class BookingController extends Controller
         }
 
         if ($this->hasOverdueQuotas($originalBooking->user_id, $originalBooking->departament_id)) {
-            return $this->returnFail(403, 'No puede extender: tiene cuotas pendientes o vencidas de dos o más meses.');
+            return $this->returnFail(403, 'No puede extender: usted se encuentra moroso.');
         }
 
         $hours = Carbon::parse($validated['time_to'])->diffInHours(Carbon::parse($validated['time_from']));
@@ -1230,8 +1230,13 @@ class BookingController extends Controller
 
     private function hasOverdueQuotas(int $userId, int $departamentId): bool
     {
-        return Quota::where('departament_id', $departamentId)
-            ->overdueOrPendingOlderThan(2)
-            ->exists();
+        $overdueMonths = Quota::where('departament_id', $departamentId)
+            ->pastDue()
+            ->pluck('due_date')
+            ->map(fn ($dueDate) => Carbon::parse($dueDate)->format('Y-m'))
+            ->unique()
+            ->count();
+
+        return $overdueMonths >= 2;
     }
 }

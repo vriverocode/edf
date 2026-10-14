@@ -27,6 +27,7 @@ use App\Services\QuotaPaymentEligibilityService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -761,49 +762,197 @@ class PayController extends Controller
 
     public function getRefunds(Request $request)
     {
-        $refunds = Refund::query()
-            ->with(['booking.user', 'booking.departament', 'booking.comunArea', 'pay'])
-            ->when($request->filled('user'), function ($query) use ($request) {
-                $term = '%'.$request->input('user').'%';
-                $query->whereHas('booking.user', function ($userQuery) use ($term) {
-                    $userQuery->where(fn ($q) => $q->where('name', 'like', $term)->orWhere('email', 'like', $term));
-                });
-            })
-            ->when($request->filled('departament'), function ($query) use ($request) {
-                $term = '%'.$request->input('departament').'%';
-                $query->whereHas('booking.departament', fn ($q) => $q->where('number', 'like', $term));
-            })
+        $perPage = $request->filled('paginate') && intval($request->paginate) > 0
+            ? intval($request->paginate)
+            : 20;
+
+        $status = $request->input('status');
+        $month = $request->filled('month') ? (int) $request->input('month') : null;
+        $year = $request->filled('year') ? (int) $request->input('year') : now()->year;
+        $userTerm = $request->filled('user') ? '%'.$request->input('user').'%' : null;
+        $deptTerm = $request->filled('departament') ? '%'.$request->input('departament').'%' : null;
+
+        $completed = $this->refundListQuery($userTerm, $deptTerm, $month, $year);
+        $pending = $this->pendingRefundListQuery($userTerm, $deptTerm, $month, $year);
+
+        $query = match ($status) {
+            'pending' => $pending,
+            'completed' => $completed,
+            default => $completed->unionAll($pending),
+        };
+
+        $paginator = $query
+            ->orderByRaw("CASE WHEN row_status = 'pending' THEN 0 ELSE 1 END")
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        $rows = $paginator->getCollection();
+        $completedModels = Refund::with(['booking.user', 'booking.departament', 'booking.comunArea', 'pay'])
+            ->whereIn('id', $rows->where('row_status', 'completed')->pluck('id'))
             ->get()
-            ->map(function ($refund) {
-                $booking = $refund->booking;
+            ->keyBy('id');
+        $pendingModels = Pay::with(['booking.user', 'booking.departament', 'booking.comunArea'])
+            ->whereIn('id', $rows->where('row_status', 'pending')->pluck('id'))
+            ->get()
+            ->keyBy('id');
 
-                return [
-                    'id' => $refund->id,
-                    'created_at' => $refund->created_at,
-                    'booking_id' => $refund->booking_id,
-                    'booking_number' => $booking?->booking_number ?? '—',
-                    'user_name' => $booking?->user?->name ?? '—',
-                    'departament_number' => $booking?->departament?->number ?? '—',
-                    'comun_area' => $booking?->comunArea?->name ?? '—',
-                    'amount' => round((float) $refund->amount, 2),
-                    'kind' => $refund->kind,
-                    'kind_label' => match ($refund->kind) {
-                        'warranty' => 'Garantía',
-                        'cancellation' => 'Cancelación',
-                        default => '—',
-                    },
-                    'reason' => $refund->reason,
-                    'vaucher' => $refund->vaucher,
-                    'bank_name' => $refund->bank_account_snapshot['name'] ?? '—',
-                    'status' => $refund->status,
-                    'pay_status' => $refund->pay?->status,
-                    'pay_status_label' => $refund->pay?->status_label,
-                ];
-            })
-            ->values();
+        $paginator->setCollection(
+            $rows->map(fn ($row) => $row->row_status === 'pending'
+                ? $this->formatPendingRefund($pendingModels->get($row->id))
+                : $this->formatCompletedRefund($completedModels->get($row->id))
+            )->filter()->values()
+        );
 
-        return $this->returnSuccess(200, $refunds);
+        return $this->returnSuccess(200, $paginator);
+    }
+
+    public function getRefundById($id)
+    {
+        $refund = Refund::with([
+            'booking.user',
+            'booking.departament',
+            'booking.comunArea',
+            'bankAccount',
+        ])->find($id);
+
+        if (! $refund) {
+            Log::warning('returnFail 404: Devolución no encontrada');
+
+            return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Devolución no encontrada']);
+        }
+
+        return $this->returnSuccess(200, $refund);
+    }
+
+    private function refundListQuery(?string $userTerm, ?string $deptTerm, ?int $month, int $year): Builder
+    {
+        return DB::table('table_refunds as r')
+            ->leftJoin('bookings as rb', 'rb.id', '=', 'r.booking_id')
+            ->leftJoin('users as ru', 'ru.id', '=', 'rb.user_id')
+            ->leftJoin('departaments as rd', 'rd.id', '=', 'rb.departament_id')
+            ->whereNull('r.deleted_at')
+            ->when($userTerm, fn ($query) => $query->where(fn ($q) => $q
+                ->where('ru.name', 'like', $userTerm)
+                ->orWhere('ru.email', 'like', $userTerm)))
+            ->when($deptTerm, fn ($query) => $query->where('rd.number', 'like', $deptTerm))
+            ->when($month, fn ($query) => $query
+                ->whereMonth('r.created_at', $month)
+                ->whereYear('r.created_at', $year))
+            ->select([
+                'r.id as id',
+                'r.created_at as created_at',
+                'r.booking_id as booking_id',
+                'r.pay_id as pay_id',
+                DB::raw("'completed' as row_status"),
+            ]);
+    }
+
+    private function pendingRefundListQuery(?string $userTerm, ?string $deptTerm, ?int $month, int $year): Builder
+    {
+        // Pagos marcados como "Pendiente por devolución" (status 6) que todavia
+        // no tienen fila en table_refunds: se listan como devoluciones pendientes.
+        return DB::table('pays as p')
+            ->leftJoin('bookings as pb', 'pb.id', '=', 'p.booking_id')
+            ->leftJoin('users as pu', 'pu.id', '=', 'pb.user_id')
+            ->leftJoin('departaments as pd', 'pd.id', '=', 'pb.departament_id')
+            ->whereNull('p.deleted_at')
+            ->where('p.status', 6)
+            ->whereNotExists(fn ($query) => $query->select(DB::raw(1))
+                ->from('table_refunds')
+                ->whereColumn('table_refunds.pay_id', 'p.id')
+                ->whereNull('table_refunds.deleted_at'))
+            ->when($userTerm, fn ($query) => $query->where(fn ($q) => $q
+                ->where('pu.name', 'like', $userTerm)
+                ->orWhere('pu.email', 'like', $userTerm)))
+            ->when($deptTerm, fn ($query) => $query->where('pd.number', 'like', $deptTerm))
+            ->when($month, fn ($query) => $query
+                ->whereMonth('p.created_at', $month)
+                ->whereYear('p.created_at', $year))
+            ->select([
+                'p.id as id',
+                'p.created_at as created_at',
+                'p.booking_id as booking_id',
+                'p.id as pay_id',
+                DB::raw("'pending' as row_status"),
+            ]);
+    }
+
+    private function formatCompletedRefund(?Refund $refund): ?array
+    {
+        if (! $refund) {
+            return null;
+        }
+
+        $booking = $refund->booking;
+
+        return [
+            'row_key' => 'refund-'.$refund->id,
+            'source' => 'refund',
+            'id' => $refund->id,
+            'created_at' => $refund->created_at,
+            'booking_id' => $refund->booking_id,
+            'booking_number' => $booking?->booking_number ?? '—',
+            'user_name' => $booking?->user?->name ?? '—',
+            'departament_number' => $booking?->departament?->number ?? '—',
+            'comun_area' => $booking?->comunArea?->name ?? '—',
+            'amount' => round((float) $refund->amount, 2),
+            'kind' => $refund->kind,
+            'kind_label' => $this->refundKindLabel($refund->kind),
+            'reason' => $refund->reason,
+            'vaucher' => $refund->vaucher,
+            'bank_name' => $refund->bank_account_snapshot['name'] ?? '—',
+            'status' => $refund->status,
+            'row_status' => 'completed',
+            'status_label' => 'Completada',
+            'status_color' => 'positive',
+            'pay_id' => $refund->pay_id,
+            'pay_status' => $refund->pay?->status,
+            'pay_status_label' => $refund->pay?->status_label,
+        ];
+    }
+
+    private function formatPendingRefund(?Pay $pay): ?array
+    {
+        if (! $pay) {
+            return null;
+        }
+
+        $booking = $pay->booking;
+
+        return [
+            'row_key' => 'pending-'.$pay->id,
+            'source' => 'pending',
+            'id' => $pay->id,
+            'created_at' => $pay->created_at,
+            'booking_id' => $pay->booking_id,
+            'booking_number' => $booking?->booking_number ?? '—',
+            'user_name' => $booking?->user?->name ?? '—',
+            'departament_number' => $booking?->departament?->number ?? '—',
+            'comun_area' => $booking?->comunArea?->name ?? '—',
+            'amount' => round((float) $pay->amount, 2),
+            'kind' => $booking?->kind,
+            'kind_label' => $this->refundKindLabel($booking?->kind),
+            'reason' => null,
+            'vaucher' => null,
+            'bank_name' => '—',
+            'status' => null,
+            'row_status' => 'pending',
+            'status_label' => 'Pendiente',
+            'status_color' => 'warning',
+            'pay_id' => $pay->id,
+            'pay_status' => $pay->status,
+            'pay_status_label' => $pay->status_label,
+        ];
+    }
+
+    private function refundKindLabel(?string $kind): string
+    {
+        return match ($kind) {
+            'warranty' => 'Garantía',
+            'cancellation' => 'Cancelación',
+            default => '—',
+        };
     }
 
     public function getClaimSequence(Request $request)

@@ -293,6 +293,19 @@ class Quota extends Model
             ->where('due_date', '<=', self::oldDebtCutoff($months));
     }
 
+    /**
+     * Cuotas impagas cuya fecha de vencimiento ya paso. No exige ningun
+     * umbral de mora: basta con que la cuota este vencida, es decir que su
+     * due_date sea anterior a hoy (el dia del vencimiento aun no cuenta).
+     * Se usa para el bloqueo de reservas.
+     */
+    public function scopePastDue(Builder $query): Builder
+    {
+        return $query->whereIn('status', [1, 4])
+            ->where('amount', '>', 0)
+            ->where('due_date', '<', Carbon::today()->toDateString());
+    }
+
     public static function oldDebtCutoff(int $months): Carbon
     {
         return Carbon::now()->subMonthsNoOverflow($months)->endOfMonth();

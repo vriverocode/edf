@@ -233,6 +233,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/claims', [PayController::class, 'claimsByPay'])->middleware('throttle:payment');
         // Admin only
         Route::get('/refunds', [PayController::class, 'getRefunds'])->middleware('role:admin,super-admin');
+        Route::get('/refunds/{id}', [PayController::class, 'getRefundById'])->middleware('role:admin,super-admin');
         Route::post('/updateStatus/{id}', [PayController::class, 'updateStatus'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/validate/{id}', [PayController::class, 'validatePayment'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/refund', [PayController::class, 'refund'])->middleware('role:admin,super-admin', 'throttle:write');

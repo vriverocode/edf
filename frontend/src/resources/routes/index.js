@@ -571,6 +571,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/pays/refunds/detail/:rowKey',
+        component: () => import('@/view/admin/Pays/refundDetail.vue'),
+        name: 'refundDetail',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Detalle de devolución',
+          roles: ['admin', 'super-admin'],
+          depth: 4,
+        },
+      },
+      {
         path: '/admin/credits',
         component: () => import('@/view/admin/Credits/creditsList.vue'),
         name: 'creditsList',

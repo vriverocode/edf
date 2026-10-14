@@ -287,6 +287,20 @@ export const usePayStore = defineStore('Pay', {
           });
       })
     },
+    async getRefundById(id) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) throw '';
+        ApiService.setHeader();
+        ApiService.get('/api/pays/refunds/' + id)
+          .then(({ data }) => {
+            if (data.code !== 200) throw data;
+            resolve(data.data);
+          })
+          .catch(({ response }) => {
+            reject(response?.data?.error || 'Error al obtener la devolución');
+          });
+      })
+    },
     async getAllCreditTransactions(params = {}) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw '';

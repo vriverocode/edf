@@ -10,6 +10,10 @@ const authStore = useAuthStore()
 const props = defineProps({
   dialog: Boolean,
   vaucher: String,
+  title: {
+    type: String,
+    default: 'Voucher de pago',
+  },
 })
 const router = useRouter()
 const loading = ref(false)
@@ -33,7 +37,7 @@ watch(() => props.vaucher, (newValue) => {
       <div>
         <q-card-section class="q-px-none">
           <div class="text-h6 text-center text-black pb-2 px-5" style="border-bottom: 1px solid lightgray;">
-            Voucher de pago
+            {{ title }}
           </div>
         </q-card-section>
         <section class="content__modalSectionRifa md:mt-5 py-5 ">
