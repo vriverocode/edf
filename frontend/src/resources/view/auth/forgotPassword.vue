@@ -46,10 +46,10 @@ const goToLogin = () => {
 
 <template>
   <div class="h-full bg-white login-root">
-    <div class="h-full md:w-1/2 md:mx-auto relative">
+    <div class="h-full w-full relative">
       <div class="absolute inset-0 login__bg" :style="{ backgroundImage: 'url(' + bg + ')' }"></div>
 
-      <div class="relative z-10 h-full md:w-full">
+      <div class="relative z-10 h-full md:w-1/2 md:mx-auto ">
         <section class="mt-0 md:pt-12">
           <div class="w-full h-full">
             <div class="mx-auto form__cont md:px-8">
