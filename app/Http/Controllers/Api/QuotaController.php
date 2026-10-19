@@ -805,6 +805,35 @@ class QuotaController extends Controller
         return $this->returnSuccess(200, $result);
     }
 
+    /**
+     * GET /api/quotas/by-owner/{owner}
+     *
+     * Cuotas mensuales pendientes de un usuario (propietario o responsable),
+     * agrupadas por mes. Existe para registerPay.vue: el administrador elige
+     * un usuario y ve todas sus deudas de varios meses en un solo listado para
+     * seleccionarlas y registrar un unico pago consolidado.
+     *
+     * La visibilidad se resuelve con el mismo scope que usa getByMonth para el
+     * parametro owner (visibleToUser), de modo que un inquilino responsable
+     * aparezca igual en ambos endpoints.
+     */
+    public function getPendingByOwner(Request $request, $owner): JsonResponse
+    {
+        if ($denied = $this->ensureAdmin($request)) {
+            return $denied;
+        }
+
+        $status = (int) $request->query('status', 1);
+
+        $query = Quota::baseAdminQuery()
+            ->monthly()
+            ->where('status', $status);
+
+        $this->scopeVisibleToUser($query, (int) $owner);
+
+        return $this->returnSuccess(200, Quota::groupConsolidatedByMonth($query->get()));
+    }
+
     public function clientWaterDetail(Request $request, string $id)
     {
         $quota = $this->findQuotaForAuthUser($id, $request)

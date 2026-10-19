@@ -157,9 +157,13 @@ const goTo = (quota) => {
     })
     return
   }
+  // Solo cuotas realmente pendientes (status 1): un grupo consolidado puede
+  // mezclar unidades ya pagadas y enviarlas aqui provocaria un 409 en
+  // storePay (denyNonPending).
   const ids = quota.details
-    ? quota.details.map(d => d.id)
+    ? quota.details.filter(d => Number(d.status) === 1).map(d => d.id)
     : [quota.id]
+  if (!ids.length) return
   router.push({
     path: `/client/quota/pay/${ids[0]}`,
     query: ids.length > 0 ? { quota_ids: ids.join(',') } : {}
@@ -222,6 +226,128 @@ const oldestOwedLabel = computed(() => {
   return getTitleQuota(oldestOwedPeriod.value).replace('Mensualidad: ', '')
 })
 
+// ── Selección múltiple (pagar varios meses en un solo pago) ──────────────────
+// Regla: la selección debe ser contigua desde el mes deudor más antiguo. Es el
+// mismo criterio que aplica el backend en QuotaPaymentEligibilityService
+// (findOlderDebt usa la due_date mínima del set como frontera).
+const multiMode = ref(false)
+const selectedGroupIds = ref([])
+
+const isPayableMonthly = (quota) =>
+  isMonthlyQuota(quota) && Number(quota.status) === 1
+
+const payableMonthlyGroups = computed(() =>
+  quotas.value.filter(isPayableMonthly)
+)
+
+const multiButtonVisible = computed(() => payableMonthlyGroups.value.length >= 2)
+
+const toggleMultiMode = () => {
+  multiMode.value = !multiMode.value
+  selectedGroupIds.value = []
+}
+
+// Grupo mensual deudor más antiguo que impide seleccionar `group`: cualquier
+// deuda (status 1 o 2) anterior al grupo y aún no seleccionada. Un status 2
+// nunca es seleccionable (pago en revisión), por eso bloquea a los posteriores.
+const blockingGroupFor = (group) => {
+  if (!group || !isMonthlyQuota(group)) return null
+  const key = periodKey(group)
+  const blockers = owedPeriods.value.filter(
+    q => periodKey(q) < key && !selectedGroupIds.value.includes(q.id)
+  )
+  if (!blockers.length) return null
+  return blockers.reduce((oldest, q) => (periodKey(q) < periodKey(oldest) ? q : oldest))
+}
+
+const canSelectGroup = (group) => !blockingGroupFor(group)
+
+const isGroupSelected = (group) => selectedGroupIds.value.includes(group.id)
+
+const shortPeriodLabel = (group) =>
+  getTitleQuota(group).replace('Mensualidad: ', '')
+
+const toggleMultiSelect = (group) => {
+  if (!isPayableMonthly(group)) return
+  if (!canSelectGroup(group)) {
+    const blocker = blockingGroupFor(group)
+    Notify.create({
+      color: 'warning',
+      icon: 'eva-lock-outline',
+      message: blocker?.status == 2
+        ? `La cuota de ${shortPeriodLabel(blocker)} está en revisión; espera su aprobación.`
+        : `Primero selecciona la cuota de ${shortPeriodLabel(blocker)}.`,
+      timeout: 3000
+    })
+    return
+  }
+  const idx = selectedGroupIds.value.indexOf(group.id)
+  if (idx >= 0) {
+    selectedGroupIds.value.splice(idx, 1)
+  } else {
+    selectedGroupIds.value.push(group.id)
+  }
+}
+
+const selectedGroups = computed(() =>
+  quotas.value
+    .filter(q => selectedGroupIds.value.includes(q.id))
+    .sort((a, b) => periodKey(a) - periodKey(b))
+)
+
+// Ids de las cuotas realmente pendientes (status 1) de los grupos marcados,
+// ordenados del más antiguo al más reciente.
+const selectedPendingQuotaIds = computed(() =>
+  selectedGroups.value.flatMap(g =>
+    g.details
+      ? g.details.filter(d => Number(d.status) === 1).map(d => d.id)
+      : [g.id]
+  )
+)
+
+// El saldo a favor se aplica sobre el grupo más reciente seleccionado (mes más
+// nuevo), igual que resuelve el backend con Quota::resolveCreditPeriod.
+const multiCreditTarget = computed(() => {
+  if (!selectedGroups.value.length) return null
+  return selectedGroups.value.reduce(
+    (latest, q) => (periodKey(q) > periodKey(latest) ? q : latest)
+  )
+})
+
+const multiCreditToApply = computed(() => {
+  const target = multiCreditTarget.value
+  if (!target) return 0
+  const credit = getCreditForQuota(target)
+  if (credit <= 0) return 0
+  return Math.min(credit, Number(target.amount) || 0)
+})
+
+const multiTotal = computed(() => {
+  const sum = selectedGroups.value.reduce(
+    (s, q) => s + (Number(q.amount) || 0),
+    0
+  )
+  return Math.max(0, Math.round((sum - multiCreditToApply.value) * 100) / 100)
+})
+
+const paySelectedMonths = () => {
+  const ids = selectedPendingQuotaIds.value
+  if (!ids.length) {
+    Notify.create({
+      color: 'warning',
+      icon: 'eva-alert-circle-outline',
+      message: 'Selecciona al menos un mes.'
+    })
+    return
+  }
+  multiMode.value = false
+  selectedGroupIds.value = []
+  router.push({
+    path: `/client/quota/pay/${ids[0]}`,
+    query: { quota_ids: ids.join(',') }
+  })
+}
+
 const getTitleQuota = (quota) => {
   // month = 0 corresponde a cargos anuales importados ("Cuota Periodo 2025"),
   // no a un mes.
@@ -270,10 +396,23 @@ onMounted(() => {
       </div>
 
       <div v-else class="px-4 py-6 md:px-28">
-        <div v-if="quotas.length > 0" class="space-y-5 md:px-5">
+        <div v-if="quotas.length > 0" class="space-y-5 md:px-5" :class="multiMode && selectedGroups.length ? 'pb-28' : ''">
+          <div v-if="multiButtonVisible" class="flex justify-end">
+            <q-btn
+              :color="multiMode ? 'grey-8' : 'primary'"
+              :label="multiMode ? 'Cancelar selección' : 'Pagar varios meses'"
+              no-caps
+              unelevated
+              :icon="multiMode ? 'eva-close-outline' : 'eva-layers-outline'"
+              class="text-caption"
+              @click="toggleMultiMode"
+            />
+          </div>
           <div v-for="quota in quotas" :key="quota.id"
-            class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5"
-            style="position: relative; border: 1px solid lightgrey">
+            class="bg-white rounded-xl shadow-md overflow-hidden md:mb-5"
+            :class="isGroupSelected(quota) ? 'shadow-lg' : ''"
+            style="position: relative"
+            :style="isGroupSelected(quota) ? 'border: 2px solid #80cbc4' : 'border: 1px solid lightgrey'">
 
             <div class="px-4 pb-2 pt-2 md:pt-4 cursor-pointer" @click="goToDetail(quota)">
               <div class="flex justify-between items-start mb-0 pb-1" style="border-bottom: 1px dashed #111827;">
@@ -328,31 +467,68 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            <div v-if="isBlockedByOlderMonth(quota)"
-              class="px-4 py-2 md:py-3 border-t bg-grey-4">
-              <div class="flex justify-center items-center">
+            <!-- Modo selección múltiple: marcar el mes para el pago consolidado -->
+            <div
+              v-if="multiMode && isPayableMonthly(quota)"
+              class="px-4 py-2 md:py-3 border-t"
+              :class="canSelectGroup(quota) ? 'bg-primary cursor-pointer' : 'bg-grey-4'"
+              @click="toggleMultiSelect(quota)"
+            >
+              <div class="flex items-center justify-between">
                 <div class="flex items-center">
-                  <q-icon name="eva-lock-outline" color="grey-8" size="1.5rem" />
-                  <span class="ml-1 text-sm font-medium text-grey-9">
-                    Paga primero {{ oldestOwedLabel }}
+                  <q-icon
+                    :name="isGroupSelected(quota) ? 'eva-checkmark-circle-2-fill' : 'eva-radio-button-off-outline'"
+                    :color="canSelectGroup(quota) ? 'white' : 'grey-6'"
+                    size="1.7rem"
+                  />
+                  <span class="ml-2 text-sm font-medium"
+                    :class="canSelectGroup(quota) ? 'text-white' : 'text-grey-9'">
+                    {{ isGroupSelected(quota) ? 'Seleccionado' : 'Seleccionar mes' }}
                   </span>
                 </div>
+                <span class="font-medium text-base"
+                  :class="canSelectGroup(quota) ? 'text-white' : 'text-grey-9'">
+                  S/. {{ Number(quota.amount).toFixed(2) }}
+                </span>
+              </div>
+              <div v-if="!canSelectGroup(quota)" class="flex items-center mt-1 text-xs text-grey-8">
+                <q-icon name="eva-lock-outline" size="1rem" class="mr-1" />
+                <span v-if="blockingGroupFor(quota)?.status == 2">
+                  En revisión: espera la aprobación de {{ shortPeriodLabel(blockingGroupFor(quota)) }}
+                </span>
+                <span v-else>
+                  Primero selecciona {{ shortPeriodLabel(blockingGroupFor(quota)) }}
+                </span>
               </div>
             </div>
-            <div v-else class="px-4 py-2 md:py-3 border-t cursor-pointer" :class="`bg-${getStatusInfo(quota.status).color}`"
-              @click="goTo(quota)">
-              <div class="flex justify-center items-center">
-                <div class="flex items-center">
-                  <q-icon :name="getStatusInfo(quota.status).icon" color="white" size="1.5rem" />
-                  <span class="ml-1 text-sm font-medium text-white mr-2">
-                    <span class="" v-if="quota.status ==1">Pagar</span> {{ getStatusInfo(quota.status).label }}
-                  </span>
-                  <span  class="font-medium text-base text-white">
-                    S/. {{ quotaAmountAfterCredit(quota).toFixed(2) }}
-                  </span>
+            <!-- Flujo normal: candado de mes más antiguo o botón Pagar -->
+            <template v-else>
+              <div v-if="isBlockedByOlderMonth(quota)"
+                class="px-4 py-2 md:py-3 border-t bg-grey-4">
+                <div class="flex justify-center items-center">
+                  <div class="flex items-center">
+                    <q-icon name="eva-lock-outline" color="grey-8" size="1.5rem" />
+                    <span class="ml-1 text-sm font-medium text-grey-9">
+                      Paga primero {{ oldestOwedLabel }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+              <div v-else class="px-4 py-2 md:py-3 border-t cursor-pointer" :class="`bg-${getStatusInfo(quota.status).color}`"
+                @click="goTo(quota)">
+                <div class="flex justify-center items-center">
+                  <div class="flex items-center">
+                    <q-icon :name="getStatusInfo(quota.status).icon" color="white" size="1.5rem" />
+                    <span class="ml-1 text-sm font-medium text-white mr-2">
+                      <span class="" v-if="quota.status ==1">Pagar</span> {{ getStatusInfo(quota.status).label }}
+                    </span>
+                    <span  class="font-medium text-base text-white">
+                      S/. {{ quotaAmountAfterCredit(quota).toFixed(2) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -362,6 +538,34 @@ onMounted(() => {
           </div>
           <h3 class="text-lg font-semibold text-gray-900 mb-2">¡No tienes cuotas pendientes! 🎉</h3>
           <p class="text-gray-600 text-center mb-6"> Estás al día con tus pagos. Gracias por contribuir al mantenimiento y buen funcionamiento del edificio.</p>
+        </div>
+
+        <!-- Barra inferior: resumen del pago consolidado multi-mes -->
+        <div
+          v-if="multiMode && selectedGroups.length"
+          class="fixed bottom-0 inset-x-0 z-20 px-4 py-3 bg-primary text-white flex items-center justify-between shadow-2xl"
+          style="border-top-left-radius: 1rem; border-top-right-radius: 1rem;"
+        >
+          <div>
+            <div class="text-sm font-semibold">
+              {{ selectedGroups.length }} {{ selectedGroups.length === 1 ? 'mes seleccionado' : 'meses seleccionados' }}
+            </div>
+            <div v-if="multiCreditToApply > 0" class="text-xs" style="opacity: 0.9;">
+              Saldo a favor: -S/. {{ multiCreditToApply.toFixed(2) }}
+              <template v-if="multiCreditTarget">({{ shortPeriodLabel(multiCreditTarget) }})</template>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <div class="text-h6 text-bold text-white mr-3">S/. {{ multiTotal.toFixed(2) }}</div>
+            <q-btn
+              color="white"
+              text-color="primary"
+              label="Continuar"
+              no-caps
+              unelevated
+              @click="paySelectedMonths"
+            />
+          </div>
         </div>
       </div>
     </div>
