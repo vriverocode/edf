@@ -1065,6 +1065,18 @@ const routes = [
         },
       },
       {
+        path: '/client/reports',
+        component: () => import('@/view/admin/Others/reportsMenu.vue'),
+        name: 'reportsClient',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Reportes',
+          roles: ['propietario', 'inquilino', 'familiar', 'airbnb', 'propietario parcial'],
+          depth: 2,
+        },
+      },
+      {
         path: '/client/reserves/list',
         component: () => import('@/view/client/Reserves/reserveList.vue'),
         name: 'reserveClient',
@@ -1592,7 +1604,7 @@ const routes = [
         meta: {
           title: 'Reporte de reservas',
           pagTitle: 'Reporte de reservas',
-          roles: ['admin', 'super-admin'],
+          roles: ['admin', 'super-admin', 'propietario', 'inquilino', 'familiar'],
           depth: 3,
         },
       },
@@ -1628,7 +1640,7 @@ const routes = [
         meta: {
           title: 'PACIFIK',
           pagTitle: 'Pagos mensuales por unidad',
-          roles: ['admin', 'super-admin'],
+          roles: ['admin', 'super-admin', 'propietario', 'inquilino', 'familiar'],
           depth: 3,
         },
       },

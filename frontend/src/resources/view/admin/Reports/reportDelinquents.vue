@@ -22,7 +22,7 @@ const sendingForUser = ref(null)
 const stats = computed(() => [
   { label: 'Total Morosos', value: metrics.value.total_delinquents, color: 'text-negative', icon: 'eva-person-remove-outline' },
   { label: 'Deuda Total', value: formatMoney(metrics.value.total_debt), color: 'text-warning', icon: 'eva-alert-triangle-outline' },
-  { label: 'Cuotas Vencidas >2m', value: metrics.value.total_overdue_quotas, color: 'text-orange-8', icon: 'eva-clock-outline' },
+  { label: 'Cuotas Vencidas (2+ meses)', value: metrics.value.total_overdue_quotas, color: 'text-orange-8', icon: 'eva-clock-outline' },
 ])
 
 const totalPages = computed(() => {

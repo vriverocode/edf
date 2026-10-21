@@ -4,31 +4,32 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use Carbon\Carbon;
+use App\Exports\BookingsExport;
+use App\Exports\DelinquentsExport;
+use App\Exports\MonthlyPaymentsExport;
+use App\Exports\PaymentsExport;
+use App\Exports\UserQuotasExport;
+use App\Http\Controllers\Controller;
+use App\Models\Booking;
+use App\Models\CreditTransaction;
+use App\Models\Departament;
+use App\Models\Expense;
 use App\Models\Pay;
+use App\Models\Provider;
+use App\Models\Quota;
 use App\Models\Rol;
 use App\Models\User;
-use App\Models\Quota;
-use App\Models\Booking;
-use App\Models\Expense;
-use App\Models\Provider;
-use App\Models\Departament;
 use App\Models\WaterReading;
-use Illuminate\Http\Request;
-use App\Exports\BookingsExport;
-use App\Exports\PaymentsExport;
+use App\Notifications\RealtimeNotification;
 use App\Services\CreditService;
-use App\Exports\UserQuotasExport;
-use App\Models\CreditTransaction;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
-use App\Exports\DelinquentsExport;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\MonthlyPaymentsExport;
-use App\Notifications\RealtimeNotification;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
@@ -103,6 +104,17 @@ class ReportController extends Controller
                 ];
             });
 
+        $topRoles = (clone $active)->with('user.rol')->get()
+            ->countBy(fn ($b) => $b->user?->rol?->name ?? '—')
+            ->sortDesc()
+            ->take(5)
+            ->map(fn ($total, $name) => [
+                'name' => $name,
+                'total' => (int) $total,
+                'percentage' => $activeTotal ? round(((int) $total / $activeTotal) * 100, 1) : 0,
+            ])
+            ->values();
+
         $dayNames = [1 => 'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
         $dayOrder = ['Lunes' => 0, 'Martes' => 1, 'Miércoles' => 2, 'Jueves' => 3, 'Viernes' => 4, 'Sábado' => 5, 'Domingo' => 6];
 
@@ -134,6 +146,7 @@ class ReportController extends Controller
             'pend_reembolso' => $pendReembolso,
             'top_areas' => $topAreas,
             'top_dias' => $topDias,
+            'top_roles' => $topRoles,
         ]);
     }
 
@@ -287,61 +300,11 @@ class ReportController extends Controller
     {
         $perPage = (int) $request->query('per_page', 15);
         $search = $request->query('search');
-        $twoMonthsAgo = Quota::oldDebtCutoff(2);
 
         $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL];
 
-        // 1. Overdue quotas (status 1 o 4, vencidas >2 meses)
-        $overdueQuotas = Quota::whereIn('status', [1, 4])
-            ->where('due_date', '<=', $twoMonthsAgo)
-            ->where('amount', '>', 0)
-            ->whereHas('departament.owner', function ($q) use ($roleExcluded) {
-                $q->whereNotIn('rol_id', $roleExcluded);
-            })
-            ->with(['departament.owner:id,name,email,phone,dni', 'responsiblePivot.user:id,name,email,phone,dni'])
-            ->get();
-
-        // 2. Group by responsible person
-        $grouped = $overdueQuotas
-            ->groupBy(fn ($quota) => $this->getResponsibleUserId($quota))
-            ->map(function ($quotas, $userId) {
-                $responsibleUser = $this->getResponsibleUser($quotas->first());
-                $departments = $quotas->pluck('departament.number')->unique()->values();
-                $totalAmount = $quotas->sum('amount');
-                $oldestDueDate = $quotas->min('due_date');
-
-                $quotasDetail = $quotas->map(function ($q) {
-                    $responsible = $this->getResponsibleUser($q);
-
-                    return [
-                        'id' => $q->id,
-                        'department' => $q->departament->number,
-                        'amount' => (float) $q->amount,
-                        'due_date' => $q->due_date,
-                        'month' => $q->month,
-                        'month_label' => $q->month_label,
-                        'tenant_pays_quota' => $q->departament->tenant_pays_quota ?? false,
-                        'payment_responsible_name' => $responsible?->name ?? 'Sin asignar',
-                        'payment_responsible_role' => ($q->departament->tenant_pays_quota ?? false) ? 'Inquilino' : 'Propietario',
-                    ];
-                })->values()->all();
-
-                return [
-                    'type' => 'overdue_quotas',
-                    'user_id' => $responsibleUser?->id,
-                    'responsible_user_id' => $responsibleUser?->id,
-                    'name' => $responsibleUser?->name ?? 'Sin responsable',
-                    'email' => $responsibleUser?->email,
-                    'phone' => $responsibleUser?->phone,
-                    'dni' => $responsibleUser?->dni,
-                    'status_label' => 'Cuotas pendientes >2 meses',
-                    'departments' => $departments,
-                    'total_debt' => round($totalAmount, 2),
-                    'oldest_due_date' => $oldestDueDate,
-                    'quotas_count' => $quotas->count(),
-                    'quotas' => $quotasDetail,
-                ];
-            });
+        // 1. Overdue quotas grouped by responsible, only >= 2 distinct months (moroso rule)
+        $grouped = $this->buildOverdueDelinquentGroups($roleExcluded);
 
         // 3. Moroso users who are NOT already in the grouped overdue quotas
         $overdueUserIds = $grouped->pluck('user_id')->filter()->unique()->values()->all();
@@ -438,19 +401,17 @@ class ReportController extends Controller
             'message' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $twoMonthsAgo = Quota::oldDebtCutoff(2);
-
         $delinquentUsers = User::whereIn('id', $validated['user_ids'])
             ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL])
             ->get(['id', 'name', 'email', 'phone']);
 
         $sent = 0;
         $failed = 0;
+        $skipped = 0;
 
         foreach ($delinquentUsers as $delinquent) {
             try {
-                $overdueQuotas = Quota::where('status', 1)
-                    ->where('due_date', '<=', $twoMonthsAgo)
+                $overdueQuotas = Quota::pastDue()
                     ->whereHas('departament', function ($q) use ($delinquent) {
                         $q->where(function ($q2) use ($delinquent) {
                             $q2->where('user_id', $delinquent->id)
@@ -460,12 +421,20 @@ class ReportController extends Controller
                     ->with('departament')
                     ->get();
 
+                // Misma regla de morosidad: 2 o mas meses distintos vencidos
+                if (! Quota::hasMorosoDebt($overdueQuotas)) {
+                    $skipped++;
+
+                    continue;
+                }
+
                 $totalDebt = $overdueQuotas->sum('amount');
                 $quotasCount = $overdueQuotas->count();
                 $oldestDue = $overdueQuotas->min('due_date');
+                $periodsCount = Quota::distinctPeriodsCount($overdueQuotas);
 
                 $defaultMessage = "Estimado {$delinquent->name},\n\n";
-                $defaultMessage .= "Le recordamos que tiene {$quotasCount} cuota(s) pendiente(s) de pago con vencimiento superior a 2 meses.\n";
+                $defaultMessage .= "Le recordamos que tiene {$quotasCount} cuota(s) vencida(s) en {$periodsCount} meses distintos.\n";
                 $defaultMessage .= 'Deuda total: S/ '.number_format($totalDebt, 2)."\n";
                 $defaultMessage .= 'Cuota más antigua: '.Carbon::parse($oldestDue)->format('d/m/Y')."\n\n";
                 $defaultMessage .= "Por favor regularice su situación a la brevedad.\n\n";
@@ -493,68 +462,31 @@ class ReportController extends Controller
         return $this->returnSuccess(200, [
             'sent' => $sent,
             'failed' => $failed,
-            'message' => "Recordatorios enviados: {$sent}. Fallidos: {$failed}.",
+            'skipped' => $skipped,
+            'message' => "Recordatorios enviados: {$sent}. Fallidos: {$failed}. Omitidos (no cumplen 2+ meses): {$skipped}.",
         ]);
     }
 
     public function delinquentsMetrics(): JsonResponse
     {
-        $twoMonthsAgo = Quota::oldDebtCutoff(2);
         $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL];
 
-        $totalOverdue = Quota::whereIn('status', [1, 4])
-            ->where('due_date', '<=', $twoMonthsAgo)
-            ->where('amount', '>', 0)
-            ->whereHas('departament.owner', function ($q) use ($roleExcluded) {
-                $q->whereNotIn('rol_id', $roleExcluded);
-            })
-            ->count();
+        // Only users with overdue quotas spanning >= 2 distinct months (moroso rule)
+        $grouped = $this->buildOverdueDelinquentGroups($roleExcluded);
 
-        $totalDebt = Quota::whereIn('status', [1, 4])
-            ->where('due_date', '<=', $twoMonthsAgo)
-            ->where('amount', '>', 0)
-            ->whereHas('departament.owner', function ($q) use ($roleExcluded) {
-                $q->whereNotIn('rol_id', $roleExcluded);
-            })
-            ->sum('amount');
+        $totalOverdue = $grouped->sum('quotas_count');
+        $totalDebt = $grouped->sum('total_debt');
 
         // Count unique delinquent users:
         // 1) Users flagged as moroso (status=2)
-        // 2) Users who are owners of depts with overdue quotas
-        // 3) Users who are tenants responsible for overdue quotas
-        $ownerIds = Quota::whereIn('status', [1, 4])
-            ->where('due_date', '<=', $twoMonthsAgo)
-            ->where('amount', '>', 0)
-            ->whereHas('departament.owner', function ($q) use ($roleExcluded) {
-                $q->whereNotIn('rol_id', $roleExcluded);
-            })
-            ->with('departament:user_id')
-            ->get()
-            ->pluck('departament.user_id')
-            ->unique()
-            ->values()
-            ->all();
-
-        $tenantIds = Quota::whereIn('status', [1, 4])
-            ->where('due_date', '<=', $twoMonthsAgo)
-            ->where('amount', '>', 0)
-            ->whereNotNull('peoples_x_departments_id')
-            ->whereHas('departament', function ($q) {
-                $q->where('tenant_pays_quota', true);
-            })
-            ->with('responsiblePivot:user_id')
-            ->get()
-            ->pluck('responsiblePivot.user_id')
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        // 2) Users qualifying via overdue quotas in >= 2 distinct months
+        $qualifyingIds = $grouped->pluck('user_id')->filter()->unique()->values()->all();
 
         $uniqueDelinquents = User::where(function ($q) use ($roleExcluded) {
             $q->where('status', 2)
                 ->whereNotIn('rol_id', $roleExcluded);
         })
-            ->orWhereIn('id', array_merge($ownerIds, $tenantIds))
+            ->orWhereIn('id', $qualifyingIds)
             ->count();
 
         return $this->returnSuccess(200, [
@@ -562,6 +494,63 @@ class ReportController extends Controller
             'total_debt' => round($totalDebt, 2),
             'total_overdue_quotas' => $totalOverdue,
         ]);
+    }
+
+    /**
+     * Cuotas vencidas (status 1/4, due_date < hoy) agrupadas por responsable,
+     * conservando solo los usuarios que deben en 2 o mas meses distintos
+     * (mismo criterio de morosidad que CheckUserMorosos).
+     */
+    private function buildOverdueDelinquentGroups(array $roleExcluded): Collection
+    {
+        $overdueQuotas = Quota::pastDue()
+            ->whereHas('departament.owner', function ($q) use ($roleExcluded) {
+                $q->whereNotIn('rol_id', $roleExcluded);
+            })
+            ->with(['departament.owner:id,name,email,phone,dni', 'responsiblePivot.user:id,name,email,phone,dni'])
+            ->get();
+
+        return $overdueQuotas
+            ->groupBy(fn ($quota) => $this->getResponsibleUserId($quota))
+            ->filter(fn ($quotas, $userId) => $userId && Quota::hasMorosoDebt($quotas))
+            ->map(function ($quotas, $userId) {
+                $responsibleUser = $this->getResponsibleUser($quotas->first());
+                $departments = $quotas->pluck('departament.number')->unique()->values();
+                $totalAmount = $quotas->sum('amount');
+                $oldestDueDate = $quotas->min('due_date');
+
+                $quotasDetail = $quotas->map(function ($q) {
+                    $responsible = $this->getResponsibleUser($q);
+
+                    return [
+                        'id' => $q->id,
+                        'department' => $q->departament->number,
+                        'amount' => (float) $q->amount,
+                        'due_date' => $q->due_date,
+                        'month' => $q->month,
+                        'month_label' => $q->month_label,
+                        'tenant_pays_quota' => $q->departament->tenant_pays_quota ?? false,
+                        'payment_responsible_name' => $responsible?->name ?? 'Sin asignar',
+                        'payment_responsible_role' => ($q->departament->tenant_pays_quota ?? false) ? 'Inquilino' : 'Propietario',
+                    ];
+                })->values()->all();
+
+                return [
+                    'type' => 'overdue_quotas',
+                    'user_id' => $responsibleUser?->id,
+                    'responsible_user_id' => $responsibleUser?->id,
+                    'name' => $responsibleUser?->name ?? 'Sin responsable',
+                    'email' => $responsibleUser?->email,
+                    'phone' => $responsibleUser?->phone,
+                    'dni' => $responsibleUser?->dni,
+                    'status_label' => 'Cuotas vencidas en 2+ meses',
+                    'departments' => $departments,
+                    'total_debt' => round($totalAmount, 2),
+                    'oldest_due_date' => $oldestDueDate,
+                    'quotas_count' => $quotas->count(),
+                    'quotas' => $quotasDetail,
+                ];
+            });
     }
 
     private function getResponsibleUserId(Quota $quota): ?int
@@ -599,59 +588,10 @@ class ReportController extends Controller
     private function getDelinquentsData(Request $request)
     {
         $search = $request->query('search');
-        $twoMonthsAgo = Quota::oldDebtCutoff(2);
 
         $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL];
 
-        $overdueQuotas = Quota::whereIn('status', [1, 4])
-            ->where('due_date', '<=', $twoMonthsAgo)
-            ->where('amount', '>', 0)
-            ->whereHas('departament.owner', function ($q) use ($roleExcluded) {
-                $q->whereNotIn('rol_id', $roleExcluded);
-            })
-            ->with(['departament.owner:id,name,email,phone,dni', 'responsiblePivot.user:id,name,email,phone,dni'])
-            ->get();
-
-        $grouped = $overdueQuotas
-            ->groupBy(fn ($quota) => $this->getResponsibleUserId($quota))
-            ->map(function ($quotas, $userId) {
-                $responsibleUser = $this->getResponsibleUser($quotas->first());
-                $departments = $quotas->pluck('departament.number')->unique()->values();
-                $totalAmount = $quotas->sum('amount');
-                $oldestDueDate = $quotas->min('due_date');
-
-                $quotasDetail = $quotas->map(function ($q) {
-                    $responsible = $this->getResponsibleUser($q);
-
-                    return [
-                        'id' => $q->id,
-                        'department' => $q->departament->number,
-                        'amount' => (float) $q->amount,
-                        'due_date' => $q->due_date,
-                        'month' => $q->month,
-                        'month_label' => $q->month_label,
-                        'tenant_pays_quota' => $q->departament->tenant_pays_quota ?? false,
-                        'payment_responsible_name' => $responsible?->name ?? 'Sin asignar',
-                        'payment_responsible_role' => ($q->departament->tenant_pays_quota ?? false) ? 'Inquilino' : 'Propietario',
-                    ];
-                })->values()->all();
-
-                return [
-                    'type' => 'overdue_quotas',
-                    'user_id' => $responsibleUser?->id,
-                    'responsible_user_id' => $responsibleUser?->id,
-                    'name' => $responsibleUser?->name ?? 'Sin responsable',
-                    'email' => $responsibleUser?->email,
-                    'phone' => $responsibleUser?->phone,
-                    'dni' => $responsibleUser?->dni,
-                    'status_label' => 'Cuotas pendientes >2 meses',
-                    'departments' => $departments,
-                    'total_debt' => round($totalAmount, 2),
-                    'oldest_due_date' => $oldestDueDate,
-                    'quotas_count' => $quotas->count(),
-                    'quotas' => $quotasDetail,
-                ];
-            });
+        $grouped = $this->buildOverdueDelinquentGroups($roleExcluded);
 
         $overdueUserIds = $grouped->pluck('user_id')->filter()->unique()->values()->all();
 

@@ -43,7 +43,6 @@ const menu = [
     title: 'Visitas',
     icon: iconsApp.visitor,
     link: '/security/visit/list',
-    roles: [6]
   },
 ]
 

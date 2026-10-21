@@ -311,6 +311,31 @@ class Quota extends Model
         return Carbon::now()->subMonthsNoOverflow($months)->endOfMonth();
     }
 
+    /**
+     * Cantidad de meses distintos (YYYY-MM segun due_date) que abarcan las
+     * cuotas dadas. Se usa para la regla de morosidad: un usuario es moroso
+     * cuando debe cuotas vencidas en 2 o mas meses distintos.
+     */
+    public static function distinctPeriodsCount(Collection $quotas): int
+    {
+        return $quotas
+            ->map(fn ($quota) => $quota->due_date
+                ? Carbon::parse($quota->due_date)->format('Y-m')
+                : null)
+            ->filter()
+            ->unique()
+            ->count();
+    }
+
+    /**
+     * True si la coleccion de cuotas impagas califica al responsable como
+     * moroso: 2 o mas meses distintos vencidos.
+     */
+    public static function hasMorosoDebt(Collection $quotas): bool
+    {
+        return self::distinctPeriodsCount($quotas) >= 2;
+    }
+
     public static function groupConsolidatedByMonth(Collection $quotas): Collection
     {
         return $quotas

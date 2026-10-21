@@ -38,6 +38,20 @@ const pageTitle = computed(() => {
   return label ? `Mensualidad: ${label} ${year.value}` : `Cuotas del mes`;
 });
 
+// Conteo de registros: por card, los dptos type 1 (IDs únicos); si el card no
+// tiene ninguno (ej. propietario parcial) cuenta 1.
+const recordCount = computed(() =>
+  quotas.value.reduce((sum, group) => {
+    const details = Array.isArray(group.details) ? group.details : [];
+    const typeOneIds = new Set(
+      details
+        .filter((d) => Number(d?.departament?.type) === 1)
+        .map((d) => d?.departament?.id)
+    );
+    return sum + (typeOneIds.size > 0 ? typeOneIds.size : 1);
+  }, 0)
+);
+
 const getDeptSortMeta = (quota) => {
   const details = Array.isArray(quota?.details) ? quota.details : [];
   const typeOne = details.find((item) => Number(item?.departament?.type) === 1);
@@ -282,6 +296,9 @@ onMounted(() => {
             </template>
           </q-select>
         </div>       
+      </div>
+      <div v-if="!loading" class="q-px-4 md:px-34 q-mb-sm text-caption text-grey-7">
+        {{ recordCount }} registro{{ recordCount === 1 ? '' : 's' }}
       </div>
       <div v-if="loading" class="flex justify-center items-center py-20">
         <q-spinner-dots color="primary" size="7rem" />

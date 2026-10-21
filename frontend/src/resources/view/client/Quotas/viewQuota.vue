@@ -212,6 +212,12 @@ const grandTotal = computed(() =>
   allMonthQuotas.value.reduce((sum, q) => sum + quotaTotal(q), 0)
 )
 
+// Saldo a favor consumido por el pago de esta cuota (pay.credit_applied)
+const creditApplied = computed(() => Number(payData.value?.credit_applied || 0))
+
+// Total final = total del mes menos el saldo a favor aplicado
+const finalTotal = computed(() => round2(grandTotal.value - creditApplied.value))
+
 const predioLabel = computed(() => {
   const predio = quotaData.value?.predio
   if (Array.isArray(predio) && predio.length) {
@@ -468,7 +474,7 @@ loadQuota(route.params.id || route.query.id)
             </div>
             <div class="invoice-info-item items-end">
               <span class="invoice-info-item__label">Total mes (todas las unidades)</span>
-              <span class="invoice-info-item__value">{{ amountPrefix }} {{ money(grandTotal) }}</span>
+              <span class="invoice-info-item__value">{{ amountPrefix }} {{ money(finalTotal) }}</span>
             </div>
             <div class="invoice-info-item">
               <span class="invoice-info-item__label">Fecha de emisión</span>
@@ -828,9 +834,13 @@ loadQuota(route.params.id || route.query.id)
             <span>Sub-total cargos extras</span>
             <span>{{ amountPrefix }} {{ money(subExtras) }}</span>
           </div>
+          <div v-if="creditApplied > 0" class="invoice-totals__row">
+            <span>Saldo a favor aplicado</span>
+            <span class="text-green-600">- {{ amountPrefix }} {{ money(creditApplied) }}</span>
+          </div>
           <div class="invoice-totals__row invoice-totals__row--grand">
             <span>TOTAL DEL MES</span>
-            <span>{{ amountPrefix }} {{ money(grandTotal) }}</span>
+            <span>{{ amountPrefix }} {{ money(finalTotal) }}</span>
           </div>
         </div>
 

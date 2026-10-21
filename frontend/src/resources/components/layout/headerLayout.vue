@@ -50,9 +50,19 @@ const hasPendingToPay = computed(() => {
 
 const tenantPendingToPay = computed(() => user.value?.tenant_pending_count || 0)
 
-const tenantPendingAmount = computed(() => Number(user.value?.tenant_pending_amount ?? 0).toFixed(2))
+// Monto final con descuento (saldo a favor ya descontado).
+// Si el backend no envía los campos *_final, se usa el bruto como fallback.
+const tenantPendingAmount = computed(() =>
+  Number(user.value?.tenant_pending_amount_final ?? user.value?.tenant_pending_amount ?? 0).toFixed(2)
+)
 
-const ownerPendingAmount = computed(() => Number(user.value?.total_peding_quotas ?? 0).toFixed(2))
+const ownerPendingAmount = computed(() =>
+  Number(user.value?.total_peding_quotas_final ?? user.value?.total_peding_quotas ?? 0).toFixed(2)
+)
+
+// Descuento (saldo a favor aplicable) para mostrar el detalle bajo el monto
+const ownerCreditDiscount = computed(() => Number(user.value?.total_peding_quotas_credit ?? 0))
+const tenantCreditDiscount = computed(() => Number(user.value?.tenant_pending_amount_credit ?? 0))
 
 const goTo = (url) => {
   router.push(url)
@@ -88,11 +98,17 @@ onMounted(() => {
               {{ ownerPendingAmount }}
 
             </div>
+            <div class="text-discountHeader" v-if="ownerCreditDiscount > 0">
+              Incluye descuento: -{{ user.currency_symbol }} {{ ownerCreditDiscount.toFixed(2) }}
+            </div>
           </div>
           <div class="text-white" v-if="ifTenant && tenantPendingToPay > 0">
             <div class="mant-title">Mantenimiento</div>
             <div class="text-amtHeader" style="">{{ user.currency_symbol }}
               {{ tenantPendingAmount }}
+            </div>
+            <div class="text-discountHeader" v-if="tenantCreditDiscount > 0">
+              Incluye descuento: -{{ user.currency_symbol }} {{ tenantCreditDiscount.toFixed(2) }}
             </div>
           </div>
 
@@ -173,6 +189,13 @@ onMounted(() => {
 .text-amtHeader {
   font-size: 1.9rem;
   font-weight: 500;
+}
+
+.text-discountHeader {
+  font-size: 0.78rem;
+  font-weight: 400;
+  opacity: 0.9;
+  text-decoration: underline;
 }
 
 .badgeNotificationCount {

@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Models\Quota;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -12,10 +11,10 @@ class CheckUserMorosos extends Command
 {
     protected $signature = 'app:check-user-morosos';
 
-    protected $description = 'Marca como morosos (status=2) a usuarios con cuotas pendientes/vencidas > 2 meses';
+    protected $description = 'Marca como morosos (status=2) a usuarios con cuotas vencidas en 2 o mas meses distintos';
 
     private array $stats = [
-        'old_quotas_found' => 0,
+        'overdue_quotas_found' => 0,
         'users_marked_moroso' => 0,
         'users_restored_al_dia' => 0,
         'already_moroso' => 0,
@@ -24,44 +23,57 @@ class CheckUserMorosos extends Command
 
     public function handle(): int
     {
-        $cutoff = Quota::oldDebtCutoff(2);
+        $overdueQuotas = $this->getOverduePendingQuotas();
+        $this->stats['overdue_quotas_found'] = $overdueQuotas->count();
 
-        $this->info('Fecha de corte: '.$cutoff->toDateString());
+        // Users qualifying as moroso: unpaid overdue quotas spanning >= 2 distinct months
+        $qualifyingUserIds = $this->getQualifyingUserIds($overdueQuotas);
 
-        $oldQuotas = $this->getOldPendingQuotas($cutoff);
-        $this->stats['old_quotas_found'] = $oldQuotas->count();
-
-        $responsibleIds = $this->markMorosos($oldQuotas);
-        $this->restoreAlDia($responsibleIds);
+        $this->markMorosos($qualifyingUserIds);
+        $this->restoreAlDia($qualifyingUserIds);
         $this->printSummary();
 
         return 0;
     }
 
-    private function getOldPendingQuotas(Carbon $cutoff)
+    private function getOverduePendingQuotas()
     {
-        return Quota::whereIn('status', [1, 4])
-            ->where('amount', '>', 0)
-            ->where('due_date', '<=', $cutoff)
+        return Quota::pastDue()
             ->with('departament.owner', 'responsiblePivot.user')
             ->get();
     }
 
-    private function markMorosos($oldQuotas): array
+    /**
+     * Distinct responsible user ids that qualify as moroso
+     * (their overdue quotas span >= 2 distinct months).
+     *
+     * @return array<int>
+     */
+    private function getQualifyingUserIds($overdueQuotas): array
     {
-        if ($oldQuotas->isEmpty()) {
-            return [];
+        return $overdueQuotas
+            ->groupBy(fn ($quota) => $this->getResponsibleUserId($quota))
+            ->filter(fn ($quotas, $userId) => $userId && Quota::hasMorosoDebt($quotas))
+            ->keys()
+            ->values()
+            ->all();
+    }
+
+    private function getResponsibleUserId(Quota $quota): ?int
+    {
+        return $quota->responsiblePivot?->user?->id ?? $quota->departament?->owner?->id;
+    }
+
+    private function markMorosos(array $qualifyingUserIds): void
+    {
+        if (empty($qualifyingUserIds)) {
+            return;
         }
 
-        $userIds = collect();
+        $users = User::whereIn('id', $qualifyingUserIds)->get(['id', 'status']);
 
-        foreach ($oldQuotas as $quota) {
-            $user = $quota->responsiblePivot?->user ?? $quota->departament?->owner;
-
-            if (! $user) {
-                continue;
-            }
-
+        $markedIds = [];
+        foreach ($users as $user) {
             if ((int) $user->status === 3) {
                 $this->stats['inactive_skipped']++;
 
@@ -74,60 +86,29 @@ class CheckUserMorosos extends Command
                 continue;
             }
 
-            $userIds->push($user->id);
+            $markedIds[] = $user->id;
         }
 
-        $uniqueIds = $userIds->unique()->values()->toArray();
-
-        if (! empty($uniqueIds)) {
-            $updated = User::whereIn('id', $uniqueIds)->update(['status' => 2, 'parentesco' => 'moroso']);
+        if (! empty($markedIds)) {
+            $updated = User::whereIn('id', $markedIds)->update(['status' => 2, 'parentesco' => 'moroso']);
             $this->stats['users_marked_moroso'] = $updated;
 
-            Log::info('[CheckUserMorosos] Marcados como morosos', [
-                'user_ids' => $uniqueIds,
-                'cutoff' => now()->toDateTimeString(),
+            Log::info('[CheckUserMorosos] Marcados como morosos (>=2 meses distintos)', [
+                'user_ids' => $markedIds,
             ]);
         }
-
-        // Return all users currently responsible for old debt (including already morosos)
-        return $oldQuotas
-            ->map(fn ($q) => $q->responsiblePivot?->user?->id ?? $q->departament?->owner?->id)
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
     }
 
-    private function restoreAlDia(array $currentDebtorIds): void
+    private function restoreAlDia(array $qualifyingUserIds): void
     {
-        $cutoff = Quota::oldDebtCutoff(2);
-
-        // Collect all users currently marked as moroso
         $allMorosos = User::where('status', 2)->pluck('id')->toArray();
 
         if (empty($allMorosos)) {
             return;
         }
 
-        // A moroso can only be restored if they have zero old pending/overdue quotas.
-        // We verify directly against the DB so that quotas that moved to status=3
-        // (approved/paid) are correctly excluded from "still has debt" check.
-        $stillInDebt = Quota::whereIn('status', [1, 4])
-            ->where('amount', '>', 0)
-            ->where('due_date', '<=', $cutoff)
-            ->where(function ($query) {
-                // Quota linked via responsiblePivot OR via departament owner
-                $query->whereHas('responsiblePivot.user', fn ($q) => $q->where('users.status', 2))
-                    ->orWhereHas('departament.owner', fn ($q) => $q->where('users.status', 2));
-            })
-            ->get()
-            ->map(fn ($q) => $q->responsiblePivot?->user?->id ?? $q->departament?->owner?->id)
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
-
-        $toRestore = array_values(array_diff($allMorosos, $stillInDebt));
+        // A moroso is restored when their overdue quotas no longer span >= 2 distinct months
+        $toRestore = array_values(array_diff($allMorosos, $qualifyingUserIds));
 
         if (empty($toRestore)) {
             return;
@@ -149,8 +130,8 @@ class CheckUserMorosos extends Command
         $this->table(
             ['Métrica', 'Valor'],
             [
-                ['Cuotas viejas encontradas (status 1/4, due_date > 2 meses)', $this->stats['old_quotas_found']],
-                ['Usuarios marcados como morosos', $this->stats['users_marked_moroso']],
+                ['Cuotas vencidas encontradas (status 1/4, due_date < hoy)', $this->stats['overdue_quotas_found']],
+                ['Usuarios marcados como morosos (>=2 meses distintos)', $this->stats['users_marked_moroso']],
                 ['Usuarios restaurados a Pagos al día', $this->stats['users_restored_al_dia']],
                 ['Omitidos (ya estaban morosos)', $this->stats['already_moroso']],
                 ['Omitidos (inactivos, status=3)', $this->stats['inactive_skipped']],

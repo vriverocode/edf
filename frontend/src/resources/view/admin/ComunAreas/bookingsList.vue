@@ -210,7 +210,8 @@ const getDepartmentNumber = (booking) => {
 const loadMaintenances = async () => {
   try {
     const res = await maintenanceStore.getMaintenanceByArea(route.params.id, '')
-    maintenances.value = Array.isArray(res) ? res : []
+    const list = Array.isArray(res) ? res : []
+    maintenances.value = list.filter(m => m.date >= today)
   } catch {
     maintenances.value = []
   }

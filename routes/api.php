@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\WaterReadingController;
 use App\Models\Currency;
+use App\Services\CreditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -75,6 +76,25 @@ Route::middleware('auth:sanctum')->group(function () {
             ->sum('departament.pending_quotas_sum_amount');
         $user->tenant_pending_count = (int) $tenantDepartments
             ->sum('departament.pending_quotas_count');
+
+        // Monto final con descuento (saldo a favor aplicable): los usuarios que
+        // solo transfieren el monto del header sin entrar al pago deben ver aqui
+        // lo que realmente deben transferir.
+        $creditService = app(CreditService::class);
+
+        $ownerCredit = round($creditService
+            ->getBalanceForDepartments($user->units->pluck('id')->all())['total'], 2);
+        $user->total_peding_quotas_credit = $ownerCredit;
+        $user->total_peding_quotas_final = round(
+            max(0, (float) $user->total_peding_quotas - $ownerCredit), 2
+        );
+
+        $tenantCredit = round($creditService
+            ->getBalanceForDepartments($tenantDepartments->pluck('departament_id')->filter()->all())['total'], 2);
+        $user->tenant_pending_amount_credit = $tenantCredit;
+        $user->tenant_pending_amount_final = round(
+            max(0, (float) $user->tenant_pending_amount - $tenantCredit), 2
+        );
 
         $userData = $user->toArray();
         $userData['currency'] = $currency?->id ?? 1;
@@ -501,20 +521,26 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ── Reports ──────────────────────────────────────────────
-    Route::prefix('reports')->name('report.')->middleware('role:admin,super-admin')->group(function () {
-        Route::get('/bookings', [ReportController::class, 'bookings']);
-        Route::get('/bookings/export', [ReportController::class, 'exportBookings']);
-        Route::get('/bookings/metrics', [ReportController::class, 'bookingsMetrics']);
-        Route::get('/monthly-payments', [ReportController::class, 'monthlyPayments']);
-        Route::get('/monthly-payments/export', [ReportController::class, 'exportMonthlyPayments']);
-        Route::get('/user-quotas', [ReportController::class, 'userQuotas']);
-        Route::get('/user-quotas/export', [ReportController::class, 'exportUserQuotas']);
-        Route::get('/delinquents', [ReportController::class, 'delinquents']);
-        Route::get('/delinquents/export', [ReportController::class, 'exportDelinquents']);
-        Route::get('/delinquents/metrics', [ReportController::class, 'delinquentsMetrics']);
-        Route::post('/delinquents/send-reminder', [ReportController::class, 'sendReminderDelinquents']);
-        Route::get('/expense-matrix', [ReportController::class, 'expenseMatrix']);
-        Route::get('/payments', [ReportController::class, 'paymentsReport']);
-        Route::get('/payments/export', [ReportController::class, 'exportPayments']);
+    Route::prefix('reports')->name('report.')->group(function () {
+        // Reportes de reservas y pagos mensuales: disponibles tambien para residentes
+        Route::middleware('role:admin,super-admin,propietario,inquilino,familiar')->group(function () {
+            Route::get('/bookings', [ReportController::class, 'bookings']);
+            Route::get('/bookings/export', [ReportController::class, 'exportBookings']);
+            Route::get('/bookings/metrics', [ReportController::class, 'bookingsMetrics']);
+            Route::get('/monthly-payments', [ReportController::class, 'monthlyPayments']);
+            Route::get('/monthly-payments/export', [ReportController::class, 'exportMonthlyPayments']);
+        });
+
+        Route::middleware('role:admin,super-admin')->group(function () {
+            Route::get('/user-quotas', [ReportController::class, 'userQuotas']);
+            Route::get('/user-quotas/export', [ReportController::class, 'exportUserQuotas']);
+            Route::get('/delinquents', [ReportController::class, 'delinquents']);
+            Route::get('/delinquents/export', [ReportController::class, 'exportDelinquents']);
+            Route::get('/delinquents/metrics', [ReportController::class, 'delinquentsMetrics']);
+            Route::post('/delinquents/send-reminder', [ReportController::class, 'sendReminderDelinquents']);
+            Route::get('/expense-matrix', [ReportController::class, 'expenseMatrix']);
+            Route::get('/payments', [ReportController::class, 'paymentsReport']);
+            Route::get('/payments/export', [ReportController::class, 'exportPayments']);
+        });
     });
 });

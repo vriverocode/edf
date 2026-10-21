@@ -16,6 +16,7 @@ import visitas from '@/assets/img/menu/visitas.png'
 import eventos from '@/assets/img/menu/eventos.svg'
 import mantenimientos from '@/assets/img/menu/worker.png'
 import booking from '@/assets/img/menu/reservas.png'
+import report from '@/assets/img/menu/reports.png'
 
 
 const { user } = storeToRefs(useAuthStore());
@@ -121,14 +122,22 @@ const menu = computed(() => [
     title: 'Mantenimientos',
     icon: mantenimientos,
     link: '/admin/maintenances',
-    roles: [6]
+    roles: [6]      
   },
   {
     title: 'Historial de reservas',
     link: '/client/reserves/history',
     icon: booking,
     roles: [2, 3, 4, 5]
-  }
+  },
+  { 
+    title: 'Reportes', 
+    icon: report, 
+    subtitle: 'Reportes', 
+    link: '/client/reports', 
+    roles: [2, 3, 4],
+  },
+  
 ]);
 
 const menuByRol = computed(() => {
@@ -153,9 +162,10 @@ const goTo = (url) => {
             <div class="flex justify-center items-center h-full w-full p-1">
               <div v-html="item.icon" class="flex justify-center mt-0" v-if="user.rol_id == 6 && (item.title == 'Airbnb' || item.title == 'Visitas')" />
               <img :src="item.icon" class="w-auto md:w-auto " v-else
-                :class="{ 'h-3/5': item.icon.includes('visitas') || item.icon.includes('residentes') || item.title.includes('Mantenimientos') || item.link.includes('history'), 
-                'h-full': !item.icon.includes('visitas') && !item.icon.includes('residentes') && !item.title.includes('Mantenimientos') && !item.link.includes('history')}" />
-            </div>
+                :class="{ 'h-3/5': item.icon.includes('visitas') || item.icon.includes('residentes') || item.title.includes('Mantenimientos') || item.link.includes('history') || item.link.includes('reports'), 
+                'h-full': !item.icon.includes('visitas') && !item.icon.includes('residentes') && !item.title.includes('Mantenimientos') && !item.link.includes('history') && !item.link.includes('reports')}" />
+            
+              </div>
           </div>
         </div>
         <div class="text-center mt-2  text-title-squad">

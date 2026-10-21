@@ -16,7 +16,7 @@ const loading = ref(false)
 const loadingMetrics = ref(false)
 const exporting = ref(false)
 const rows = ref([])
-const metrics = ref({ top_areas: [], top_dias: [] })
+const metrics = ref({ top_areas: [], top_dias: [], top_roles: [] })
 const pagination = ref({ page: 1, rowsNumber: 0, rowsPerPage: 25 })
 const search = ref('')
 const showFilter = ref(false)
@@ -240,7 +240,7 @@ async function loadMetrics() {
     })
     metrics.value = res.data
   } catch {
-    metrics.value = { top_areas: [], top_dias: [] }
+    metrics.value = { top_areas: [], top_dias: [], top_roles: [] }
   } finally {
     loadingMetrics.value = false
   }
@@ -337,7 +337,7 @@ onMounted(() => {
     </div>
 
     <div v-if="!loadingMetrics" class="row q-col-gutter-sm q-mb-md">
-      <div class="col-6">
+      <div class="col-12 col-md-4">
         <q-card flat bordered class="q-pa-md">
           <div class="text-subtitle2 text-grey-8 q-mb-sm">Top 5 áreas más reservadas</div>
           <div v-if="metrics.top_areas?.length === 0" class="text-grey-5 text-center q-py-md">Sin datos</div>
@@ -351,7 +351,21 @@ onMounted(() => {
           </div>
         </q-card>
       </div>
-      <div class="col-6">
+      <div class="col-12 col-md-4">
+        <q-card flat bordered class="q-pa-md">
+          <div class="text-subtitle2 text-grey-8 q-mb-sm">Top reservas por tipo de usuario</div>
+          <div v-if="metrics.top_roles?.length === 0" class="text-grey-5 text-center q-py-md">Sin datos</div>
+          <div v-for="(rol, i) in metrics.top_roles" :key="i" class="q-mb-sm">
+            <div class="row items-center q-mb-xs">
+              <div class="col text-weight-medium text-grey-8 text-no-wrap ellipsis">#{{ i + 1 }} {{ rol.name }}</div>
+              <div class="col-auto text-grey-7 text-caption q-ml-sm">{{ rol.total }}</div>
+              <div class="col-auto text-primary text-weight-medium q-ml-xs" style="min-width: 44px; text-align: right">{{ rol.percentage }}%</div>
+            </div>
+            <q-linear-progress :value="rol.percentage / 100" color="primary" class="rounded-borders" style="height: 8px" />
+          </div>
+        </q-card>
+      </div>
+      <div class="col-12 col-md-4">
         <q-card flat bordered class="q-pa-md">
           <div class="text-subtitle2 text-grey-8 q-mb-sm">Reservas por día de la semana</div>
           <div v-if="metrics.top_dias?.length === 0" class="text-grey-5 text-center q-py-md">Sin datos</div>

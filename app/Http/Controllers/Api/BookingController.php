@@ -75,7 +75,7 @@ class BookingController extends Controller
                 return $this->returnFail(403, 'No tienes permisos para crear reservas en este departamento');
             }
 
-            if ($this->hasOverdueQuotas($user->id, $departament_id) && $departament_id != 43) {
+            if ($this->hasOverdueQuotas($departament_id) && $departament_id != 43) {
                 return $this->returnFail(505, 'No puede reservar: usted se encuentra moroso.');
             }
 
@@ -856,7 +856,7 @@ class BookingController extends Controller
             return $this->returnFail(400, 'Ya se solicitó una extensión para esta reserva');
         }
 
-        if ($this->hasOverdueQuotas($originalBooking->user_id, $originalBooking->departament_id)) {
+        if ($this->hasOverdueQuotas($originalBooking->departament_id)) {
             return $this->returnFail(403, 'No puede extender: usted se encuentra moroso.');
         }
 
@@ -1228,15 +1228,10 @@ class BookingController extends Controller
             ->exists();
     }
 
-    private function hasOverdueQuotas(int $userId, int $departamentId): bool
+    private function hasOverdueQuotas(int $departamentId): bool
     {
-        $overdueMonths = Quota::where('departament_id', $departamentId)
-            ->pastDue()
-            ->pluck('due_date')
-            ->map(fn ($dueDate) => Carbon::parse($dueDate)->format('Y-m'))
-            ->unique()
-            ->count();
+        $quotas = Quota::where('departament_id', $departamentId)->pastDue()->get();
 
-        return $overdueMonths >= 2;
+        return Quota::hasMorosoDebt($quotas);
     }
 }
