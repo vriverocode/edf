@@ -279,6 +279,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byPay/{id}', [QuotaController::class, 'getByPay']);
         Route::get('/byId/{id}', [QuotaController::class, 'show']);
         Route::get('/payment-eligibility/{id?}', [QuotaController::class, 'paymentEligibility']);
+        Route::get('/by-owner/{owner}', [QuotaController::class, 'getPendingByOwner'])->middleware('role:admin,super-admin');
         Route::get('/client-water-detail/{id}', [QuotaController::class, 'clientWaterDetail']);
         Route::get('/client-maintenance-detail/{id}', [QuotaController::class, 'clientMaintenanceDetail']);
         // Write - Admin only

@@ -69,49 +69,110 @@ const notificationsStore = useNotificationsStore()
 const payMethods = ref([])
 const creditBalance = ref(0)
 
-const quotaPeriod = computed(() => {
-  if (!isQuotaPayment.value) return null
+const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+const monthShort = (m) => MONTHS_SHORT[Number(m) - 1] || ''
+const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
+
+const periodOf = (row) => {
+  if (!row || row.month == null || row.month === '') return null
+  const month = Number(row.month)
+  let year = new Date().getFullYear()
+  if (row.year != null && row.year !== '') {
+    year = Number(row.year)
+  } else if (row.due_date) {
+    year = new Date(row.due_date).getFullYear()
+  } else if (row.month_label && /\d{4}/.test(String(row.month_label))) {
+    year = Number(String(row.month_label).match(/\d{4}/)[0])
+  }
+  return { month, year }
+}
+
+const periodKeyOf = (p) => (p ? p.year * 100 + p.month : 0)
+
+// Filas de cuota con periodo conocido (una por unidad y mes en consolidados).
+const paymentRows = computed(() => {
+  if (!isQuotaPayment.value) return []
   const rows =
     Array.isArray(toPay.value?.breakdown) && toPay.value.breakdown.length
       ? toPay.value.breakdown
       : [toPay.value]
-
-  const first = rows[0]
-  if (!first || first.month == null || first.month === '') return null
-
-  const month = Number(first.month)
-  let year = new Date().getFullYear()
-  if (first.year != null && first.year !== '') {
-    year = Number(first.year)
-  } else if (first.due_date) {
-    year = new Date(first.due_date).getFullYear()
-  } else if (first.month_label && /\d{4}/.test(String(first.month_label))) {
-    year = Number(String(first.month_label).match(/\d{4}/)[0])
-  }
-
-  return { month, year }
+  return rows.filter((r) => r && r.month != null && r.month !== '')
 })
 
-const isEligibleMonth = computed(() => isQuotaPayment.value && !!quotaPeriod.value)
+// Periodos distintos del set, ordenados del más antiguo al más reciente.
+const quotaPeriods = computed(() => {
+  const seen = new Set()
+  const periods = []
+  paymentRows.value.forEach((row) => {
+    const p = periodOf(row)
+    if (!p) return
+    const key = periodKeyOf(p)
+    if (seen.has(key)) return
+    seen.add(key)
+    periods.push(p)
+  })
+  return periods.sort((a, b) => periodKeyOf(a) - periodKeyOf(b))
+})
+
+const isMultiPeriod = computed(() => quotaPeriods.value.length > 1)
+
+// Saldo a favor: se aplica sobre el periodo más reciente del set (mes más
+// nuevo seleccionado), igual que Quota::resolveCreditPeriod en el backend.
+const creditTargetPeriod = computed(() => {
+  const list = quotaPeriods.value
+  return list.length ? list[list.length - 1] : null
+})
+
+const periodLabel = computed(() => {
+  const list = quotaPeriods.value
+  if (!list.length) return toPay.value?.month_label || ''
+  const fmt = (p) => `${capitalize(monthShort(p.month))} ${p.year}`
+  if (list.length === 1) {
+    return toPay.value?.month_label || fmt(list[0])
+  }
+  return `${fmt(list[0])} - ${fmt(list[list.length - 1])}`
+})
+
+const isEligibleMonth = computed(() => isQuotaPayment.value && !!creditTargetPeriod.value)
+
+// Monto de las cuotas del set que pertenecen al periodo target: el saldo a
+// favor no puede superar ese monto (si no, la aprobación falla con 422 al
+// consumir menos crédito del solicitado).
+const targetPeriodAmount = computed(() => {
+  const target = creditTargetPeriod.value
+  if (!target) return 0
+  const key = periodKeyOf(target)
+  return paymentRows.value.reduce((sum, row) => {
+    const p = periodOf(row)
+    return p && periodKeyOf(p) === key ? sum + Number(row.amount || 0) : sum
+  }, 0)
+})
 
 const amountToPay = computed(() => {
   const total = Number(toPay.value?.amount || 0)
   if (!isQuotaPayment.value) return total
   if (!hasCredit.value) return total
-  return Math.max(0, total - creditBalance.value)
+  return Math.max(0, Math.round((total - creditToApply.value) * 100) / 100)
 })
 
 const hasCredit = computed(
-  () => isQuotaPayment.value && isEligibleMonth.value && creditBalance.value > 0
+  () => isQuotaPayment.value && isEligibleMonth.value && creditBalance.value > 0 && targetPeriodAmount.value > 0
 )
+
+const creditToApply = computed(() => {
+  if (!hasCredit.value) return 0
+  return Math.min(creditBalance.value, targetPeriodAmount.value)
+})
 
 const paymentSubtitle = computed(() => {
   if (!toPay.value || !Object.keys(toPay.value).length) return ''
-  return typePay() === 'quota' && toPay.value.month_label
-    ? `MANTENIMIENTO ${String(toPay.value.month_label).toUpperCase()}`
-    : toPay.value.comun_area?.name
-      ? `RESERVA ${String(toPay.value.comun_area.name).toUpperCase()}`
-      : 'PAGO'
+  if (typePay() === 'quota') {
+    const label = periodLabel.value
+    return label ? `MANTENIMIENTO ${String(label).toUpperCase()}` : 'PAGO'
+  }
+  return toPay.value.comun_area?.name
+    ? `RESERVA ${String(toPay.value.comun_area.name).toUpperCase()}`
+    : 'PAGO'
 })
 const isQuotaPayment = computed(() => typePay() === 'quota')
 const isEligibilityBlocked = computed(
@@ -141,10 +202,14 @@ const quotaBreakdown = computed(() => {
   const rows = Array.isArray(toPay.value?.breakdown) ? toPay.value.breakdown : []
   return rows.map((item) => {
     const info = getUnitInfo(Number(item?.unit_type ?? 1))
+    const p = periodOf(item)
+    // En consolidados multi-mes la misma unidad aparece una vez por mes:
+    // el sufijo evita filas idénticas indistinguibles.
+    const monthSuffix = isMultiPeriod.value && p ? ` · ${monthShort(p.month)} ${p.year}` : ''
     return {
       quotaId: item?.id ?? '-',
       unit_number: item?.unit_number ?? '-',
-      unitLabel: `${info.name} ${item?.unit_number ?? '-'}`,
+      unitLabel: `${info.name} ${item?.unit_number ?? '-'}${monthSuffix}`,
       participation: safeAmount(item?.participation),
       waterM3: safeAmount(item?.water_consumption_m3),
       waterAmount: safeAmount(item?.water_amount),
@@ -333,7 +398,7 @@ const fetchCreditBalance = async () => {
       return
     }
 
-    const period = quotaPeriod.value
+    const period = creditTargetPeriod.value
     const uniqueIds = [...new Set(deptIds)]
     const res = await payStore.getCreditBalanceForDepartments(uniqueIds, period?.month, period?.year)
     if (res?.code === 200) {
@@ -492,8 +557,8 @@ const dataToForm = () => {
   ) {
     dataForm.append('consolidated_ids', JSON.stringify(toPay.value.consolidated_ids))
   }
-  if (hasCredit.value && creditBalance.value > 0) {
-    dataForm.append('credit_applied', creditBalance.value)
+  if (hasCredit.value && creditToApply.value > 0) {
+    dataForm.append('credit_applied', creditToApply.value)
   }
   return { data: dataForm }
 }
@@ -650,7 +715,7 @@ watch(step, (toStep, fromStep) => {
                       <span>{{ maintenanceParticipation.toFixed(2) }} %</span>
                     </div>
                     <div class="pay-form-breakdown__detail">
-                      <span>Mantenimiento {{ toPay.month_label }}:</span>
+                      <span>Mantenimiento {{ periodLabel }}:</span>
                       <span>{{ amountPrefix }} {{ maintenanceBudget.toFixed(2) }}</span>
                     </div>
                     <div class="pay-form-breakdown__row2 mt-2" @click="goTo(maintenanceDetailsLink)"
@@ -668,19 +733,25 @@ watch(step, (toStep, fromStep) => {
 
                 <div  v-if="hasCredit" class="mt-3 px-3 py-2 rounded-lg" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
                   <div class="flex justify-between items-center text-sm mb-1">
-                    <span class="text-gray-600">Cuota mensual</span>
+                    <span class="text-gray-600">{{ isMultiPeriod ? 'Cuotas seleccionadas' : 'Cuota mensual' }}</span>
                     <span class="text-gray-900">{{ amountPrefix }} {{ Number(toPay.amount).toFixed(2) }}</span>
                   </div>
                   <div  class="flex justify-between items-center text-sm" style="color: #16a34a;">
                     <span class="flex items-center gap-1">
                       <q-icon name="eva-checkmark-circle-2-outline" size="1rem" />
                       Saldo a favor
+                      <span v-if="isMultiPeriod && creditTargetPeriod" class="text-xs">
+                        (se aplica a {{ capitalize(monthShort(creditTargetPeriod.month)) }})
+                      </span>
                     </span>
-                    <span class="font-medium">- {{ amountPrefix }} {{ creditBalance.toFixed(2) }}</span>
+                    <span class="font-medium">- {{ amountPrefix }} {{ creditToApply.toFixed(2) }}</span>
                   </div>
                   <div class="flex justify-between items-center text-sm font-bold pt-1 mt-1" style="border-top: 1px dashed #86efac;">
                     <span class="text-gray-900">Monto a pagar</span>
                     <span class="text-gray-900">{{ amountPrefix }} {{ amountToPay.toFixed(2) }}</span>
+                  </div>
+                  <div v-if="creditBalance > creditToApply" class="text-xs text-gray-500 mt-1">
+                    Saldo total disponible: {{ amountPrefix }} {{ creditBalance.toFixed(2) }} (se aplica hasta cubrir el mes más reciente)
                   </div>
                 </div>
 
@@ -717,13 +788,18 @@ watch(step, (toStep, fromStep) => {
                           <div class="text__amountItem">Servicio</div>
                           <div class="text__amountItem">{{ toPay.comun_area.name }}</div>
                         </div>
-                        <div class="flex justify-between items-center w-full py-1" v-if="toPay.month_label">
+                        <div class="flex justify-between items-center w-full py-1" v-if="periodLabel">
                           <div class="text__amountItem">Mes</div>
-                          <div class="text__amountItem">{{ toPay.month_label }}</div>
+                          <div class="text__amountItem">{{ periodLabel }}</div>
                         </div>
                         <div v-if="hasCredit" class="flex justify-between items-center w-full py-1" style="color: #16a34a;">
-                          <div class="text__amountItem">Saldo a favor aplicado</div>
-                          <div class="text__amountItem font-medium">- {{ amountPrefix }} {{ creditBalance.toFixed(2) }}</div>
+                          <div class="text__amountItem">
+                            Saldo a favor aplicado
+                            <span v-if="isMultiPeriod && creditTargetPeriod">
+                              ({{ capitalize(monthShort(creditTargetPeriod.month)) }})
+                            </span>
+                          </div>
+                          <div class="text__amountItem font-medium">- {{ amountPrefix }} {{ creditToApply.toFixed(2) }}</div>
                         </div>
                         <div class="flex justify-between items-center w-full mt-1 pt-2"
                           style="border-top: 2px solid #8b8e9446;">

@@ -195,6 +195,56 @@ class Quota extends Model
         return ['month' => $months->first(), 'year' => $years->first()];
     }
 
+    /**
+     * Periodo sobre el que se aplica el saldo a favor en un pago consolidado.
+     *
+     * Si todas las cuotas son del mismo mes/año se usa ese periodo (caso
+     * original). Con cuotas de varios meses se usa el periodo mas reciente del
+     * set, de modo que el credito se descuente del mes mas nuevo seleccionado
+     * (p. ej. octubre) sin importar cuantos meses anteriores se esten pagando.
+     *
+     * Devuelve null solo cuando no hay ninguna cuota mensual en el set, para
+     * que el llamador mantenga el rechazo actual.
+     */
+    public static function resolveCreditPeriod(Collection $quotas): ?array
+    {
+        $single = static::resolvePeriod($quotas);
+        if ($single) {
+            return $single;
+        }
+
+        $monthly = $quotas->filter(fn (Quota $quota) => $quota->isMonthly());
+        if ($monthly->isEmpty()) {
+            return null;
+        }
+
+        $latest = $monthly->sortByDesc(function (Quota $quota) {
+            $year = $quota->year !== null && $quota->year !== ''
+                ? (int) $quota->year
+                : ($quota->due_date ? (int) Carbon::parse($quota->due_date)->year : (int) Carbon::now()->year);
+
+            return $year * 100 + (int) $quota->month;
+        })->first();
+
+        if (! $latest) {
+            return null;
+        }
+
+        $year = $latest->year !== null && $latest->year !== ''
+            ? (int) $latest->year
+            : ($latest->due_date ? (int) Carbon::parse($latest->due_date)->year : (int) Carbon::now()->year);
+
+        return ['month' => (int) $latest->month, 'year' => $year];
+    }
+
+    /**
+     * Suma de los montos del set de cuotas.
+     */
+    public static function sumAmounts(Collection $quotas): float
+    {
+        return round((float) $quotas->sum('amount'), 2);
+    }
+
     public static function isOpenPeriod(int $month, int $year, array $deptIds = []): bool
     {
         $now = Carbon::now();

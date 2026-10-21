@@ -247,6 +247,20 @@ class PayController extends Controller
                 if ($denied !== null) {
                     return $this->returnFail($denied['code'], $denied['error']);
                 }
+
+                // El monto debe cubrir la suma de las cuotas del set. Al aprobar
+                // todas las cuotas pasan a pagadas, asi que un monto menor seria
+                // un pago parcial no contemplado. Los admins siguen exentos:
+                // registerPay permite ajustar montos al saldar morosidad.
+                $quotaIdsForPaySums = Quota::whereIn('id', $quotaIdsForPay)->sum('amount');
+                $creditRequested = round((float) $request->input('credit_applied', 0), 2);
+                $covered = round((float) $request->amount + $creditRequested, 2);
+
+                if ($covered + 0.01 < round((float) $quotaIdsForPaySums, 2)) {
+                    Log::warning('returnFail 422: El monto no cubre la suma de las cuotas seleccionadas.');
+
+                    return $this->returnFail(422, 'El monto no cubre la suma de las cuotas seleccionadas.');
+                }
             }
 
             $tenantQuotas = Quota::whereIn('id', $quotaIdsForPay)
@@ -335,14 +349,16 @@ class PayController extends Controller
                 $creditRequested = round((float) $request->input('credit_applied', 0), 2);
                 if ($creditRequested > 0) {
                     $quotasForCredit = Quota::whereIn('id', $quotaIdsForPay)->get();
-                    $period = Quota::resolvePeriod($quotasForCredit);
+                    // Multi-mes: el saldo se aplica sobre el periodo mas reciente
+                    // del set (mes mas nuevo seleccionado), no sobre el set entero.
+                    $period = Quota::resolveCreditPeriod($quotasForCredit);
 
                     if (! $period) {
                         DB::rollBack();
 
-                        Log::warning('returnFail 422: El saldo a favor solo aplica cuando todas las cuotas son del mismo mes.');
+                        Log::warning('returnFail 422: El saldo a favor requiere al menos una cuota mensual en el pago.');
 
-                        return $this->returnFail(422, 'El saldo a favor solo aplica cuando todas las cuotas son del mismo mes.');
+                        return $this->returnFail(422, 'El saldo a favor solo aplica cuando las cuotas del pago tienen un periodo definido.');
                     }
 
                     $deptQuotas = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
@@ -523,17 +539,20 @@ class PayController extends Controller
 
                 if ($creditRequested > 0) {
                     $quotasForCredit = Quota::whereIn('id', $quotaIds)->get();
-                    $period = Quota::resolvePeriod($quotasForCredit);
+                    // Mismo criterio que en storePay: periodo unico o el mas
+                    // reciente del set (derivado del set, deterministico entre
+                    // el alta y la aprobacion).
+                    $period = Quota::resolveCreditPeriod($quotasForCredit);
                     $deptQuotasForCredit = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
 
                     if (! $period) {
                         DB::rollBack();
 
-                        Log::warning('returnFail 422: El saldo a favor solo aplica cuando todas las cuotas son del mismo mes.');
+                        Log::warning('returnFail 422: El saldo a favor requiere al menos una cuota mensual en el pago.');
 
                         return $this->returnFail(422, [
                             'messageType' => 'negative',
-                            'message' => 'El saldo a favor solo aplica cuando todas las cuotas son del mismo mes.',
+                            'message' => 'El saldo a favor solo aplica cuando las cuotas del pago tienen un periodo definido.',
                         ]);
                     }
 
@@ -1354,7 +1373,14 @@ class PayController extends Controller
     private function getDataToNotification($pay)
     {
         $bookingNumber = $pay->booking?->booking_number ?? '#'.$pay->id;
-        $monthLabel = $pay->quotas->first()?->month_label ?? '';
+        // Pago consolidado multi-mes: listar cada periodo distinto en vez de
+        // mostrar solo el mes de la primera cuota.
+        $periodLabels = $pay->quotas
+            ->map(fn ($quota) => $quota->month_label)
+            ->filter()
+            ->unique()
+            ->values();
+        $monthLabel = $periodLabels->join(', ', ' y ');
         $month = $pay->quotas->first()?->month ?? '';
 
         return $pay->type == 1

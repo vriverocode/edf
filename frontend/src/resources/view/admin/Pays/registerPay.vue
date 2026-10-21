@@ -69,7 +69,7 @@ const unitMatch = (unit, q) => {
 }
 
 const monthLabel = computed(() => {
-  if (!selectedMonth.value) return ''
+  if (!selectedMonth.value) return 'Todos los meses'
   const opt = monthOptions.find(m => m.value === selectedMonth.value)
   if (!opt) return ''
   const year = selectedYear.value || currentYear
@@ -87,7 +87,8 @@ const filteredDepts = computed(() => {
   )
 })
 
-// Step 2a: Month/Year for quotas
+// Step 2a: Month/Year for quotas (opcionales: sin filtro se ven todos los
+// meses agrupados, que es el flujo habitual de "registrar pago multi-mes")
 const selectedMonth = ref(null)
 const selectedYear = ref(null)
 const currentYear = new Date().getFullYear()
@@ -121,29 +122,41 @@ const creditBalance = ref(0)
 const isQuotaType = computed(() => Number(selectedType.value) === 1)
 const isReserveType = computed(() => Number(selectedType.value) === 2)
 
-const selectedQuotaPeriod = computed(() => {
+const quotaPeriodOf = (q) => {
+  const month = Number(q.month) || 0
+  let year = currentYear
+  if (q.year != null && q.year !== '') year = Number(q.year)
+  else if (q.due_date) year = new Date(q.due_date).getFullYear()
+  return { month, year, key: year * 100 + month }
+}
+
+// Saldo a favor: se aplica sobre el periodo más reciente de la selección
+// (mes más nuevo elegido), igual que Quota::resolveCreditPeriod en backend.
+// Las cuotas de meses distintos dejan de anular el crédito como antes.
+const creditTargetPeriod = computed(() => {
   if (!selectedQuotas.value.length) return null
-  const months = new Set(selectedQuotas.value.map((q) => Number(q.month)))
-  if (months.size !== 1) return null
-  const years = new Set(selectedQuotas.value.map((q) => {
-    if (q.year != null && q.year !== '') return Number(q.year)
-    if (q.due_date) return new Date(q.due_date).getFullYear()
-    return new Date().getFullYear()
-  }))
-  if (years.size !== 1) return null
-  return { month: [...months][0], year: [...years][0] }
+  return selectedQuotas.value
+    .map(quotaPeriodOf)
+    .reduce((latest, p) => (p.key > latest.key ? p : latest))
 })
 
-// Solo pedir saldo si todas las cuotas son del mismo mes (mes fijado o mes abierto)
-const isEligibleMonth = computed(() => isQuotaType.value && !!selectedQuotaPeriod.value)
+// Monto de las cuotas seleccionadas del periodo target: el saldo no puede
+// superarlo (el backend consume el crédito sobre esas cuotas al aprobar).
+const targetPeriodAmount = computed(() => {
+  const target = creditTargetPeriod.value
+  if (!target) return 0
+  return selectedQuotas.value.reduce((sum, q) => {
+    return quotaPeriodOf(q).key === target.key ? sum + (Number(q.amount) || 0) : sum
+  }, 0)
+})
 
 const hasCredit = computed(
-  () => isQuotaType.value && isEligibleMonth.value && creditBalance.value > 0,
+  () => isQuotaType.value && !!creditTargetPeriod.value && creditBalance.value > 0 && targetPeriodAmount.value > 0,
 )
 
 const creditToApply = computed(() => {
   if (!hasCredit.value) return 0
-  return Math.min(creditBalance.value, totalSelectedAmount.value)
+  return Math.min(creditBalance.value, targetPeriodAmount.value)
 })
 
 const amountToPay = computed(() => {
@@ -154,9 +167,9 @@ const amountToPay = computed(() => {
 
 const fetchCreditBalance = async () => {
   creditBalance.value = 0
-  if (!isQuotaType.value || !isEligibleMonth.value || !selectedQuotas.value.length) return
-  const period = selectedQuotaPeriod.value
-  if (!period) return
+  if (!isQuotaType.value || !creditTargetPeriod.value || !selectedQuotas.value.length) return
+  const period = creditTargetPeriod.value
+  if (!period || !period.month) return
   const deptIds = [...new Set(
     selectedQuotas.value.map((q) => q.departament_id).filter(Boolean),
   )]
@@ -238,17 +251,26 @@ const loadPayMethods = async () => {
 }
 
 const loadPendingQuotas = async () => {
-  if (!selectedUser.value || !selectedMonth.value) return
+  if (!selectedUser.value) return
   pendingQuotas.value = []
   selectedItem.value = null
   selectedQuotas.value = []
   try {
-    const res = await quotaStore.getQuotaByMonth(selectedMonth.value, {
-      year: selectedYear.value || currentYear,
-      owner: selectedUser.value.id,
-      status: 1,
-    })
-    pendingQuotas.value = res.data || []
+    if (selectedMonth.value) {
+      // Flujo filtrado por mes (opcional)
+      const res = await quotaStore.getQuotaByMonth(selectedMonth.value, {
+        year: selectedYear.value || currentYear,
+        owner: selectedUser.value.id,
+        status: 1,
+      })
+      pendingQuotas.value = res.data || []
+    } else {
+      // Sin filtro: todas las cuotas pendientes del usuario, agrupadas por mes
+      // en backend y aplanadas aqui para el checkbox-list (cada fila ya
+      // trae month_label).
+      const res = await quotaStore.getQuotasPendingByOwner(selectedUser.value.id)
+      pendingQuotas.value = (res.data || []).flatMap(group => group.details || [])
+    }
     selectedQuotas.value = [...pendingQuotas.value]
   } catch {
     pendingQuotas.value = []
@@ -303,7 +325,7 @@ watch(selectedUserId, (id) => {
   creditBalance.value = 0
   if (!id) return
   if (isReserveType.value) loadDepartmentsByUser(id)
-  if (isQuotaType.value && selectedMonth.value) loadPendingQuotas()
+  if (isQuotaType.value) loadPendingQuotas()
 })
 
 watch([selectedMonth, selectedYear], () => {
@@ -360,6 +382,23 @@ const toggleAllQuotas = () => {
 const selectedUnitsCount = computed(
   () => new Set(selectedQuotas.value.map((q) => q.departament_id).filter(Boolean)).size,
 )
+
+// Render agrupado por mes para el listado multi-mes: cada fila conserva su
+// checkbox individual pero se ordena bajo el encabezado de su periodo.
+const pendingQuotaGroups = computed(() => {
+  const groups = new Map()
+  pendingQuotas.value.forEach((quota) => {
+    const p = quotaPeriodOf(quota)
+    if (!groups.has(p.key)) {
+      const label = Number(p.month) >= 1 && Number(p.month) <= 12
+        ? `${monthOptions[p.month - 1]?.label ?? ''} ${p.year}`
+        : `Cuota Periodo ${p.year}`
+      groups.set(p.key, { key: p.key, label, quotas: [] })
+    }
+    groups.get(p.key).quotas.push(quota)
+  })
+  return [...groups.values()].sort((a, b) => b.key - a.key)
+})
 
 const selectItem = (item) => {
   selectedItem.value = item
@@ -579,10 +618,10 @@ loadPayMethods()
           </q-select>
         </div>
 
-        <!-- Step 2a: Month picker for quotas -->
+        <!-- Step 2a: Filtros opcionales de mes/año (sin filtro: todos los meses) -->
         <div v-if="isQuotaType" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <div class="text-sm font-medium text-gray-700 mb-1">Mes</div>
+            <div class="text-sm font-medium text-gray-700 mb-1">Mes (opcional)</div>
             <q-select
               v-model="selectedMonth"
               :options="monthOptions"
@@ -591,14 +630,14 @@ loadPayMethods()
               emit-value
               map-options
               borderless
-              placeholder="Seleccionar mes"
+              placeholder="Todos los meses"
               clearable
               dense
               class="form__inputsR"
             />
           </div>
           <div>
-            <div class="text-sm font-medium text-gray-700 mb-1">Año</div>
+            <div class="text-sm font-medium text-gray-700 mb-1">Año (opcional)</div>
             <q-select
               v-model="selectedYear"
               :options="yearOptions"
@@ -607,7 +646,7 @@ loadPayMethods()
               emit-value
               borderless
               map-options
-              :placeholder="String(currentYear)"
+              placeholder="Todos los años"
               clearable
               dense
               class="form__inputsR"
@@ -620,9 +659,9 @@ loadPayMethods()
           <div class="rounded-xl border border-gray-200 bg-gray-50/80 p-4 mb-3">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div>
-                <div class="text-sm font-semibold text-gray-900">Cuota global · {{ monthLabel }}</div>
+                <div class="text-sm font-semibold text-gray-900">Cuotas pendientes · {{ monthLabel }}</div>
                 <div class="text-xs text-gray-500">
-                  {{ pendingQuotas.length }} cuotas · {{ selectedUnitsCount }} unidades seleccionadas
+                  {{ pendingQuotas.length }} cuotas · {{ selectedQuotas.length }} seleccionadas · {{ selectedUnitsCount }} unidades
                 </div>
               </div>
               <div class="text-right">
@@ -645,43 +684,52 @@ loadPayMethods()
             </label>
           </div>
 
-          <div class="space-y-2">
-            <div
-              v-for="quota in pendingQuotas"
-              :key="quota.id"
-              class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors"
-              :class="isQuotaSelected(quota) ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'"
-              @click="toggleQuota(quota)"
-            >
-              <div class="flex items-center gap-3">
-                <q-checkbox
-                  :model-value="isQuotaSelected(quota)"
-                  color="primary"
-                  dense
-                  @update:model-value="toggleQuota(quota)"
-                />
-                <div class="flex items-center gap-2">
-                  <q-badge
-                    :color="quota.departament ? 'blue-1' : 'grey-3'"
-                    text-color="grey-9"
-                    class="text-xs font-semibold"
-                  >
-                    {{ unitTypeShort(quota.departament?.type) }}
-                  </q-badge>
-                  <div>
-                    <div class="text-sm font-semibold text-gray-900">
-                      Unidad {{ quota.departament?.number || '—' }}
-                      <span v-if="quota.departament?.block" class="text-grey-6 font-normal">· B{{ quota.departament.block }}</span>
+          <div class="space-y-4">
+            <div v-for="group in pendingQuotaGroups" :key="group.key">
+              <div class="flex items-center gap-2 mb-2">
+                <q-icon name="eva-calendar-outline" color="grey-7" size="1.1rem" />
+                <span class="text-sm font-semibold text-gray-800">{{ group.label }}</span>
+                <div class="flex-1 border-t border-gray-200"></div>
+              </div>
+              <div class="space-y-2">
+                <div
+                  v-for="quota in group.quotas"
+                  :key="quota.id"
+                  class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors"
+                  :class="isQuotaSelected(quota) ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'"
+                  @click="toggleQuota(quota)"
+                >
+                  <div class="flex items-center gap-3">
+                    <q-checkbox
+                      :model-value="isQuotaSelected(quota)"
+                      color="primary"
+                      dense
+                      @update:model-value="toggleQuota(quota)"
+                    />
+                    <div class="flex items-center gap-2">
+                      <q-badge
+                        :color="quota.departament ? 'blue-1' : 'grey-3'"
+                        text-color="grey-9"
+                        class="text-xs font-semibold"
+                      >
+                        {{ unitTypeShort(quota.departament?.type) }}
+                      </q-badge>
+                      <div>
+                        <div class="text-sm font-semibold text-gray-900">
+                          Unidad {{ quota.departament?.number || '—' }}
+                          <span v-if="quota.departament?.block" class="text-grey-6 font-normal">· B{{ quota.departament.block }}</span>
+                        </div>
+                        <div v-if="quota.departament?.tenant_pays_quota" class="text-xs text-amber-700">Inquilino paga</div>
+                      </div>
                     </div>
-                    <div class="text-xs text-gray-500">{{ quota.month_label || monthLabel }}</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-bold text-gray-900">S/. {{ Number(quota.amount).toFixed(2) }}</div>
+                    <q-badge :color="quota.status === 1 ? 'warning' : 'grey'" class="text-xs">
+                      {{ quota.status_label || (quota.status === 1 ? 'Pendiente' : '') }}
+                    </q-badge>
                   </div>
                 </div>
-              </div>
-              <div class="text-right">
-                <div class="text-sm font-bold text-gray-900">S/. {{ Number(quota.amount).toFixed(2) }}</div>
-                <q-badge :color="quota.status === 1 ? 'warning' : 'grey'" class="text-xs">
-                  {{ quota.status_label || (quota.status === 1 ? 'Pendiente' : '') }}
-                </q-badge>
               </div>
             </div>
           </div>

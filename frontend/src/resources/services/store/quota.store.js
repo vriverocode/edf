@@ -161,6 +161,27 @@ export const useQuotaStore = defineStore('Quota', {
 
       })
     },
+    // Cuotas mensuales pendientes de un usuario, agrupadas por mes. Solo admin
+    // (registerPay.vue): permite registrar un pago abarcando varios meses sin
+    // elegir mes/año de antemano.
+    async getQuotasPendingByOwner(ownerId, status = 1) {
+      return await new Promise((resolve, reject) => {
+        if (!ApiService.getToken()) {
+          throw '';
+        }
+        ApiService.setHeader();
+        ApiService.get('/api/quotas/by-owner/' + ownerId + '?status=' + status)
+          .then(({ data }) => {
+            if (data.code != 200) throw data;
+
+            resolve(data);
+          }).catch(({ response }) => {
+            console.error(response)
+            reject(response?.data?.error || 'Error al obtener cuotas del usuario');
+          });
+
+      })
+    },
     async getQuotaByPayId(payId) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
