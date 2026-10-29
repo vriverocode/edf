@@ -4,9 +4,10 @@ import { useAuthStore } from '@/services/store/auth.services';
 import { useRouter } from 'vue-router'
 import { Notify } from 'quasar'
 import tutorial from '@/components/login/tutorial.vue';
-import storage from '@/services/storage'
 import bg from '@/assets/img/backgrounds/bg.webp'
 import logoWite from '@/assets/img/logo/logo-white.webp';
+import { Capacitor } from '@capacitor/core';
+const isMobile = Capacitor.isNativePlatform()
 const authServices = useAuthStore()
 const tutorialView = ref('true')
 
@@ -14,7 +15,7 @@ const login = reactive({
   username: '',
   password: ''
 })
-
+const initBiometric = ref(localStorage.getItem('initBiometric') == 'true' ? true : false)
 const isPwd = ref('true')
 const loading = ref(false)
 const router = useRouter();
@@ -98,9 +99,21 @@ const endTutorial = () => {
                             color="grey-1" @click="isPwd = !isPwd" />
                         </template>
                       </q-input>
-                      <p class="mt-2 cursor-pointer md:mt-2 text-white text-subtitle1" @click="router.push('/forgot-password')">¿Olvidaste tu contraseña?</p>
+                      <div class="flex items-center pb-2" v-if="isMobile">
+                        <q-checkbox
+                          class="biometricCheck"
+                          color="primary"
+                          size="2.8rem"
+                          v-model="initBiometric"
+                        />
+                        <div class="pl-0 pt-1 text-subtitle1 text-white font-bold">
+                          Autenticación biométrica
+                        </div>
+                      </div>
+                      <p class="px-1 mt-2 cursor-pointer md:mt-2 text-white text-subtitle1" @click="router.push('/forgot-password')">¿Olvidaste tu contraseña?</p>
                     </div>
                   </div>
+                  
                   <div class="md:px-16 px-6 mt-5 flex justify-center">
                     <q-btn flat class="btn__login w-auto md:w-1/2" no-caps="" :loading="loading" size="lg"
                       type="submit">
@@ -144,6 +157,9 @@ const endTutorial = () => {
 
 
 <style lang="scss">
+.biometricCheck .q-checkbox__bg {
+  border-color: white!important;
+}
 .login-root {
   backface-visibility: hidden;
   transform: translateZ(0);
