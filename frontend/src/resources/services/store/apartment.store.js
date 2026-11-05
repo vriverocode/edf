@@ -58,11 +58,12 @@ export const useApartmentStore = defineStore('Apartment', {
           })
       })
     },
-    async getDepartmentsByOwner(userId) {
+    async getDepartmentsByOwner(userId, { ownedOnly = false } = {}) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) throw ''
         ApiService.setHeader()
-        ApiService.get(`/api/apartments/byOwner/${userId}`)
+        const params = ownedOnly ? '?owned_only=1' : ''
+        ApiService.get(`/api/apartments/byOwner/${userId}${params}`)
           .then(({ data }) => {
             if (data.code !== 200) throw data
             resolve(data)

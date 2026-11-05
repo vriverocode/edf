@@ -15,8 +15,17 @@ const unitTypesOptions = [
   { label: '🧺 Lavandería', value: 4 }
 ]
 
+// Valores alineados con Departament::getRentTypeLabelAttribute
+const rentTypesOptions = [
+  { label: '—', value: 0 },
+  { label: 'Propietario', value: 1 },
+  { label: 'Inquilino', value: 2 },
+  { label: 'Airbnb', value: 3 }
+]
+
 const formData = ref({
   type: 1, // Por defecto inicia en Departamento
+  rent_type: 0,
   number: '',
   participation_percentage: '',
   description: '',
@@ -79,6 +88,13 @@ const createApartment = () => {
 
         <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
           <div v-if="formData.type === 1" class="col-12 row">
+            <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
+              <div class="text-subtitle2 text-black">
+                Tipo de etiqueta
+              </div>
+              <q-select dense borderless v-model="formData.rent_type" :options="rentTypesOptions" emit-value map-options
+                class="form__inputsR mt-1" />
+            </div>
             <div class=" col-md-6 col-12 mt-1 px-2 md:px-12">
               <div class="text-subtitle2 text-black">
                 Ubicación

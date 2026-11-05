@@ -10,9 +10,19 @@ export const useConfigStore = defineStore('config', {
     versionInfo: null,
     downloadProgress: 0,
     isDownloading: false,
-    currentAppVersionCode: 46, // Aquí colocas el versionCode actual de tu app compilada
+    currentAppVersionCode: 48, // Aquí colocas el versionCode actual de tu app compilada
+    balanceUrl: '',
   }),
   actions: {
+    async fetchBalanceUrl() {
+      ApiService.setHeader()
+
+      const { data } = await ApiService.get('/api/config/balance-url')
+      this.balanceUrl = data?.data?.url || ''
+
+      return this.balanceUrl
+    },
+
     // 1. Consultar a tu API (Laravel) si hay una nueva versión
     async checkForUpdates() {
       return await new Promise((resolve, reject) => {

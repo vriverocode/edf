@@ -215,7 +215,10 @@ onMounted(() => {
                   @click="toggleExpand(row.user_id)" />
               </div>
               <div class="repbok-cell" data-title="Propietario / Doc.">
-                <div class="text-weight-bold">{{ row.name }}</div>
+                <div class="text-weight-bold">
+                  {{ row.name }}
+                  <q-chip v-if="row.role_id == 7" color="blue-4" size="xs" text-color="white" class="q-ml-xs">Prop. Parcial</q-chip>
+                </div>
                 <div class="text-caption text-grey-6">{{ row.dni || '' }}</div>
               </div>
               <div class="repbok-cell" data-title="Encargado de Pago">

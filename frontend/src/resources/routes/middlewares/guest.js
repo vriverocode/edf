@@ -1,7 +1,7 @@
-import storage from '@/services/storage'
+import ApiService from '@/services/axios'
 export default function auth(_to, _from, next) {
   document.title = _to.meta.title + ' - Pacifik app'
-  const isAuthenticated = storage.getItem('access_token');
+  const isAuthenticated = ApiService.getToken();
 
   if (!isAuthenticated) {
     next();

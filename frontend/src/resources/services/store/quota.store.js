@@ -1,6 +1,24 @@
 import { defineStore } from 'pinia'
 import ApiService from '@/services/axios'
 
+const downloadPdfFromUrl = async (url, filename) => {
+  const token = ApiService.getToken()
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } })
+  if (!res.ok) throw new Error('download-failed')
+
+  const blob = await res.blob()
+  const downloadUrl = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = downloadUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.URL.revokeObjectURL(downloadUrl)
+
+  return true
+}
+
 export const useQuotaStore = defineStore('Quota', {
   actions: {
     async getQuotasByUser(filters) {
@@ -361,6 +379,36 @@ export const useQuotaStore = defineStore('Quota', {
           })
       })
     },
+    async downloadQuotaStatement(quotaIds) {
+      const ids = (quotaIds || []).map(Number).filter((id) => id > 0)
+      if (!ids.length) throw 'Debes seleccionar al menos una cuota.'
+      if (!ApiService.getToken()) throw ''
+
+      const params = new URLSearchParams()
+      ids.forEach((id) => params.append('quota_ids[]', String(id)))
+      const url = import.meta.env.VITE_LARAVEL_API_URL +
+        '/api/bill-invoices/client-statement?' + params.toString()
+
+      try {
+        return await downloadPdfFromUrl(url, 'estado-cuenta-cuotas.pdf')
+      } catch (err) {
+        console.error(err)
+        throw 'No se pudo descargar el estado de cuenta'
+      }
+    },
+    async downloadQuotaReceipt(quotaId) {
+      if (!ApiService.getToken()) throw ''
+
+      const url = import.meta.env.VITE_LARAVEL_API_URL +
+        '/api/bill-invoices/client-download/' + quotaId
+
+      try {
+        return await downloadPdfFromUrl(url, 'recibo-cuota-' + quotaId + '.pdf')
+      } catch (err) {
+        console.error(err)
+        throw 'No se pudo descargar el recibo'
+      }
+    },
     async getAvailableQuotaInDayByArea(data) {
       return await new Promise((resolve, reject) => {
         if (!ApiService.getToken()) {
@@ -513,6 +561,9 @@ export const useQuotaStore = defineStore('Quota', {
         if (filter.amount_type) params.set('amount_type', String(filter.amount_type));
         if (filter.sort_by) params.set('sort_by', String(filter.sort_by));
         if (filter.sort_dir) params.set('sort_dir', String(filter.sort_dir));
+        if (Array.isArray(filter.departament_ids)) {
+          filter.departament_ids.forEach(id => params.append('departament_ids[]', String(id)))
+        }
         return params.toString();
       } catch (e) {
         return '';

@@ -208,6 +208,87 @@ class BillInvoiceService
             'totalParticipation' => $totalParticipation,
             'paymentHistory' => $paymentHistory,
             'monthlyBill' => $monthlyBill,
+            'depositCode' => $departament->code_pay ?? '-',
+            'receiptNumber' => '001 - '.str_pad((string) $quota->id, 6, '0', STR_PAD_LEFT),
+            'totalMaintenanceBudget' => (float) ($monthlyBill->total_maintenance_budget ?? 0),
+        ];
+    }
+
+    /**
+     * Datos de una cuota para el estado de cuenta combinado. Funciona con
+     * cualquier estado (pagada, pendiente, en revision, vencida).
+     */
+    public function buildStatementData(Quota $quota): array
+    {
+        $quota->loadMissing([
+            'departament.owner',
+            'responsiblePivot.user',
+            'waterReading',
+        ]);
+
+        $departament = $quota->departament;
+        $owner = $departament?->owner;
+        $responsible = $quota->responsiblePivot?->user;
+        $waterReading = $quota->waterReading;
+
+        $month = (int) $quota->month;
+        $year = $quota->resolvedYear();
+        $isMonthly = $quota->isMonthly();
+
+        $waterConsumption = 0;
+        $waterPricePerM3 = 0;
+        if ($waterReading) {
+            $waterConsumption = max(0, (float) $waterReading->current_reading - (float) $waterReading->previous_reading);
+            $waterPricePerM3 = (float) $waterReading->m3_price;
+        }
+
+        $totalAmount = (float) $quota->amount;
+        $creditAvailable = $isMonthly
+            ? (new CreditService)->maxApplicableForQuotas(collect([$quota]))
+            : 0.0;
+        $creditAvailable = round($creditAvailable, 2);
+
+        $lastPay = $quota->pays()
+            ->where('pays.status', 2)
+            ->where('pays.type', 1)
+            ->with('payMethod')
+            ->orderByDesc('pay_date')
+            ->first();
+        $payment = null;
+        if ($lastPay) {
+            $payment = [
+                'date' => $lastPay->pay_date ? Carbon::parse($lastPay->pay_date)->format('d/m/Y') : '-',
+                'method' => $lastPay->payMethod?->name ?? '-',
+                'reference' => $lastPay->reference ?? '-',
+                'amount' => (float) $lastPay->amount,
+                'credit_applied' => (float) ($lastPay->credit_applied ?? 0),
+                'consolidated_count' => count($lastPay->consolidatedQuotaIds()),
+            ];
+        }
+
+        return [
+            'quota' => $quota,
+            'departament' => $departament,
+            'owner' => $owner,
+            'responsible' => $responsible,
+            'is_tenant' => $quota->isTenantResponsible(),
+            'month' => $month,
+            'year' => $year,
+            'is_monthly' => $isMonthly,
+            'period_label' => $isMonthly ? self::MONTH_NAMES[$month].' '.$year : 'Periodo '.$year,
+            'due_date' => $quota->due_date ? Carbon::parse($quota->due_date)->format('d/m/Y') : '-',
+            'maintenance_amount' => (float) $quota->maintenance_amount,
+            'water_amount' => (float) $quota->water_amount,
+            'extra_amount' => (float) $quota->extra_amount,
+            'total_amount' => $totalAmount,
+            'water_consumption' => $waterConsumption,
+            'water_price_per_m3' => $waterPricePerM3,
+            'status' => (int) $quota->status,
+            'status_label' => $quota->status_label,
+            'is_paid' => (int) $quota->status === 3,
+            'credit_available' => $creditAvailable,
+            'amount_after_credit' => max(0, round($totalAmount - $creditAvailable, 2)),
+            'payment' => $payment,
         ];
     }
 

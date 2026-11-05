@@ -56,7 +56,7 @@ class ReportController extends Controller
     {
         $filters = $this->getValidatedFilters($request);
 
-        $filename = 'reporte-reservas-'.now()->format('Y-m-d-His').'.xlsx';
+        $filename = 'reservas-'.now()->format('Y-m-d-His').'.xlsx';
 
         return Excel::download(new BookingsExport($filters), $filename);
     }
@@ -104,8 +104,8 @@ class ReportController extends Controller
                 ];
             });
 
-        $topRoles = (clone $active)->with('user.rol')->get()
-            ->countBy(fn ($b) => $b->user?->rol?->name ?? '—')
+        $topRoles = (clone $active)->with('departament')->get()
+            ->countBy(fn ($b) => $b->departament?->rent_type_label ?? '—')
             ->sortDesc()
             ->take(5)
             ->map(fn ($total, $name) => [
@@ -197,7 +197,9 @@ class ReportController extends Controller
             12 => ['label' => 'Dic', 'name' => 'Diciembre'],
         ];
 
-        $data = $departments->map(function ($dept) use ($quotasByDept, $months) {
+        $creditByQuota = $this->creditAppliedByQuotaId($year, $departments->pluck('id')->all());
+
+        $data = $departments->map(function ($dept) use ($quotasByDept, $months, $creditByQuota) {
             $deptQuotas = $quotasByDept->get($dept->id, collect());
             $deptQuotasByMonth = $deptQuotas->keyBy('month');
 
@@ -210,13 +212,24 @@ class ReportController extends Controller
             $monthData = [];
             foreach ($months as $monthNum => $monthInfo) {
                 $quota = $deptQuotasByMonth->get($monthNum);
-                $monthData[$monthNum] = $quota ? [
+                if (! $quota) {
+                    $monthData[$monthNum] = null;
+
+                    continue;
+                }
+
+                $credit = round((float) ($creditByQuota[$quota->id] ?? 0), 2);
+                $gross = (float) $quota->amount;
+
+                $monthData[$monthNum] = [
                     'quota_id' => $quota->id,
-                    'amount' => (float) $quota->amount,
+                    'amount' => max(0, round($gross - $credit, 2)),
+                    'gross_amount' => round($gross, 2),
+                    'credit_applied' => $credit,
                     'maintenance_amount' => (float) $quota->maintenance_amount,
                     'water_amount' => (float) $quota->water_amount,
                     'status' => (int) $quota->status,
-                ] : null;
+                ];
             }
 
             return [
@@ -231,6 +244,74 @@ class ReportController extends Controller
             ];
         });
 
+        $totals = $this->buildMonthlyPaymentsTotals($data, $months);
+
+        return $this->returnSuccess(200, [
+            'year' => $year,
+            'months' => $months,
+            'departments' => $data,
+            'totals' => $totals,
+        ]);
+    }
+
+    /**
+     * Saldo a favor (crédito) ya consumido por cada cuota, para descontarlo
+     * del monto mostrado en el reporte de pagos mensuales.
+     *
+     * CreditTransaction guarda pay_id y departament_id pero no quota_id en el
+     * flujo consolidado, asi que se atribuye via las cuotas del pago.
+     *
+     * @param  array<int>  $deptIds
+     * @return array<int, float> quota_id => monto acreditado
+     */
+    private function creditAppliedByQuotaId(int $year, array $deptIds): array
+    {
+        if ($deptIds === []) {
+            return [];
+        }
+
+        $txns = CreditTransaction::where('type', CreditTransaction::TYPE_APPLIED)
+            ->whereIn('departament_id', $deptIds)
+            ->whereHas('pay.quotas', function ($q) use ($year) {
+                $q->where('year', $year);
+            })
+            ->with('pay.quotas:id,departament_id')
+            ->get();
+
+        $creditByQuota = [];
+        foreach ($txns as $txn) {
+            $quotaIds = $txn->pay?->quotas
+                ->where('departament_id', $txn->departament_id)
+                ->pluck('id')
+                ->all();
+
+            if ($quotaIds === []) {
+                continue;
+            }
+
+            // Un mismo pago puede cubrir varias cuotas del mismo depto: reparte
+            // proporcionalmente (en la practica es 1 cuota por pago/depto).
+            $share = round((float) $txn->amount / count($quotaIds), 2);
+            foreach ($quotaIds as $quotaId) {
+                $creditByQuota[$quotaId] = round(
+                    ($creditByQuota[$quotaId] ?? 0) + $share,
+                    2
+                );
+            }
+        }
+
+        return $creditByQuota;
+    }
+
+    /**
+     * Totales por mes (cobrado/pendiente/vencido/total) sobre montos netos.
+     *
+     * @param  iterable<int, array{months: array}>  $data
+     * @param  array<int, array{label: string, name: string}>  $months
+     * @return array<int, array{amount: float, paid: float, pending: float, overdue: float}>
+     */
+    private function buildMonthlyPaymentsTotals(iterable $data, array $months): array
+    {
         $totals = [];
         foreach ($months as $monthNum => $monthInfo) {
             $amount = 0;
@@ -238,7 +319,7 @@ class ReportController extends Controller
             $pending = 0;
             $overdue = 0;
             foreach ($data as $row) {
-                $m = $row['months'][$monthNum];
+                $m = $row['months'][$monthNum] ?? null;
                 if (! $m) {
                     continue;
                 }
@@ -259,12 +340,7 @@ class ReportController extends Controller
             ];
         }
 
-        return $this->returnSuccess(200, [
-            'year' => $year,
-            'months' => $months,
-            'departments' => $data,
-            'totals' => $totals,
-        ]);
+        return $totals;
     }
 
     private function getValidatedFilters(Request $request): array
@@ -301,7 +377,7 @@ class ReportController extends Controller
         $perPage = (int) $request->query('per_page', 15);
         $search = $request->query('search');
 
-        $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL];
+        $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR];
 
         // 1. Overdue quotas grouped by responsible, only >= 2 distinct months (moroso rule)
         $grouped = $this->buildOverdueDelinquentGroups($roleExcluded);
@@ -326,6 +402,8 @@ class ReportController extends Controller
                     'email' => $user->email,
                     'phone' => $user->phone,
                     'dni' => $user->dni,
+                    'role_id' => $user->rol_id,
+                    'role_label' => $this->roleLabel($user->rol_id),
                     'status_label' => 'Moroso (estado usuario)',
                     'departments' => $departments,
                     'total_debt' => 0,
@@ -350,6 +428,8 @@ class ReportController extends Controller
                     'email' => $first['email'],
                     'phone' => $first['phone'],
                     'dni' => $first['dni'],
+                    'role_id' => $first['role_id'] ?? null,
+                    'role_label' => $first['role_label'] ?? null,
                     'types' => $types,
                     'departments' => $group->pluck('departments')->flatten()->unique()->values()->all(),
                     'total_debt' => round((float) $group->sum('total_debt'), 2),
@@ -402,7 +482,7 @@ class ReportController extends Controller
         ]);
 
         $delinquentUsers = User::whereIn('id', $validated['user_ids'])
-            ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL])
+            ->whereNotIn('rol_id', [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR])
             ->get(['id', 'name', 'email', 'phone']);
 
         $sent = 0;
@@ -469,7 +549,7 @@ class ReportController extends Controller
 
     public function delinquentsMetrics(): JsonResponse
     {
-        $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL];
+        $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR];
 
         // Only users with overdue quotas spanning >= 2 distinct months (moroso rule)
         $grouped = $this->buildOverdueDelinquentGroups($roleExcluded);
@@ -507,7 +587,7 @@ class ReportController extends Controller
             ->whereHas('departament.owner', function ($q) use ($roleExcluded) {
                 $q->whereNotIn('rol_id', $roleExcluded);
             })
-            ->with(['departament.owner:id,name,email,phone,dni', 'responsiblePivot.user:id,name,email,phone,dni'])
+            ->with(['departament.owner:id,name,email,phone,dni,rol_id', 'responsiblePivot.user:id,name,email,phone,dni,rol_id'])
             ->get();
 
         return $overdueQuotas
@@ -543,6 +623,8 @@ class ReportController extends Controller
                     'email' => $responsibleUser?->email,
                     'phone' => $responsibleUser?->phone,
                     'dni' => $responsibleUser?->dni,
+                    'role_id' => $responsibleUser?->rol_id,
+                    'role_label' => $this->roleLabel($responsibleUser?->rol_id),
                     'status_label' => 'Cuotas vencidas en 2+ meses',
                     'departments' => $departments,
                     'total_debt' => round($totalAmount, 2),
@@ -561,6 +643,23 @@ class ReportController extends Controller
         }
 
         return $quota->departament?->user_id;
+    }
+
+    private function roleLabel($rolId): ?string
+    {
+        $rolId = $rolId !== null ? (int) $rolId : null;
+
+        return match ($rolId) {
+            Rol::ADMIN => Rol::ADMIN_NAME,
+            Rol::PROPIETARIO => Rol::PROPIETARIO_NAME,
+            Rol::INQUILINO => Rol::INQUILINO_NAME,
+            Rol::FAMILIAR => Rol::FAMILIAR_NAME,
+            Rol::AIRBNB => Rol::AIRBNB_NAME,
+            Rol::TRABAJADOR => Rol::TRABAJADOR_NAME,
+            Rol::PARCIAL => Rol::PARCIAL_NAME,
+            Rol::SUPER_ADMIN => Rol::SUPER_ADMIN_NAME,
+            default => null,
+        };
     }
 
     private function getResponsibleUser(Quota $quota)
@@ -589,7 +688,7 @@ class ReportController extends Controller
     {
         $search = $request->query('search');
 
-        $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR, Rol::PARCIAL];
+        $roleExcluded = [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR];
 
         $grouped = $this->buildOverdueDelinquentGroups($roleExcluded);
 
@@ -612,6 +711,8 @@ class ReportController extends Controller
                     'email' => $user->email,
                     'phone' => $user->phone,
                     'dni' => $user->dni,
+                    'role_id' => $user->rol_id,
+                    'role_label' => $this->roleLabel($user->rol_id),
                     'status_label' => 'Moroso (estado usuario)',
                     'departments' => $departments,
                     'total_debt' => 0,
@@ -634,6 +735,8 @@ class ReportController extends Controller
                     'email' => $first['email'],
                     'phone' => $first['phone'],
                     'dni' => $first['dni'],
+                    'role_id' => $first['role_id'] ?? null,
+                    'role_label' => $first['role_label'] ?? null,
                     'types' => $types,
                     'departments' => $group->pluck('departments')->flatten()->unique()->values()->all(),
                     'total_debt' => round((float) $group->sum('total_debt'), 2),
@@ -867,7 +970,9 @@ class ReportController extends Controller
             12 => ['label' => 'Dic', 'name' => 'Diciembre'],
         ];
 
-        $data = $departments->map(function ($dept) use ($quotasByDept, $months) {
+        $creditByQuota = $this->creditAppliedByQuotaId($year, $departments->pluck('id')->all());
+
+        $data = $departments->map(function ($dept) use ($quotasByDept, $months, $creditByQuota) {
             $deptQuotas = $quotasByDept->get($dept->id, collect());
             $deptQuotasByMonth = $deptQuotas->keyBy('month');
 
@@ -880,13 +985,24 @@ class ReportController extends Controller
             $monthData = [];
             foreach ($months as $monthNum => $monthInfo) {
                 $quota = $deptQuotasByMonth->get($monthNum);
-                $monthData[$monthNum] = $quota ? [
+                if (! $quota) {
+                    $monthData[$monthNum] = null;
+
+                    continue;
+                }
+
+                $credit = round((float) ($creditByQuota[$quota->id] ?? 0), 2);
+                $gross = (float) $quota->amount;
+
+                $monthData[$monthNum] = [
                     'quota_id' => $quota->id,
-                    'amount' => (float) $quota->amount,
+                    'amount' => max(0, round($gross - $credit, 2)),
+                    'gross_amount' => round($gross, 2),
+                    'credit_applied' => $credit,
                     'maintenance_amount' => (float) $quota->maintenance_amount,
                     'water_amount' => (float) $quota->water_amount,
                     'status' => (int) $quota->status,
-                ] : null;
+                ];
             }
 
             return [
@@ -901,33 +1017,7 @@ class ReportController extends Controller
             ];
         });
 
-        $totals = [];
-        foreach ($months as $monthNum => $monthInfo) {
-            $amount = 0;
-            $paid = 0;
-            $pending = 0;
-            $overdue = 0;
-            foreach ($data as $row) {
-                $m = $row['months'][$monthNum];
-                if (! $m) {
-                    continue;
-                }
-                $amount += $m['amount'];
-                if ($m['status'] === 3) {
-                    $paid += $m['amount'];
-                } elseif ($m['status'] === 4) {
-                    $overdue += $m['amount'];
-                } else {
-                    $pending += $m['amount'];
-                }
-            }
-            $totals[$monthNum] = [
-                'amount' => round($amount, 2),
-                'paid' => round($paid, 2),
-                'pending' => round($pending, 2),
-                'overdue' => round($overdue, 2),
-            ];
-        }
+        $totals = $this->buildMonthlyPaymentsTotals($data, $months);
 
         return Excel::download(new MonthlyPaymentsExport($data->toArray(), $totals, $year), 'reporte-cuotas-mensuales-'.$year.'.xlsx');
     }

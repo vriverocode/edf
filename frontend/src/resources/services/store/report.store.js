@@ -50,7 +50,7 @@ export const useReportStore = defineStore('Report', {
         }
         const token = ApiService.getToken()
         const query = this.filterQuery(filters)
-        const url = import.meta.env.VITE_LARAVEL_API_URL + '/api/reports/bookings/export' + (query ? `?${query}` : '')
+        const url = import.meta.env.VITE_LARAVEL_API_URL + '/api/reports/bookings/export/v2' + (query ? `?${query}` : '')
         const link = document.createElement('a')
         link.href = url
         link.setAttribute('Authorization', `Bearer ${token}`)

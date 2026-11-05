@@ -13,7 +13,11 @@ export default async function role(to, from, next) {
   if (!authStore.user?.rol?.name) {
     // Como no está, mandamos a llamar a la API utilizando tu acción existente
     // El 'await' pausa la navegación de la ruta hasta que la promesa se resuelva
-    await authStore.currentUser()
+    try {
+      await authStore.currentUser()
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   // 3. Una vez que la API responde (o si ya lo teníamos de antes), obtenemos el rol

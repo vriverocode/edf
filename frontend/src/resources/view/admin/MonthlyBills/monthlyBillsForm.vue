@@ -43,14 +43,14 @@ const formData = ref({
   common_water_consumption_m3: null,
   water_price_per_m3: ''
 })
-const parseMaskedMoney = (value) => {
+const parseMaskedMoney = (value, decimal = 2) => {
   if (value === null || value === undefined) return null
   const raw = String(value).trim()
   if (!raw) return null
   const normalized = raw.replaceAll('.', '').replace(',', '.')
   const n = Number.parseFloat(normalized)
   if (!Number.isFinite(n)) return null
-  return Number(n.toFixed(2))
+  return Number(n.toFixed(decimal))
 }
 
 const formatMaskedMoney = (value, decimals = 2) => {
@@ -124,7 +124,7 @@ const formattedIncludedExpenses = computed(() => formatMaskedMoney(includedExpen
 
 const commonWaterCost = computed(() => {
   const commonConsumption = Number(formData.value.common_water_consumption_m3) || 0
-  const price = parseMaskedMoney(formData.value.water_price_per_m3) || 0
+  const price = parseMaskedMoney(formData.value.water_price_per_m3, 4) || 0
   return Math.round(commonConsumption * price * 100) / 100
 })
 
@@ -200,7 +200,7 @@ const submit = async () => {
   try {
     const totalMaintenanceBudget = parseMaskedMoney(formData.value.total_maintenance_budget)
     const totalWaterBillAmount = parseMaskedMoney(formData.value.total_water_bill_amount)
-    const waterPricePerM3 = parseMaskedMoney(formData.value.water_price_per_m3)
+    const waterPricePerM3 = parseMaskedMoney(formData.value.water_price_per_m3, 4)
 
     const rawConsumption = formData.value.total_water_consumption_m3
     const waterConsumption = (rawConsumption === null || rawConsumption === '' || rawConsumption === 0) ? null : Number(rawConsumption)
@@ -366,7 +366,7 @@ const submit = async () => {
           <div class="text-subtitle2 text-black">Costo unitario de agua por m³ (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary" mask="###.###.###,####"
             reverse-fill-mask inputmode="decimal" :rules="[
-              val => parseMaskedMoney(val) !== null || 'El costo unitario de agua es requerido'
+              val => parseMaskedMoney(val, 4) !== null || 'El costo unitario de agua es requerido'
             ]" v-model="formData.water_price_per_m3" 
             :hint="waterPriceReadonly ? 'Calculado automáticamente (Monto / Consumo dept + Común)' : 'Ingresa el costo unitario si no registras los totales'" />
         </div>

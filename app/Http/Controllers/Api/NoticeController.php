@@ -75,9 +75,10 @@ class NoticeController extends Controller
             'views' => '[]',
             'status' => $isAdmin ? 2 : 1,
         ]);
-
         $this->uploadImages($notice, $request->file('img'));
-        $this->sendNoticeNotification($notice);
+        if ($isAdmin) {
+            $this->sendNoticeNotification($notice);
+        }
 
         return $this->returnSuccess(200, 'ok');
     }
@@ -100,7 +101,7 @@ class NoticeController extends Controller
         if ($notice->user_id !== $authUser->id && ! in_array($authUser->rol_id, [Rol::ADMIN])) {
             unset($data['views']);
         }
-
+        unset($data['user_id']);
         return $this->returnSuccess(200, $data);
     }
 
@@ -196,16 +197,19 @@ class NoticeController extends Controller
             'status' => $request->status,
         ]);
 
+        if ($request->status === 2) {
+            $this->sendNoticeNotification($notice, 2);
+        }
         return $this->returnSuccess(200, ['status' => $notice->status]);
     }
 
-    private function sendNoticeNotification($notice)
+    private function sendNoticeNotification($notice, $type = 1)
     {
         $users = User::where('rol_id', '!=', Rol::ADMIN)->where('status', 1)->get();
-
+        $title = $type === 1 ? 'Nuevo aviso publicado' : 'Nuevo anuncio publicado';
         try {
             Notification::send($users, new RealtimeNotification(
-                title: 'Nuevo aviso publicado',
+                title: $title,
                 message: $notice->title,
                 url: '/client/notice/view/'.$notice->id,
                 meta: [
@@ -221,7 +225,8 @@ class NoticeController extends Controller
     private function validateFieldsFromInput($inputs)
     {
         $rules = [
-            'title' => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\-]+$/i'],
+            // Se actualiza la regex para permitir letras, números, tildes, espacios, puntuación básica y emojis de Unicode (\p{So}, \p{Sm}, etc., o el modificador /u)
+            'title' => ['required', 'regex:/^[\p{L}\p{N}\p{P}\p{Z}\p{So}\p{Sm}\p{Sk}]+$/u'],
             'description' => ['required'],
             'group' => ['required', 'numeric'],
             'category' => ['required', 'numeric'],
@@ -229,7 +234,7 @@ class NoticeController extends Controller
         ];
         $messages = [
             'title.required' => 'El titulo de la publicación es requerido.',
-            'title.regex' => 'Titulo de la publicación no valido',
+            'title.regex' => 'Titulo de la publicación no valido (contiene caracteres no permitidos o emojis no soportados)',
             'decription.required' => 'Descripción de la publicación es requerida.',
             'decription.regex' => 'Descripción no valida',
             'group.required' => 'La publicacón debe pertenecer a un grupo',

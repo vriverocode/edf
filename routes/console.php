@@ -15,3 +15,5 @@ Schedule::command('app:active-ordesactive-air-bnb-users')->everyMinute();
 Schedule::command('app:check-user-morosos')->everyMinute();
 // Limpieza diaria de notificaciones con mas de 2 meses de antiguedad
 Schedule::command('app:clean-old-notifications')->dailyAt('03:00')->withoutOverlapping();
+// Actualiza el status de los eventos a las XX:02 de cada hora (proximamente, en curso, completada)
+Schedule::command('app:update-event-statuses')->hourlyAt(2);

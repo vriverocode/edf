@@ -76,16 +76,16 @@ const reloadIncident = () => {
         <div class="bg-white rounded-xl border border-gray-300 flex flex-col items-center w-full">
           <div class="row w-full mb-3 items-start">
             <div class="flex flex-col items-start col-md-6 col-6 md:pl-5 pl-3">
-              <div class="mb-4 pt-5">
+              <div class="mb-4 md:pt-5 pt-0">
                 <q-icon name="eva-alert-circle-outline" size="4rem" color="primary" />
               </div>
               <h1 class="text-2xl font-bold text-gray-900 md:mb-2">
                 {{ incident.title }}
               </h1>
             </div>
-            <div class="col-md-6 col-6 text-right">
+            <div class="col-md-6 col-12 text-right order-first md:order-last">
               <div class="flex justify-end">
-                <div class="p-4 dateFact text-primary text-md font-bold">
+                <div class="p-3 md:p-4 dateFact text-primary text-md font-bold">
                   <span class="text-grey-7 font-medium text-md">Reportada el:</span> {{
                     moment(incident.created_at).format('DD/MM/YYYY HH:mm') }}
                 </div>
@@ -142,6 +142,31 @@ const reloadIncident = () => {
                 </div>
               </div>
 
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección de respuestas del personal / administración -->
+        <div class="bg-white rounded-xl border border-gray-300 w-full mt-5 p-5" v-if="incident.responses && incident.responses.length > 0">
+          <div class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <q-icon name="eva-message-circle-outline" size="1.4rem" class="mr-2 text-primary" />
+            Respuestas de administración
+          </div>
+
+          <div class="space-y-3">
+            <div
+              v-for="resp in incident.responses"
+              :key="resp.id"
+              class="bg-blue-50/50 rounded-lg p-4 border border-blue-100"
+            >
+              <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center">
+                  <q-icon name="eva-shield-outline" size="1.2rem" class="mr-2 text-primary" />
+                  <span class="font-semibold text-gray-800">{{ resp.user?.name || 'Administración' }}</span>
+                </div>
+                <span class="text-xs text-gray-500">{{ moment(resp.created_at).format('DD/MM/YYYY HH:mm') }}</span>
+              </div>
+              <p class="text-gray-700 ml-6 whitespace-pre-line">{{ resp.message }}</p>
             </div>
           </div>
         </div>

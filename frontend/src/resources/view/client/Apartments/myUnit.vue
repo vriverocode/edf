@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import iconsApp from '@/assets/icons/index'
 import { useApartmentStore } from '@/services/store/apartment.store'
 import moment from 'moment';
@@ -14,6 +15,7 @@ moment.locale('es', {
   ),
 })
 const $q = useQuasar()
+const router = useRouter()
 const loaginSwitch = ref(false)
 const { user } = storeToRefs(useAuthStore())
 const apartmentStore = useApartmentStore()
@@ -75,6 +77,9 @@ const showPick = (id) => {
 const internalNumber = (number) => {
   let splitNumber = number.split("-")
   return splitNumber[1]
+}
+const goToMonthlyCards = (apartment) => {
+  router.push(`/client/quotas/months?departament_id=${apartment.id}&number=${apartment.number}`)
 }
 onMounted(() => {
   getApartaments()
@@ -176,6 +181,12 @@ onMounted(() => {
                     <q-chip :label="(apartment.due_quotas.length > 0 || apartment.pending_amount_quota > 0) ? 'Moroso':'Al día'" 
                       :color="(apartment.due_quotas.length > 0 || apartment.pending_amount_quota > 0) ? 'warning':'positive'" text-color="white" />
                     <div class="flex items-center">
+                      <q-btn flat rounded size="sm" class="ml-3" color="primary" icon="eva-file-text-outline"
+                        @click="goToMonthlyCards(apartment)">
+                        <q-tooltip class="bg-primary  text-white text-body2" :offset="[10, 10]">
+                          Ver cuotas por mes
+                        </q-tooltip>
+                      </q-btn>
                       <q-btn flat rounded size="sm" class="ml-3" @click="showPick(apartment.number)">
                         <q-tooltip class="bg-primary  text-white text-body2" :offset="[10, 10]">
                           Ver detalles

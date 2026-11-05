@@ -207,13 +207,26 @@ class DepartmentChargeController extends Controller
                     ['installment_number' => $currentMonthIndex]
                 );
 
-                $totalExtra = DB::table('charge_quota')
+                $totalExtraCharges = DB::table('charge_quota')
                     ->join('department_charges', 'department_charges.id', '=', 'charge_quota.department_charge_id')
                     ->where('charge_quota.quota_id', $quota->id)
                     ->sum('department_charges.monthly_amount');
 
+                $multasLinked = DB::table('multa_quota')
+                    ->join('multas', 'multas.id', '=', 'multa_quota.multa_id')
+                    ->where('multa_quota.quota_id', $quota->id)
+                    ->select('multas.amount', 'multas.installments')
+                    ->get();
+                $totalMultas = 0;
+                foreach ($multasLinked as $m) {
+                    $inst = max(1, (int) ($m->installments ?? 1));
+                    $totalMultas += round(((float) $m->amount) / $inst, 2);
+                }
+
+                $totalExtra = round($totalExtraCharges + $totalMultas, 2);
+
                 Quota::where('id', $quota->id)->update([
-                    'extra_amount' => round($totalExtra, 2),
+                    'extra_amount' => $totalExtra,
                     'amount' => round($quota->maintenance_amount + $quota->water_amount + $totalExtra, 2),
                 ]);
             }
@@ -229,15 +242,28 @@ class DepartmentChargeController extends Controller
         DB::table('charge_quota')->where('department_charge_id', $charge->id)->delete();
 
         foreach ($linkedQuotas as $quotaId) {
-            $totalExtra = DB::table('charge_quota')
+            $totalExtraCharges = DB::table('charge_quota')
                 ->join('department_charges', 'department_charges.id', '=', 'charge_quota.department_charge_id')
                 ->where('charge_quota.quota_id', $quotaId)
                 ->sum('department_charges.monthly_amount');
 
+            $multasLinked = DB::table('multa_quota')
+                ->join('multas', 'multas.id', '=', 'multa_quota.multa_id')
+                ->where('multa_quota.quota_id', $quotaId)
+                ->select('multas.amount', 'multas.installments')
+                ->get();
+            $totalMultas = 0;
+            foreach ($multasLinked as $m) {
+                $inst = max(1, (int) ($m->installments ?? 1));
+                $totalMultas += round(((float) $m->amount) / $inst, 2);
+            }
+
+            $totalExtra = round($totalExtraCharges + $totalMultas, 2);
+
             $quota = Quota::find($quotaId);
             if ($quota) {
                 $quota->update([
-                    'extra_amount' => round($totalExtra, 2),
+                    'extra_amount' => $totalExtra,
                     'amount' => round($quota->maintenance_amount + $quota->water_amount + $totalExtra, 2),
                 ]);
             }

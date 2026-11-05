@@ -402,7 +402,7 @@ const statusOptions = [
             <div class="p-4 bg-gray-50">
               <div class="flex justify-between items-center">
                 <div class="flex items-center">
-                  <svg v-if="reserve.status == 3" class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor"
+                  <svg v-if="reserve.status == 3 || reserve.status == 4" class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor"
                     viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                   </svg>

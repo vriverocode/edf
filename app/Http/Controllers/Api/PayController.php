@@ -11,6 +11,7 @@ use App\Models\CreditTransaction;
 use App\Models\DepartmentCharge;
 use App\Models\Expense;
 use App\Models\FinancialAccount;
+use App\Models\Multa;
 use App\Models\Pay;
 use App\Models\PayMethod;
 use App\Models\Quota;
@@ -86,7 +87,6 @@ class PayController extends Controller
             $unitCredits = collect([]);
             if ($consolidated->isNotEmpty() && (float) ($pay->credit_applied ?? 0) > 0) {
                 $deptIds = $consolidated->pluck('departament_id')->unique()->values()->all();
-                $period = Quota::resolvePeriod($consolidated);
 
                 $appliedByDept = CreditTransaction::query()
                     ->where('pay_id', $pay->id)
@@ -95,11 +95,20 @@ class PayController extends Controller
                     ->groupBy('departament_id')
                     ->map(fn ($rows) => round((float) $rows->sum('amount'), 2));
 
-                $balances = (new CreditService)->getBalanceForDepartments(
-                    $deptIds,
-                    $period['month'] ?? null,
-                    $period['year'] ?? null
-                )['detail'];
+                // Saldos solo de los periodos del set (multi-mes): en set
+                // multi-mes antes se colaba el saldo de meses ajenos al pago.
+                $balances = [];
+                foreach (Quota::resolveCreditPeriods($consolidated) as $period) {
+                    $partial = (new CreditService)->getBalanceForDepartments(
+                        $deptIds,
+                        $period['month'],
+                        $period['year']
+                    )['detail'];
+
+                    foreach ($partial as $deptId => $balance) {
+                        $balances[$deptId] = round(($balances[$deptId] ?? 0) + (float) $balance, 2);
+                    }
+                }
 
                 $unitCredits = $consolidated->groupBy('departament_id')->map(function ($quotas, $deptId) use ($appliedByDept, $balances) {
                     $dept = $quotas->first()->departament;
@@ -232,6 +241,15 @@ class PayController extends Controller
                 $consolidatedIdsForStore = $syncIds;
             }
             $quotaIdsForPay = $consolidatedIdsForStore;
+
+            // Un pago de cuota siempre debe traer al menos una cuota: evita
+            // pagos vacios (monto 0 y sin cuotas) cuando el formulario llega
+            // sin datos porque fallo la carga de la cuota.
+            if (empty($quotaIdsForPay)) {
+                Log::warning('returnFail 422: No hay cuotas asociadas a este pago.');
+
+                return $this->returnFail(422, 'No hay cuotas asociadas a este pago.');
+            }
         }
 
         if ((int) $request->type === 1 && ! empty($quotaIdsForPay)) {
@@ -260,6 +278,21 @@ class PayController extends Controller
                     Log::warning('returnFail 422: El monto no cubre la suma de las cuotas seleccionadas.');
 
                     return $this->returnFail(422, 'El monto no cubre la suma de las cuotas seleccionadas.');
+                }
+            }
+
+            // Monto 0: solo se permite cuando el saldo a favor cubre el 100%
+            // de las cuotas del set. Aplica tambien a los admins, que estan
+            // exentos del chequeo de orden/monto de arriba.
+            $amountRequested = round((float) $request->amount, 2);
+            if ($amountRequested <= 0) {
+                $creditRequestedForZero = round((float) $request->input('credit_applied', 0), 2);
+                $quotaSumForZero = round((float) Quota::whereIn('id', $quotaIdsForPay)->sum('amount'), 2);
+
+                if ($quotaSumForZero > 0 && round($amountRequested + $creditRequestedForZero, 2) + 0.01 < $quotaSumForZero) {
+                    Log::warning('returnFail 422: Monto cero sin saldo a favor que cubra las cuotas.');
+
+                    return $this->returnFail(422, 'El monto debe ser mayor a cero o contar con saldo a favor que cubra la totalidad de las cuotas.');
                 }
             }
 
@@ -344,16 +377,15 @@ class PayController extends Controller
                 $pay->quotas()->sync($quotaIdsForPay);
             }
 
-            // Crédito (saldo a favor): mes abierto o mes fijado del crédito; se consume al aprobar
+            // Crédito (saldo a favor): se aplica sobre cualquier periodo del
+            // set seleccionado (multi-mes); se consume al aprobar, y cada
+            // saldo solo descuenta cuotas de su propio mes/año.
             if ((int) $request->type === 1 && ! empty($quotaIdsForPay)) {
                 $creditRequested = round((float) $request->input('credit_applied', 0), 2);
                 if ($creditRequested > 0) {
                     $quotasForCredit = Quota::whereIn('id', $quotaIdsForPay)->get();
-                    // Multi-mes: el saldo se aplica sobre el periodo mas reciente
-                    // del set (mes mas nuevo seleccionado), no sobre el set entero.
-                    $period = Quota::resolveCreditPeriod($quotasForCredit);
 
-                    if (! $period) {
+                    if (Quota::resolveCreditPeriods($quotasForCredit) === []) {
                         DB::rollBack();
 
                         Log::warning('returnFail 422: El saldo a favor requiere al menos una cuota mensual en el pago.');
@@ -361,20 +393,15 @@ class PayController extends Controller
                         return $this->returnFail(422, 'El saldo a favor solo aplica cuando las cuotas del pago tienen un periodo definido.');
                     }
 
-                    $deptQuotas = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
                     $creditService = new CreditService;
-                    $available = $creditService->getBalanceForDepartments(
-                        array_keys($deptQuotas),
-                        $period['month'],
-                        $period['year']
-                    );
+                    $available = $creditService->maxApplicableForQuotas($quotasForCredit);
 
-                    if ($creditRequested > round($available['total'], 2) + 0.009) {
+                    if ($creditRequested > round($available, 2) + 0.009) {
                         DB::rollBack();
 
-                        Log::warning('returnFail 422: El saldo a favor disponible no es suficiente para este mes.');
+                        Log::warning('returnFail 422: El saldo a favor disponible no es suficiente para este pago.');
 
-                        return $this->returnFail(422, 'El saldo a favor disponible no es suficiente para este mes.');
+                        return $this->returnFail(422, 'El saldo a favor disponible no es suficiente para este pago.');
                     }
 
                     $pay->update(['credit_applied' => $creditRequested]);
@@ -535,17 +562,11 @@ class PayController extends Controller
 
                 $creditService = new CreditService;
                 $creditRequested = round((float) ($pay->credit_applied ?? 0), 2);
-                $deptQuotasForCredit = [];
 
                 if ($creditRequested > 0) {
                     $quotasForCredit = Quota::whereIn('id', $quotaIds)->get();
-                    // Mismo criterio que en storePay: periodo unico o el mas
-                    // reciente del set (derivado del set, deterministico entre
-                    // el alta y la aprobacion).
-                    $period = Quota::resolveCreditPeriod($quotasForCredit);
-                    $deptQuotasForCredit = $quotasForCredit->pluck('amount', 'departament_id')->toArray();
 
-                    if (! $period) {
+                    if (Quota::resolveCreditPeriods($quotasForCredit) === []) {
                         DB::rollBack();
 
                         Log::warning('returnFail 422: El saldo a favor requiere al menos una cuota mensual en el pago.');
@@ -556,12 +577,13 @@ class PayController extends Controller
                         ]);
                     }
 
+                    // Multi-mes: cada saldo se consume contra las cuotas de su
+                    // propio periodo (tope por depto y periodo), derivado del
+                    // set, determinístico entre el alta y la aprobación.
                     $creditConsumed = $creditService->applyCreditToConsolidated(
-                        $deptQuotasForCredit,
+                        $quotasForCredit,
                         $creditRequested,
-                        $pay,
-                        $period['month'],
-                        $period['year']
+                        $pay
                     );
 
                     if (round($creditConsumed, 2) < $creditRequested) {
@@ -589,18 +611,49 @@ class PayController extends Controller
                 $actualAmount = $request->has('actual_amount') ? round((float) $request->actual_amount, 2) : null;
                 $payAmount = round((float) $pay->amount, 2);
 
-                if ($actualAmount !== null && $actualAmount > $payAmount) {
-                    $creditAmount = round($actualAmount - $payAmount, 2);
+                $requestOverpayment = $actualAmount !== null && $actualAmount > $payAmount
+                    ? round($actualAmount - $payAmount, 2)
+                    : 0.0;
+                $storedOverpayment = $requestOverpayment === 0.0
+                    && $pay->overpayment_amount
+                    && (float) $pay->overpayment_amount > $payAmount
+                    ? round((float) $pay->overpayment_amount - $payAmount, 2)
+                    : 0.0;
+                $creditToCreate = max($requestOverpayment, $storedOverpayment);
+
+                $creditMonth = null;
+                $creditYear = null;
+                if ($creditToCreate > 0) {
+                    // El admin debe indicar el mes/año al que aplica el saldo.
+                    $creditMonth = $request->input('credit_applicable_month');
+                    $creditYear = $request->input('credit_applicable_year');
+                    $creditMonth = is_numeric($creditMonth) ? (int) $creditMonth : null;
+                    $creditYear = is_numeric($creditYear) ? (int) $creditYear : null;
+
+                    if ($creditMonth === null || $creditMonth < 1 || $creditMonth > 12 || $creditYear === null) {
+                        DB::rollBack();
+
+                        Log::warning('returnFail 422: El saldo por sobrepago requiere mes y año de aplicación.');
+
+                        return $this->returnFail(422, [
+                            'messageType' => 'negative',
+                            'message' => 'Selecciona el mes y año de aplicación del saldo a favor.',
+                        ]);
+                    }
+                }
+
+                if ($requestOverpayment > 0) {
+                    $creditAmount = $requestOverpayment;
                     $firstQuota = Quota::with('departament')->find($quotaIds[0]);
                     if ($firstQuota && $creditAmount > 0) {
-                        $creditService->createCredit($firstQuota->departament, $creditAmount, $pay);
+                        $creditService->createCredit($firstQuota->departament, $creditAmount, $pay, $creditMonth, $creditYear);
                         $pay->update(['overpayment_amount' => $actualAmount]);
                     }
-                } elseif ($pay->overpayment_amount && (float) $pay->overpayment_amount > $payAmount) {
-                    $creditAmount = round((float) $pay->overpayment_amount - $payAmount, 2);
+                } elseif ($storedOverpayment > 0) {
+                    $creditAmount = $storedOverpayment;
                     $firstQuota = Quota::with('departament')->find($quotaIds[0]);
                     if ($firstQuota && $creditAmount > 0) {
-                        $creditService->createCredit($firstQuota->departament, $creditAmount, $pay);
+                        $creditService->createCredit($firstQuota->departament, $creditAmount, $pay, $creditMonth, $creditYear);
                     }
                 }
             } elseif ((int) $pay->type === 2 && $pay->booking_id) {
@@ -1535,7 +1588,7 @@ class PayController extends Controller
             'financial_account_id' => ['required', 'exists:financial_accounts,id'],
             'transaction_category_id' => ['required', 'exists:transaction_categories,id'],
             'reference' => ['nullable', 'string'],
-            'pay_date' => ['required', 'date', 'before_or_equal:'.now()->format('Y-m-d')],
+            'pay_date' => ['required', 'date'],
             'vaucher' => ['nullable', 'file', 'max:10240'],
         ], [
             'amount.required' => 'El monto es requerido',
@@ -1545,7 +1598,6 @@ class PayController extends Controller
             'transaction_category_id.required' => 'La categoría de transacción es requerida',
             'transaction_category_id.exists' => 'La categoría de transacción no es válida',
             'pay_date.required' => 'La fecha de pago es requerida',
-            'pay_date.date' => 'La fecha de pago no es válida',
             'pay_date.before_or_equal' => 'La fecha de pago no puede ser mayor a la fecha actual',
         ]);
 
@@ -1664,6 +1716,24 @@ class PayController extends Controller
             $charge = DepartmentCharge::find($chargeId);
             if ($charge && $charge->fresh()->isFinished()) {
                 $charge->update(['status' => 2]);
+            }
+        }
+
+        $multaIds = DB::table('multa_quota')
+            ->whereIn('quota_id', $quotaIds)
+            ->pluck('multa_id')
+            ->unique();
+
+        foreach ($multaIds as $multaId) {
+            DB::table('multas')
+                ->where('id', $multaId)
+                ->where('status', 1)
+                ->whereRaw('paid_installments < installments')
+                ->increment('paid_installments');
+
+            $multa = Multa::find($multaId);
+            if ($multa && $multa->fresh()->isFinished()) {
+                $multa->update(['status' => 2]);
             }
         }
     }

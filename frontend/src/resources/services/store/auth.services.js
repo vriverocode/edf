@@ -1,9 +1,16 @@
 import { defineStore } from 'pinia'
 import ApiService from '@/services/axios'
 import storage from '@/services/storage'
+import {
+  clearBiometricEnrollment,
+  deleteStoredBiometricToken,
+  disableBiometric,
+  hasBiometricEnabled
+} from '@/composables/useBiometric'
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: {},
+    token: null,
     currency: storage.getItem("currency") || null,
     currencySymbol: storage.getItem("currency_symbol") || null,
   }),
@@ -55,106 +62,101 @@ export const useAuthStore = defineStore('auth', {
       this.clearRememberAccount()
       if(credentials.remember == true) this.setRememberAccount(credentials)
     },
-    saveToken(token){
-      storage.setItem("access_token",token);
+    saveToken(token, { persist = true } = {}){
+      this.token = token || null
+      ApiService.setToken(this.token)
 
+      if (persist) {
+        storage.setItem("access_token", token);
+      } else {
+        storage.deleteItem("access_token");
+      }
     },
     logoutAction(){
       storage.deleteItem("access_token");
       storage.deleteItem("currency");
       storage.deleteItem("currency_symbol");
+      ApiService.clearToken();
+      this.token = null;
       this.user = {};
       this.currency = null;
       this.currencySymbol = null;
     },
-    async login(credentials) {
-      // return await new Promise((resolve, reject) => {
-      //   // ApiService.setHeader()
-      //   ApiService.get('/sanctum/csrf-cookie')
-      //   .then((response) => {
-      //     ApiService.post('/api/login', credentials)
-      //     .then(({data}) => {
-      //       if(!data.data.token){
-      //         throw data;
-      //       }
-      //       this.saveToken(data.data.token)
+    async login(credentials, { persistToken = true } = {}) {
+      try {
+        const { data } = await ApiService.post('/api/login', credentials)
+        if (!data?.data?.token) {
+          throw data
+        }
+        this.saveToken(data.data.token, { persist: persistToken })
+        return await this.currentUser()
+      } catch (error) {
+        return error?.response ?? error
+      }
+    },
+    async setSession(token) {
+      if (!token) {
+        throw new Error('Token de sesión no válido')
+      }
 
-      //       this.currentUser().then((res) => {
-      //         resolve(res)
-      //       })
-            
-      //     }).catch(({response}) =>{
-  
-      //       reject(response)
-      //     })
-      //   }).catch(({response}) =>{
+      this.saveToken(token, { persist: false })
 
-      //     reject(response)
-      //   })
-      // }) 
-      return await new Promise((resolve, reject) => {
-        // Elimina la llamada a ApiService.get('/sanctum/csrf-cookie')
-        ApiService.post('/api/login', credentials)
-          .then(({data}) => {
-            if(!data.data.token){
-              throw data;
-            }
-            // Aquí guardas el token de Sanctum generado por tu backend
-            this.saveToken(data.data.token) 
-    
-            this.currentUser().then((res) => {
-              resolve(res)
-            })
-          }).catch(({response}) =>{
-            reject(response)
-          })
-      })
-      .catch((response) => {
+      try {
+        const response = await this.currentUser()
+        if (!this.user?.id) {
+          throw new Error('No se pudo recuperar el usuario')
+        }
         return response
-      })
+      } catch (error) {
+        this.logoutAction()
+
+        if (error?.response?.status === 401 || error?.status === 401) {
+          await deleteStoredBiometricToken()
+          clearBiometricEnrollment()
+        }
+
+        throw error
+      }
     },
     async currentUser() {
-      return await new Promise((resolve, reject) => {
-        if (!ApiService.getToken()) {
-          throw '';
-        }
-          ApiService.setHeader();
-          ApiService.get("/api/user")
-            .then((data) => {
-              if(data.status !=200){
-                throw data;
-              }
-              this.setAuth(data)
-              resolve(data);
-            }).catch(( response ) => {
-              console.error(response)
-              reject('Error al obtener usuario');
-            });
-        
-      })
-      .catch(( response ) => {
-        console.error(response)
-        return ('Error al obtener usuario');
-      });
+      if (!ApiService.getToken()) {
+        throw new Error('No hay una sesión activa')
+      }
+
+      ApiService.setHeader()
+      const response = await ApiService.get('/api/user')
+
+      if (response.status !== 200) {
+        throw response
+      }
+
+      this.setAuth(response)
+      return response
     },
     async logout(){
-      return await new Promise((resolve) => {
+      if (hasBiometricEnabled()) {
+        this.logoutAction()
+        return { code: 200, message: 'Sesión cerrada' }
+      }
+
+      try {
         if (ApiService.getToken()) {
           ApiService.setHeader();
-          ApiService.get("/api/auth/logout")
-            .then(({ data }) => {
-              if(data.code !== 200){
-                throw data;
-              }
-              this.logoutAction()
-              resolve(data)
-            })
+          const { data } = await ApiService.get("/api/auth/logout")
+
+          if (data.code !== 200) {
+            throw data;
+          }
         }
-      })
-      .catch(( response ) => {
-        console.error(response)
-        resolve('Error al cerrar sesión');
-      });
+      } catch (error) {
+        console.error(error)
+      } finally {
+        await deleteStoredBiometricToken()
+        disableBiometric()
+        this.logoutAction()
+      }
+
+      return { code: 200, message: 'Sesión cerrada' }
     },
     async updateProfile(data) {
       return await new Promise((resolve, reject) => {

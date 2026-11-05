@@ -132,6 +132,7 @@ class BillInvoiceController extends Controller
 
         $quota = Quota::with([
             'departament.owner',
+            'responsiblePivot.user',
             'waterReading',
             'pays' => function ($query) {
                 $query->where('status', 2)
@@ -148,11 +149,7 @@ class BillInvoiceController extends Controller
             return $this->returnFail(403, 'El recibo solo está disponible para cuotas pagadas');
         }
 
-        $isAdmin = in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN]);
-        $isOwner = $quota->departament->user_id === $user->id;
-        $isTenant = $quota->peoples_x_departments_id && $quota->responsiblePivot?->user_id === $user->id;
-
-        if (! $isAdmin && ! $isOwner && ! $isTenant) {
+        if (! $this->canAccessQuota($quota, $user)) {
             return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
         }
 
@@ -168,6 +165,90 @@ class BillInvoiceController extends Controller
             '-'.$invoiceData['year'].'.pdf';
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * Estado de cuenta combinado (una seccion por cuota) para el cliente.
+     * A diferencia del recibo, funciona con cualquier estado de la cuota.
+     */
+    public function clientStatementPdf(Request $request)
+    {
+        $user = $request->user();
+
+        $rawIds = $request->input('quota_ids', []);
+        if (is_string($rawIds)) {
+            $rawIds = explode(',', $rawIds);
+        }
+
+        if (! is_array($rawIds)) {
+            return $this->returnFail(422, 'Debes seleccionar al menos una cuota.');
+        }
+
+        $quotaIds = array_values(array_unique(array_filter(
+            array_map('intval', $rawIds),
+            fn ($id) => $id > 0
+        )));
+
+        if ($quotaIds === []) {
+            return $this->returnFail(422, 'Debes seleccionar al menos una cuota.');
+        }
+
+        if (count($quotaIds) > 20) {
+            return $this->returnFail(422, 'Solo se pueden incluir hasta 20 cuotas por documento.');
+        }
+
+        $quotas = Quota::with([
+            'departament.owner',
+            'responsiblePivot.user',
+            'waterReading',
+        ])->whereIn('id', $quotaIds)->get();
+
+        if ($quotas->count() !== count($quotaIds)) {
+            return $this->returnFail(404, 'Cuota no encontrada');
+        }
+
+        foreach ($quotas as $quota) {
+            if (! $this->canAccessQuota($quota, $user)) {
+                return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+            }
+        }
+
+        // Respeta el orden enviado por el cliente (mas antiguo primero).
+        $ordered = collect($quotaIds)
+            ->map(fn ($id) => $quotas->firstWhere('id', $id))
+            ->filter()
+            ->values();
+
+        $statementData = $ordered
+            ->map(fn (Quota $quota) => $this->billInvoiceService->buildStatementData($quota))
+            ->all();
+
+        $first = $statementData[0];
+        $period = $first['is_monthly']
+            ? str_pad((string) $first['month'], 2, '0', STR_PAD_LEFT).'-'.$first['year']
+            : (string) $first['year'];
+
+        $pdf = Pdf::loadView('bills.quota-statement', [
+            'quotas' => $statementData,
+            'emissionDate' => now()->format('d/m/Y'),
+        ])->setPaper('letter')
+            ->setOption('isRemoteEnabled', true);
+
+        return $pdf->download('estado-cuenta-'.$period.'.pdf');
+    }
+
+    private function canAccessQuota(Quota $quota, $user): bool
+    {
+        if (in_array((int) $user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN], true)) {
+            return true;
+        }
+
+        if ((int) ($quota->departament->user_id ?? 0) === (int) $user->id) {
+            return true;
+        }
+
+        return $quota->peoples_x_departments_id
+            && (int) ($quota->responsiblePivot?->user_id ?? 0) === (int) $user->id;
     }
 
     public function previewPdf(Request $request, int $quotaId)

@@ -165,7 +165,7 @@ class VisitController extends Controller
                 meta: [
                     'visit_id' => $visit->id,
                     'departament_id' => $visit->departament_id,
-                    'icon' => 'person',
+                    'icon' => 'eva-person-outline',
                 ]
             ));
         } catch (\Throwable $e) {

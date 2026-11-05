@@ -24,13 +24,16 @@ const availableYears = ref([])
 const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
   filters: [
     { key: 'month', ref: selectedMonth, parse: Number },
-    { key: 'year', ref: selectedYear, parse: Number }
+    { key: 'year', ref: selectedYear, parse: Number },
+    { key: 'departament_id', ref: selectedDept, parse: (v) => (v ? Number(v) : null) }
   ]
 })
 
 const readings = ref([])
 const selectedDept = ref(null)
 const deptOptions = ref([])
+const filteredDeptOptions = ref([])
+const deptLoading = ref(false)
 
 const monthOptions = [
   { value: 1, name: 'Enero' },
@@ -125,17 +128,41 @@ const onChangeDept = () => {
 }
 
 const loadDepartments = async () => {
+  deptLoading.value = true
   try {
     const response = await apartmentStore.getApartmentsByFind('allWithUser')
     if (response?.code === 200) {
       deptOptions.value = [
         { label: 'Todos', value: null },
-        ...(response.data || []).map(d => ({ label: d.number, value: d.id }))
+        ...(response.data || []).map(d => ({ label: `${d.number}`, value: d.id }))
       ]
+      filteredDeptOptions.value = deptOptions.value
     }
   } catch {
     deptOptions.value = [{ label: 'Todos', value: null }]
+    filteredDeptOptions.value = deptOptions.value
+  } finally {
+    deptLoading.value = false
   }
+}
+
+const filterDept = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filteredDeptOptions.value = deptOptions.value
+    })
+    return
+  }
+  update(() => {
+    const needle = val.toLowerCase().trim()
+    filteredDeptOptions.value = deptOptions.value.filter(
+      (opt) => opt.label.toLowerCase().includes(needle)
+    )
+  })
+}
+
+const onFilterAbort = () => {
+  filteredDeptOptions.value = deptOptions.value
 }
 
 const startSequential = () => {
@@ -186,8 +213,30 @@ onMounted(() => {
                 @update:model-value="onChangeYear" />
             </div>
             <div class="col-4 col-md-4 pl-2 md:pt-0">
-              <q-select dense borderless class="form__inputsR" v-model="selectedDept" :options="deptOptions"
-                option-label="label" option-value="value" emit-value map-options @update:model-value="onChangeDept" />
+              <q-select
+                dense
+                borderless
+                class="form__inputsR"
+                v-model="selectedDept"
+                :options="filteredDeptOptions"
+                option-label="label"
+                option-value="value"
+                emit-value
+                map-options
+                use-input
+                input-debounce="0"
+                :loading="deptLoading"
+                @filter="filterDept"
+                @filter-abort="onFilterAbort"
+                @popup-hide="onFilterAbort"
+                @update:model-value="onChangeDept"
+              >
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="text-grey">Sin resultados</q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
             </div>
           </div>
         </div>

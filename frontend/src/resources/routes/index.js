@@ -500,6 +500,18 @@ const routes = [
         },
       },
       {
+        path: '/admin/incidents/view/:id',
+        component: () => import('@/view/admin/Incidents/viewIncidentAdmin.vue'),
+        name: 'viewIncidentAdmin',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Detalle de incidencia',
+          roles: ['admin', 'super-admin', 'trabajador'],
+          depth: 3,
+        },
+      },
+      {
         path: '/admin/pay/validate/:id',
         component: () => import('@/view/admin/Pays/validatePay.vue'),
         name: 'PayValidate',
@@ -806,6 +818,42 @@ const routes = [
         },
       },
       {
+        path: '/admin/multas',
+        component: () => import('@/view/admin/Multas/multasList.vue'),
+        name: 'multasList',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Multas y sanciones',
+          roles: ['admin', 'super-admin'],
+          depth: 3,
+        },
+      },
+      {
+        path: '/admin/multas/create',
+        component: () => import('@/view/admin/Multas/multaForm.vue'),
+        name: 'multaCreate',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Asignar multa',
+          roles: ['admin', 'super-admin'],
+          depth: 4,
+        },
+      },
+      {
+        path: '/admin/multas/:id/edit',
+        component: () => import('@/view/admin/Multas/multaForm.vue'),
+        name: 'multaEdit',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'PACIFIK',
+          pagTitle: 'Editar multa',
+          roles: ['admin', 'super-admin'],
+          depth: 4,
+        },
+      },
+      {
         path: '/admin/monthly_bills/list',
         component: () => import('@/view/admin/MonthlyBills/monthlyBillsList.vue'),
         name: 'MonthlyBillsList',
@@ -1010,6 +1058,18 @@ const routes = [
           title: 'Bienvenido',
           pagTitle: 'Cuotas del mes',
           roles: ['admin'],
+          depth: 2,
+        },
+      },
+      {
+        path: '/admin/quotas/months',
+        component: () => import('@/view/admin/Quotas/quotasMonthlyCards.vue'),
+        name: 'quotasMonthlyCards',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Cuotas por mes',
+          roles: ['admin', 'super-admin'],
           depth: 2,
         },
       },
@@ -1262,6 +1322,17 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           pagTitle: 'Detalles de cuotas',
+          depth: 3,
+        },
+      },
+      {
+        path: '/client/quotas/months',
+        component: () => import('@/view/admin/Quotas/quotasMonthlyCards.vue'),
+        name: 'clientQuotaMonthlyCards',
+        beforeEnter: [auth, role],
+        meta: {
+          title: 'Bienvenido',
+          pagTitle: 'Mis cuotas por mes',
           depth: 3,
         },
       },

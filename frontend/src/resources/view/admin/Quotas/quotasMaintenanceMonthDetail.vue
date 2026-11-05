@@ -297,7 +297,7 @@ onMounted(() => {
           </q-select>
         </div>       
       </div>
-      <div v-if="!loading" class="q-px-4 md:px-34 q-mb-sm text-caption text-grey-7">
+      <div v-if="!loading" class="px-4 md:px-32 q-mb-sm text-caption text-grey-7 text-end">
         {{ recordCount }} registro{{ recordCount === 1 ? '' : 's' }}
       </div>
       <div v-if="loading" class="flex justify-center items-center py-20">

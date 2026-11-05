@@ -9,6 +9,14 @@ const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 
+// Valores alineados con Departament::getRentTypeLabelAttribute
+const rentTypesOptions = [
+  { label: '—', value: 0 },
+  { label: 'Propietario', value: 1 },
+  { label: 'Inquilino', value: 2 },
+  { label: 'Airbnb', value: 3 }
+]
+
 const formData = ref({
   number: '',
   address: '',
@@ -16,7 +24,8 @@ const formData = ref({
   area: '',
   description: '',
   floor: '',
-  participation_percentage: ''
+  participation_percentage: '',
+  rent_type: 0
 })
 
 const getApartmentData = async () => {
@@ -32,7 +41,8 @@ const getApartmentData = async () => {
         type: response.data.type,
         description: response.data.description,
         floor: response.data.floor,
-        participation_percentage: response.data.participation_percentage
+        participation_percentage: response.data.participation_percentage,
+        rent_type: Number(response.data.rent_type ?? 0)
       }
     }
   } catch (error) {
@@ -96,14 +106,14 @@ onMounted(() => {
 
       <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
         <div class="text-subtitle2 text-black">Piso</div>
-        <q-input dense borderless v-model="formData.floor" class="form__inputsR mt-1" type="number" color="primary"
-          :rules="[val => val !== null && val !== '' || 'El piso es necesario']" />
+        <q-input dense borderless v-model="formData.floor" class="form__inputsR mt-1 mb-4" type="number" color="primary"
+           />
       </div>
 
       <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
         <div class="text-subtitle2 text-black">Dirección</div>
-        <q-input dense borderless v-model="formData.address" class="form__inputsR mt-1" color="primary"
-          :rules="[val => val && val.length > 0 || 'La dirección es necesaria']" />
+        <q-input dense borderless v-model="formData.address" class="form__inputsR mt-1 mb-4" color="primary"
+        />
       </div>
 
       <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
@@ -122,6 +132,12 @@ onMounted(() => {
         <q-input dense borderless v-model="formData.participation_percentage" class="form__inputsR mt-1" 
           type="number" step="0.0000000001" color="primary"
           :rules="[val => val !== null && val !== '' || 'El porcentaje es necesario']" />
+      </div>
+
+      <div class="col-md-6 col-12 mt-1 mb-4 px-2 md:px-12">
+        <div class="text-subtitle2 text-black">Tipo de etiqueta</div>
+        <q-select dense borderless v-model="formData.rent_type" :options="rentTypesOptions" emit-value map-options
+          class="form__inputsR mt-1" />
       </div>
 
       <div class="col-12 mt-1 px-2 md:px-12">

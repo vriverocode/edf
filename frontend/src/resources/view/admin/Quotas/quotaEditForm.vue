@@ -137,17 +137,20 @@ onMounted(() => {
             v-model="formData.maintenance_amount" mask="###.###.###,##" reverse-fill-mask inputmode="decimal" />
         </div>
 
+
         <div class="col-md-6 col-12 mt-1 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Monto agua (S/.)</div>
           <q-input dense borderless clearable class="form__inputsR mt-1" color="primary"
             v-model="formData.water_amount" mask="###.###.###,##" reverse-fill-mask inputmode="decimal" />
         </div>
 
+
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Monto total (S/.)</div>
           <q-input dense borderless class="form__inputsR mt-1" color="primary"
             v-model="formData.amount" mask="###.###.###,##" reverse-fill-mask inputmode="decimal" />
         </div>
+
 
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Estado</div>
@@ -156,11 +159,13 @@ onMounted(() => {
             :rules="[val => !!val || 'El estado es requerido']" />
         </div>
 
+
         <div class="col-md-6 col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Fecha de vencimiento</div>
           <q-input dense borderless class="form__inputsR mt-1" color="primary" type="date"
             v-model="formData.due_date" />
         </div>
+
 
         <div class="col-12 mt-2 px-2 md:px-12">
           <div class="text-subtitle2 text-black">Descripcion</div>
@@ -168,11 +173,13 @@ onMounted(() => {
             v-model="formData.description" type="textarea" autogrow />
         </div>
 
+
         <div class="col-12 mb-2 px-2 md:px-12 flex justify-end mt-4">
           <q-btn color="primary" style="border-radius: 0.5rem;" type="submit" :loading="loading">
             <div class="px-10 py-1">Guardar cambios</div>
           </q-btn>
         </div>
+
       </div>
     </q-form>
   </div>

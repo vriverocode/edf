@@ -26,20 +26,14 @@ class CreditService
 
         $query = CreditBalance::whereIn('departament_id', $deptIds)->where('balance', '>', 0);
 
-        if ($month !== null && $year !== null) {
-            $isOpen = Quota::isOpenPeriod($month, $year, $deptIds);
-            $query->where(function ($q) use ($month, $year, $isOpen) {
-                $q->where(function ($q2) use ($month, $year) {
-                    $q2->where('applicable_month', $month)
-                        ->where(function ($q3) use ($year) {
-                            $q3->whereNull('applicable_year')
-                                ->orWhere('applicable_year', $year);
-                        });
+        // Filtro por periodo: un saldo solo es elegible en su mes/año exacto.
+        if ($month !== null) {
+            $effectiveYear = $year ?? (int) Carbon::now()->year;
+            $query->where('applicable_month', $month)
+                ->where(function ($q) use ($effectiveYear) {
+                    $q->whereNull('applicable_year')
+                        ->orWhere('applicable_year', $effectiveYear);
                 });
-                if ($isOpen) {
-                    $q->orWhere('applicable_month', CreditBalance::MONTH_FLEXIBLE);
-                }
-            });
         }
 
         $balances = $query->get();
@@ -65,6 +59,67 @@ class CreditService
         ])->values();
 
         return ['total' => $total, 'detail' => $detail, 'items' => $items];
+    }
+
+    /**
+     * Saldo a favor aplicable a las cuotas pendientes (status 1) de los
+     * departamentos dados: por cada depto se suman los créditos cuyo
+     * mes/año coincide con el de alguna cuota pendiente, con tope al saldo
+     * pendiente de ese depto (un crédito solo descuenta la cuota de su depto).
+     */
+    public function getBalanceForPendingQuotas(array $deptIds): float
+    {
+        if (empty($deptIds)) {
+            return 0.0;
+        }
+
+        $pending = Quota::whereIn('departament_id', $deptIds)
+            ->where('status', 1)
+            ->whereNotNull('month')
+            ->get(['departament_id', 'month', 'year', 'due_date']);
+
+        if ($pending->isEmpty()) {
+            return 0.0;
+        }
+
+        $periodsByDept = $pending->groupBy('departament_id')->map(function ($quotas) {
+            return $quotas->map(function (Quota $quota) {
+                $year = $quota->year !== null && $quota->year !== ''
+                    ? (int) $quota->year
+                    : ($quota->due_date ? (int) Carbon::parse($quota->due_date)->year : (int) Carbon::now()->year);
+
+                return [(int) $quota->month, $year];
+            })->unique()->values();
+        });
+
+        $pendingByDept = $pending->groupBy('departament_id')
+            ->map(fn ($quotas) => round((float) $quotas->sum('amount'), 2));
+
+        $balances = CreditBalance::whereIn('departament_id', array_keys($periodsByDept->all()))
+            ->where('balance', '>', 0)
+            ->get();
+
+        $total = 0.0;
+        foreach ($balances->groupBy('departament_id') as $deptId => $rows) {
+            $periods = $periodsByDept->get($deptId) ?? collect();
+            if ($periods->isEmpty()) {
+                continue;
+            }
+
+            $applicable = (float) $rows
+                ->filter(function (CreditBalance $balance) use ($periods) {
+                    return $periods->contains(function (array $period) use ($balance) {
+                        return $period[0] === (int) $balance->applicable_month
+                            && ($balance->applicable_year === null
+                                || $period[1] === (int) $balance->applicable_year);
+                    });
+                })
+                ->sum('balance');
+
+            $total += min($applicable, (float) ($pendingByDept->get($deptId) ?? 0.0));
+        }
+
+        return round($total, 2);
     }
 
     /**
@@ -98,17 +153,21 @@ class CreditService
         return [(int) $cursor->month, (int) $cursor->year];
     }
 
-    public function createCredit(Departament $dept, float $amount, Pay $pay, ?int $month = null, ?int $year = null): CreditBalance
+    public function createCredit(Departament $dept, float $amount, Pay $pay, int $month, int $year): CreditBalance
     {
         if ($amount <= 0) {
             throw new \InvalidArgumentException('El monto del crédito debe ser mayor a 0.');
         }
 
+        if ($month < 1 || $month > 12) {
+            throw new \InvalidArgumentException('El mes de aplicación debe estar entre 1 y 12.');
+        }
+
         $creditBalance = CreditBalance::firstOrCreate(
             [
                 'departament_id' => $dept->id,
-                'applicable_month' => $month !== null ? (int) $month : CreditBalance::MONTH_FLEXIBLE,
-                'applicable_year' => $month !== null ? $year : null,
+                'applicable_month' => (int) $month,
+                'applicable_year' => (int) $year,
             ],
             ['balance' => 0]
         );
@@ -189,9 +248,69 @@ class CreditService
             ->exists();
     }
 
-    public function applyCreditToConsolidated(array $deptQuotas, float $creditToApply, Pay $pay, ?int $month = null, ?int $year = null): float
+    /**
+     * Máximo de crédito consumible sobre un set de cuotas: por cada
+     * periodo seleccionado y cada depto, min(saldo elegible del depto en
+     * ese periodo, suma de las cuotas del depto en ese periodo). Un saldo
+     * de junio solo puede descontar cuotas de junio de ese depto.
+     */
+    public function maxApplicableForQuotas(Collection $quotas): float
     {
-        if ($creditToApply <= 0 || empty($deptQuotas)) {
+        $amounts = $this->quotaAmountsByDeptPeriod($quotas);
+        if ($amounts === []) {
+            return 0.0;
+        }
+
+        // Una consulta de saldos por periodo (mes/año) para todos sus deptos.
+        $byPeriod = [];
+        foreach ($amounts as $key => $amount) {
+            [$deptId, $month, $year] = array_map('intval', explode('|', $key));
+            $byPeriod[$month.'|'.$year][] = ['dept_id' => $deptId, 'amount' => $amount];
+        }
+
+        $total = 0.0;
+        foreach ($byPeriod as $periodKey => $rows) {
+            [$month, $year] = array_map('intval', explode('|', $periodKey));
+            $detail = $this->getBalanceForDepartments(
+                array_column($rows, 'dept_id'),
+                $month,
+                $year
+            )['detail'];
+
+            foreach ($rows as $row) {
+                $total += min($row['amount'], (float) ($detail[$row['dept_id']] ?? 0.0));
+            }
+        }
+
+        return round($total, 2);
+    }
+
+    /**
+     * Suma de montos de cuotas por "depto|mes|año" (solo cuotas mensuales).
+     */
+    private function quotaAmountsByDeptPeriod(Collection $quotas): array
+    {
+        $amounts = [];
+        foreach ($quotas as $quota) {
+            if (! $quota->isMonthly()) {
+                continue;
+            }
+            $key = (int) $quota->departament_id.'|'.(int) $quota->month.'|'.$quota->resolvedYear();
+            $amounts[$key] = round(($amounts[$key] ?? 0) + (float) $quota->amount, 2);
+        }
+
+        return $amounts;
+    }
+
+    /**
+     * Consume el saldo a favor de un pago consolidado multi-mes: recorre
+     * cada depto y periodo del set, tomando solo los saldos elegibles de
+     * ese periodo con tope igual a la suma de las cuotas del depto en ese
+     * periodo, hasta agotar $creditToApply.
+     */
+    public function applyCreditToConsolidated(Collection $quotas, float $creditToApply, Pay $pay): float
+    {
+        if ($creditToApply <= 0 || $quotas->isEmpty()) {
             return 0.0;
         }
 
@@ -202,22 +321,25 @@ class CreditService
                 ->sum('amount'), 2);
         }
 
-        if ($month === null || $year === null) {
-            $quotas = Quota::whereIn('departament_id', array_keys($deptQuotas))->get();
-            $period = Quota::resolvePeriod($quotas);
-            if ($period) {
-                $month = $period['month'];
-                $year = $period['year'];
-            }
+        $amounts = $this->quotaAmountsByDeptPeriod($quotas);
+        if ($amounts === []) {
+            // Sin periodo determinable no se consume crédito: un crédito
+            // fijado a un mes nunca se aplica a una cuota de otro mes.
+            return 0.0;
         }
+
+        // Orden determinista depto+periodo entre el alta y la aprobación.
+        ksort($amounts);
 
         $totalApplied = 0.0;
         $remaining = $creditToApply;
 
-        foreach ($deptQuotas as $deptId => $quotaAmount) {
+        foreach ($amounts as $key => $quotaAmount) {
             if ($remaining <= 0) {
                 break;
             }
+
+            [$deptId, $month, $year] = array_map('intval', explode('|', $key));
 
             $dept = Departament::find($deptId);
             if (! $dept) {
@@ -225,13 +347,7 @@ class CreditService
             }
 
             $quotaRemaining = (float) $quotaAmount;
-            $eligible = $month !== null && $year !== null
-                ? $this->eligibleBalancesFor([$deptId], $month, $year)
-                : CreditBalance::where('departament_id', $deptId)
-                    ->where('balance', '>', 0)
-                    ->orderBy('id')
-                    ->lockForUpdate()
-                    ->get();
+            $eligible = $this->eligibleBalancesFor([$deptId], $month, $year);
 
             foreach ($eligible as $creditBalance) {
                 if ($remaining <= 0 || $quotaRemaining <= 0) {
@@ -280,10 +396,15 @@ class CreditService
             ->get();
     }
 
+    /**
+     * Una fila por credit_balance (no se fusionan los meses): cada saldo
+     * conserva su applicable_month/applicable_year originales para que el
+     * listado admin muestre a qué mes aplica cada uno.
+     */
     public function getAllWithBalance(?string $search = null): Collection
     {
-        $balances = CreditBalance::where('balance', '>', 0)
-            ->with(['departament.owner'])
+        return CreditBalance::where('balance', '>', 0)
+            ->with(['departament.owner', 'departament.availableOwner'])
             ->when($search, function ($query, $search) {
                 $query->whereHas('departament', function ($q) use ($search) {
                     $q->where('number', 'like', "%{$search}%")
@@ -292,19 +413,6 @@ class CreditService
             })
             ->orderByDesc('balance')
             ->get();
-
-        // Una fila por depto en el listado admin (suma de periodos)
-        return $balances
-            ->groupBy('departament_id')
-            ->map(function ($rows) {
-                $first = $rows->first();
-                $first->balance = round((float) $rows->sum('balance'), 2);
-                $months = $rows->pluck('applicable_month')->unique()->values();
-                $first->applicable_month = $months->count() === 1 ? $months->first() : CreditBalance::MONTH_FLEXIBLE;
-
-                return $first;
-            })
-            ->values();
     }
 
     public function getAllTransactions(array $filters = []): LengthAwarePaginator
@@ -333,21 +441,12 @@ class CreditService
 
     private function eligibleBalancesFor(array $deptIds, int $month, int $year)
     {
-        $isOpen = Quota::isOpenPeriod($month, $year, $deptIds);
-
         return CreditBalance::whereIn('departament_id', $deptIds)
             ->where('balance', '>', 0)
-            ->where(function ($q) use ($month, $year, $isOpen) {
-                $q->where(function ($q2) use ($month, $year) {
-                    $q2->where('applicable_month', $month)
-                        ->where(function ($q3) use ($year) {
-                            $q3->whereNull('applicable_year')
-                                ->orWhere('applicable_year', $year);
-                        });
-                });
-                if ($isOpen) {
-                    $q->orWhere('applicable_month', CreditBalance::MONTH_FLEXIBLE);
-                }
+            ->where('applicable_month', $month)
+            ->where(function ($q) use ($year) {
+                $q->whereNull('applicable_year')
+                    ->orWhere('applicable_year', $year);
             })
             ->orderBy('id')
             ->lockForUpdate()

@@ -32,9 +32,10 @@ const payForm = ref({
   financial_account_id: null,
   transaction_category_id: null,
   reference: '',
-  pay_date: moment().format('DD/MM/YYYY'),
+  pay_date: moment().format('DD-MM-YYYY'),
   vaucher: null,
 })
+const calendarDate = ref(payForm.value.pay_date)
 const payFormErrors = ref({})
 const financialAccounts = ref([])
 const filteredFinancialAccounts = ref([])
@@ -49,10 +50,15 @@ const resetForm = () => {
     financial_account_id: null,
     transaction_category_id: null,
     reference: '',
-    pay_date: moment().format('DD/MM/YYYY'),
+    pay_date: moment().format('DD-MM-YYYY'),
     vaucher: null,
   }
+  calendarDate.value = payForm.value.pay_date
   payFormErrors.value = {}
+}
+
+const applyCalendarDate = () => {
+  payForm.value.pay_date = calendarDate.value
 }
 
 const loadOptions = async () => {
@@ -131,7 +137,7 @@ const submitPay = async () => {
     payFormErrors.value.pay_date = 'Seleccione una fecha de pago'
     return
   }
-  if (moment(payForm.value.pay_date, 'DD/MM/YYYY').isAfter(moment(), 'day')) {
+  if (moment(payForm.value.pay_date, 'DD-MM-YYYY').isAfter(moment(), 'day')) {
     payFormErrors.value.pay_date = 'La fecha de pago no puede ser mayor a la actual'
     return
   }
@@ -143,7 +149,7 @@ const submitPay = async () => {
     fd.append('financial_account_id', payForm.value.financial_account_id)
     fd.append('transaction_category_id', payForm.value.transaction_category_id)
     fd.append('reference', payForm.value.reference || '')
-    fd.append('pay_date', moment(payForm.value.pay_date).format('YYYY-DD-MM'))
+    fd.append('pay_date', moment(payForm.value.pay_date, 'DD-MM-YYYY').format('YYYY-MM-DD'))
     if (payForm.value.vaucher) {
       fd.append('vaucher', payForm.value.vaucher)
     }
@@ -266,13 +272,31 @@ watch(dialogVisible, (open) => {
       >
         <template v-slot:append>
           <q-icon name="eva-calendar-outline" class="cursor-pointer">
-            <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-              <q-date
-                v-model="payForm.pay_date"
-                mask="DD/MM/YYYY"
-                :options="optionsFn"
-                :navigation-max-year-month="moment().format('YYYY/MM')"
-              />
+            <q-popup-proxy
+              cover
+              transition-show="scale"
+              transition-hide="scale"
+              @before-show="calendarDate = payForm.pay_date"
+            >
+              <q-card>
+                <q-date
+                  v-model="calendarDate"
+                  mask="DD-MM-YYYY"
+                  :options="optionsFn"
+                  :navigation-max-year-month="moment().format('YYYY/MM')"
+                />
+                <div class="row justify-end q-pa-sm">
+                  <q-btn flat dense label="Cancelar" color="grey-7" v-close-popup />
+                  <q-btn
+                    flat
+                    dense
+                    label="Aceptar"
+                    color="primary"
+                    v-close-popup
+                    @click="applyCalendarDate"
+                  />
+                </div>
+              </q-card>
             </q-popup-proxy>
           </q-icon>
         </template>

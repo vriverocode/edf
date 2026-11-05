@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Departament;
 use App\Models\DepartmentCharge;
 use App\Models\MonthlyBills;
+use App\Models\Multa;
 use App\Models\PeoplesXDepartaments;
 use App\Models\Quota;
 use App\Models\Rol;
@@ -109,7 +110,7 @@ class MonthlyQuotaService
             }
 
             if ($quota) {
-                $this->sendNotifications($quota, $activeTenantPivot, $tenantPays);
+                // $this->sendNotifications($quota, $activeTenantPivot, $tenantPays);
             }
 
             return true;
@@ -203,9 +204,17 @@ class MonthlyQuotaService
 
     private function getExtraAmountForDepartment(int $departamentId, int $month, int $year): float
     {
-        return DepartmentCharge::applicableForPeriod($month, $year)
+        $chargesExtra = (float) DepartmentCharge::applicableForPeriod($month, $year)
             ->where('departament_id', $departamentId)
             ->sum('monthly_amount');
+
+        $multas = Multa::applicableForPeriod($month, $year)
+            ->where('departament_id', $departamentId)
+            ->get();
+
+        $multasExtra = (float) $multas->sum(fn ($m) => $m->monthly_amount);
+
+        return round($chargesExtra + $multasExtra, 2);
     }
 
     private function linkChargesToQuota(int $departamentId, int $quotaId, int $month, int $year): void
@@ -218,6 +227,18 @@ class MonthlyQuotaService
             $monthIndex = ($year * 12 + $month) - ($charge->start_year * 12 + $charge->start_month) + 1;
             DB::table('charge_quota')->updateOrInsert(
                 ['department_charge_id' => $charge->id, 'quota_id' => $quotaId],
+                ['installment_number' => $monthIndex]
+            );
+        }
+
+        $multas = Multa::applicableForPeriod($month, $year)
+            ->where('departament_id', $departamentId)
+            ->get();
+
+        foreach ($multas as $multa) {
+            $monthIndex = ($year * 12 + $month) - ($multa->start_year * 12 + $multa->start_month) + 1;
+            DB::table('multa_quota')->updateOrInsert(
+                ['multa_id' => $multa->id, 'quota_id' => $quotaId],
                 ['installment_number' => $monthIndex]
             );
         }

@@ -33,7 +33,7 @@ class BookingsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMap
 
     public function query(): Builder
     {
-        $query = Booking::with(['user.rol', 'departament', 'comunArea', 'pay'])
+        $query = Booking::with(['user', 'departament', 'comunArea', 'pay'])
             ->filter($this->filters);
 
         $hasStatusFilter = isset($this->filters['status']) && (int) $this->filters['status'] !== -1;
@@ -77,7 +77,7 @@ class BookingsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMap
             $booking->departament?->number ?? '—',
             $booking->created_at?->format('d/m/Y') ?? '—',
             $booking->user?->name ?? '—',
-            $booking->user?->rol?->name ?? '—',
+            $booking->departament?->rent_type_label ?? '—',
             $booking->booking_number ?? '—',
             (float) $booking->amount,
             $booking->pay?->pay_date ? Carbon::parse($booking->pay->pay_date)->format('d/m/Y') : '—',

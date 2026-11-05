@@ -27,6 +27,9 @@ const getIncidents = () => {
 const goToStatus = (incidentId) => {
   router.push(`/admin/incidents/${incidentId}/status`)
 }
+const goToView = (incidentId) => {
+  router.push(`/admin/incidents/view/${incidentId}`)
+}
 
 const getStatusColor = (status) => {
   if (status === 1) return 'warning'
@@ -62,7 +65,7 @@ onMounted(() => {
               <!-- Header con nombre y estado -->
               <div class="mb-2">
                 <div class="flex-1">
-                  <h3 class="text-lg font-bold text-gray-900 mb-2 pr-24">
+                  <h3 class="text-lg font-bold text-gray-900 mb-2 pt-3 pr-24">
                     {{ incident.title }}
                   </h3>
                 </div>
@@ -96,9 +99,7 @@ onMounted(() => {
 
                 <!-- Detalles de la incidencia -->
                 <div class="flex-1 space-y-2">
-                  <div v-if="incident.description" class="text-sm text-gray-600 line-clamp-2">
-                    {{ incident.description }}
-                  </div>
+                  
                   <div class="flex items-center text-sm text-gray-700">
                     <svg
                       class="w-4 h-4 mr-2 text-gray-500"
@@ -132,7 +133,25 @@ onMounted(() => {
                       ></path>
                     </svg>
                     <span class="font-medium">
-                      Reportado: {{ moment(incident.created_at).format('DD MMM YYYY') }} · Ocurrió:
+                      Reportado: {{ moment(incident.created_at).format('DD MMM YYYY') }}
+                    </span>
+                  </div>
+                   <div class="flex items-center text-sm text-gray-700">
+                    <svg
+                      class="w-4 h-4 mr-2 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      ></path>
+                    </svg>
+                    <span class="font-medium">
+                      Ocurrió:
                       {{ moment(incident.date).format('DD MMM YYYY') }} · {{ incident.hour }}
                     </span>
                   </div>
@@ -140,18 +159,33 @@ onMounted(() => {
               </div>
 
               <!-- Acciones -->
-              <div class="flex justify-end mt-3">
-                <q-btn
-                  color="primary"
-                  outline
-                  no-caps
-                  unelevated
-                  style="border-radius: 0.5rem;"
-                  @click="goToStatus(incident.id)"
-                >
-                  <q-icon name="eva-edit-outline" class="mr-1" size="1.1rem" />
-                  Cambiar estado
-                </q-btn>
+              <div class="flex justify-end  mt-3 w-full">
+                <!-- <div class=" flex  px-1" style="width: max-content;">
+                  <q-btn
+                    color="primary"
+                    outline
+                    no-caps
+                    unelevated
+                    style="border-radius: 0.5rem;"
+                    @click="goToStatus(incident.id)"
+                  >
+                    <q-icon name="eva-edit-outline" class="mr-1" size="1.1rem" />
+                    Cambiar estado
+                  </q-btn>
+                </div> -->
+                <div class=" flex  px-1" style="width: max-content;">
+                  <q-btn
+                    color="secondary"
+                    outline
+                    no-caps
+                    unelevated
+                    style="border-radius: 0.5rem;"
+                    @click="goToView(incident.id)"
+                  >
+                    <q-icon name="eva-eye-outline" class="mr-1" size="1.1rem" />
+                    Validar
+                  </q-btn>
+                </div>
               </div>
             </div>
           </div>

@@ -281,6 +281,12 @@ onMounted(() => {
           </div>
           <div class="flex w-full justify-end py-1" style="border-top: 1px solid lightgrey;">
             <div>
+              <q-btn icon="eva-file-text-outline" class="mx-1" flat color="primary" round size="0.85rem"
+                @click="goTo(`/admin/quotas/months?departament_id=${apartment.id}&number=${apartment.number}&user_id=${apartment.user_id}`)">
+                <q-tooltip>Ver cuotas del departamento</q-tooltip>
+              </q-btn>
+            </div>
+            <div>
               <q-btn icon="eva-person-outline" class="mx-1" flat color="primary" round size="0.85rem"
                 @click="goToOwnerInfo(apartment.id)" />
             </div>

@@ -17,6 +17,10 @@ const payments = ref([])
 const selectedPayment = ref(null)
 const creditAmount = ref('')
 const description = ref('')
+const currentMonth = new Date().getMonth() + 1
+const currentYear = new Date().getFullYear()
+const applicableMonth = ref(currentMonth)
+const applicableYear = ref(currentYear)
 
 const show = computed({
   get: () => props.modelValue,
@@ -49,10 +53,24 @@ const MONTH_LABELS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
 
+// Mes al que aplica el saldo: siempre un mes/año concreto (sin opción flexible).
+const monthOptions = MONTH_LABELS.map((label, i) => ({ label, value: i + 1 }))
+
+const yearOptions = [
+  { label: String(currentYear), value: currentYear },
+  { label: String(currentYear + 1), value: currentYear + 1 },
+  { label: String(currentYear + 2), value: currentYear + 2 },
+]
+
+const assignedLabel = (a) => {
+  const m = Number(a.month || 0)
+  const year = a.year ? ` ${a.year}` : ''
+  return `${MONTH_LABELS[m - 1] || m}${year}`
+}
+
 const formatAssignedMonths = (assigned) => {
   if (!Array.isArray(assigned) || !assigned.length) return ''
-  const labels = assigned.map((a) => `${MONTH_LABELS[(a.month || 1) - 1]} ${a.year || ''}`.trim())
-  const unique = [...new Set(labels)]
+  const unique = [...new Set(assigned.map((a) => assignedLabel(a)))]
   return unique.join(' y ')
 }
 
@@ -87,6 +105,10 @@ const submit = async () => {
     Notify.create({ color: 'negative', message: `El monto no puede exceder S/. ${remainingAvailable.value.toFixed(2)} disponible` })
     return
   }
+  if (!applicableMonth.value || !applicableYear.value) {
+    Notify.create({ color: 'negative', message: 'Selecciona el mes y año de aplicación' })
+    return
+  }
 
   loading.value = true
   try {
@@ -94,6 +116,8 @@ const submit = async () => {
       pay_id: selectedPayment.value.id,
       amount,
       description: description.value || null,
+      applicable_month: Number(applicableMonth.value),
+      applicable_year: Number(applicableYear.value),
     })
     const months = formatAssignedMonths(res?.assigned)
     Notify.create({
@@ -116,6 +140,8 @@ const resetForm = () => {
   selectedPayment.value = null
   creditAmount.value = ''
   description.value = ''
+  applicableMonth.value = new Date().getMonth() + 1
+  applicableYear.value = new Date().getFullYear()
 }
 
 watch(show, (val) => {
@@ -137,8 +163,8 @@ watch(show, (val) => {
 
       <q-card-section class="q-pt-md">
         <div class="text-caption text-grey-6 mb-3">
-          Selecciona un pago de cuota (completado o pendiente) y define cuánto del monto es saldo a favor.
-          El saldo se asignará al primer mes calendario posterior al pago que aún no tenga cuota creada.
+          Selecciona un pago de cuota (completado o pendiente), define cuánto del monto es saldo a favor
+          y el mes/año en que se aplicará. El saldo solo se descuenta en la cuota de ese mes.
         </div>
 
         <!-- Select de pagos -->
@@ -203,6 +229,38 @@ watch(show, (val) => {
           color="teal"
           maxlength="500"
         />
+
+        <!-- Mes de aplicación -->
+        <div class="row q-col-gutter-sm q-mt-xs">
+          <div class="col-7">
+            <q-select
+              v-model="applicableMonth"
+              :options="monthOptions"
+              emit-value
+              map-options
+              outlined
+              dense
+              label="Mes de aplicación"
+              color="teal"
+              :disable="!selectedPayment"
+              class="q-mb-sm"
+            />
+          </div>
+          <div class="col-5">
+            <q-select
+              v-model="applicableYear"
+              :options="yearOptions"
+              emit-value
+              map-options
+              outlined
+              dense
+              label="Año"
+              color="teal"
+              :disable="!selectedPayment"
+              class="q-mb-sm"
+            />
+          </div>
+        </div>
 
         <!-- Resumen -->
         <div v-if="selectedPayment && creditAmount && Number(creditAmount) > 0" class="bg-green-50 rounded-lg p-3 mt-3">

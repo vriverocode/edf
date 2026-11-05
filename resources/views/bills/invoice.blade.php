@@ -14,435 +14,496 @@
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 10px;
             color: #333;
-            line-height: 1.4;
+            line-height: 1.35;
         }
         .invoice-container {
-            width: 100%;
-            max-width: 800px;
+            width: 96%;
             margin: 0 auto;
-            padding: 15px;
+            padding: 0;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
+
+        /* Colores */
+        .primary-bg { background-color: #226fb5; }
+        .primary-text { color: #226fb5; }
+
+        /* ── Header ── */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
         }
-        .header .building-name {
-            font-size: 14px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 5px;
+        .header-table td {
+            vertical-align: top;
+            padding: 0;
         }
-        .header .document-title {
-            font-size: 16px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-top: 10px;
-        }
-        .header .location {
-            font-size: 10px;
-            color: #666;
-        }
-        .unit-info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-        .unit-info-box {
-            flex: 1;
-            padding: 5px;
-        }
-        .unit-info-box .label {
+        .badge {
+            background-color: #226fb5;
+            color: #fff;
             font-size: 8px;
-            text-transform: uppercase;
-            color: #666;
-            margin-bottom: 3px;
-        }
-        .unit-info-box .value {
-            font-size: 11px;
             font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 3px 6px;
+            letter-spacing: 0.3px;
         }
-        .unit-info-box .value.large {
+        .badge-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a1a1a;
+            padding: 2px 8px 8px 8px;
+        }
+        .header-center {
+            text-align: center;
+            padding-top: 18px !important;
+        }
+        .header-center .building-name {
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #1a1a1a;
+        }
+        .header-center .location {
+            font-size: 10px;
+            color: #444;
+            margin-top: 4px;
+        }
+        .header-right {
+            text-align: right;
+            padding-top: 4px !important;
+        }
+        .header-right .document-title {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #1a1a1a;
+            line-height: 1.25;
+        }
+        .header-right .receipt-number {
+            font-size: 12px;
+            color: #1a1a1a;
+            margin-top: 6px;
+        }
+
+        /* ── Owner / period ── */
+        .owner-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+        }
+        .owner-table th,
+        .owner-table td {
+            padding: 5px 8px;
+            font-size: 9.5px;
+            border: 1px solid #d6d6d6;
+            vertical-align: middle;
+        }
+        .owner-table .label-cell {
+            background-color: #226fb5;
+            color: #fff;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 8.5px;
+            text-align: center;
+            width: 11%;
+        }
+        .owner-table .head-cell {
+            background-color: #226fb5;
+            color: #fff;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 8.5px;
+            text-align: center;
+        }
+        .owner-table .value-cell {
+            font-size: 10.5px;
+            color: #1a1a1a;
+        }
+        .owner-table .period-value {
             font-size: 16px;
-        }
-        .section-title {
-            font-size: 9px;
-            text-transform: uppercase;
             font-weight: bold;
-            background-color: #f0f0f0;
-            padding: 5px 10px;
-            margin: 10px 0 5px 0;
-            border-left: 3px solid #333;
+            color: #1a1a1a;
+            text-align: right;
+            width: 20%;
         }
+        .owner-table .date-value {
+            text-align: right;
+            font-size: 10px;
+            color: #1a1a1a;
+            width: 20%;
+        }
+
+        /* ── Section title bar ── */
+        .section-title {
+            background-color: #226fb5;
+            color: #fff;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 4px 8px;
+            letter-spacing: 0.4px;
+        }
+
+        /* ── Description table ── */
+        .desc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+        .desc-table th {
+            background-color: #226fb5;
+            color: #fff;
+            font-size: 8.5px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            text-align: left;
+        }
+        .desc-table th.right,
+        .desc-table td.right {
+            text-align: right;
+        }
+        .desc-table td {
+            padding: 4px 8px;
+            font-size: 9.5px;
+            border-bottom: 1px solid #e4e4e4;
+            color: #1a1a1a;
+        }
+
+        /* ── Amount in words ── */
+        .amount-words {
+            padding: 4px 2px 10px 2px;
+            font-size: 9.5px;
+            color: #1a1a1a;
+        }
+
+        /* ── Collection system row ── */
+        .collect-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        .collect-table td {
+            padding: 3px 6px;
+            font-size: 9.5px;
+            vertical-align: middle;
+        }
+        .collect-label {
+            background-color: #226fb5;
+            color: #fff;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 8.5px;
+            text-align: center;
+            padding: 5px 8px !important;
+            white-space: nowrap;
+        }
+        .collect-value {
+            font-size: 13px;
+            font-weight: bold;
+            color: #1a1a1a;
+            padding-left: 2px !important;
+        }
+        .cbx {
+            width: 13px;
+            height: 13px;
+            border: 1.5px solid #555;
+            background-color: #fff;
+        }
+        .cbx-on {
+            border: 1.5px solid #555;
+            background-color: #226fb5;
+        }
+        .cbx-label {
+            font-size: 9.5px;
+            font-weight: bold;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            padding-left: 3px !important;
+        }
+
+        /* ── Balances band ── */
+        .balance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        .balance-table th {
+            background-color: #226fb5;
+            color: #fff;
+            font-size: 8.5px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 5px 4px;
+            border: 1px solid #1c5f9e;
+        }
+        .balance-table td {
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #1a1a1a;
+            padding: 6px 4px;
+            border: 1px solid #d6d6d6;
+        }
+
+        /* ── Data tables (unidad / consumo / abonos) ── */
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-        .data-table th,
-        .data-table td {
-            padding: 6px 8px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            font-size: 10px;
+            margin-bottom: 12px;
         }
         .data-table th {
-            background-color: #f8f8f8;
+            background-color: #fff;
+            color: #226fb5;
+            font-size: 8.5px;
             font-weight: bold;
             text-transform: uppercase;
-            font-size: 8px;
-            color: #555;
+            text-align: left;
+            padding: 4px 8px;
+            border-bottom: 1.5px solid #226fb5;
         }
-        .data-table td.number {
+        .data-table th.right,
+        .data-table td.right {
             text-align: right;
         }
-        .data-table tr.total {
+        .data-table th.center,
+        .data-table td.center {
+            text-align: center;
+        }
+        .data-table td {
+            padding: 4px 8px;
+            font-size: 9.5px;
+            border-bottom: 1px solid #e4e4e4;
+            color: #1a1a1a;
+        }
+        .data-table tr.total td {
             font-weight: bold;
-            border-top: 2px solid #333;
-            background-color: #f8f8f8;
+            border-top: 1.5px solid #226fb5;
+            border-bottom: none;
+            background-color: #f3f7fb;
         }
-        .amount-words {
-            background-color: #f8f8f8;
-            padding: 8px 10px;
-            border: 1px solid #ddd;
-            margin: 10px 0;
-            font-style: italic;
-            font-size: 10px;
-        }
-        .payment-info {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        .payment-info-box {
-            flex: 1;
-            border: 1px solid #ccc;
-            padding: 8px;
-        }
-        .payment-info-box .box-title {
-            font-size: 8px;
-            text-transform: uppercase;
-            color: #666;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .payment-info-box .box-value {
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .unit-detail-section {
-            margin: 15px 0;
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-        .unit-detail-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        .unit-detail-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .unit-detail-table th,
-        .unit-detail-table td {
-            padding: 5px 8px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            font-size: 9px;
-        }
-        .unit-detail-table th {
-            background-color: #f8f8f8;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 8px;
-        }
-        .consumption-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-        }
-        .consumption-table th,
-        .consumption-table td {
-            padding: 5px 8px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            font-size: 9px;
-        }
-        .consumption-table th {
-            background-color: #f8f8f8;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 8px;
-        }
-        .consumption-table td.number {
-            text-align: right;
-        }
-        .payment-history {
-            margin-top: 15px;
-        }
-        .payment-history-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .payment-history-table th,
-        .payment-history-table td {
-            padding: 5px 8px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            font-size: 9px;
-        }
-        .payment-history-table th {
-            background-color: #f8f8f8;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 8px;
-        }
-        .payment-history-table td.number {
-            text-align: right;
-        }
+
+        /* ── Footer ── */
         .footer {
-            margin-top: 20px;
+            margin-top: 14px;
             text-align: center;
             font-size: 8px;
             color: #999;
             border-top: 1px solid #ddd;
-            padding-top: 10px;
-        }
-        .highlight {
-            background-color: #fffde7;
+            padding-top: 8px;
         }
     </style>
 </head>
 <body>
     <div class="invoice-container">
-        {{-- Header --}}
-        <div class="header">
-            <div class="location">{{ $buildingAddress ?? 'LIMA - SAN MIGUEL - AV. BERTOLOTO 850' }}</div>
-            <div class="building-name">JUNTA DE PROPIETARIOS DEL EDIFICIO PACIFIK OCEAN TOWER</div>
-            <div class="document-title">RECIBO DE CUOTAS<br>DE GASTOS COMUNES</div>
-        </div>
 
-        {{-- Unit Info Row --}}
-        <div class="unit-info-row">
-            <div class="unit-info-box">
-                <div class="label">UNIDAD INMOBILIARIA</div>
-                <div class="value">N° {{ $departament->number }}</div>
-            </div>
-            <div class="unit-info-box">
-                <div class="label">NOMBRE O RAZON SOCIAL</div>
-                <div class="value">{{ $owner->name ?? 'N/A' }}</div>
-            </div>
-            <div class="unit-info-box">
-                <div class="label">DNI O RUC</div>
-                <div class="value">{{ $owner->document ?? '0' }}</div>
-            </div>
-        </div>
+        {{-- ═══════════ HEADER ═══════════ --}}
+        <table class="header-table">
+            <tr>
+                <td style="width: 26%;">
+                    <div class="badge">CODIGO DEPOSITO</div>
+                    <div class="badge-value">{{ $depositCode ?? '-' }}</div>
+                    <div class="badge">UNIDAD INMOBILIARIA</div>
+                    <div class="badge-value">{{ $departament->number }}</div>
+                </td>
+                <td class="header-center" style="width: 48%;">
+                    <div class="building-name">JUNTA DE PROPIETARIOS DEL EDIFICIO PACIFIK OCEAN TOWER</div>
+                    <div class="location">{{ $buildingAddress ?? 'LIMA - SAN MIGUEL - AV. BERTOLOTO 850' }}</div>
+                </td>
+                <td class="header-right" style="width: 26%;">
+                    <div class="document-title">RECIBO DE CUOTAS<br>DE GASTOS COMUNES</div>
+                    <div class="receipt-number">N° {{ $receiptNumber ?? '001 - '.str_pad((string) ($quota->id ?? 0), 6, '0', STR_PAD_LEFT) }}</div>
+                </td>
+            </tr>
+        </table>
 
-        {{-- Period & Dates --}}
-        <div class="unit-info-row">
-            <div class="unit-info-box">
-                <div class="label">PERIODO</div>
-                <div class="value">{{ strtoupper($monthLabel) }} {{ $year }}</div>
-            </div>
-            <div class="unit-info-box">
-                <div class="label">EMISION</div>
-                <div class="value">{{ $emissionDate }}</div>
-            </div>
-            <div class="unit-info-box">
-                <div class="label">VENCIMIENTO</div>
-                <div class="value">{{ $dueDate }}</div>
-            </div>
-            <div class="unit-info-box">
-                <div class="label">REF. INTERNA</div>
-                <div class="value">{{ $quota->id ?? '' }}</div>
-            </div>
-        </div>
+        {{-- ═══════════ POSEEDOR / PROPIETARIO / PERIODO ═══════════ --}}
+        <table class="owner-table">
+            <tr>
+                <td class="label-cell" style="border: none; width: 0%;">&nbsp;</td>
+                <th class="head-cell">NOMBRE O RAZON SOCIAL</th>
+                <th class="head-cell" style="width: 14%;">DNI O RUC</th>
+                <th class="head-cell" style="width: 11%;">PERIODO</th>
+                <td class="period-value" style="border: none;">{{ strtoupper($monthLabel) }}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">POSEEDOR</td>
+                <td class="value-cell">{{ strtoupper($owner->name ?? 'N/A') }}</td>
+                <td class="value-cell center" style="text-align: center;">{{ $owner->document ?? '0' }}</td>
+                <td class="label-cell">EMISION</td>
+                <td class="date-value">{{ $emissionDate }}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">PROPIETARIO</td>
+                <td class="value-cell">{{ strtoupper($owner->name ?? 'N/A') }}</td>
+                <td class="value-cell center" style="text-align: center;">{{ $owner->document ?? '0' }}</td>
+                <td class="label-cell">VENCIMIENTO</td>
+                <td class="date-value">{{ $dueDate }}</td>
+            </tr>
+            <tr>
+                <td class="label-cell" style="border: none;">&nbsp;</td>
+                <td style="border: none;">&nbsp;</td>
+                <td style="border: none;">&nbsp;</td>
+                <td class="label-cell">REF. INTERNA</td>
+                <td class="date-value">{{ $quota->id ?? '' }}</td>
+            </tr>
+        </table>
 
-        {{-- Charges Description --}}
-        <div class="section-title">DESCRIPCION</div>
-        <table class="data-table">
+        {{-- ═══════════ DESCRIPCION / MONTO ═══════════ --}}
+        <table class="desc-table">
             <thead>
                 <tr>
                     <th>DESCRIPCION</th>
-                    <th style="text-align: right;">MONTO</th>
+                    <th class="right" style="width: 18%;">MONTO</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>CUOTA DE GASTOS COMUNES - {{ strtoupper($monthLabel) }} {{ $year }}</td>
-                    <td class="number">{{ number_format($maintenanceAmount, 2) }}</td>
+                    <td class="right">{{ number_format($maintenanceAmount, 2) }}</td>
                 </tr>
                 @if($waterAmount > 0)
                 <tr>
                     <td>CONSUMO INDIVIDUAL (AGUA) - {{ strtoupper($previousMonthLabel) }} {{ $waterYear }}</td>
-                    <td class="number">{{ number_format($waterAmount, 2) }}</td>
+                    <td class="right">{{ number_format($waterAmount, 2) }}</td>
                 </tr>
                 @endif
-                <tr class="total">
-                    <td>TOTAL A PAGAR</td>
-                    <td class="number">S/ {{ number_format($totalAmount, 2) }}</td>
-                </tr>
             </tbody>
         </table>
 
-        {{-- Amount in Words --}}
         <div class="amount-words">
             <strong>SON:</strong> {{ $amountInWords }} SOLES
         </div>
 
-        {{-- Payment System Info --}}
-        <div class="section-title">SISTEMA DE RECAUDACION</div>
-        <div class="payment-info">
-            <div class="payment-info-box">
-                <div class="box-title">TRADICIONAL</div>
-                <div class="box-value">PRESUPUESTO</div>
-            </div>
-            <div class="payment-info-box">
-                <div class="box-title">SALDO INICIAL</div>
-                <div class="box-value">{{ number_format($initialBalance, 2) }}</div>
-            </div>
-            <div class="payment-info-box">
-                <div class="box-title">ABONOS DEL MES</div>
-                <div class="box-value">{{ number_format($monthlyPayments, 2) }}</div>
-            </div>
-            <div class="payment-info-box">
-                <div class="box-title">CUOTAS VENCIDAS</div>
-                <div class="box-value">{{ $overdueQuotas }}</div>
-            </div>
-            <div class="payment-info-box">
-                <div class="box-title">CUOTA DEL MES</div>
-                <div class="box-value highlight">{{ number_format($totalAmount, 2) }}</div>
-            </div>
-            <div class="payment-info-box">
-                <div class="box-title">DIAS VENCIDOS</div>
-                <div class="box-value">{{ $overdueDays }}</div>
-            </div>
-            <div class="payment-info-box">
-                <div class="box-title">SALDO FINAL</div>
-                <div class="box-value">{{ number_format($finalBalance, 2) }}</div>
-            </div>
-        </div>
+        {{-- ═══════════ SISTEMA DE RECAUDACION / PRESUPUESTO / CUOTA DEL MES ═══════════ --}}
+        <table class="collect-table">
+            <tr>
+                <td class="collect-label" style="width: 22%;">SISTEMA DE RECAUDACION</td>
+                <td style="width: 4%;">
+                    <table style="border-collapse: collapse;"><tr><td class="cbx">&nbsp;</td></tr></table>
+                </td>
+                <td class="cbx-label" style="width: 10%;">TRADICIONAL</td>
+                <td style="width: 4%;">
+                    <table style="border-collapse: collapse;"><tr><td class="cbx-on">&nbsp;</td></tr></table>
+                </td>
+                <td class="cbx-label" style="width: 10%;">MULTIBANCA</td>
+                <td class="collect-label" style="width: 14%;">PRESUPUESTO</td>
+                <td class="collect-value" style="width: 16%; padding-right: 8px; padding-left: 4px !important;">
+                    {{ number_format($totalMaintenanceBudget ?? ($monthlyBill->total_maintenance_budget ?? 0), 2) }}
+                </td>
+                <td class="collect-label" style="width: 12%;">CUOTA DEL MES</td>
+                <td class="collect-value" style="width: 12%; padding-right: 8px; padding-left: 4px !important;">
+                    {{ number_format($totalAmount, 2) }}
+                </td>
+            </tr>
+        </table>
 
-        {{-- Unit Detail --}}
-        <div class="section-title">INFORMACION DE UNIDAD INMOBILIARIA</div>
-        <div class="unit-detail-section">
-            <div class="unit-detail-header">
-                <div>
-                    <span style="font-weight: bold;">UI</span>
-                    <span style="font-size: 14px; font-weight: bold; margin-left: 10px;">{{ $departament->inter_number }}</span>
-                </div>
-            </div>
-            <table class="unit-detail-table">
-                <thead>
-                    <tr>
-                        <th>UI</th>
-                        <th>DESCRIPCION</th>
-                        <th>AREA OCUPADA</th>
-                        <th>PARTICIPACION</th>
-                        <th>% CUOTA</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($units as $unit)
-                    <tr>
-                        <td>{{ $unit->inter_number }}</td>
-                        <td>{{ $unit->type_label }}</td>
-                        <td>{{ number_format($unit->area, 2) }} M2</td>
-                        <td>{{ number_format($unit->participation_percentage * 100, 6) }}%</td>
-                        <td>{{ number_format($unit->participation_percentage * 100, 6) }}%</td>
-                    </tr>
-                    @endforeach
-                    <tr class="total">
-                        <td colspan="2">TOTAL</td>
-                        <td>{{ number_format($totalArea, 2) }} M2</td>
-                        <td colspan="2">{{ number_format($totalParticipation * 100, 6) }}%</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        {{-- Individual Consumption --}}
-        @if($waterReading)
-        <div class="section-title">CONSUMO INDIVIDUAL</div>
-        <table class="consumption-table">
+        {{-- ═══════════ BALANCES ═══════════ --}}
+        <table class="balance-table">
             <thead>
                 <tr>
-                    <th>CONCEPTO</th>
-                    <th>U. MEDIDA</th>
-                    <th>LECTURA ANTERIOR</th>
-                    <th>LECTURA ACTUAL</th>
-                    <th>CONSUMO</th>
-                    <th>COSTO UNITARIO</th>
-                    <th style="text-align: right;">MONTO TOTAL</th>
+                    <th style="width: 17%;">SALDO INICIAL</th>
+                    <th style="width: 17%;">ABONOS DEL MES</th>
+                    <th style="width: 16%;">CARGOS DEL MES</th>
+                    <th style="width: 16%;">CUOTAS VENCIDAS</th>
+                    <th style="width: 16%;">DIAS VENCIDOS</th>
+                    <th style="width: 18%;">SALDO FINAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ number_format($initialBalance, 2) }}</td>
+                    <td>{{ number_format($monthlyPayments, 2) }}</td>
+                    <td>{{ number_format($totalAmount, 2) }}</td>
+                    <td>{{ $overdueQuotas }}</td>
+                    <td>{{ $overdueDays }}</td>
+                    <td>{{ number_format($finalBalance, 2) }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        {{-- ═══════════ INFORMACION DE UNIDAD INMOBILIARIA ═══════════ --}}
+        <div class="section-title">INFORMACION DE UNIDAD INMOBILIARIA</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 12%;">UI</th>
+                    <th style="width: 34%;">DESCRIPCION</th>
+                    <th class="right" style="width: 18%;">AREA OCUPADA</th>
+                    <th class="right" style="width: 18%;">PARTICIPACION</th>
+                    <th class="right" style="width: 18%;">% CUOTA</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($units as $unit)
+                <tr>
+                    <td>{{ $unit->inter_number }}</td>
+                    <td>{{ $unit->type_label }}</td>
+                    <td class="right">{{ number_format($unit->area, 2) }}</td>
+                    <td class="right">{{ number_format($unit->participation_percentage, 2) }}</td>
+                    <td class="right">{{ number_format($unit->participation_percentage, 6) }}</td>
+                </tr>
+                @endforeach
+                <tr class="total">
+                    <td><strong>TOTAL</strong></td>
+                    <td>&nbsp;</td>
+                    <td class="right">{{ number_format($totalArea, 2) }} M2</td>
+                    <td class="right">{{ number_format($totalParticipation, 2) }}%</td>
+                    <td class="right">{{ number_format($totalParticipation, 6) }}%</td>
+                </tr>
+            </tbody>
+        </table>
+
+        {{-- ═══════════ CONSUMO INDIVIDUAL ═══════════ --}}
+        @if($waterReading)
+        <div class="section-title">CONSUMO INDIVIDUAL</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">CONCEPTO</th>
+                    <th class="center" style="width: 10%;">U. MEDIDA</th>
+                    <th class="right" style="width: 15%;">LECTURA ANTERIOR</th>
+                    <th class="right" style="width: 14%;">LECTURA ACTUAL</th>
+                    <th class="right" style="width: 12%;">CONSUMO</th>
+                    <th class="right" style="width: 13%;">COSTO UNITARIO</th>
+                    <th class="right" style="width: 16%;">MONTO TOTAL</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>Agua y Desague</td>
-                    <td>M3</td>
-                    <td>{{ number_format($waterReading->previous_reading, 2) }}</td>
-                    <td>{{ number_format($waterReading->current_reading, 2) }}</td>
-                    <td>{{ number_format($waterConsumption, 2) }}</td>
-                    <td>{{ number_format($waterPricePerM3, 2) }}</td>
-                    <td class="number">{{ number_format($waterAmount, 2) }}</td>
+                    <td class="center">M3</td>
+                    <td class="right">{{ number_format($waterReading->previous_reading, 2) }}</td>
+                    <td class="right">{{ number_format($waterReading->current_reading, 2) }}</td>
+                    <td class="right">{{ number_format($waterConsumption, 2) }}</td>
+                    <td class="right">{{ number_format($waterPricePerM3, 2) }}</td>
+                    <td class="right">{{ number_format($waterAmount, 2) }}</td>
                 </tr>
                 <tr>
                     <td>Electricidad</td>
-                    <td>KWH</td>
-                    <td>0.00</td>
-                    <td>0.00</td>
-                    <td>0.00</td>
-                    <td>1.800</td>
-                    <td class="number">0.00</td>
-                </tr>
-                <tr class="total">
-                    <td colspan="6">MONTO TOTAL</td>
-                    <td class="number">{{ number_format($waterAmount, 2) }}</td>
+                    <td class="center">KWH</td>
+                    <td class="right">0.00</td>
+                    <td class="right">0.00</td>
+                    <td class="right">0.00</td>
+                    <td class="right">1.800</td>
+                    <td class="right">&nbsp;</td>
                 </tr>
             </tbody>
         </table>
         @endif
 
-        {{-- Common Area Water Cost --}}
-        @if($commonWaterConsumption > 0)
-        <div class="section-title">COSTO AGUA ÁREAS COMUNES</div>
-        <table class="consumption-table">
-            <thead>
-                <tr>
-                    <th>CONCEPTO</th>
-                    <th>U. MEDIDA</th>
-                    <th>CONSUMO</th>
-                    <th>COSTO UNITARIO</th>
-                    <th style="text-align: right;">MONTO TOTAL</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Agua - Áreas Comunes</td>
-                    <td>M3</td>
-                    <td>{{ number_format($commonWaterConsumption, 2) }}</td>
-                    <td>{{ number_format($waterPricePerM3, 2) }}</td>
-                    <td class="number">{{ number_format($commonWaterCost, 2) }}</td>
-                </tr>
-            </tbody>
-        </table>
-        @endif
-
-        {{-- Payment History --}}
+        {{-- ═══════════ ULTIMOS ABONOS ═══════════ --}}
         @if(count($paymentHistory) > 0)
         <div class="section-title">ULTIMOS {{ count($paymentHistory) }} ABONOS</div>
-        <table class="payment-history-table">
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th>FECHA PAGO</th>
-                    <th>DESCRIPCION</th>
-                    <th style="text-align: right;">MONTO</th>
-                    <th style="text-align: right;">INTERESES</th>
-                    <th style="text-align: right;">TOTAL PAGADO</th>
+                    <th style="width: 14%;">FECHA PAGO</th>
+                    <th style="width: 44%;">DESCRIPCION</th>
+                    <th class="right" style="width: 14%;">MONTO</th>
+                    <th class="right" style="width: 14%;">INTERESES</th>
+                    <th class="right" style="width: 14%;">TOTAL PAGADO</th>
                 </tr>
             </thead>
             <tbody>
@@ -450,19 +511,19 @@
                 <tr>
                     <td>{{ $payment['date'] }}</td>
                     <td>{{ $payment['description'] }}</td>
-                    <td class="number">{{ number_format($payment['amount'], 2) }}</td>
-                    <td class="number">{{ number_format($payment['interest'], 2) }}</td>
-                    <td class="number">{{ number_format($payment['total_paid'], 2) }}</td>
+                    <td class="right">{{ number_format($payment['amount'], 2) }}</td>
+                    <td class="right">{{ number_format($payment['interest'], 2) }}</td>
+                    <td class="right">{{ number_format($payment['total_paid'], 2) }}</td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
         @endif
 
-        {{-- Footer --}}
+        {{-- ═══════════ FOOTER ═══════════ --}}
         <div class="footer">
             Este documento es un comprobante de pago generado por el sistema de gestión del Condominio Pacifik.<br>
-            Powered by TCPDF (www.tcpdf.org)
+            Generado el {{ date('d/m/Y H:i') }}
         </div>
     </div>
 </body>

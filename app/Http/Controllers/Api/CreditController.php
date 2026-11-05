@@ -107,13 +107,14 @@ class CreditController extends Controller
             $owner = $dept->owner ?? $dept->availableOwner;
 
             return [
+                'id' => (int) $balance->id,
                 'departament_id' => $dept->id,
                 'number' => $dept->number,
                 'type' => $dept->type,
                 'owner_name' => $owner?->name ?? '—',
                 'balance' => (float) $balance->balance,
                 'applicable_month' => (int) $balance->applicable_month,
-                'applicable_year' => $balance->applicable_year,
+                'applicable_year' => $balance->applicable_year !== null ? (int) $balance->applicable_year : null,
             ];
         })->values();
 
@@ -174,11 +175,17 @@ class CreditController extends Controller
             'pay_id' => ['required', 'exists:pays,id'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'description' => ['nullable', 'string', 'max:500'],
+            // Mes/año al que aplica el saldo: obligatorio, sin opción flexible.
+            'applicable_month' => ['required', 'integer', 'between:1,12'],
+            'applicable_year' => ['required', 'integer', 'min:2020', 'max:2100'],
         ]);
 
         if ($validator->fails()) {
             return $this->returnFail(422, $validator->errors()->first());
         }
+
+        $creditMonth = (int) $request->applicable_month;
+        $creditYear = (int) $request->applicable_year;
 
         $pay = Pay::with(['quotas.departament'])->find($request->pay_id);
 
@@ -209,7 +216,6 @@ class CreditController extends Controller
             $appliedTotal = 0.0;
             $remaining = $creditAmount;
             $assigned = [];
-            $payDate = $pay->pay_date ?? now();
 
             foreach ($deptIds as $deptId) {
                 if ($remaining <= 0) {
@@ -226,10 +232,7 @@ class CreditController extends Controller
                     break;
                 }
 
-                // Asigna el crédito al primer mes calendario posterior al pago
-                // que aún no tenga cuota creada para este departamento.
-                [$creditMonth, $creditYear] = $creditService->nextMonthWithoutQuota($dept, $payDate);
-
+                // Mes elegido por el admin: siempre un mes/año concreto.
                 $creditService->createCredit($dept, $applyAmount, $pay, $creditMonth, $creditYear);
                 $appliedTotal += $applyAmount;
                 $remaining = round($creditAmount - $appliedTotal, 2);

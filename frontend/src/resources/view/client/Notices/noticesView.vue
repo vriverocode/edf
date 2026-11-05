@@ -84,36 +84,46 @@ onMounted(() => {
   <section class="h-full" style="overflow: hidden;">
     <div v-if="ready" class="h-full pb-8 md:px-32" style="overflow: scroll; ">
       <div v-if="Object.values(notice).length > 0" class="px-4">
-        <div class="mt-4 flex items-center justify-between relative position-relative" >
-          <div class=" text-h6 text-primary font-bold">
-            ► {{ notice.title }}
+        <template v-if="notice.status ==2">
+          <div class="mt-4 flex items-center justify-between relative position-relative" >
+            <div class=" text-h6 text-primary font-bold">
+              ► {{ notice.title }}
+            </div>
+            <div class="notices-badgeStatusRelative px-3 ml-4" :class="'bg-'+notice.status_color" v-if="notice.user_id == user.id ||  user.rol_id == 1 ">
+              {{ notice.status_label }}
+            </div>
           </div>
-          <div class="notices-badgeStatusRelative px-3 ml-4" :class="'bg-'+notice.status_color" v-if="notice.user_id == user.id ||  user.rol_id == 1 ">
-            {{ notice.status_label }}
+          <div class="mt-4 text-sm text-stone-600 whitespace-pre-line" style="line-height: 1.5; overflow-wrap: break-word; white-space: pre-wrap;">
+            {{ notice.description }}
           </div>
-        </div>
-        <div class="mt-4 text-sm text-stone-600 whitespace-pre-line" style="line-height: 1.5; overflow-wrap: break-word; white-space: pre-wrap;">
-          {{ notice.description }}
-        </div>
-        <div v-if="attachImages?.length > 0" class="row md:mt-5">
-          <div class="col-12 mt-5 md:mt-0 col-md-6 mx-auto" v-for="(image, index) in attachImages" :key="index">
-            <ZoomImg :src="image" alt="post_image" />
+          <div v-if="attachImages?.length > 0" class="row md:mt-5">
+            <div class="col-12 mt-5 md:mt-0 col-md-6 mx-auto" v-for="(image, index) in attachImages" :key="index">
+              <ZoomImg :src="image" alt="post_image" />
+            </div>
           </div>
-        </div>
-        <div class="flex items-center mt-3 " v-if="notice.user_id == user.id">
-          <div class="mr-1 text-xs text-grey-7">Visto por: {{ noticesViews.length }}</div>
-          <q-icon name="eva-eye-outline" size="xs" color="grey-7"/> 
-        </div>
-        <div class="mt-5 text-xs text-stone-400" style="line-height: 1.5;">
-          Publicado por: {{ notice.type == 1 ? 'Administrador' : dataContactFormat(notice.data_contact) }}
-        </div>
-        <div v-if="user.rol_id == 1 && (notice.status == 1)" class="mt-4 w-full justify-between flex items-center">
-          <q-btn label="Rechazar" unelevated class="q-mx-sm " color="negative" outline
-              style="border-radius: 0.8rem; padding:0px  2rem!important; font-size: 1rem;" @click="setStatusAnnounce(0)" :loading="loading"  />
-              
-          <q-btn label="Aprobar" type="submit" unelevated class="q-mx-sm " color="primary" :loading="loading" 
-          style="border-radius: 0.8rem; padding:0px  2rem!important; font-size: 1rem;  " @click="setStatusAnnounce(2)"/>
-        </div>
+          <div class="flex items-center mt-3 " v-if="notice.user_id == user.id">
+            <div class="mr-1 text-xs text-grey-7">Visto por: {{ noticesViews.length }}</div>
+            <q-icon name="eva-eye-outline" size="xs" color="grey-7"/> 
+          </div>
+          <div class="mt-5 text-xs text-stone-400" style="line-height: 1.5;">
+            Publicado por: {{ notice.type == 1 ? 'Administrador' : dataContactFormat(notice.data_contact) }}
+          </div>
+          <div v-if="user.rol_id == 1 && (notice.status == 1)" class="mt-4 w-full justify-between flex items-center">
+            <q-btn label="Rechazar" unelevated class="q-mx-sm " color="negative" outline
+                style="border-radius: 0.8rem; padding:0px  2rem!important; font-size: 1rem;" @click="setStatusAnnounce(0)" :loading="loading"  />
+                
+            <q-btn label="Aprobar" type="submit" unelevated class="q-mx-sm " color="primary" :loading="loading" 
+            style="border-radius: 0.8rem; padding:0px  2rem!important; font-size: 1rem;  " @click="setStatusAnnounce(2)"/>
+          </div>
+        </template>
+        <template v-else>
+          <div class="text-center mt-5">
+            <q-icon name="eva-alert-circle-outline" color="warning" size="lg" />
+            <div class="text-center mt-5">
+              Noticia/Anuncio no aprobado
+            </div>
+          </div>
+        </template>
       </div>
       <div v-else class="flex flex-col items-center justify-center py-20">
         <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6">

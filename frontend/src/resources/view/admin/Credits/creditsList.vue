@@ -66,7 +66,7 @@ onMounted(() => {
             <div>
               <div class="text-sm opacity-80 mb-1">Saldo total a favor</div>
               <div class="text-2xl font-bold">S/. {{ totalBalance.toFixed(2) }}</div>
-              <div class="text-xs opacity-70 mt-1">{{ credits.length }} departamento{{ credits.length !== 1 ? 's' : '' }} con saldo</div>
+              <div class="text-xs opacity-70 mt-1">{{ credits.length }} registro{{ credits.length !== 1 ? 's' : '' }} con saldo</div>
             </div>
           </div>
         </div>
@@ -104,7 +104,7 @@ onMounted(() => {
       <!-- Lista -->
       <div v-else class="px-4 py-4 md:px-28">
         <div v-if="credits.length > 0" class="md:px-5">
-          <div v-for="credit in credits" :key="credit.departament_id"
+          <div v-for="credit in credits" :key="credit.id"
             class="bg-white rounded-xl shadow-md my-3 border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
             @click="goToDetail(credit.departament_id)">
             <div class="px-4 py-3 flex items-center justify-between">

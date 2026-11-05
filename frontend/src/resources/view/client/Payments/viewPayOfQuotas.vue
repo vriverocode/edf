@@ -61,10 +61,51 @@ const totalAmount = computed(() => {
   }
   return Number(pay.value?.amount || 0);
 });
-const monthLabel = computed(() => quotas.value.length > 0 ? quotas.value[0].month_label : '---');
-const yearLabel = computed(() => {
-  if (!quotas.value.length || !quotas.value[0].due_date) return '';
-  return new Date(quotas.value[0].due_date).getFullYear();
+// ── Periodos del pago (multi-mes consolidado) ────────────────────────────────
+const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const monthShort = (m) => MONTHS_SHORT[Number(m) - 1] || '';
+const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
+
+const periodOf = (quota) => {
+  if (!quota || quota.month == null || quota.month === '') return null;
+  const month = Number(quota.month);
+  let year = new Date().getFullYear();
+  if (quota.year != null && quota.year !== '') year = Number(quota.year);
+  else if (quota.due_date) year = new Date(quota.due_date).getFullYear();
+  return { month, year, key: year * 100 + month };
+};
+
+// Periodos distintos del set, ordenados del mas antiguo al mas reciente.
+const periods = computed(() => {
+  const seen = new Map();
+  quotas.value.forEach((q) => {
+    const p = periodOf(q);
+    if (!p || seen.has(p.key)) return;
+    seen.set(p.key, p);
+  });
+  return [...seen.values()].sort((a, b) => a.key - b.key);
+});
+const isMultiPeriod = computed(() => periods.value.length > 1);
+
+const periodTitle = computed(() => {
+  const list = periods.value;
+  if (!list.length) return 'Cuotas ---';
+  if (list.length === 1) {
+    const first = quotas.value.find((q) => {
+      const p = periodOf(q);
+      return p && p.key === list[0].key;
+    });
+    return `Cuotas ${first?.month_label || capitalize(monthShort(list[0].month))} ${list[0].year}`;
+  }
+  const fmt = (p) => `${capitalize(monthShort(p.month))} ${p.year}`;
+  return `Cuotas ${fmt(list[0])} - ${fmt(list[list.length - 1])}`;
+});
+
+// Saldo a favor: el backend lo aplica sobre el periodo mas reciente del set
+// (mismo criterio que Quota::resolveCreditPeriod).
+const creditTargetPeriod = computed(() => {
+  const list = periods.value;
+  return list.length ? list[list.length - 1] : null;
 });
 
 const formatDate = (date) => {
@@ -109,7 +150,7 @@ onMounted(() => {
               <div class="invoice-header__label">
                 {{ isScoped ? 'Resumen de tu cuota' : 'Resumen de pago' }}
               </div>
-              <div class="invoice-header__title">Cuotas {{ monthLabel }} {{ yearLabel }}</div>
+              <div class="invoice-header__title">{{ periodTitle }}</div>
             </div>
           </div>
           <div class="invoice-header__id ">{{ pay.user.name }}</div>
@@ -149,6 +190,7 @@ onMounted(() => {
             <!-- Header -->
             <div class="invoice-table__header">
               <div class="invoice-table__col invoice-table__col--unit">Unidad</div>
+              <div v-if="isMultiPeriod" class="invoice-table__col invoice-table__col--month">Mes</div>
               <div class="invoice-table__col invoice-table__col--amount">Mant.</div>
               <div class="invoice-table__col invoice-table__col--amount">Agua</div>
               <div class="invoice-table__col invoice-table__col--total">Subtotal</div>
@@ -161,6 +203,9 @@ onMounted(() => {
                   <div class="invoice-table__unit-label">{{ getUnitInfo(quota.departament?.type).label }}</div>
                   <div class="invoice-table__unit-number">{{ quota.departament?.number }}</div>
                 </div>
+              </div>
+              <div v-if="isMultiPeriod" class="invoice-table__col invoice-table__col--month">
+                {{ quota.month_label }} {{ periodOf(quota)?.year ?? '' }}
               </div>
               <div class="invoice-table__col invoice-table__col--amount">
                 {{ amountPrefix }} {{ formatCurrency(quota.maintenance_amount) }}
@@ -187,6 +232,14 @@ onMounted(() => {
           <div class="invoice-totals__row">
             <span>Total Agua</span>
             <span>{{ amountPrefix }} {{ formatCurrency(totalWater) }}</span>
+          </div>
+          <div v-if="!isScoped && Number(pay.credit_applied) > 0" class="invoice-totals__row">
+            <span>
+              Saldo a favor aplicado<template v-if="creditTargetPeriod">
+                ({{ capitalize(monthShort(creditTargetPeriod.month)) }} {{ creditTargetPeriod.year }})
+              </template>
+            </span>
+            <span>- {{ amountPrefix }} {{ formatCurrency(pay.credit_applied) }}</span>
           </div>
           <div class="invoice-totals__row invoice-totals__row--grand">
             <span>Total Pagado</span>
@@ -385,6 +438,12 @@ onMounted(() => {
   flex: 1;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.invoice-table__col--month {
+  flex: 1.2;
+  font-size: 0.75rem;
+  color: #6b7280;
 }
 
 .invoice-table__col--total {

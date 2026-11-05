@@ -3,11 +3,30 @@ import { onMounted, ref, computed, watch } from 'vue'
 import { Notify } from 'quasar'
 import { useQuotaStore } from '@/services/store/quota.store'
 import { useUserStore } from '@/services/store/users.store'
+import { useAuthStore } from '@/services/store/auth.services'
 import { useRouter } from 'vue-router'
 
 const quotaStore = useQuotaStore()
 const userStore = useUserStore()
+const authStore = useAuthStore()
 const router = useRouter()
+
+const isAdmin = computed(() => {
+  const rolId = authStore.user?.rol_id
+  if (rolId) return [1, 2].includes(rolId)
+  return ['admin', 'super-admin'].includes(authStore.user?.rol?.name?.toLowerCase() || '')
+})
+
+const myDeptIds = computed(() => {
+  const ids = new Set()
+  ;(authStore.user?.units || []).forEach((u) => u?.id && ids.add(u.id))
+  ;(authStore.user?.departments_inquilino || []).forEach(
+    (p) => p?.departament_id && ids.add(p.departament_id)
+  )
+  return ids
+})
+
+const canOpenQuota = (dept) => isAdmin.value || myDeptIds.value.has(dept?.departament_id)
 
 const now = new Date()
 const year = ref(now.getFullYear())
@@ -82,11 +101,22 @@ const cellStyle = (monthData) => {
   return 'background: #fff8e1; color: #f57f17;'
 }
 
+const cellTitle = (monthData) => {
+  if (!monthData) return undefined
+  if (!(Number(monthData.credit_applied) > 0)) return undefined
+  return `Monto bruto: ${formatMoney(monthData.gross_amount)}\nSaldo a favor aplicado: -${formatMoney(
+    monthData.credit_applied
+  )}`
+}
+
 // Totales globales del footer calculados sobre los departamentos filtrados
 const filteredTotals = computed(() => {
   const result = {}
   months.forEach(({ num }) => {
-    let amount = 0, paid = 0, pending = 0, overdue = 0
+    let amount = 0,
+      paid = 0,
+      pending = 0,
+      overdue = 0
     departments.value.forEach((dept) => {
       const m = dept.months[num]
       if (!m) return
@@ -112,7 +142,10 @@ const fetchData = async () => {
       report.value = res.data
     }
   } catch (e) {
-    Notify.create({ color: 'negative', message: typeof e === 'string' ? e : 'Error al cargar reporte' })
+    Notify.create({
+      color: 'negative',
+      message: typeof e === 'string' ? e : 'Error al cargar reporte',
+    })
   } finally {
     loading.value = false
   }
@@ -124,7 +157,10 @@ const exportToXls = async () => {
     await quotaStore.exportMonthlyPaymentsReport(year.value, userIdFilter.value)
     Notify.create({ color: 'positive', message: 'Archivo descargado correctamente' })
   } catch (e) {
-    Notify.create({ color: 'negative', message: typeof e === 'string' ? e : 'Error al exportar archivo' })
+    Notify.create({
+      color: 'negative',
+      message: typeof e === 'string' ? e : 'Error al exportar archivo',
+    })
   } finally {
     loading.value = false
   }
@@ -139,9 +175,9 @@ const loadUsers = async () => {
   }
 }
 
-const goTo = (quotaId) => {
-  if (!quotaId) return
-  router.push(`/client/quota/view/${quotaId}`)
+const goTo = (dept, monthData) => {
+  if (!monthData?.quota_id || !canOpenQuota(dept)) return
+  router.push(`/client/quota/view/${monthData.quota_id}`)
 }
 
 watch(userIdFilter, () => {
@@ -149,20 +185,34 @@ watch(userIdFilter, () => {
   fetchData()
 })
 
-onMounted(() => {
+onMounted(async () => {
+  if (!authStore.user?.rol?.name) {
+    try {
+      await authStore.currentUser()
+    } catch (e) {
+      /* noop */
+    }
+  }
   fetchData()
   loadUsers()
 })
 </script>
 
 <template>
-  <div class="md:px-36 px-2 pb-10 h-full" style="overflow: auto;">
+  <div class="md:px-36 px-2 pb-10 h-full" style="overflow: auto">
     <!-- Toolbar -->
     <div class="row q-mb-md items-center q-col-gutter-sm">
       <!-- Año -->
       <div class="col-6 col-md-2">
-        <q-input v-model.number="year" type="number" dense borderless class="form__inputsR" label="Año"
-          @update:model-value="fetchData" />
+        <q-input
+          v-model.number="year"
+          type="number"
+          dense
+          borderless
+          class="form__inputsR"
+          label="Año"
+          @update:model-value="fetchData"
+        />
       </div>
 
       <!-- Filtro por departamento -->
@@ -217,8 +267,17 @@ onMounted(() => {
           class="form__inputsR"
           label="Usuario"
           clearable
-          @filter="(val, update) => { userSearch = val; update() }"
-          @filter-abort="() => { userSearch = '' }"
+          @filter="
+            (val, update) => {
+              userSearch = val
+              update()
+            }
+          "
+          @filter-abort="
+            () => {
+              userSearch = ''
+            }
+          "
         >
           <template v-slot:option="{ itemProps, opt }">
             <q-item v-bind="itemProps" dense class="py-1">
@@ -242,21 +301,23 @@ onMounted(() => {
       </div>
 
       <!-- Leyenda -->
-      <div class="col-12 col-md row items-center justify-center md:justify-start q-gutter-x-md q-gutter-y-xs flex-wrap">
+      <div
+        class="col-12 col-md row items-center justify-center md:justify-start q-gutter-x-md q-gutter-y-xs flex-wrap"
+      >
         <div class="flex items-center q-gutter-x-xs">
-          <span class="legend-dot" style="background: #e8f5e9; border: 1px solid #2e7d32;"></span>
+          <span class="legend-dot" style="background: #e8f5e9; border: 1px solid #2e7d32"></span>
           <span class="text-caption text-grey-7">Pagado</span>
         </div>
         <div class="flex items-center q-gutter-x-xs">
-          <span class="legend-dot" style="background: #fff8e1; border: 1px solid #f57f17;"></span>
+          <span class="legend-dot" style="background: #fff8e1; border: 1px solid #f57f17"></span>
           <span class="text-caption text-grey-7">Pendiente</span>
         </div>
         <div class="flex items-center q-gutter-x-xs">
-          <span class="legend-dot" style="background: #ffebee; border: 1px solid #c62828;"></span>
+          <span class="legend-dot" style="background: #ffebee; border: 1px solid #c62828"></span>
           <span class="text-caption text-grey-7">Vencido</span>
         </div>
         <div class="flex items-center q-gutter-x-xs">
-          <span class="legend-dot" style="background: #f5f5f5; border: 1px solid #bbb;"></span>
+          <span class="legend-dot" style="background: #f5f5f5; border: 1px solid #bbb"></span>
           <span class="text-caption text-grey-7">Sin cuota</span>
         </div>
       </div>
@@ -282,7 +343,8 @@ onMounted(() => {
     <div v-else-if="allDepartments.length === 0" class="text-center text-grey-6 q-py-xl">
       <q-icon name="eva-info-outline" size="4rem" color="grey" />
       <div class="text-h6 q-mt-sm">
-        No hay datos para {{ year }}<template v-if="userIdFilter"> con el usuario seleccionado</template>
+        No hay datos para {{ year
+        }}<template v-if="userIdFilter"> con el usuario seleccionado</template>
       </div>
     </div>
 
@@ -328,9 +390,15 @@ onMounted(() => {
             <td class="col-fixed col-dept">{{ dept.number }}</td>
             <td class="col-fixed col-type">{{ dept.type_label || '—' }}</td>
             <td class="col-fixed col-responsible text-ellipsis">{{ dept.responsible }}</td>
-            <td v-for="m in months" :key="m.num" class="col-month" :style="cellStyle(dept.months[m.num])"
-              :class="{ 'cursor-pointer': dept.months[m.num]?.quota_id }"
-              @click="dept.months[m.num]?.quota_id && goTo(dept.months[m.num].quota_id)">
+            <td
+              v-for="m in months"
+              :key="m.num"
+              class="col-month"
+              :style="cellStyle(dept.months[m.num])"
+              :title="cellTitle(dept.months[m.num])"
+              :class="{ 'cursor-pointer': canOpenQuota(dept) && dept.months[m.num]?.quota_id }"
+              @click="goTo(dept, dept.months[m.num])"
+            >
               <template v-if="dept.months[m.num]">
                 {{ formatMoney(dept.months[m.num].amount) }}
               </template>
@@ -433,14 +501,29 @@ onMounted(() => {
 }
 
 /* Offset sticky: fila-header = 33px, cada fila de resumen suma ~32px */
-.summary-header-row:nth-child(2) th { top: 33px; }
-.summary-header-row:nth-child(3) th { top: 65px; }
-.summary-header-row:nth-child(4) th { top: 97px; }
+.summary-header-row:nth-child(2) th {
+  top: 33px;
+}
+.summary-header-row:nth-child(3) th {
+  top: 65px;
+}
+.summary-header-row:nth-child(4) th {
+  top: 97px;
+}
 
 /* Colores de las filas de resumen en thead */
-.totals-row--paid th   { background: #e8f5e9; color: #2e7d32; }
-.totals-row--pending th { background: #fff8e1; color: #f57f17; }
-.totals-row--total th  { background: #e3f2fd; color: #1565c0; }
+.totals-row--paid th {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.totals-row--pending th {
+  background: #fff8e1;
+  color: #f57f17;
+}
+.totals-row--total th {
+  background: #e3f2fd;
+  color: #1565c0;
+}
 
 /* Header fijo también sticky en z */
 .monthly-pays-table thead .col-fixed {
@@ -449,9 +532,18 @@ onMounted(() => {
 }
 
 /* col-fixed dentro de filas de resumen del thead: z-index alto + color propio */
-.summary-header-row .col-fixed.totals-row--paid    { background: #e8f5e9 !important; z-index: 4; }
-.summary-header-row .col-fixed.totals-row--pending { background: #fff8e1 !important; z-index: 4; }
-.summary-header-row .col-fixed.totals-row--total   { background: #e3f2fd !important; z-index: 4; }
+.summary-header-row .col-fixed.totals-row--paid {
+  background: #e8f5e9 !important;
+  z-index: 4;
+}
+.summary-header-row .col-fixed.totals-row--pending {
+  background: #fff8e1 !important;
+  z-index: 4;
+}
+.summary-header-row .col-fixed.totals-row--total {
+  background: #e3f2fd !important;
+  z-index: 4;
+}
 
 /* Columnas fijas (sticky left) */
 .col-fixed {
@@ -519,7 +611,7 @@ onMounted(() => {
 
 .totals-row--pending .col-fixed {
   background: #fff8e1 !important;
-} 
+}
 
 .totals-row--total .col-fixed {
   background: #e3f2fd !important;
@@ -541,7 +633,6 @@ onMounted(() => {
   opacity: 0.8;
   text-decoration: underline;
 }
-
 </style>
 <style scoped>
 .text-ellipsis {

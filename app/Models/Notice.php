@@ -23,6 +23,70 @@ class Notice extends Model
 
     public $appends = ['group_label', 'category_label', 'status_label', 'status_color'];
 
+    public const GROUPS = [
+        0 => 'Información',
+        1 => '🛍 Emprendimientos',
+        2 => '🛠️ Servicios',
+        3 => '🛒 Compra, venta y alquiler',
+        4 => '💼 Oportunidades',
+        5 => '🤝 Comunidad',
+    ];
+
+    public const CATEGORIES = [
+        0 => [
+            0 => 'Información junta de condominio',
+        ],
+        1 => [
+            0 => '🍰 Alimentos y postres',
+            1 => '👕 Moda y accesorios',
+            2 => '💄 Belleza y bienestar',
+            3 => '🏠 Hogar y decoración',
+            4 => '🎁 Regalos y personalizados',
+            5 => '🧵 Artesanías y manualidades',
+            6 => '📦 Otros emprendimientos',
+        ],
+        2 => [
+            0 => '👨‍🔧 Reparaciones y mantenimiento',
+            1 => '🧹 Limpieza',
+            2 => '👩‍🏫 Clases y tutorías',
+            3 => '🐶 Mascotas',
+            4 => '💻 Tecnología',
+            5 => '🚗 Transporte',
+            6 => '📋 Otros servicios',
+        ],
+        3 => [
+            0 => '🛍️ Venta de artículos',
+            1 => '🔎 Busco comprar',
+            2 => '🏷️ Alquiler',
+            3 => '🚗 Vehículos y accesorios',
+            4 => '🏠 Inmuebles',
+        ],
+        4 => [
+            0 => '👔 Empleo',
+            1 => '🎉 Eventos',
+            2 => '🎁 Promociones y descuentos',
+            3 => '📢 Otros',
+        ],
+        5 => [
+            0 => 'Objetos perdidos',
+            1 => 'Donaciones',
+            2 => 'Intercambios',
+            3 => 'Recomendaciones',
+        ],
+    ];
+
+    public const STATUS_LABELS = [
+        0 => 'Rechazada',
+        1 => 'Pendiente de aprb.',
+        2 => 'Publicada',
+    ];
+
+    public const STATUS_COLORS = [
+        0 => 'negative',
+        1 => 'warning',
+        2 => 'positive',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -30,68 +94,21 @@ class Notice extends Model
 
     public function getGroupLabelAttribute()
     {
-        $groupLabel = [
-            'Información',
-            'Automotores',
-            'Empleos',
-            'Inmuebles',
-            'Oportunidades',
-        ];
-
-        return $groupLabel[$this->group];
+        return self::GROUPS[$this->group] ?? '';
     }
 
     public function getCategoryLabelAttribute()
     {
-        $categoryByGroupLabels = [
-            [
-                'Información junta de condominio',
-            ],
-            [
-                'Venta de automovil',
-                'Venta de maquinaria',
-                'Venta de respuesto',
-                'Compra de automovil',
-                'Compra de maquinaria',
-                'Compra de respuesto',
-                'Servicios',
-            ],
-            [
-                'Oferta laboral',
-                'Servicios',
-            ],
-            [
-                'Venta de inmueble',
-                'Alquier de inmueble',
-                'Servicios',
-            ],
-            [
-                'Oportunidad',
-            ],
-        ];
-
-        return $categoryByGroupLabels[$this->group][$this->category];
+        return self::CATEGORIES[$this->group][$this->category] ?? '';
     }
 
     public function getStatusLabelAttribute()
     {
-        $statusLabel = [
-            'Rechazada',
-            'Pendiente de aprb.',
-            'Publicada',
-        ];
-
-        return $statusLabel[$this->status];
+        return self::STATUS_LABELS[$this->status] ?? '';
     }
 
     public function getStatusColorAttribute()
     {
-        $statusColor = [
-            'negative',
-            'warning',
-            'positive',
-        ];
-
-        return $statusColor[$this->status];
+        return self::STATUS_COLORS[$this->status] ?? '';
     }
 }

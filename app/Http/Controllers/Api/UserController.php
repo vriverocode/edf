@@ -503,7 +503,7 @@ class UserController extends Controller
     public function getOwnersWithoutApartment()
     {
         $owners = User::with('rol')
-            ->where('rol_id', Rol::PROPIETARIO)
+            ->whereIn('rol_id', [Rol::PROPIETARIO, Rol::PARCIAL])
             // ->whereDoesntHave('apartaments')
             ->orderBy('name', 'asc')
             ->get();

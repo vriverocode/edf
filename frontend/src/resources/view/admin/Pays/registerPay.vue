@@ -130,56 +130,87 @@ const quotaPeriodOf = (q) => {
   return { month, year, key: year * 100 + month }
 }
 
-// Saldo a favor: se aplica sobre el periodo más reciente de la selección
-// (mes más nuevo elegido), igual que Quota::resolveCreditPeriod en backend.
-// Las cuotas de meses distintos dejan de anular el crédito como antes.
-const creditTargetPeriod = computed(() => {
-  if (!selectedQuotas.value.length) return null
-  return selectedQuotas.value
-    .map(quotaPeriodOf)
-    .reduce((latest, p) => (p.key > latest.key ? p : latest))
+// Saldo a favor: cada crédito solo aplica a cuotas de su propio mes/año,
+// con tope por depto y periodo (mismo criterio que CreditService en el
+// backend). Así un pago de julio+junio+octubre usa también el crédito de junio.
+const round2 = (n) => Math.round(n * 100) / 100
+
+const selectedPeriods = computed(() => {
+  const map = new Map()
+  selectedQuotas.value.forEach((q) => {
+    const p = quotaPeriodOf(q)
+    if (p.month >= 1 && p.month <= 12 && !map.has(p.key)) map.set(p.key, p)
+  })
+  return [...map.values()].sort((a, b) => a.key - b.key)
 })
 
-// Monto de las cuotas seleccionadas del periodo target: el saldo no puede
-// superarlo (el backend consume el crédito sobre esas cuotas al aprobar).
-const targetPeriodAmount = computed(() => {
-  const target = creditTargetPeriod.value
-  if (!target) return 0
-  return selectedQuotas.value.reduce((sum, q) => {
-    return quotaPeriodOf(q).key === target.key ? sum + (Number(q.amount) || 0) : sum
-  }, 0)
+// { [periodKey]: { total, detail: { deptId: saldo } } }
+const creditByPeriod = ref({})
+
+// Por periodo y depto: min(saldo del depto en ese periodo, cuotas del
+// depto en ese periodo). Espejo exacto de CreditService::maxApplicableForQuotas.
+const creditAllocations = computed(() => {
+  const rows = []
+  if (!isQuotaType.value) return rows
+  for (const p of selectedPeriods.value) {
+    const info = creditByPeriod.value[p.key]
+    if (!info) continue
+    const byDept = {}
+    selectedQuotas.value.forEach((q) => {
+      if (quotaPeriodOf(q).key !== p.key) return
+      const id = q.departament_id
+      if (!id) return
+      byDept[id] = (byDept[id] || 0) + (Number(q.amount) || 0)
+    })
+    let applied = 0
+    for (const [deptId, amount] of Object.entries(byDept)) {
+      applied += Math.min(Number(info.detail[deptId]) || 0, amount)
+    }
+    applied = round2(applied)
+    if (applied > 0) {
+      rows.push({
+        key: p.key,
+        label: `${monthOptions[p.month - 1]?.label ?? ''} ${p.year}`,
+        applied,
+      })
+    }
+  }
+  return rows
 })
 
-const hasCredit = computed(
-  () => isQuotaType.value && !!creditTargetPeriod.value && creditBalance.value > 0 && targetPeriodAmount.value > 0,
-)
+const creditToApply = computed(() => round2(creditAllocations.value.reduce((sum, r) => sum + r.applied, 0)))
 
-const creditToApply = computed(() => {
-  if (!hasCredit.value) return 0
-  return Math.min(creditBalance.value, targetPeriodAmount.value)
-})
+const hasCredit = computed(() => isQuotaType.value && creditToApply.value > 0)
 
 const amountToPay = computed(() => {
   const total = totalSelectedAmount.value
   if (!hasCredit.value) return total
-  return Math.max(0, Math.round((total - creditToApply.value) * 100) / 100)
+  return Math.max(0, round2(total - creditToApply.value))
 })
 
 const fetchCreditBalance = async () => {
   creditBalance.value = 0
-  if (!isQuotaType.value || !creditTargetPeriod.value || !selectedQuotas.value.length) return
-  const period = creditTargetPeriod.value
-  if (!period || !period.month) return
-  const deptIds = [...new Set(
-    selectedQuotas.value.map((q) => q.departament_id).filter(Boolean),
-  )]
+  creditByPeriod.value = {}
+  if (!isQuotaType.value || !selectedQuotas.value.length) return
+  const periods = selectedPeriods.value
+  if (!periods.length) return
+  const deptIds = [...new Set(selectedQuotas.value.map((q) => q.departament_id).filter(Boolean))]
   if (!deptIds.length) return
   try {
-    const res = await payStore.getCreditBalanceForDepartments(deptIds, period.month, period.year)
-    if (res?.code === 200) {
-      creditBalance.value = res.data.total || 0
-    }
+    const results = await Promise.all(
+      periods.map((p) => payStore.getCreditBalanceForDepartments(deptIds, p.month, p.year)),
+    )
+    const byPeriod = {}
+    let total = 0
+    results.forEach((res, i) => {
+      if (res?.code !== 200) return
+      byPeriod[periods[i].key] = { total: res.data.total || 0, detail: res.data.detail || {} }
+      total += res.data.total || 0
+    })
+    creditByPeriod.value = byPeriod
+    creditBalance.value = round2(total)
   } catch {
+    creditByPeriod.value = {}
     creditBalance.value = 0
   }
 }
@@ -793,15 +824,20 @@ loadPayMethods()
             <div v-if="hasCredit" class="col-span-full">
               <div class="px-3 py-2 rounded-lg" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
                 <div class="flex justify-between items-center text-sm mb-1">
-                  <span class="text-gray-600">Cuota mensual</span>
+                  <span class="text-gray-600">Total seleccionado</span>
                   <span class="text-gray-900">S/. {{ totalSelectedAmount.toFixed(2) }}</span>
                 </div>
-                <div class="flex justify-between items-center text-sm" style="color: #16a34a;">
+                <div
+                  v-for="row in creditAllocations"
+                  :key="row.key"
+                  class="flex justify-between items-center text-sm"
+                  style="color: #16a34a;"
+                >
                   <span class="flex items-center gap-1">
                     <q-icon name="eva-checkmark-circle-2-outline" size="1rem" />
-                    Saldo a favor
+                    Saldo a favor · {{ row.label }}
                   </span>
-                  <span class="font-medium">- S/. {{ creditToApply.toFixed(2) }}</span>
+                  <span class="font-medium">- S/. {{ row.applied.toFixed(2) }}</span>
                 </div>
                 <div
                   class="flex justify-between items-center text-sm font-bold pt-1 mt-1"
@@ -811,7 +847,7 @@ loadPayMethods()
                   <span class="text-gray-900">S/. {{ amountToPay.toFixed(2) }}</span>
                 </div>
                 <div v-if="creditBalance > creditToApply" class="text-xs text-gray-500 mt-1">
-                  Saldo total disponible: S/. {{ creditBalance.toFixed(2) }} (se aplica hasta cubrir la cuota)
+                  Saldo total disponible: S/. {{ creditBalance.toFixed(2) }} (lo que supere el monto de cada mes no se aplica)
                 </div>
               </div>
             </div>

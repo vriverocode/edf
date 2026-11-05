@@ -22,7 +22,7 @@ class Departament extends Model
 
     const TYPE_LAV = 4;
 
-    public $appends = ['inter_number', 'pending_amount_quota', 'type_label'];
+    public $appends = ['inter_number', 'pending_amount_quota', 'type_label', 'rent_type_label'];
 
     protected $fillable = [
         'number',
@@ -36,6 +36,7 @@ class Departament extends Model
         'floor',
         'user_id',
         'participation_percentage',
+        'rent_type',
     ];
 
     public function getInterNumberAttribute()
@@ -107,6 +108,18 @@ class Departament extends Model
         ];
 
         return $types[$this->type ?? 1];
+    }
+
+    public function getRentTypeLabelAttribute()
+    {
+        $types = [
+            '-',
+            'Propietario',
+            'Inquilino',
+            'Airbnb',
+        ];
+
+        return $types[$this->rent_type ?? 0];
     }
 
     protected function pendingAmountQuota(): Attribute

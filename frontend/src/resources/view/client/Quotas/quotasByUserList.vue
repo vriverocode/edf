@@ -19,7 +19,6 @@ const quotaStore = useQuotaStore();
 const payStore = usePayStore();
 const router = useRouter();
 const dialog = ref(false);
-const creditBalances = ref({});
 const creditItems = ref([]);
 const filters = ref({
   status: 4,
@@ -62,7 +61,6 @@ const fetchCreditBalances = async () => {
   try {
     const res = await payStore.getCreditBalanceForDepartments([...deptIds]);
     if (res?.code === 200 && res.data?.detail) {
-      creditBalances.value = res.data.detail;
       creditItems.value = res.data.items || [];
     }
   } catch {}
@@ -74,54 +72,32 @@ const quotaYear = (quota) => {
   return moment().year();
 };
 
-const isOpenPeriod = (month, year) => {
-  const now = moment();
-  const currentMonth = now.month() + 1;
-  const currentYear = now.year();
-  if (month === currentMonth && year === currentYear) return true;
-
-  const prev = now.clone().subtract(1, 'month');
-  if (month !== prev.month() + 1 || year !== prev.year()) return false;
-
-  // Mes anterior solo es "abierto" si aún no hay cuotas del mes actual en la lista
-  const hasCurrentInList = quotas.value.some(
-    (q) => Number(q.month) === currentMonth && quotaYear(q) === currentYear
-  );
-  return !hasCurrentInList;
-};
-
-const getCreditForQuota = (quota) => {
-  const month = Number(quota.month);
-  const year = quotaYear(quota);
-  const open = isOpenPeriod(month, year);
-
-  const deptId = quota.departament?.id;
-  const detailIds = quota.details
-    ? quota.details.map(d => d.departament?.id).filter(Boolean)
-    : (deptId ? [deptId] : []);
-
-  if (!creditItems.value.length) {
-    // fallback legacy
-    if (!open && month !== moment().month() + 1) return 0;
-    if (quota.details) {
-      return quota.details.reduce((sum, d) => sum + (creditBalances.value[d.departament?.id] || 0), 0);
-    }
-    return creditBalances.value[deptId] || 0;
-  }
-
+const creditForDeptPeriod = (deptId, month, year) => {
+  // El backend ya devuelve los saldos; aqui solo se atribuyen al mes de la
+  // cuota. Los legacy con mes 0 (Flexible) ya no aplican a ninguna cuota.
   return creditItems.value.reduce((sum, item) => {
-    if (!detailIds.includes(item.departament_id)) return sum;
+    if (item.departament_id !== deptId) return sum;
     if (item.balance <= 0) return sum;
     const m = Number(item.applicable_month || 0);
-    if (m === 0) {
-      return open ? sum + item.balance : sum;
-    }
+    if (m === 0) return sum;
     const y = item.applicable_year;
     if (m === month && (y == null || Number(y) === year)) {
       return sum + item.balance;
     }
     return sum;
   }, 0);
+}
+
+const getCreditForQuota = (quota) => {
+  const month = Number(quota.month);
+  const year = quotaYear(quota);
+
+  const deptId = quota.departament?.id;
+  const detailIds = quota.details
+    ? quota.details.map(d => d.departament?.id).filter(Boolean)
+    : (deptId ? [deptId] : []);
+
+  return detailIds.reduce((sum, id) => sum + creditForDeptPeriod(id, month, year), 0);
 }
 
 const quotaAmountAfterCredit = (quota) => {
@@ -173,6 +149,44 @@ const goTo = (quota) => {
 const goToDetail = (quota) => {
   const id = quota.details?.[0]?.id ?? null
   if (id) router.push({ name: 'viewQuota', params: { id } })
+}
+
+const downloadingId = ref(null)
+
+const quotaDetailIds = (quota) => {
+  const details = Array.isArray(quota.details) && quota.details.length ? quota.details : [quota]
+  return details.map(d => d.id).filter(Boolean)
+}
+
+const downloadQuotaPdf = async (quota) => {
+  const ids = quotaDetailIds(quota)
+  if (!ids.length) return
+  downloadingId.value = quota.id
+  try {
+    await quotaStore.downloadQuotaStatement(ids)
+  } catch (message) {
+    Notify.create({
+      color: 'negative',
+      icon: 'eva-alert-circle-outline',
+      message: typeof message === 'string' ? message : 'No se pudo descargar el estado de cuenta',
+      timeout: 3000
+    })
+  } finally {
+    downloadingId.value = null
+  }
+}
+
+// Id de la cuota que tiene lectura de agua vinculada (para el detalle de agua)
+const waterQuotaId = (quota) => {
+  const details = Array.isArray(quota.details) ? quota.details : []
+  const withReading = details.find(d => d.water_reading_id)
+  if (withReading) return withReading.id
+  return quota.water_reading_id ? (quota.details?.[0]?.id ?? quota.id) : null
+}
+
+const goToWaterReading = (quota) => {
+  const id = waterQuotaId(quota)
+  if (id) router.push(`/client/quota/water-detail/${id}`)
 }
 
 const showDialog = () => {
@@ -305,22 +319,45 @@ const selectedPendingQuotaIds = computed(() =>
   )
 )
 
-// El saldo a favor se aplica sobre el grupo más reciente seleccionado (mes más
-// nuevo), igual que resuelve el backend con Quota::resolveCreditPeriod.
-const multiCreditTarget = computed(() => {
-  if (!selectedGroups.value.length) return null
-  return selectedGroups.value.reduce(
-    (latest, q) => (periodKey(q) > periodKey(latest) ? q : latest)
-  )
+// El saldo a favor se aplica sobre cada mes seleccionado, con tope por
+// depto y periodo (mismo criterio que CreditService en el backend): un
+// crédito de junio descuenta la cuota de junio aunque se paguen más meses.
+const multiCreditAllocations = computed(() => {
+  const rows = []
+  selectedGroups.value.forEach(group => {
+    if (!isMonthlyQuota(group)) return
+    const key = periodKey(group)
+    const month = key % 100
+    const year = Math.floor(key / 100)
+    // Solo las cuotas realmente pendientes entran al pago y al tope.
+    const details = group.details
+      ? group.details.filter(d => Number(d.status) === 1)
+      : [group]
+    const byDept = {}
+    details.forEach(d => {
+      const deptId = d.departament?.id ?? group.departament?.id
+      if (!deptId) return
+      byDept[deptId] = (byDept[deptId] || 0) + (Number(d.amount) || 0)
+    })
+    let applied = 0
+    Object.entries(byDept).forEach(([deptId, amount]) => {
+      applied += Math.min(creditForDeptPeriod(Number(deptId), month, year), amount)
+    })
+    applied = Math.round(applied * 100) / 100
+    if (applied > 0) {
+      rows.push({ group, label: shortPeriodLabel(group), applied })
+    }
+  })
+  return rows
 })
 
 const multiCreditToApply = computed(() => {
-  const target = multiCreditTarget.value
-  if (!target) return 0
-  const credit = getCreditForQuota(target)
-  if (credit <= 0) return 0
-  return Math.min(credit, Number(target.amount) || 0)
+  return Math.round(multiCreditAllocations.value.reduce((s, r) => s + r.applied, 0) * 100) / 100
 })
+
+const multiCreditLabels = computed(() =>
+  multiCreditAllocations.value.map(r => r.label).join(', ')
+)
 
 const multiTotal = computed(() => {
   const sum = selectedGroups.value.reduce(
@@ -465,6 +502,17 @@ onMounted(() => {
                     </q-badge>
                   </div>
                 </div>
+                <!-- Lectura de agua vinculada a la cuota -->
+                <div v-if="waterQuotaId(quota)" class="mt-1">
+                  <q-btn dense flat no-caps icon="eva-droplet-outline" color="info" label="Ver lectura de agua"
+                    class="text-caption" @click.stop="goToWaterReading(quota)" />
+                </div>
+                <!-- Estado de cuenta en PDF (cualquier estado, combinado por mes) -->
+                <div class="mt-1">
+                  <q-btn dense flat no-caps icon="eva-download-outline" color="primary"
+                    label="Descargar estado de cuenta" class="text-caption"
+                    :loading="downloadingId === quota.id" @click.stop="downloadQuotaPdf(quota)" />
+                </div>
               </div>
             </div>
             <!-- Modo selección múltiple: marcar el mes para el pago consolidado -->
@@ -477,7 +525,7 @@ onMounted(() => {
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
                   <q-icon
-                    :name="isGroupSelected(quota) ? 'eva-checkmark-circle-2-fill' : 'eva-radio-button-off-outline'"
+                    :name="isGroupSelected(quota) ? 'eva-checkmark-square-2' : 'eva-square-outline'"
                     :color="canSelectGroup(quota) ? 'white' : 'grey-6'"
                     size="1.7rem"
                   />
@@ -552,7 +600,7 @@ onMounted(() => {
             </div>
             <div v-if="multiCreditToApply > 0" class="text-xs" style="opacity: 0.9;">
               Saldo a favor: -S/. {{ multiCreditToApply.toFixed(2) }}
-              <template v-if="multiCreditTarget">({{ shortPeriodLabel(multiCreditTarget) }})</template>
+              <template v-if="multiCreditLabels">({{ multiCreditLabels }})</template>
             </div>
           </div>
           <div class="flex items-center">

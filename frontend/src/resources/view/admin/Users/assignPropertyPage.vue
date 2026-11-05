@@ -20,9 +20,7 @@ const ready = ref(false);
 const modalRef = ref(null);
 const expanded = ref(false)
 
-const addNewUnit = (id) => {
-  console.error('Pick apartment:' + id)
-  // Abrir el modal correctamente usando la referencia
+const addNewUnit = () => {
   if (modalRef.value) {
     modalRef.value.openModal();
   }
@@ -245,11 +243,15 @@ watch(() => user.value?.units, calculateTotalParticipation, { immediate: true })
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Departamento no asignado 🤔</h3>
           <p class="text-gray-600 text-center mb-6 px-8">Todavia no tienes departamentos asignado, comunicate con el
             administrador o el personal de soporte</p>
+          <q-btn color="primary" class="full-width" style="border-radius: 0.5rem; max-width: 20rem;"
+            @click="addNewUnit()">
+            <div class="px-8 py-1">Asignar nueva unidad</div>
+          </q-btn>
         </div>
       </div>
     </div>
 
-    <AssignUnitModal ref="modalRef" :user-id="route.params.id" @success="loadData" />
+    <AssignUnitModal ref="modalRef" :user-id="route.params.id" :user-name="user?.name" @success="loadData" />
 
   </div>
 </template>

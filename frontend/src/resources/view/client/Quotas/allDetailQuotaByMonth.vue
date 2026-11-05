@@ -73,6 +73,50 @@ const chargesForQuota = (quota) => {
   }));
 };
 
+// Multas y sanciones vinculadas a esta cuota en este mes.
+const multasForQuota = (quota) => {
+  const multas = Array.isArray(quota.multas) ? quota.multas : [];
+  return multas.map((m) => {
+    const inst = Number(m.installments) || 1;
+    const monthly = Number(m.amount || 0) / inst;
+    return {
+      id: m.id,
+      description: m.description,
+      monthly: Number(monthly || 0),
+      installment: m.pivot?.installment_number ?? null,
+      installments: inst,
+      statusLabel: m.status_label,
+      ruleCode: m.rule?.code,
+    };
+  });
+};
+
+// Cargos extras (department_charges) del mes, a nivel de card de gastos: se
+// acumulan desde las cuotas visibles para listarlos con su unidad de origen.
+const monthCharges = computed(() => {
+  const list = [];
+  for (const quota of quotas.value) {
+    const charges = Array.isArray(quota.department_charges) ? quota.department_charges : [];
+    for (const c of charges) {
+      list.push({
+        key: `${quota.id}-${c.id}`,
+        id: c.id,
+        description: c.description,
+        monthly: Number(c.monthly_amount || 0),
+        installment: c.pivot?.installment_number ?? null,
+        installments: Number(c.installments || 0),
+        statusLabel: c.status_label,
+        unit: quota.departament?.number,
+      });
+    }
+  }
+  return list;
+});
+
+const totalExtraCharges = computed(() =>
+  monthCharges.value.reduce((sum, c) => sum + c.monthly, 0)
+);
+
 // Saldo a favor de la unidad: lo disponible todavia + lo ya aplicado a un pago.
 // El aplicado se lee de pays.credit_applied porque el saldo disponible vuelve a 0
 // al consumirse, y asi el descuento queda siempre visible en la cuota que lo uso.
@@ -103,6 +147,26 @@ const goToValidate = (quota) => {
 
 const goToEdit = (quota) => {
   router.push(`/admin/quota/edit/${quota.id}`);
+};
+
+const waterReadingId = (quota) => quota.water_reading_id || quota.water_reading?.id || null;
+
+const waterReadingHref = (quota) => {
+  const readingId = waterReadingId(quota);
+  if (!readingId) return '';
+  return isAdminRoute.value
+    ? router.resolve(`/admin/water_readings/view/${readingId}`).href
+    : router.resolve(`/client/quota/water-detail/${quota.id}`).href;
+};
+
+const openWaterReading = (quota) => {
+  const readingId = waterReadingId(quota);
+  if (!readingId) return;
+  if (isAdminRoute.value) {
+    router.push(`/admin/water_readings/view/${readingId}`);
+  } else {
+    router.push(`/client/quota/water-detail/${quota.id}`);
+  }
 };
 
 const openVoucher = (pay, event) => {
@@ -150,11 +214,21 @@ const fetchCreditBalances = async () => {
     quotas.value.map(q => q.departament?.id).filter(Boolean)
   )];
   if (!deptIds.length) return;
+  // Siempre se envía año: sin año el backend no filtra y devolvería créditos
+  // de meses/años distintos a los de esta página.
+  const firstQuota = quotas.value[0] || {};
+  const pageYear = route.query.year
+    ? Number(route.query.year)
+    : (firstQuota.year
+      ? Number(firstQuota.year)
+      : (firstQuota.due_date
+        ? Number(String(firstQuota.due_date).slice(0, 4))
+        : new Date().getFullYear()));
   try {
     const res = await payStore.getCreditBalanceForDepartments(
       deptIds,
       Number(route.params.month),
-      route.query.year ? Number(route.query.year) : null
+      pageYear
     );
     if (res?.code === 200 && res.data?.detail) {
       creditBalances.value = res.data.detail;
@@ -165,7 +239,20 @@ const fetchCreditBalances = async () => {
 
 const getQuotas = () => {
   loading.value = true;
-  quotaStore.getQuotaByMonth(route.params.month, { year: route.query.year, owner: route.query.owner })
+ 
+  const departamentIds = route.query.departament_ids
+    ? String(route.query.departament_ids).split(',').map(Number).filter(n => Number.isInteger(n) && n > 0)
+    : [];
+    
+  const departamentId = Number(route.query.departament_id);
+  if (!departamentIds.length && Number.isInteger(departamentId) && departamentId > 0) {
+    departamentIds.push(departamentId);
+  }
+  quotaStore.getQuotaByMonth(route.params.month, {
+    year: route.query.year,
+    owner: route.query.owner,
+    ...(departamentIds.length ? { departament_ids: departamentIds } : {}),
+  })
     .then((response) => {
       if (response.code !== 200) throw response;
       quotas.value = response.data;
@@ -277,46 +364,59 @@ const totalUnits = () => {
   return [...new Set(units)].join(' - ');
 };
 
-// Suma del agua de todas las cuotas del mes (proporcional al porcentaje de participación no aplica;
-// water_amount ya viene calculado por unidad para cada propietario)
+
 const totalWaterAmount = computed(() => {
   return quotas.value.reduce((sum, q) => sum + Number(q.water_amount || 0), 0);
 });
 
-// Saldo a favor total disponible para todas las unidades del mes
 const totalCreditBalance = computed(() => {
+  const deptIds = quotas.value.map(q => q.departament?.id).filter(Boolean);
   if (!creditItems.value.length) {
     // fallback: sumar por departament_id
     return quotas.value.reduce((sum, q) => {
       return sum + (creditBalances.value[q.departament?.id] || 0);
     }, 0);
   }
-  const month = Number(route.params.month);
-  const year = route.query.year ? Number(route.query.year) : null;
-  const deptIds = quotas.value.map(q => q.departament?.id).filter(Boolean);
   return creditItems.value.reduce((sum, item) => {
     if (!deptIds.includes(item.departament_id)) return sum;
-    if (item.balance <= 0) return sum;
-    const m = Number(item.applicable_month || 0);
-    if (m === 0) return sum; // sin mes fijado: no aplica automáticamente aquí
-    const y = item.applicable_year;
-    if (m === month && (y == null || Number(y) === year)) return sum + item.balance;
-    return sum;
+    if (Number(item.balance) <= 0) return sum;
+    return sum + Number(item.balance);
   }, 0);
 });
 
-// Mantenimiento proporcional (gastos del mes × % participación)
 const totalMaintenanceProporcional = computed(() => {
   return Number(totalExpenses.value) * (Number(totalParticipationPercent.value) / 100);
 });
 
-// Gran total: mantenimiento + agua - saldo a favor (mínimo 0)
 const grandTotal = computed(() => {
-  return Math.max(0, totalMaintenanceProporcional.value + totalWaterAmount.value - totalCreditBalance.value);
+  return Math.max(
+    0,
+    totalMaintenanceProporcional.value + totalWaterAmount.value + totalExtraCharges.value - totalCreditBalance.value
+  );
 });
+
+const isRentSpace = computed(() => {
+  if(quotas.value.length == 0) {
+    return false
+  }
+  let validator = false;
+  quotas.value.forEach((quota) => {
+    if(quota.departament.type == 4){
+      validator = true
+    }
+  })
+
+  return validator
+
+})
 
 const goToBill = (id) => {
   router.push('/admin/expenses/details/'+id)
+}
+
+const goToCharge = (id) => {
+  if (!isAdminRoute.value || !id) return
+  router.push(`/admin/department-charges/${id}/edit`)
 }
 onMounted(() => {
   getQuotas();
@@ -335,8 +435,8 @@ onMounted(() => {
           <h2 class="text-h6 text-weight-bold q-mb-md">{{ pageTitle }}</h2>
 
           <!-- Gastos y presupuesto del mes -->
-          <div
-            v-if="monthlyBill || monthExpenses.length"
+          <div 
+            v-if=" !isRentSpace && (monthlyBill || monthExpenses.length || monthCharges.length)"
             class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden md:mb-5 mb-4"
             style="position: relative; border: 1px solid lightgrey"
           >
@@ -442,6 +542,33 @@ onMounted(() => {
                 <span class="font-semibold text-gray-900">+ S/. {{ totalWaterAmount.toFixed(2) }}</span>
               </div>
 
+              <!-- Cargos extras del mes (department_charges) -->
+              <div v-if="monthCharges.length" class="border-t border-gray-100 pt-1">
+                <div v-for="charge in monthCharges" :key="charge.key"
+                  class="flex justify-between items-start gap-3 py-1 text-sm">
+                  <span class="flex items-start gap-1 text-orange-700 min-w-0">
+                    <q-icon name="eva-pricetags-outline" size="16px" class="mt-0.5" />
+                    <span class="min-w-0">
+                      <span v-if="charge.id" class="font-semibold cursor-pointer" style="text-decoration: underline;"
+                        @click="goToCharge(charge.id)">
+                        Unidad {{ charge.unit }} · {{ charge.description }}
+                      </span>
+                      <span v-else class="font-semibold">
+                        Unidad {{ charge.unit }} · {{ charge.description }}
+                      </span>
+                      <span v-if="charge.installments" class="text-xs text-gray-500 ml-1">
+                        ({{ charge.installment || '—' }}/{{ charge.installments }}<template v-if="charge.statusLabel"> · {{ charge.statusLabel }}</template>)
+                      </span>
+                    </span>
+                  </span>
+                  <span class="font-semibold text-orange-700 whitespace-nowrap">+ S/. {{ formatMoney(charge.monthly) }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1 text-sm font-semibold">
+                  <span class="text-gray-800">Cargos extras</span>
+                  <span class="text-orange-700">+ S/. {{ totalExtraCharges.toFixed(2) }}</span>
+                </div>
+              </div>
+
               <!-- Saldo a favor -->
               <div v-if="totalCreditBalance > 0" class="flex justify-between items-center py-1 text-sm border-t border-gray-100">
                 <span class="flex items-center gap-1 text-green-700">
@@ -459,6 +586,33 @@ onMounted(() => {
             </div>
             <div v-else class="px-4 pb-4 text-sm text-gray-500">
               No hay gastos registrados para este mes.
+            </div>
+
+            <!-- Cargos extras: también visibles cuando no hay gastos/presupuesto -->
+            <div v-if="!expensesByCategory.length && monthCharges.length" class="px-4 pb-4 md:px-5">
+              <div v-for="charge in monthCharges" :key="'nc-' + charge.key"
+                class="flex justify-between items-start gap-3 py-1 text-sm">
+                <span class="flex items-start gap-1 text-orange-700 min-w-0">
+                  <q-icon name="eva-pricetags-outline" size="16px" class="mt-0.5" />
+                  <span class="min-w-0">
+                    <span v-if="charge.id" class="font-semibold cursor-pointer" style="text-decoration: underline;"
+                      @click="goToCharge(charge.id)">
+                      Unidad {{ charge.unit }} · {{ charge.description }}
+                    </span>
+                    <span v-else class="font-semibold">
+                      Unidad {{ charge.unit }} · {{ charge.description }}
+                    </span>
+                    <span v-if="charge.installments" class="text-xs text-gray-500 ml-1">
+                      ({{ charge.installment || '—' }}/{{ charge.installments }}<template v-if="charge.statusLabel"> · {{ charge.statusLabel }}</template>)
+                    </span>
+                  </span>
+                </span>
+                <span class="font-semibold text-orange-700 whitespace-nowrap">+ S/. {{ formatMoney(charge.monthly) }}</span>
+              </div>
+              <div class="flex justify-between items-center py-1 text-sm font-semibold border-t border-gray-200 mt-1">
+                <span class="text-gray-800">Cargos extras</span>
+                <span class="text-orange-700">+ S/. {{ totalExtraCharges.toFixed(2) }}</span>
+              </div>
             </div>
           </div>
 
@@ -495,7 +649,14 @@ onMounted(() => {
                     <div class="flex items-center text-sm text-gray-700 col-6 col-md-3 mt-2 md:mt-0">
                       <q-icon name="eva-droplet-outline" size="20px" class="mr-1 text-gray-500" />
                       <span class="font-medium">
-                        <template v-if="quota.type = 1">Agua S/. {{ formatMoney(quota.water_amount) }}</template>
+                        <template v-if="quota.type = 1">
+                          <a v-if="waterReadingHref(quota)" :href="waterReadingHref(quota)"
+                            class="text-primary" style="text-decoration: underline;"
+                            @click.prevent.stop="openWaterReading(quota)">
+                            Agua S/. {{ formatMoney(quota.water_amount) }}
+                          </a>
+                          <template v-else>S/. {{ formatMoney(quota.water_amount) }}</template>
+                        </template>
                         <template v-else>Agua —</template>
                       </span>
                     </div>
@@ -510,7 +671,7 @@ onMounted(() => {
 
                     <!-- Saldo a favor: disponible + ya aplicado, siempre visible -->
                     <div v-if="creditForQuota(quota).total > 0"
-                      class="flex items-center text-sm text-gray-700 col-6 col-md-3 mt-2 md:mt-0">
+                      class="flex items-center text-sm text-gray-700 col-12 col-md-3 mt-2 md:mt-0">
                       <q-icon name="eva-checkmark-circle-2-outline" size="20px" class="mr-1 text-green-600" />
                       <span class="font-medium">
                         Saldo a favor:
@@ -547,6 +708,40 @@ onMounted(() => {
                           </td>
                           <td class="py-1 font-medium text-orange-700 text-right">
                             S/. {{ formatMoney(charge.monthly) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Multas y sanciones del mes -->
+                  <div v-if="multasForQuota(quota).length"
+                    class="mt-2 pt-2" style="border-top: 1px dashed #e5e7eb;">
+                    <div class="text-xs text-negative font-medium mb-1 flex items-center gap-1">
+                      <q-icon name="eva-alert-circle-outline" size="1rem" />
+                      Multas y Sanciones
+                    </div>
+                    <table class="w-full text-xs">
+                      <thead>
+                        <tr class="text-left text-gray-400">
+                          <th class="py-1 pr-2 font-medium">Motivo</th>
+                          <th class="py-1 pr-2 font-medium">Cuota</th>
+                          <th class="py-1 font-medium text-right">Monto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="multa in multasForQuota(quota)" :key="'multa-' + multa.id"
+                          class="border-b border-gray-100">
+                          <td class="py-1 pr-2 text-gray-800">
+                            <span v-if="multa.ruleCode" class="font-bold text-gray-600 mr-1">[{{ multa.ruleCode }}]</span>
+                            {{ multa.description }}
+                          </td>
+                          <td class="py-1 pr-2 text-gray-600">
+                            {{ multa.installment ? multa.installment : '—' }}/{{ multa.installments }}
+                            <span v-if="multa.statusLabel">({{ multa.statusLabel }})</span>
+                          </td>
+                          <td class="py-1 font-medium text-negative text-right">
+                            S/. {{ formatMoney(multa.monthly) }}
                           </td>
                         </tr>
                       </tbody>

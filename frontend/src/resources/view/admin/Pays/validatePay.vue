@@ -141,6 +141,8 @@ const approveForm = ref({
   financial_account_id: null,
   transaction_category_id: null,
   actual_amount: null,
+  credit_month: new Date().getMonth() + 1,
+  credit_year: new Date().getFullYear(),
 })
 const showOverpaymentInfo = computed(() => {
   const actual = Number(approveForm.value.actual_amount)
@@ -151,6 +153,25 @@ const overpaymentCredit = computed(() => {
   if (!showOverpaymentInfo.value) return 0
   return Number(approveForm.value.actual_amount) - Number(pay.value?.amount)
 })
+// Sobrepago ya registrado en el pago (reportado al crear el pago)
+const storedOverpaymentCredit = computed(() => {
+  const over = Number(pay.value?.overpayment_amount || 0)
+  const payAmount = Number(pay.value?.amount || 0)
+  return over > payAmount ? over - payAmount : 0
+})
+// Habrá crédito por sobrepago si el admin reporta diferencia o el pago ya trae una
+const willCreateCredit = computed(() => showOverpaymentInfo.value || storedOverpaymentCredit.value > 0)
+
+const CREDIT_MONTH_LABELS = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+]
+const creditMonthOptions = CREDIT_MONTH_LABELS.map((label, i) => ({ label, value: i + 1 }))
+const creditYearOptions = [
+  { label: String(new Date().getFullYear()), value: new Date().getFullYear() },
+  { label: String(new Date().getFullYear() + 1), value: new Date().getFullYear() + 1 },
+  { label: String(new Date().getFullYear() + 2), value: new Date().getFullYear() + 2 },
+]
 
 const creditApplied = computed(() => Number(pay.value?.credit_applied ?? 0))
 const totalCoveredByPay = computed(() => Number(pay.value?.amount ?? 0) + creditApplied.value)
@@ -285,6 +306,8 @@ const openApproveDialog = async () => {
     transaction_category_id: null,
     actual_amount: null,
     showActualAmount: false,
+    credit_month: new Date().getMonth() + 1,
+    credit_year: new Date().getFullYear(),
   }
   await loadApproveOptions()
   approveDialog.value = true
@@ -335,6 +358,10 @@ const submitApprove = () => {
     showNotify('warning', 'Selecciona cuenta y categoría contable.')
     return
   }
+  if (willCreateCredit.value && (!approveForm.value.credit_month || !approveForm.value.credit_year)) {
+    showNotify('warning', 'Selecciona el mes y año de aplicación del saldo a favor.')
+    return
+  }
   if (!pay.value?.id) return
   approveLoading.value = true
   const approveData = {
@@ -344,6 +371,10 @@ const submitApprove = () => {
   }
   if (approveForm.value.actual_amount !== null && approveForm.value.actual_amount !== '') {
     approveData.actual_amount = Number(approveForm.value.actual_amount)
+  }
+  if (willCreateCredit.value) {
+    approveData.credit_applicable_month = Number(approveForm.value.credit_month)
+    approveData.credit_applicable_year = Number(approveForm.value.credit_year)
   }
   payStore
     .validatePayment({
@@ -716,6 +747,24 @@ const submitUploadVoucher = async () => {
                 
                 
               </div>
+            </div>
+          </div>
+        </div>
+        <!-- Mes/año al que aplica el saldo por sobrepago -->
+        <div v-if="isQuotaPay && willCreateCredit" class="q-mt-sm">
+          <div class="text-caption text-grey-8 mb-1">
+            El saldo a favor se aplicará en:
+          </div>
+          <div class="row q-col-gutter-sm">
+            <div class="col-7">
+              <q-select dense outlined emit-value map-options color="primary"
+                v-model="approveForm.credit_month" :options="creditMonthOptions"
+                label="Mes de aplicación" />
+            </div>
+            <div class="col-5">
+              <q-select dense outlined emit-value map-options color="primary"
+                v-model="approveForm.credit_year" :options="creditYearOptions"
+                label="Año" />
             </div>
           </div>
         </div>

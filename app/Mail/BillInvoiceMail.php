@@ -7,6 +7,7 @@ namespace App\Mail;
 use App\Services\BillInvoiceService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
@@ -67,7 +68,7 @@ class BillInvoiceMail extends Mailable
         file_put_contents($tempPath, $pdf->output());
 
         return [
-            $this->attachFromPath($tempPath, $filename),
+            Attachment::fromPath($tempPath)->as($filename),
         ];
     }
 }

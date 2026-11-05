@@ -57,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Auth / User profile ──────────────────────────────────
     Route::get('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/config/balance-url', [ConfigController::class, 'getBalanceUrl']);
     Route::get('/user', function (Request $request) {
         $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'bankAccounts', 'availableComunAreas', 'units' => function ($query) {
             $query->withCount('pendingQuotas')->withSum('pendingQuotas', 'amount');
@@ -82,15 +83,19 @@ Route::middleware('auth:sanctum')->group(function () {
         // lo que realmente deben transferir.
         $creditService = app(CreditService::class);
 
+        // Solo descuenta el saldo aplicable a las cuotas pendientes del
+        // usuario (mismo mes/año de la cuota, con tope por departamento).
         $ownerCredit = round($creditService
-            ->getBalanceForDepartments($user->units->pluck('id')->all())['total'], 2);
+            ->getBalanceForPendingQuotas($user->units->pluck('id')->all()), 2);
         $user->total_peding_quotas_credit = $ownerCredit;
         $user->total_peding_quotas_final = round(
             max(0, (float) $user->total_peding_quotas - $ownerCredit), 2
         );
 
         $tenantCredit = round($creditService
-            ->getBalanceForDepartments($tenantDepartments->pluck('departament_id')->filter()->all())['total'], 2);
+            ->getBalanceForPendingQuotas(
+                $tenantDepartments->pluck('departament_id')->filter()->all()
+            ), 2);
         $user->tenant_pending_amount_credit = $tenantCredit;
         $user->tenant_pending_amount_final = round(
             max(0, (float) $user->tenant_pending_amount - $tenantCredit), 2
@@ -211,7 +216,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Transparencia: todas las reservas (todos los roles autenticados)
     Route::get('/bookings/all', [BookingController::class, 'getAllBookings']);
-    Route::get('/bookings/export', [BookingController::class, 'exportBookings']);
+    Route::get('/bookings/export/v2', [BookingController::class, 'exportBookings']);
 
     // Opciones de usuario (para selects, todos los roles autenticados)
     Route::get('/users/options', [UserController::class, 'getUsersOptions']);
@@ -238,6 +243,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [EventController::class, 'destroy'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/{id}', [EventController::class, 'update'])->middleware('role:admin,super-admin', 'throttle:write');
         Route::post('/send-reminder/{id}', [EventController::class, 'sendReminderEvent'])->middleware('role:admin,super-admin', 'throttle:write');
+        Route::post('/cancel/{id}', [EventController::class, 'cancel'])->middleware('role:admin,super-admin', 'throttle:write');
     });
 
     // ── Payments ─────────────────────────────────────────────
@@ -448,6 +454,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/test/send/{quotaId}', [BillInvoiceController::class, 'testSend']);
     });
     Route::get('/bill-invoices/client-download/{quotaId}', [BillInvoiceController::class, 'clientDownloadPdf'])->middleware('auth:sanctum', 'role_not:trabajador');
+    Route::get('/bill-invoices/client-statement', [BillInvoiceController::class, 'clientStatementPdf'])->middleware('auth:sanctum', 'role_not:trabajador');
 
     // ── Transaction Categories ───────────────────────────────
     Route::prefix('transaction-categories')->name('transactionCategories.')->middleware('role_not:trabajador')->group(function () {
@@ -505,6 +512,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/byId/{id}', [IncidentController::class, 'show']);
         Route::post('/', [IncidentController::class, 'store'])->middleware('throttle:write');
         Route::post('/u/{id}', [IncidentController::class, 'update'])->middleware('role:admin,super-admin,trabajador', 'throttle:write');
+        Route::post('/{id}/responses', [IncidentController::class, 'storeResponse'])->middleware('role:admin,super-admin,trabajador', 'throttle:write');
     });
 
     // ── Expenses ─────────────────────────────────────────────

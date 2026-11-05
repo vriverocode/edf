@@ -63,11 +63,30 @@ class QuotaController extends Controller
     }
 
     /**
+     * Lee el filtro departament_ids (acepta departament_ids[]=1 o departament_ids=1).
+     */
+    private function departamentIdsFrom(Request $request): array
+    {
+        $ids = $request->input('departament_ids', []);
+
+        if (! is_array($ids)) {
+            $ids = [$ids];
+        }
+
+        return array_values(array_filter(array_map('intval', $ids)));
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
         $query = Quota::baseAdminQuery();
+
+        $departamentIds = $this->departamentIdsFrom($request);
+        if ($departamentIds) {
+            $query->whereIn('departament_id', $departamentIds);
+        }
 
         if (! $this->isPrivileged($request->user())) {
             $this->scopeVisibleToUser($query, (int) $request->user()->id);
@@ -84,7 +103,13 @@ class QuotaController extends Controller
             return $denied;
         }
 
-        $quotas = Quota::baseAdminQuery()->get();
+        $departamentIds = $this->departamentIdsFrom($request);
+
+        $query = Quota::baseAdminQuery();
+        if ($departamentIds) {
+            $query->whereIn('departament_id', $departamentIds);
+        }
+        $quotas = $query->get();
 
         $summaries = $quotas
             ->groupBy(function ($quota) {
@@ -94,14 +119,14 @@ class QuotaController extends Controller
 
                 return (int) $quota->month.'_'.$year;
             })
-            ->map(function ($group) {
+            ->map(function ($group) use ($departamentIds) {
                 $first = $group->first();
                 $month = (int) $first->month;
                 $year = $first->due_date
                     ? (int) Carbon::parse($first->due_date)->year
                     : (int) now()->year;
                 $aggregates = Quota::aggregateMonthlySummary($group);
-                $pendingCount = Quota::countPendingQuotaPaymentsForMonth($month, $year);
+                $pendingCount = Quota::countPendingQuotaPaymentsForMonth($month, $year, $departamentIds);
 
                 return array_merge([
                     'month' => $month,
@@ -179,6 +204,7 @@ class QuotaController extends Controller
             'responsiblePivot.user',
             'waterReading',
             'departmentCharges.expense',
+            'multas.rule',
         ])->orderBy('created_at', 'desc');
 
         if ($request->filled('departament_ids')) {
@@ -588,6 +614,7 @@ class QuotaController extends Controller
             'responsiblePivot.user',
             'waterReading',
             'departmentCharges.expense',
+            'multas.rule',
         ]);
 
         $month = $quota->month;

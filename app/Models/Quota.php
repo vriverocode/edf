@@ -60,6 +60,11 @@ class Quota extends Model
         return $this->belongsToMany(DepartmentCharge::class, 'charge_quota')->withPivot('installment_number');
     }
 
+    public function multas(): BelongsToMany
+    {
+        return $this->belongsToMany(Multa::class, 'multa_quota')->withPivot('installment_number');
+    }
+
     public function waterReading(): BelongsTo
     {
         return $this->belongsTo(WaterReading::class, 'water_reading_id', 'id');
@@ -177,16 +182,7 @@ class Quota extends Model
             return null;
         }
 
-        $years = $quotas->map(function ($q) {
-            if ($q->year !== null && $q->year !== '') {
-                return (int) $q->year;
-            }
-            if ($q->due_date) {
-                return (int) Carbon::parse($q->due_date)->year;
-            }
-
-            return (int) Carbon::now()->year;
-        })->unique()->values();
+        $years = $quotas->map(fn (Quota $q) => $q->resolvedYear())->unique()->values();
 
         if ($years->count() !== 1) {
             return null;
@@ -196,45 +192,46 @@ class Quota extends Model
     }
 
     /**
-     * Periodo sobre el que se aplica el saldo a favor en un pago consolidado.
-     *
-     * Si todas las cuotas son del mismo mes/año se usa ese periodo (caso
-     * original). Con cuotas de varios meses se usa el periodo mas reciente del
-     * set, de modo que el credito se descuente del mes mas nuevo seleccionado
-     * (p. ej. octubre) sin importar cuantos meses anteriores se esten pagando.
-     *
-     * Devuelve null solo cuando no hay ninguna cuota mensual en el set, para
-     * que el llamador mantenga el rechazo actual.
+     * Año de la cuota: columna year, o year de due_date, o el actual.
      */
-    public static function resolveCreditPeriod(Collection $quotas): ?array
+    public function resolvedYear(): int
     {
-        $single = static::resolvePeriod($quotas);
-        if ($single) {
-            return $single;
+        if ($this->year !== null && $this->year !== '') {
+            return (int) $this->year;
+        }
+        if ($this->due_date) {
+            return (int) Carbon::parse($this->due_date)->year;
         }
 
-        $monthly = $quotas->filter(fn (Quota $quota) => $quota->isMonthly());
-        if ($monthly->isEmpty()) {
-            return null;
-        }
+        return (int) Carbon::now()->year;
+    }
 
-        $latest = $monthly->sortByDesc(function (Quota $quota) {
-            $year = $quota->year !== null && $quota->year !== ''
-                ? (int) $quota->year
-                : ($quota->due_date ? (int) Carbon::parse($quota->due_date)->year : (int) Carbon::now()->year);
+    /**
+     * Periodos distintos (mes/año) de las cuotas mensuales del set, en orden
+     * ascendente.
+     *
+     * Multi-mes: cada saldo a favor solo descuenta cuotas de su propio
+     * periodo (misma regla que CreditService::getBalanceForPendingQuotas),
+     * así que el pago puede tocar créditos de junio, julio y octubre a la vez.
+     */
+    public static function resolveCreditPeriods(Collection $quotas): array
+    {
+        $periods = $quotas
+            ->filter(fn (Quota $quota) => $quota->isMonthly())
+            ->map(fn (Quota $quota) => [
+                'month' => (int) $quota->month,
+                'year' => $quota->resolvedYear(),
+            ])
+            ->unique(fn (array $period) => $period['year'] * 100 + $period['month'])
+            ->values()
+            ->all();
 
-            return $year * 100 + (int) $quota->month;
-        })->first();
+        usort(
+            $periods,
+            fn (array $a, array $b) => ($a['year'] * 100 + $a['month']) <=> ($b['year'] * 100 + $b['month'])
+        );
 
-        if (! $latest) {
-            return null;
-        }
-
-        $year = $latest->year !== null && $latest->year !== ''
-            ? (int) $latest->year
-            : ($latest->due_date ? (int) Carbon::parse($latest->due_date)->year : (int) Carbon::now()->year);
-
-        return ['month' => (int) $latest->month, 'year' => $year];
+        return $periods;
     }
 
     /**
@@ -325,13 +322,16 @@ class Quota extends Model
         ];
     }
 
-    public static function countPendingQuotaPaymentsForMonth(int $month, int $year): int
+    public static function countPendingQuotaPaymentsForMonth(int $month, int $year, array $departamentIds = []): int
     {
         return Pay::query()
             ->where('type', 1)
             ->where('status', 1)
-            ->whereHas('quotas', function (Builder $query) use ($month, $year) {
+            ->whereHas('quotas', function (Builder $query) use ($month, $year, $departamentIds) {
                 $query->forMonthYear($month, $year);
+                if ($departamentIds) {
+                    $query->whereIn('departament_id', $departamentIds);
+                }
             })
             ->count();
     }

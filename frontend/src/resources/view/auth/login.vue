@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useAuthStore } from '@/services/store/auth.services';
 import { useRouter } from 'vue-router'
 import { Notify } from 'quasar'
@@ -7,20 +7,57 @@ import tutorial from '@/components/login/tutorial.vue';
 import bg from '@/assets/img/backgrounds/bg.webp'
 import logoWite from '@/assets/img/logo/logo-white.webp';
 import { Capacitor } from '@capacitor/core';
+import {
+  deleteStoredBiometricToken,
+  disableBiometric,
+  enableBiometric,
+  getBiometricEmail,
+  getBiometricUsername,
+  getStoredBiometricToken,
+  hasBiometricEnabled,
+  hasBiometricPreference,
+  isBiometricAvailable,
+  isBiometricCancel,
+  promptBiometric,
+  saveStoredBiometricToken,
+  setBiometricPreference,
+  setBiometricUsername
+} from '@/composables/useBiometric';
+
 const isMobile = Capacitor.isNativePlatform()
 const authServices = useAuthStore()
 const tutorialView = ref('true')
+const usernameInput = ref(null)
 
 const login = reactive({
-  username: '',
+  username: getBiometricUsername(),
   password: ''
 })
-const initBiometric = ref(localStorage.getItem('initBiometric') == 'true' ? true : false)
+const useBiometricLogin = ref(hasBiometricPreference())
 const isPwd = ref('true')
 const loading = ref(false)
+const biometricLoading = ref(false)
+const biometricCancelled = ref(false)
+const biometricFailed = ref(false)
 const router = useRouter();
 const error = ref(false)
 const errorMessage = ref('')
+
+watch(useBiometricLogin, (enabled) => {
+  setBiometricPreference(enabled)
+
+  if (enabled) {
+    setBiometricUsername(login.username)
+  } else {
+    setBiometricUsername('')
+  }
+})
+
+watch(() => login.username, (username) => {
+  if (useBiometricLogin.value) {
+    setBiometricUsername(username)
+  }
+})
 const rules = (id) => {
   if (id == 'user') return [
     val => val && val.length > 0 || 'Usuario no puede quedar vacio',
@@ -39,30 +76,161 @@ const showNotify = (type, text) => {
     timeout: 2000
   })
 }
-const authLogin = () => {
+const activateBiometric = async ({ email, username }) => {
+  biometricLoading.value = true
+  biometricCancelled.value = false
+  biometricFailed.value = false
+
+  try {
+    const available = await isBiometricAvailable()
+
+    if (!available) {
+      throw new Error('No hay una huella registrada en el dispositivo')
+    }
+
+    await promptBiometric()
+    await saveStoredBiometricToken({ email, token: authServices.token })
+    enableBiometric(email, username)
+  } finally {
+    biometricLoading.value = false
+  }
+}
+const authLogin = async () => {
+  if (loading.value || biometricLoading.value) return
+
   loading.value = true
+  let completed = false
+  let notification = { type: 'positive', text: 'Inicio de sesión correcto' }
 
-  authServices.login(login)
-    .then((response) => {
-      errorMessage.value = response
+  try {
+    const wantsBiometric = useBiometricLogin.value
+    const persistToken = !wantsBiometric
+    const response = await authServices.login(login, { persistToken })
+    const status = response?.status ?? response?.code
 
-      if (response.status !== 200) {
-        throw response
+    if (status !== 200) {
+      throw response
+    }
+
+    if (wantsBiometric) {
+      try {
+        const email = response?.data?.email || authServices.user?.email || login.username
+        const username = response?.data?.username || login.username
+
+        await activateBiometric({ email, username })
+        login.username = username
+      } catch (biometricError) {
+        console.error('No se pudo activar la autenticación biométrica:', biometricError)
+        await deleteStoredBiometricToken()
+        disableBiometric()
+        useBiometricLogin.value = false
+        authServices.saveToken(authServices.token, { persist: true })
+
+        notification = {
+          type: 'warning',
+          text: isBiometricCancel(biometricError)
+            ? 'Sesión iniciada. No se activó la huella.'
+            : 'Sesión iniciada, pero no se pudo activar la huella. Verifica que tengas una huella registrada en Android.'
+        }
       }
-      showNotify('positive', 'Inicio de sesión correcto')
-      setTimeout(() => {
-        loading.value = false
-        router.push('/dashboard')
-      }, 2000)
-    })
-    .catch((response) => {
-      showNotify('negative', response.status == 505 ? response.data.error : 'Error de conexión')
+    } else {
+      await deleteStoredBiometricToken()
+      disableBiometric()
+    }
+
+    completed = true
+    showNotify(notification.type, notification.text)
+    setTimeout(() => {
+      loading.value = false
+      router.push('/dashboard')
+    }, 1000)
+  } catch (response) {
+    const status = response?.status ?? response?.code
+    const message = response?.data?.error || response?.error
+
+    showNotify('negative', status == 505 ? message : 'Error de conexión')
+  } finally {
+    if (!completed) {
       loading.value = false;
-    })
+    }
+  }
+}
+const tryBiometricLogin = async ({ silent = false } = {}) => {
+  if (biometricLoading.value) return false
+
+  const email = getBiometricEmail()
+
+  if (!isMobile || !hasBiometricEnabled() || !email) {
+    biometricFailed.value = true
+    return false
+  }
+
+  biometricLoading.value = true
+  biometricCancelled.value = false
+  biometricFailed.value = false
+
+  try {
+    const available = await isBiometricAvailable()
+
+    if (!available) {
+      throw new Error('La autenticación biométrica no está disponible')
+    }
+
+    await promptBiometric()
+
+    const credentials = await getStoredBiometricToken()
+
+    if (credentials.email !== email) {
+      await deleteStoredBiometricToken()
+      disableBiometric()
+      useBiometricLogin.value = false
+      throw new Error('Las credenciales biométricas no coinciden con la cuenta guardada')
+    }
+
+    await authServices.setSession(credentials.token)
+
+    showNotify('positive', 'Inicio de sesión correcto')
+    router.push('/dashboard')
+    return true
+  } catch (biometricError) {
+    const cancelled = isBiometricCancel(biometricError)
+    biometricCancelled.value = cancelled
+    biometricFailed.value = true
+    useBiometricLogin.value = hasBiometricPreference()
+
+    if (!silent && !cancelled) {
+      showNotify('negative', 'No se pudo autenticar con huella')
+    }
+
+    return false
+  } finally {
+    biometricLoading.value = false
+  }
+}
+const continueManually = async () => {
+  try {
+    biometricCancelled.value = false
+    biometricFailed.value = false
+    biometricLoading.value = false
+
+    await nextTick()
+    usernameInput.value?.focus?.()
+  } catch (manualError) {
+    console.error('No se pudo volver al formulario manual:', manualError)
+    biometricFailed.value = false
+  }
 }
 const endTutorial = () => {
   tutorialView.value = 'true'
 }
+
+onMounted(async () => {
+  if (!isMobile || !hasBiometricEnabled()) return
+
+  await nextTick()
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  await tryBiometricLogin({ silent: true })
+})
 </script>
 <template>
   <div class="h-full bg-white login-root">
@@ -82,7 +250,7 @@ const endTutorial = () => {
                       INGRESO
                     </div>
                     <div class="w-full mt-6 md:mt-8 ">
-                      <q-input class="auth_input" color="white" autocapitalize="none" v-model="login.username" :rules="rules('user')" rounded
+                      <q-input ref="usernameInput" class="auth_input" color="white" autocapitalize="none" v-model="login.username" :rules="rules('user')" rounded
                         standout>
                         <template v-slot:prepend>
                           <div class="pl-2" style="font-size:1rem; font-weight:500">Usuario</div>
@@ -104,11 +272,23 @@ const endTutorial = () => {
                           class="biometricCheck"
                           color="primary"
                           size="2.8rem"
-                          v-model="initBiometric"
+                          :disable="loading || biometricLoading"
+                          v-model="useBiometricLogin"
                         />
                         <div class="pl-0 pt-1 text-subtitle1 text-white font-bold">
-                          Autenticación biométrica
+                          Usar huella para futuros accesos
                         </div>
+                      </div>
+                      <div v-if="isMobile && biometricLoading" class="flex items-center gap-2 pb-3 text-white">
+                        <q-spinner color="white" size="1.5rem" />
+                        <span class="text-subtitle2">Autenticando con huella...</span>
+                      </div>
+                      <div v-if="isMobile && biometricFailed && !biometricLoading" class="pb-2 text-white">
+                        <div class="text-subtitle2">
+                          {{ biometricCancelled ? 'Cancelaste la autenticación biométrica.' : 'No se pudo autenticar con huella.' }}
+                        </div>
+                        <q-btn type="button" flat no-caps color="white" label="Usar contraseña"
+                          @click="continueManually" />
                       </div>
                       <p class="px-1 mt-2 cursor-pointer md:mt-2 text-white text-subtitle1" @click="router.push('/forgot-password')">¿Olvidaste tu contraseña?</p>
                     </div>

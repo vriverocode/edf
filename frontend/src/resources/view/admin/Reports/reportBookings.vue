@@ -98,13 +98,6 @@ const activeFilterCount = computed(() => {
   return count
 })
 
-function userTypeLabel(rolId) {
-  if (rolId == 2) return 'Propietario'
-  if (rolId == 3) return 'Inquilino'
-  if (rolId == 5) return 'Airbnb'
-  return '—'
-}
-
 function payStatusLabel(pay) {
   if (!pay) return 'Sin pago'
   const map = { 0: 'Anulado', 1: 'Pendiente', 2: 'Aprobado', 3: 'Exitoso' }
@@ -437,7 +430,7 @@ onMounted(() => {
               {{ row.user?.name || '—' }}
             </div>
             <div class="repbok-cell" data-title="Tipo">
-              {{ row.user?.rol_id ? userTypeLabel(row.user.rol_id) : '—' }}
+              {{ row.departament?.rent_type_label || '—' }}
             </div>
             <div class="repbok-cell" data-title="Cod Pago">
               {{ row.booking_number || '—' }}

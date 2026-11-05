@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Notify } from 'quasar'
 import { useQuotaStore } from '@/services/store/quota.store'
 import { useAuthStore } from '@/services/store/auth.services'
 import { storeToRefs } from 'pinia'
@@ -378,21 +379,15 @@ const fetchQuotaBreakdownDetails = async (id) => {
 const downloadReceipt = async () => {
   const currentQuotaId = quotaData.value?.id
   if (!currentQuotaId) return
-  const token = localStorage.getItem('access_token')
   try {
-    const res = await fetch('/api/bill-invoices/client-download/' + currentQuotaId, {
-      headers: { Authorization: 'Bearer ' + token }
+    await quotaStore.downloadQuotaReceipt(currentQuotaId)
+  } catch (message) {
+    Notify.create({
+      color: 'negative',
+      icon: 'eva-alert-circle-outline',
+      message: typeof message === 'string' ? message : 'No se pudo descargar el recibo',
+      timeout: 3000
     })
-    if (!res.ok) return
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'recibo-cuota-' + currentQuotaId + '.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
-  } catch (e) {
-    console.error('Error al descargar recibo:', e)
   }
 }
 

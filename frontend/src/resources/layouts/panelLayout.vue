@@ -10,7 +10,6 @@ import { onMounted, ref, watch, inject, computed } from 'vue'
 import budgetReminderBanner from '@/components/layout/budgetReminderBanner.vue'
 import logoutModal from '@/components/layout/logoutModal.vue'
 import firstTimeSetupModal from '@/components/layout/firstTimeSetupModal.vue'
-import storage from '@/services/storage'
 import { useNotificationsStore } from '@/services/store/notifications.store'
 import { useQuasar } from 'quasar'
 import { PushNotificationsService } from '@/services/notifications_push/pushNotifications'
@@ -21,7 +20,8 @@ const isNative = ref(Capacitor.isNativePlatform())
 const router = useRouter()
 const route = useRoute()
 const ready = ref(false)
-const { user } = storeToRefs(useAuthStore())
+const authStore = useAuthStore()
+const { user } = storeToRefs(authStore)
 const showModal = ref('')
 const emitter = inject('emitter', null)
 const notificationsStore = useNotificationsStore()
@@ -87,7 +87,7 @@ onMounted(() => {
       reserveAreaActive.value = e.visible
     })
   }
-  useAuthStore()
+  authStore
     .currentUser()
     .then((response) => {
       if (user.value.rol_id) {
@@ -100,7 +100,7 @@ onMounted(() => {
     })
     .catch(() => {
       console.error('ups')
-      storage.deleteItem('access_token')
+      authStore.logoutAction()
       router.push('/login')
     })
 })
@@ -155,7 +155,7 @@ watch(
       return
     }
 
-    useAuthStore()
+    authStore
       .currentUser()
       .then((response) => {
         if (user.value.rol_id) {
@@ -168,7 +168,7 @@ watch(
       })
       .catch(() => {
         console.error('ups')
-        storage.deleteItem('access_token')
+        authStore.logoutAction()
         router.push('/login')
       })
 

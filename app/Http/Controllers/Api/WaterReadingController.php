@@ -37,7 +37,9 @@ class WaterReadingController extends Controller
             ->where('water_readings.month', $month)
             ->where('water_readings.year', $year)
             ->orderBy('water_readings.is_common', 'asc')
-            ->orderByRaw('CAST(SUBSTRING(departaments.number, 5) AS UNSIGNED)')
+            ->orderBy('departaments.type', 'asc')
+            ->orderByRaw("CAST(SUBSTRING_INDEX(departaments.number, '-', -1) AS UNSIGNED) ASC")
+            ->orderBy('departaments.number')
             ->select('water_readings.*');
 
         if (isset($validated['is_common'])) {
@@ -208,12 +210,15 @@ class WaterReadingController extends Controller
         $year = (int) $validated['year'];
 
         $departments = Departament::with('owner')
-            ->where('id', '>', 7)
+            // ->where('id', '>', 7)
             ->whereIn('type', [Departament::TYPE_LAV, Departament::TYPE_DEPARTAMENTO])
             ->whereDoesntHave('waterReadings', function ($query) use ($month, $year) {
                 $query->where('month', $month)
                     ->where('year', $year);
             })
+            ->orderBy('type')
+            ->orderByRaw("CAST(SUBSTRING_INDEX(number, '-', -1) AS UNSIGNED) ASC")
+            ->orderBy('number')
             ->get();
 
         return $this->returnSuccess(200, $departments);

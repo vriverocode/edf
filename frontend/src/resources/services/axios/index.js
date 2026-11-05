@@ -8,13 +8,23 @@ axios.defaults.withCredentials = true
 // axios.defaults.withXSRFToken = true
 axios.defaults.baseURL = import.meta.env.VITE_LARAVEL_API_URL
 
+let memoryToken = null
+
 const ApiService = {
 
   /**
    * Set the default HTTP request headers
    */
   getToken() {
-    return storage.getItem('access_token')
+    return memoryToken || storage.getItem('access_token')
+  },
+
+  setToken(token) {
+    memoryToken = token || null
+  },
+
+  clearToken() {
+    memoryToken = null
   },
 
   setHeader() {

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Notify } from 'quasar'
 import notificationSound from '@/assets/audio/audio_1.mp3'
@@ -17,6 +17,47 @@ const error = ref(null)
 const iconByStatus = [
 
 ]
+
+// ── Periodos del pago de cuotas (multi-mes consolidado) ─────────────────────
+const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+const monthShortName = (m) => MONTHS_SHORT[Number(m) - 1] || ''
+const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
+
+const isQuotaPay = computed(() => Number(pay.value?.type) === 1)
+
+// consolidated_quotas lo trae GET /api/pays/byId; fallback a quotas.
+const quotaPeriods = computed(() => {
+  const list = pay.value?.consolidated_quotas?.length
+    ? pay.value.consolidated_quotas
+    : (pay.value?.quotas?.length ? pay.value.quotas : [])
+  const seen = new Map()
+  list.forEach((q) => {
+    if (!q || q.month == null || q.month === '') return
+    const month = Number(q.month)
+    let year = new Date().getFullYear()
+    if (q.year != null && q.year !== '') year = Number(q.year)
+    else if (q.due_date) year = new Date(q.due_date).getFullYear()
+    const key = year * 100 + month
+    if (!seen.has(key)) seen.set(key, { month, year, label: q.month_label || '', key })
+  })
+  return [...seen.values()].sort((a, b) => a.key - b.key)
+})
+
+const isMultiQuotaPeriod = computed(() => quotaPeriods.value.length > 1)
+
+const quotaPeriodLabel = computed(() => {
+  const list = quotaPeriods.value
+  if (!list.length) return '---'
+  const fmt = (p) => `${p.label || capitalize(monthShortName(p.month))} ${p.year}`.trim()
+  if (list.length === 1) return fmt(list[0])
+  return list.slice(0, -1).map(fmt).join(', ') + ' y ' + fmt(list[list.length - 1])
+})
+
+// Saldo a favor: el backend lo aplica sobre el periodo mas reciente del set.
+const creditTargetPeriod = computed(() => {
+  const list = quotaPeriods.value
+  return list.length ? list[list.length - 1] : null
+})
 // Función para obtener pay por ID
 const getPayById = async (id) => {
   try {
@@ -38,7 +79,9 @@ const getPayById = async (id) => {
 // Función para descargar recibo
 const downloadReceipt = async () => {
   const payId = pay.value?.id
-  if (!payId) return
+  // El recibo de cuota por pay es un PDF de reserva (booking-receipt) y no
+  // aplica: para cuotas el recibo vive en viewQuota y solo tras la aprobacion.
+  if (!payId || Number(pay.value?.type) === 1) return
   const token = localStorage.getItem('access_token')
   const baseUrl = (import.meta.env.VITE_LARAVEL_API_URL || '').replace(/\/+$/, '')
   try {
@@ -175,6 +218,15 @@ const reloadBooking = () => {
               <span class="text-gray-900 font-semibold">S/. {{ Number(pay.amount).toFixed(2) }}</span>
             </div>
 
+            <!-- Saldo a favor aplicado (pago de cuotas con crédito) -->
+            <div v-if="isQuotaPay && Number(pay.credit_applied) > 0" class="flex justify-between items-center pb-2"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">
+                Saldo a favor aplicado<template v-if="creditTargetPeriod"> ({{ capitalize(monthShortName(creditTargetPeriod.month)) }} {{ creditTargetPeriod.year }})</template>
+              </span>
+              <span class="text-gray-900 font-semibold">- S/. {{ Number(pay.credit_applied).toFixed(2) }}</span>
+            </div>
+
             <!-- Fecha de pago -->
             <div class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
@@ -204,18 +256,19 @@ const reloadBooking = () => {
               <span class="text-gray-600 font-medium">Reserva</span>
               <span class="text-gray-900 font-semibold">#{{ pay.booking?.booking_number || 'Área Común' }}</span>
             </div>
-            <div class="flex justify-between items-center pb-2" v-if="pay.quota"
+            <!-- Periodo(s) de cuota(s) del pago (multi-mes consolidado) -->
+            <div class="flex justify-between items-center pb-2" v-if="isQuotaPay"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
-              <span class="text-gray-600 font-medium">Cuota del mes</span>
-              <span class="text-gray-900 font-semibold">{{ pay.quota?.month_label || '---' }}</span>
+              <span class="text-gray-600 font-medium">{{ isMultiQuotaPeriod ? 'Cuotas' : 'Cuota del mes' }}</span>
+              <span class="text-gray-900 font-semibold">{{ quotaPeriodLabel }}</span>
             </div>
           </div>
         </div>
 
         <!-- Botones de acción -->
         <div class="w-full max-w-sm space-y-0">
-          <!-- Botón de descargar recibo -->
-          <button @click="downloadReceipt"
+          <!-- Botón de descargar recibo (solo reservas; el de cuota vive en viewQuota tras aprobar) -->
+          <button v-if="!isQuotaPay" @click="downloadReceipt"
             class="w-full py-4 border border-gray-300 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -224,6 +277,10 @@ const reloadBooking = () => {
             </svg>
             <span>Descargar Recibo</span>
           </button>
+          <div v-else
+            class="w-full py-4 border border-gray-200 rounded-xl text-gray-500 text-sm text-center bg-white">
+            El recibo de la cuota podrá descargarse cuando el pago sea aprobado
+          </div>
 
           <!-- Enlace de volver al inicio -->
           <div class="text-center pt-5">

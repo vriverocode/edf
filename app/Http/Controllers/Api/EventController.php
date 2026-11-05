@@ -138,6 +138,24 @@ class EventController extends Controller
         return $this->returnSuccess(200, 'ok');
     }
 
+    public function cancel($id)
+    {
+        $event = Event::find($id);
+        if (! $event) {
+            return $this->returnFail(404, 'Evento no encontrado');
+        }
+
+        if ((int) $event->status === Event::STATUS_COMPLETED) {
+            return $this->returnFail(422, 'No se puede cancelar un evento ya completado');
+        }
+
+        if ((int) $event->status !== Event::STATUS_CANCELLED) {
+            $event->update(['status' => Event::STATUS_CANCELLED]);
+        }
+
+        return $this->returnSuccess(200, 'ok');
+    }
+
     public function setAssist(Request $request, $id)
     {
         $event = Event::with(['booking.comunArea'])->find($id);

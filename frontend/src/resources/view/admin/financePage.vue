@@ -1,9 +1,11 @@
 <script setup>
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/services/store/auth.services';
+import { useConfigStore } from '@/services/store/config.store';
 import iconsApp from '@/assets/icons/index'
 import { useRouter } from 'vue-router';
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
+import { Notify } from 'quasar';
 
 import budget from '@/assets/img/menu/presupuesto.png'
 import baccount from '@/assets/img/menu/balance-cuentas.png'
@@ -14,12 +16,14 @@ import pays from '@/assets/img/menu/pagos.svg'
 import worker from '@/assets/img/menu/worker.png'
 import cuotasEspeciales from '@/assets/img/menu/cuotas-especiales.png'
 const { user } = storeToRefs(useAuthStore())
+const configStore = useConfigStore()
+const { balanceUrl } = storeToRefs(configStore)
 const router = useRouter()
-const menu = [
+const menu = computed(() => [
   {
     title: 'Balance',
     icon: baccount,
-    link: 'https://edificiopacifik.com/descarga/balance-ago.pdf',
+    link: balanceUrl.value ? balanceUrl.value : 'https://edificiopacifik.com/descarga/balance-sep.pdf',
   },
   {
     title: 'Cuentas',
@@ -52,6 +56,12 @@ const menu = [
     roles: [1]
   },
   {
+    title: 'Multas',
+    icon: cuotasEspeciales,
+    link: '/admin/multas',
+    roles: [1]
+  },
+  {
     title: 'Proveedores',
     icon: worker,
     link: '/admin/providers/list',
@@ -63,18 +73,36 @@ const menu = [
     link: '/admin/pays/menu',
     roles: [1]
   },
-];
+]);
 const menuByRol = computed(() => {
   const rol = user.value?.rol_id
-  return menu.filter(item => !item.roles || item.roles.includes(rol))
+  return menu.value.filter(item => !item.roles || item.roles.includes(rol))
 })
 const goTo = (url) => {
-  if (url?.startsWith('http://') || url?.startsWith('https://')) {
+  console.log(balanceUrl.value)
+  console.log('url', url)
+  if (!url) {
+    Notify.create({
+      color: 'negative',
+      message: 'El balance no está disponible',
+      timeout: 2000
+    })
+    return
+  }
+
+  if (url.startsWith('http://') || url.startsWith('https://')) {
     window.open(url, '_blank')
   } else {
     router.push(url)
   }
 }
+onMounted(async () => {
+  try {
+    await configStore.fetchBalanceUrl()
+  } catch (error) {
+    console.error('No se pudo cargar la URL del balance:', error)
+  }
+})
 </script>
 <template>
   <div class="h-full w-full px-2">

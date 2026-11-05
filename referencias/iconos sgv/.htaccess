@@ -1,0 +1,49 @@
+# ----------------------------------------------------------------------
+# 1. ENRUTAMIENTO PARA SPA (Vue 3 / Vue Router)
+# ----------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Redirigir siempre a index.html si no es un archivo o directorio existente
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+ErrorDocument 404 /index.html
+
+# ----------------------------------------------------------------------
+# 2. CABECERAS DE SEGURIDAD ANTI-HACKER (OWASP)
+# ----------------------------------------------------------------------
+<IfModule mod_headers.c>
+  # Previene que la aplicación sea embebida en un iframe (Anti-Clickjacking)
+  Header always set X-Frame-Options "SAMEORIGIN"
+
+  # Evita que el navegador intente "adivinar" el tipo de contenido (Anti MIME-Sniffing)
+  Header always set X-Content-Type-Options "nosniff"
+
+  # Controla la información devuelta en las peticiones salientes
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Restringe accesos a APIs del hardware/navegador no autorizadas
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+  # Fuerza la navegación bajo conexiones cifradas (HSTS)
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+  # Política básica de seguridad de contenido (CSP) para SPA
+  Header always set Content-Security-Policy "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval';"
+</IfModule>
+
+# ----------------------------------------------------------------------
+# 3. PROTECCIÓN DE ARCHIVOS SENSIBLES Y DIRECTORIOS
+# ----------------------------------------------------------------------
+# Ocultar listado de archivos en directorios
+Options -Indexes
+
+# Bloquear acceso a archivos ocultos (como .env, .git, .htaccess)
+<FilesMatch "^\.">
+  Order allow,deny
+  Deny from all
+</FilesMatch>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Incident;
+use App\Models\IncidentResponse;
 use App\Models\Rol;
 use App\Models\User;
 use App\Notifications\RealtimeNotification;
@@ -96,7 +97,7 @@ class IncidentController extends Controller
     {
         try {
             $user = $request->user();
-            $incident = Incident::with(['user'])->find($id);
+            $incident = Incident::with(['user', 'responses.user'])->find($id);
             if (! $incident) {
                 return $this->returnFail(404, 'Incidencia no encontrada');
             }
@@ -158,5 +159,47 @@ class IncidentController extends Controller
         }
 
         return $this->returnSuccess(200, $incident);
+    }
+
+    public function storeResponse(Request $request, $id)
+    {
+        $user = $request->user();
+        if (! in_array($user->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN, Rol::TRABAJADOR])) {
+            return $this->returnFail(403, 'No tienes permiso para responder incidencias');
+        }
+
+        $request->validate([
+            'message' => 'required|string',
+        ]);
+
+        $incident = Incident::find($id);
+        if (! $incident) {
+            return $this->returnFail(404, 'Incidencia no encontrada');
+        }
+
+        $response = IncidentResponse::create([
+            'incident_id' => $incident->id,
+            'user_id' => $user->id,
+            'message' => $request->message,
+        ]);
+
+        $response->load('user');
+
+        // Notificar al propietario de la incidencia
+        try {
+            $owner = User::find($incident->user_id);
+            if ($owner) {
+                $owner->notify(new RealtimeNotification(
+                    title: 'Nueva respuesta en tu incidencia',
+                    message: 'Se ha respondido a: '.$incident->title,
+                    url: '/client/incidents/view/'.$incident->id,
+                    meta: ['incident_id' => $incident->id, 'icon' => 'message-circle'],
+                ));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Error al notificar respuesta de incidencia: '.$e->getMessage());
+        }
+
+        return $this->returnSuccess(200, ['data' => $response, 'message' => 'Respuesta agregada con éxito']);
     }
 }

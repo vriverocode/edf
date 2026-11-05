@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\Departament;
 use App\Models\PeoplesXDepartaments;
 use App\Models\Quota;
 use App\Models\Rol;
+use App\Models\User;
 use App\Services\MonthlyQuotaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class DepartamentController extends Controller
@@ -47,21 +50,33 @@ class DepartamentController extends Controller
         if ($request->find == 'allWithUser') {
             $departaments->where('user_id', '!=', null);
         }
-        if ($request->find == 'allDepartmentWithoutReadingThisMonth') {
-            $month = (int) $request->input('month', now()->month);
-            $year = (int) $request->input('year', now()->year);
-
-            if ($request->filled('type')) {
+        if ($request->find == 'all') {
+            if ($request->has('type')) {
                 $departaments->where('type', $request->type);
-            } else {
-                $departaments->whereIn('type', [Departament::TYPE_LAV, Departament::TYPE_DEPARTAMENTO]);
             }
-
-            $departaments->whereDoesntHave('waterReadings', function ($query) use ($month, $year) {
-                $query->where('month', $month)
-                    ->where('year', $year);
-            });
+            $departaments->withCount(['peoples as residents_count' => function ($query) {
+                $query->whereIn('type', [Rol::INQUILINO, Rol::FAMILIAR]);
+            }]);
         }
+        // if ($request->find == 'allDepartmentWithoutReadingThisMonth') {
+        //     $month = (int) $request->input('month', now()->month);
+        //     $year = (int) $request->input('year', now()->year);
+
+        //     if ($request->filled('type')) {
+        //         $departaments->where('type', $request->type);
+        //     } else {
+        //         $departaments->whereIn('type', [Departament::TYPE_LAV, Departament::TYPE_DEPARTAMENTO]);
+        //     }
+
+        //     $departaments->whereDoesntHave('waterReadings', function ($query) use ($month, $year) {
+        //         $query->where('month', $month)
+        //             ->where('year', $year);
+        //     });
+        // }
+
+        $departaments->orderBy('type')
+            ->orderByRaw("CAST(SUBSTRING_INDEX(number, '-', -1) AS UNSIGNED) ASC")
+            ->orderBy('number');
 
         return $this->returnSuccess(200, $departaments->get());
     }
@@ -85,6 +100,7 @@ class DepartamentController extends Controller
             'description' => $request->description,
             'participation_percentage' => $request->participation_percentage,
             'type' => $request->type ?? 1, // Nuevo campo
+            'rent_type' => $request->rent_type ?? 0,
         ]);
 
         return $this->returnSuccess(200, 'Creado con éxito');
@@ -103,9 +119,14 @@ class DepartamentController extends Controller
 
     public function assingApartment(Request $request)
     {
-        $user = $request->user();
-        if ($user->rol_id !== Rol::ADMIN) {
+        $authUser = $request->user();
+        if (! in_array($authUser->rol_id, [Rol::ADMIN, Rol::SUPER_ADMIN])) {
             return $this->returnFail(403, 'Solo los administradores pueden asignar departamentos');
+        }
+
+        $targetUser = User::find($request->input('user'));
+        if (! $targetUser) {
+            return $this->returnFail(404, 'Usuario no encontrado');
         }
 
         $departament = Departament::find($request->idApartament);
@@ -113,9 +134,58 @@ class DepartamentController extends Controller
             return $this->returnFail(404, 'Departamento no encontrado');
         }
 
-        $departament->update([
-            'user_id' => $request->user,
-        ]);
+        $removeResidents = $request->boolean('remove_residents');
+
+        DB::transaction(function () use ($departament, $targetUser, $removeResidents) {
+            if ($removeResidents) {
+                $pivots = PeoplesXDepartaments::where('departament_id', $departament->id)
+                    ->whereIn('type', [Rol::INQUILINO, Rol::FAMILIAR])
+                    ->get();
+
+                if ($pivots->isNotEmpty()) {
+                    $pivotIds = $pivots->pluck('id');
+
+                    Quota::whereIn('peoples_x_departments_id', $pivotIds)
+                        ->where('status', 1)
+                        ->update(['peoples_x_departments_id' => null]);
+
+                    foreach ($pivots->pluck('user_id')->unique() as $residentId) {
+                        if ((int) $residentId === (int) $targetUser->id) {
+                            continue;
+                        }
+
+                        $hasOtherUnit = PeoplesXDepartaments::where('user_id', $residentId)
+                            ->whereNotIn('id', $pivotIds)
+                            ->exists()
+                            || Departament::where('user_id', $residentId)->exists();
+
+                        if ($hasOtherUnit) {
+                            continue;
+                        }
+
+                        $resident = User::find($residentId);
+                        if (! $resident) {
+                            continue;
+                        }
+
+                        Booking::where('user_id', $residentId)
+                            ->whereIn('status', [
+                                Booking::STATUS_PENDING_PAY,
+                                Booking::STATUS_PENDING_APPROVAL,
+                                Booking::STATUS_SUCCESS,
+                            ])
+                            ->update(['status' => Booking::STATUS_CANCELLED]);
+
+                        $resident->delete();
+                    }
+
+                    PeoplesXDepartaments::whereIn('id', $pivotIds)->delete();
+                    $departament->update(['tenant_pays_quota' => false]);
+                }
+            }
+
+            $departament->update(['user_id' => $targetUser->id]);
+        });
 
         return $this->returnSuccess(200, 'Asignado con éxito');
     }
@@ -155,8 +225,20 @@ class DepartamentController extends Controller
         return $this->returnSuccess(200, $apartments);
     }
 
-    public function getDepartmentsByOwnerId($id)
+    public function getDepartmentsByOwnerId(Request $request, $id)
     {
+        // owned_only=1: solo unidades que POSEE el usuario (todos los tipos:
+        // DEP, EST, DPO, LAV), sin la rama de inquilinos. Lo usa
+        // quotasMonthlyCards para acotar las cuotas al propietario.
+        if ($request->query('owned_only')) {
+            $owned = Departament::with('owner')
+                ->where('user_id', $id)
+                ->get()
+                ->map(fn ($d) => (array) $d->toArray() + ['_relation' => 'owner']);
+
+            return $this->returnSuccess(200, $owned);
+        }
+
         $owned = Departament::with('owner')
             ->where('user_id', $id)
             ->where('type', Departament::TYPE_DEPARTAMENTO)
@@ -206,6 +288,7 @@ class DepartamentController extends Controller
             'description' => $request->description,
             'participation_percentage' => $request->participation_percentage,
             'type' => $request->type,
+            'rent_type' => $request->rent_type ?? 0,
             'tenant_pays_quota' => $request->boolean('tenant_pays_quota'),
         ]);
 
@@ -293,6 +376,7 @@ class DepartamentController extends Controller
 
         $rules = [
             'type' => ['required', 'in:1,2,3,4'],
+            'rent_type' => ['nullable', 'integer', 'in:0,1,2,3'],
             'number' => ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .\\-]+$/i'],
             'participation_percentage' => ['required', 'numeric'],
             'description' => ['nullable', 'regex:/^[a-z a-z 0-9 A-Z-À-ÿ ., \\-]+$/i'],
@@ -300,10 +384,14 @@ class DepartamentController extends Controller
 
         // Validaciones estrictas solo si es Departamento
         if ($isDepartment) {
-            $rules['address'] = ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .,# &]+$/i'];
-            $rules['area'] = ['required', 'numeric'];
-            $rules['floor'] = ['required'];
-            $rules['block'] = ['nullable', 'regex:/^[a-z 0-9 A-Z À-ÿ .]+$/i'];
+            // $rules['address'] = ['required', 'regex:/^[a-z 0-9 A-Z-À-ÿ .,# &]+$/i'];
+            // $rules['area'] = ['required', 'numeric'];
+            // $rules['floor'] = ['required'];
+            // $rules['block'] = ['nullable', 'regex:/^[a-z 0-9 A-Z À-ÿ .]+$/i'];
+            $rules['address'] = ['nullable'];
+            $rules['area'] = ['nullable'];
+            $rules['floor'] = ['nullable'];
+            $rules['block'] = ['nullable'];
         } else {
             $rules['address'] = ['nullable'];
             $rules['area'] = ['nullable'];
