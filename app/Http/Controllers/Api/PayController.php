@@ -1571,7 +1571,8 @@ class PayController extends Controller
         if (! $expense) {
             Log::warning('returnFail 404: Gasto no encontrado');
 
-            return $this->returnFail(404, ['messageType' => 'negative', 'message' => 'Gasto no encontrado']);
+            return $this->returnFail(404, ['messageType' => 'negative', 
+            'message' => 'Gasto no encontrado']);
         }
 
         if ($expense->pay_id) {
@@ -1579,7 +1580,8 @@ class PayController extends Controller
             if ($existingPay && in_array($existingPay->status, [1, 2])) {
                 Log::warning('returnFail 409: Este gasto ya tiene un pago registrado');
 
-                return $this->returnFail(409, ['messageType' => 'negative', 'message' => 'Este gasto ya tiene un pago registrado']);
+                return $this->returnFail(409, ['messageType' => 'negative', 
+                'message' => 'Este gasto ya tiene un pago registrado']);
             }
         }
 
@@ -1588,7 +1590,7 @@ class PayController extends Controller
             'financial_account_id' => ['required', 'exists:financial_accounts,id'],
             'transaction_category_id' => ['required', 'exists:transaction_categories,id'],
             'reference' => ['nullable', 'string'],
-            'pay_date' => ['required', 'date'],
+            'pay_date' => ['required'],
             'vaucher' => ['nullable', 'file', 'max:10240'],
         ], [
             'amount.required' => 'El monto es requerido',
