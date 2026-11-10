@@ -210,7 +210,7 @@ onMounted(() => {
             </div>
             <div class="col col-md-1 flex flex-center">
               <q-btn icon="eva-credit-card-outline" class="mx-1" color="amber-6" flat size="0.8rem"
-                v-if="user.rol_id != 1 && user.rol_id != 7 && user.rol_id != 6"
+                v-if="user.rol_id != 1 && user.rol_id != 8 && user.rol_id != 6"
                 @click="goTo('/admin/pays/user/' + user.id)">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left" class="bg-black text-body2 px-2">
                   Ver pagos

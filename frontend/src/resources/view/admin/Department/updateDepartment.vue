@@ -25,7 +25,8 @@ const formData = ref({
   description: '',
   floor: '',
   participation_percentage: '',
-  rent_type: 0
+  rent_type: 0,
+  is_for_test: false
 })
 
 const getApartmentData = async () => {
@@ -42,7 +43,8 @@ const getApartmentData = async () => {
         description: response.data.description,
         floor: response.data.floor,
         participation_percentage: response.data.participation_percentage,
-        rent_type: Number(response.data.rent_type ?? 0)
+        rent_type: Number(response.data.rent_type ?? 0),
+        is_for_test: Boolean(response.data.is_for_test)
       }
     }
   } catch (error) {
@@ -52,6 +54,8 @@ const getApartmentData = async () => {
 
 const updateApartment = () => {
   loading.value = true
+  console.log(formData.value.is_for_test)
+  formData.value.is_for_test = formData.value.is_for_test ? 1 : 0
   apartmentStore.updateApartment(route.params.id, formData.value)
     .then((response) => {
       if (response.code !== 200) throw response
@@ -139,6 +143,10 @@ onMounted(() => {
         <q-select dense borderless v-model="formData.rent_type" :options="rentTypesOptions" emit-value map-options
           class="form__inputsR mt-1" />
       </div>
+       <div class="col-md-6 col-12  mt-1 md:mt-3 px-2 md:px-12">
+          <div class="text-subtitle2 text-black">Unidad para pruebas</div>
+           <q-checkbox v-model="formData.is_for_test" :val="true"  />
+        </div>
 
       <div class="col-12 mt-1 px-2 md:px-12">
         <div class="text-subtitle2 text-black">Notas / Descripción</div>

@@ -12,6 +12,7 @@ use App\Models\Rol;
 use App\Services\BillInvoiceService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class BillInvoiceController extends Controller
@@ -219,22 +220,31 @@ class BillInvoiceController extends Controller
             ->filter()
             ->values();
 
-        $statementData = $ordered
-            ->map(fn (Quota $quota) => $this->billInvoiceService->buildStatementData($quota))
-            ->all();
+        try {
+            $statementData = $ordered
+                ->map(fn (Quota $quota) => $this->billInvoiceService->buildStatementData($quota))
+                ->all();
 
-        $first = $statementData[0];
-        $period = $first['is_monthly']
-            ? str_pad((string) $first['month'], 2, '0', STR_PAD_LEFT).'-'.$first['year']
-            : (string) $first['year'];
+            $first = $statementData[0];
+            $period = $first['is_monthly']
+                ? str_pad((string) $first['month'], 2, '0', STR_PAD_LEFT).'-'.$first['year']
+                : (string) $first['year'];
 
-        $pdf = Pdf::loadView('bills.quota-statement', [
-            'quotas' => $statementData,
-            'emissionDate' => now()->format('d/m/Y'),
-        ])->setPaper('letter')
-            ->setOption('isRemoteEnabled', true);
+            $pdf = Pdf::loadView('bills.quota-statement', [
+                'quotas' => $statementData,
+                'emissionDate' => now()->format('d/m/Y'),
+            ])->setPaper('letter')
+                ->setOption('isRemoteEnabled', true);
 
-        return $pdf->download('estado-cuenta-'.$period.'.pdf');
+            return $pdf->download('estado-cuenta-'.$period.'.pdf');
+        } catch (\Throwable $e) {
+            Log::error('BillInvoiceController: Failed to generate client statement: '.$e->getMessage(), [
+                'quota_ids' => $quotaIds,
+                'user_id' => $user->id ?? null,
+            ]);
+
+            return $this->returnFail(500, 'No se pudo generar el estado de cuenta.');
+        }
     }
 
     private function canAccessQuota(Quota $quota, $user): bool

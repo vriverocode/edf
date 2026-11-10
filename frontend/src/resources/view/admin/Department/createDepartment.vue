@@ -14,7 +14,8 @@ const formData = ref({
   area: '',
   description: '',
   floor: '',
-
+  is_for_rent: false,
+  rent_type:1
 })
 
 

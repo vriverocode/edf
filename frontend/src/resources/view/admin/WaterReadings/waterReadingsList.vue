@@ -20,7 +20,7 @@ const now = new Date()
 const selectedMonth = ref(now.getMonth()+1)
 const selectedYear = ref(now.getFullYear())
 const availableYears = ref([])
-
+const selectedDept = ref(null)
 const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
   filters: [
     { key: 'month', ref: selectedMonth, parse: Number },
@@ -30,7 +30,7 @@ const { page, restoreFromQuery, syncToUrl, onPageChange } = usePaginationState({
 })
 
 const readings = ref([])
-const selectedDept = ref(null)
+
 const deptOptions = ref([])
 const filteredDeptOptions = ref([])
 const deptLoading = ref(false)

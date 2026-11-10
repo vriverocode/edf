@@ -162,7 +162,7 @@ class ReportController extends Controller
         $departmentsQuery = Departament::with([
             'owner:id,name',
             'peoples.user:id,name',
-        ])->where('id', '>', 7)->where(function ($q) {
+        ])->where('is_for_test', 0)->where(function ($q) {
             $q->whereNotNull('user_id')
                 ->orWhereHas('peoples');
         });
@@ -388,10 +388,10 @@ class ReportController extends Controller
         $morosoExtra = User::where('status', 2)
             ->whereNotIn('rol_id', $roleExcluded)
             ->whereNotIn('id', $overdueUserIds)
-            ->with(['units:id,number,user_id', 'departmentsInquilino.departament:id,number'])
+            ->with(['unitsWithoutTest:id,number,user_id', 'departmentsInquilino.departament:id,number'])
             ->get(['id', 'name', 'email', 'phone', 'dni', 'status', 'rol_id'])
             ->map(function ($user) {
-                $departments = $user->units->pluck('number')->merge(
+                $departments = $user->unitsWithoutTest->pluck('number')->merge(
                     $user->departmentsInquilino->pluck('departament.number')
                 )->filter()->unique()->values();
 
@@ -1062,7 +1062,7 @@ class ReportController extends Controller
         $departments = Departament::with([
             'owner:id,name',
             'peoples.user:id,name',
-        ])->where('id', '>', 7)->where(function ($q) {
+        ])->where('is_for_test', 0)->where(function ($q) {
             $q->whereNotNull('user_id')
                 ->orWhereHas('peoples');
         })->get(['id', 'number', 'type', 'user_id', 'participation_percentage']);
