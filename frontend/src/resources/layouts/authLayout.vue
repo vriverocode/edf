@@ -9,4 +9,9 @@
   </section>
 </template>
 <style>
+.authContainer {
+  height: 100%;
+  overflow: hidden;
+  background: #f7f1e4;
+}
 </style>
