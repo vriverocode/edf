@@ -33,7 +33,8 @@ const formData = ref({
   address: '',
   block: '',
   area: '',
-  floor: ''
+  floor: '',
+  is_for_test: false,
 })
 
 const createApartment = () => {
@@ -85,7 +86,11 @@ const createApartment = () => {
             type="number" step="0.0000000001"
             :rules="[val => val !== null && val !== '' || 'El porcentaje es necesario']" />
         </div>
-
+        <div class="col-md-6 col-12  mt-1 md:mt-3 px-2 md:px-12">
+          <div class="text-subtitle2 text-black">Unidad para pruebas</div>
+           <q-checkbox v-model="formData.is_for_test" :val="true"  />
+         
+        </div>
         <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
           <div v-if="formData.type === 1" class="col-12 row">
             <div class="col-md-6 col-12 mt-1 px-2 md:px-12">

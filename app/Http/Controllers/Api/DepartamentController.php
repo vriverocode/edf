@@ -99,8 +99,9 @@ class DepartamentController extends Controller
             'floor' => $request->floor ?? 'N/A', // Si es nulo
             'description' => $request->description,
             'participation_percentage' => $request->participation_percentage,
-            'type' => $request->type ?? 1, // Nuevo campo
+            'type' => $request->type ?? 1,
             'rent_type' => $request->rent_type ?? 0,
+            'is_for_test' => $request->is_for_test ?? 0,
         ]);
 
         return $this->returnSuccess(200, 'Creado con éxito');
@@ -288,7 +289,8 @@ class DepartamentController extends Controller
             'description' => $request->description,
             'participation_percentage' => $request->participation_percentage,
             'type' => $request->type,
-            'rent_type' => $request->rent_type ?? 0,
+            'rent_type' => $request->rent_type ?? $apartment->rent_type,
+            'is_for_test' => $request->is_for_test ?? $apartment->is_for_test,
             'tenant_pays_quota' => $request->boolean('tenant_pays_quota'),
         ]);
 

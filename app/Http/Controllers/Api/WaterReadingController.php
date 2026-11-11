@@ -50,7 +50,7 @@ class WaterReadingController extends Controller
             $query->where('departament_id', (int) $validated['departament_id']);
         }
 
-        $paginator = $query->paginate($perPage);
+        $paginator = $query->paginate(20);
 
         $availableYears = WaterReading::query()
             ->select('year')
@@ -210,7 +210,7 @@ class WaterReadingController extends Controller
         $year = (int) $validated['year'];
 
         $departments = Departament::with('owner')
-            // ->where('id', '>', 7)
+            ->where('is_for_test', 0)
             ->whereIn('type', [Departament::TYPE_LAV, Departament::TYPE_DEPARTAMENTO])
             ->whereDoesntHave('waterReadings', function ($query) use ($month, $year) {
                 $query->where('month', $month)

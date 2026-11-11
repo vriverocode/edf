@@ -536,6 +536,16 @@ const submitUploadVoucher = async () => {
               <span class="text-gray-600 font-medium">Total a pagar</span>
               <span class="text-gray-900 font-semibold">S/. {{ (totalCoveredByPay - creditApplied).toFixed(2) }}</span>
             </div>
+            <div class="flex justify-between items-center pb-2" v-if="pay?.overpayment_amount && pay?.overpayment_amount > 0"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">Monto pagado</span>
+              <span class="text-gray-900 font-semibold">S/. {{ pay.overpayment_amount.toFixed(2) }}</span>
+            </div>
+            <div class="flex justify-between items-center pb-2" v-if="pay?.overpayment_amount && pay?.overpayment_amount > 0"
+              style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">
+              <span class="text-gray-600 font-medium">Diferencia a favor</span>
+              <span class="text-yellow-9 font-semibold">S/. {{ ((pay?.overpayment_amount ?? 0) - pay.amount).toFixed(2) }}</span>
+            </div>
 
             <div v-if="pay.commission_amount > 0" class="flex justify-between items-center pb-2"
               style="border-bottom: 1px solid rgba(211, 211, 211, 0.534);">

@@ -97,6 +97,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(Departament::class);
     }
+    public function unitsWithoutTest()
+    {
+        return $this->hasMany(Departament::class)->where('is_for_test', 0);
+    }
 
     public function quotas()
     {
