@@ -17,11 +17,14 @@ class AuthController extends Controller
     public function login()
     {
         request()->validate([
-            'username' => 'required',
+            'username' => 'required|string',
             'password' => 'required',
         ]);
 
-        $user = User::where('username', request()->username)->first();
+        $login = trim((string) request()->username);
+
+        $user = User::where('username', $login)->first()
+            ?? User::where('email', $login)->first();
         if (! $user || ! Hash::check(request()->password, $user->password)) {
             return $this->returnFail(505, 'Credenciales no validas');
         }

@@ -67,7 +67,7 @@ class IncidentController extends Controller
                 }
 
                 $file->move($destination, $name);
-                $incident->images = config('app.url')."/images/incidents/{$name}";
+                $incident->images = "/public/images/incidents/{$name}";
             }
         }
 

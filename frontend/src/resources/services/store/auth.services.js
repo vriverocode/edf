@@ -15,12 +15,12 @@ export const useAuthStore = defineStore('auth', {
     currencySymbol: storage.getItem("currency_symbol") || null,
   }),
   actions: {
-    setAuth({data}){
+    setAuth({ data }) {
       this.setUser(data)
       this.setCurrencyConfig(data)
       // this.setIsAdmin(user.data.user)
-    },  
-    setUser(user){
+    },
+    setUser(user) {
       this.user = user;
     },
     setCurrencyConfig(authPayload) {
@@ -44,25 +44,26 @@ export const useAuthStore = defineStore('auth', {
         storage.deleteItem("currency_symbol")
       }
     },
-    setIsAdmin(user){
+    setIsAdmin(user) {
       // storage.setItem("is_admin",  user.rol_id !== '3' ? true : false);
       // storage.setItem("user_unique_id",user.id);
     },
-    setRememberAccount({user, password, remember}){
-      storage.setItem("rememberUser", user);
-      storage.setItem("rememberPassword", password);
-      storage.setItem("isRemember", remember);
+    setRememberAccount({ username, password, isRememberUser }) {
+      storage.setItem("rememberUser", username);
+      //storage.setItem("rememberPassword", password);
+      storage.setItem("isRememberUser", isRememberUser);
     },
-    clearRememberAccount(){
+    clearRememberAccount() {
       storage.deleteItem("rememberUser");
-      storage.deleteItem("rememberPassword");
-      storage.deleteItem("isRemember");
+      //storage.deleteItem("rememberPassword");
+      storage.deleteItem("isRememberUser");
     },
-    preLogin(credentials){
+    preLogin(credentials) {
       this.clearRememberAccount()
-      if(credentials.remember == true) this.setRememberAccount(credentials)
+      console.log(credentials)
+      if (credentials.isRememberUser == true) this.setRememberAccount(credentials)
     },
-    saveToken(token, { persist = true } = {}){
+    saveToken(token, { persist = true } = {}) {
       this.token = token || null
       ApiService.setToken(this.token)
 
@@ -72,7 +73,7 @@ export const useAuthStore = defineStore('auth', {
         storage.deleteItem("access_token");
       }
     },
-    logoutAction(){
+    logoutAction() {
       storage.deleteItem("access_token");
       storage.deleteItem("currency");
       storage.deleteItem("currency_symbol");
@@ -84,6 +85,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async login(credentials, { persistToken = true } = {}) {
       try {
+        this.preLogin(credentials)
         const { data } = await ApiService.post('/api/login', credentials)
         if (!data?.data?.token) {
           throw data
@@ -133,7 +135,7 @@ export const useAuthStore = defineStore('auth', {
       this.setAuth(response)
       return response
     },
-    async logout(){
+    async logout() {
       if (hasBiometricEnabled()) {
         this.logoutAction()
         return { code: 200, message: 'Sesión cerrada' }

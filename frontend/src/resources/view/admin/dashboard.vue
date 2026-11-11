@@ -13,7 +13,7 @@ import report from '@/assets/img/menu/reports.png'
 import maintenance from '@/assets/img/menu/worker.png'
 import atencion from '@/assets/img/menu/atencion.svg'
 import iconsApp from '@/assets/icons/index';
-
+import visita from '@/assets/img/menu/visitas.png'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -41,7 +41,7 @@ const menu = [
   { title: 'Reportes', icon: report, subtitle: 'Reportes', link: '/admin/reports', badgeKey: '' },
   {
     title: 'Visitas',
-    icon: iconsApp.visitor,
+    icon: visita,
     link: '/security/visit/list',
   },
 ]
@@ -136,8 +136,7 @@ onMounted(() => {
               {{ badgeCount(item.badgeKey) }}
             </div>
             <div class="flex justify-center items-center h-full w-full p-1">
-              <div v-html="item.icon" class="flex justify-center mt-0" v-if="item.title == 'Visitas'" />
-              <img v-else :src="item.icon" class="md:w-auto" :class="{ 'h-3/5': !item.title.includes('Incidencias') , 
+              <img :src="item.icon" class="md:w-auto" :class="{ 'h-3/5': !item.title.includes('Incidencias') , 
                 'h-full pt-1': item.title.includes('Incidencias')}" />
             </div>
           </div>

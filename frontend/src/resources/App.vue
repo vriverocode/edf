@@ -23,7 +23,7 @@ const { updateAvailable, isDownloading, downloadProgress, versionInfo } = storeT
 const $q = useQuasar()
 const router = useRouter()
 const route = useRoute();
-const transitionName = ref('slide-up');
+const transitionName = ref('fade-scale');
 
 const setStatusBarStyleDark = async () => {
   await StatusBar.setStyle({ style: Style.Dark });
@@ -78,7 +78,7 @@ watch(
 <template>
   <q-layout view="hHh lpR fFf" class="app-container">
     <router-view class="appMobile " v-slot="{ Component }">
-      <transition :name="transitionName">
+      <transition :name="transitionName" mode="out-in">
         <component :is="Component" class="pageComponent" />
       </transition>
     </router-view>

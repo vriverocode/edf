@@ -37,6 +37,7 @@ class Departament extends Model
         'user_id',
         'participation_percentage',
         'rent_type',
+        'is_for_test'
     ];
 
     public function getInterNumberAttribute()

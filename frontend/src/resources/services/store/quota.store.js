@@ -6,6 +6,18 @@ const downloadPdfFromUrl = async (url, filename) => {
   const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } })
   if (!res.ok) throw new Error('download-failed')
 
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType && !contentType.includes('application/pdf')) {
+    let message = 'download-failed'
+    if (contentType.includes('application/json')) {
+      try {
+        const data = await res.json()
+        message = data.error || data.message || message
+      } catch {}
+    }
+    throw new Error(message)
+  }
+
   const blob = await res.blob()
   const downloadUrl = window.URL.createObjectURL(blob)
   const a = document.createElement('a')

@@ -27,7 +27,7 @@ export const getBiometricEmail = () => {
 }
 
 export const getBiometricUsername = () => {
-  return storage.getItem(BIOMETRIC_USERNAME_KEY) || ''
+  return storage.getItem(BIOMETRIC_USERNAME_KEY) || storage.getItem('rememberUser') || ''
 }
 
 export const setBiometricUsername = (username) => {
