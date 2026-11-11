@@ -225,25 +225,26 @@ onMounted(() => {
                 </div>
 
                 <div class="flex-1 row">
-                  <div class="flex items-center text-sm text-gray-700  col-5 col-md-4 py-1">
+                  <div class="flex items-center text-sm text-gray-700  col-6 col-md-4 py-1">
                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span class="font-medium">S/. {{ pay.amount }}</span>
                   </div>
-                  <template v-if="pay.type == 1 && pay.quotas && pay.quotas.length">
-                    <div class="flex items-center text-sm text-gray-700 col-7 col-md-4 py-1">
-                      <q-icon name="eva-calendar-outline" class="w-4 h-4 mr-2 text-gray-500" size="xs" style="margin-left: -2px; margin-right: 6px;" />
-                      <span class="font-medium"> {{ getPayQuotasInfo(pay).periods }}</span>
-                    </div>
-                  </template>
-                  <div class="flex items-center text-sm text-gray-700 col-5 col-md-4 py-1">
+                  <div class="flex items-center text-sm text-gray-700 col-6 col-md-4 py-1">
                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <span class="font-medium">{{ moment(pay.pay_date).format('DD/MM/YYYY') }}</span>
                   </div>
-                  <div v-if="pay.reference" class="flex items-center text-sm text-gray-700 col-7 col-md-4 py-1">
+                  <template v-if="pay.type == 1 && pay.quotas && pay.quotas.length">
+                    <div class="flex items-center text-sm text-gray-700 col-12 col-md-4 py-1">
+                      <q-icon name="eva-calendar-outline" class="w-4 h-4 mr-2 text-gray-500" size="xs" style="margin-left: -2px; margin-right: 6px;" />
+                      <span class="font-medium"> {{ getPayQuotasInfo(pay).periods }}</span>
+                    </div>
+                  </template>
+                  
+                  <div v-if="pay.reference" class="flex items-center text-sm text-gray-700 col-12 col-md-4 py-1">
                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
@@ -253,11 +254,14 @@ onMounted(() => {
                       <q-icon name="eva-home-outline" class="w-4 h-4 mr-2 text-gray-500" size="xs" style="margin-left: -2px; margin-right: 6px;" />
                       <span class="font-medium">Unidades: {{ getPayQuotasInfo(pay).units }}</span>
                     </div>
-                  <div v-if="getCreditForPay(pay) > 0" class="flex items-center text-sm text-green-700 col-12 col-md-4 py-1">
+                  <div v-if="getCreditForPay(pay) > 0" class="flex items-center text-sm text-yellow-9 col-12 col-md-4 py-1">
+                    <span class="font-medium">Diferencia a favor: S/. {{ getCreditForPay(pay).toFixed(2) }}</span>
+                  </div>
+                  <div v-if="(pay.credit_applied && pay.credit_applied > 0)" class="flex items-center text-sm text-green-700 col-12 col-md-4 py-1">
                     <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span class="font-medium">Saldo a favor: S/. {{ getCreditForPay(pay).toFixed(2) }}</span>
+                    <span class="font-medium">Saldo a favor aplicado: S/. {{ pay.credit_applied.toFixed(2) }}</span>
                   </div>
                 </div>
               </div>
