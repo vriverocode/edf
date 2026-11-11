@@ -71,7 +71,7 @@ onUnmounted(() => {
 watch(
   () => route.meta.depth,
   (toDepth, fromDepth) => {
-    transitionName.value = toDepth > fromDepth ? 'slide-up' : 'slide-down';
+    transitionName.value = toDepth > fromDepth ? 'fade-scale' : 'fade-scale';
   }
 );
 </script>
@@ -82,7 +82,7 @@ watch(
         <component :is="Component" class="pageComponent" />
       </transition>
     </router-view>
-    <q-dialog v-model="updateAvailable" persistent maximized transition-show="slide-up" transition-hide="slide-down">
+    <q-dialog v-model="updateAvailable" persistent maximized transition-show="fade" transition-hide="fade">
       <q-card class="bg-white  column flex-center">
         <q-card-section class="text-center">
           <div v-html="iconsApp.updateSys" />

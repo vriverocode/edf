@@ -31,14 +31,7 @@ const routes = [
           title: 'Bienvenido',
         },
       },
-      {
-        path: '/forgot-password',
-        component: () => import('@/view/auth/forgotPassword.vue'),
-        meta: {
-          title: 'Recuperar contraseña',
-          depth: -1,
-        },
-      },
+
       {
         path: '/reset-password',
         component: () => import('@/view/auth/resetPassword.vue'),
@@ -48,6 +41,14 @@ const routes = [
         },
       },
     ],
+  },
+  {
+    path: '/forgot-password',
+    component: () => import('@/view/auth/forgotPassword.vue'),
+    meta: {
+      title: 'Recuperar contraseña',
+      depth: -1,
+    },
   },
   {
     path: '/',
