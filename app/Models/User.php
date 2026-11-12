@@ -3,9 +3,13 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Enums\RegistrationStatus;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -35,6 +39,9 @@ class User extends Authenticatable
         'status',
         'device_token',
         'rol_id',
+        'urbanismo_id',
+        'unidad',
+        'estado_registro',
         'active_time',
         'end_time',
         'parentesco',
@@ -63,6 +70,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'estado_registro' => RegistrationStatus::class,
         ];
     }
 
@@ -97,6 +105,7 @@ class User extends Authenticatable
     {
         return $this->hasMany(Departament::class);
     }
+
     public function unitsWithoutTest()
     {
         return $this->hasMany(Departament::class)->where('is_for_test', 0);
@@ -136,6 +145,21 @@ class User extends Authenticatable
     public function rol()
     {
         return $this->belongsTo(Rol::class);
+    }
+
+    public function urbanismo(): BelongsTo
+    {
+        return $this->belongsTo(Urbanismo::class);
+    }
+
+    public function activationTokens(): HasMany
+    {
+        return $this->hasMany(AccountActivationToken::class);
+    }
+
+    public function isRegistrationActive(): bool
+    {
+        return $this->estado_registro === RegistrationStatus::Activo;
     }
 
     public function routeNotificationForFcm()

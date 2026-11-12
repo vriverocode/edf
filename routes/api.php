@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\MonthlyBillsController;
 use App\Http\Controllers\Api\MultaController;
 use App\Http\Controllers\Api\NoticeController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PayController;
 use App\Http\Controllers\Api\PayMethodController;
 use App\Http\Controllers\Api\ProviderController;
@@ -45,6 +46,11 @@ Route::middleware('throttle:public')->group(function () {
     Route::post('/validate-reset-token', [ResetPasswordController::class, 'validateToken']);
     Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
 });
+
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:sensitive');
+Route::get('/onboarding/validate', [OnboardingController::class, 'validateActivation'])->middleware('throttle:sensitive');
+Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->middleware('throttle:sensitive');
+
 Route::get('/app-version', [ConfigController::class, 'getAppVersion']);
 Route::post('/notify-update-app', [AppUpdateController::class, 'notifyUpdateApp']);
 
@@ -57,6 +63,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Auth / User profile ──────────────────────────────────
     Route::get('/auth/logout', [AuthController::class, 'logout']);
+
+    // ── Onboarding / Urbanismos ──────────────────────────────
+    Route::post('/urbanismos/{urbanismo}/residents/import', [OnboardingController::class, 'import'])
+        ->middleware('role:admin,super-admin', 'throttle:write');
+    Route::post('/urbanismos/{urbanismo}/users/{user}/approve', [OnboardingController::class, 'approve'])
+        ->middleware('role:admin,super-admin', 'throttle:write');
+
     Route::get('/config/balance-url', [ConfigController::class, 'getBalanceUrl']);
     Route::get('/user', function (Request $request) {
         $user = $request->user()->load(['rol', 'airbnbDepartment.departament', 'bankAccounts', 'availableComunAreas', 'units' => function ($query) {
