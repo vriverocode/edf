@@ -96,6 +96,39 @@ export const useAuthStore = defineStore('auth', {
         return error?.response ?? error
       }
     },
+    async registerResident(payload) {
+      return await new Promise((resolve, reject) => {
+        ApiService.post('/api/register', payload)
+          .then(({ data }) => {
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response)
+          })
+      })
+    },
+    async validateActivation(payload) {
+      return await new Promise((resolve, reject) => {
+        ApiService.get('/api/onboarding/validate', '', { params: payload })
+          .then(({ data }) => {
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response)
+          })
+      })
+    },
+    async completeActivation(payload) {
+      return await new Promise((resolve, reject) => {
+        ApiService.post('/api/onboarding/complete', payload)
+          .then(({ data }) => {
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response)
+          })
+      })
+    },
     async setSession(token) {
       if (!token) {
         throw new Error('Token de sesión no válido')
