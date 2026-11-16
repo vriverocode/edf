@@ -5,122 +5,47 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Enums\RegistrationStatus;
+use App\Exports\ResidentsImportTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Onboarding\CompleteOnboardingRequest;
 use App\Http\Requests\Onboarding\ImportResidentsRequest;
 use App\Http\Requests\Onboarding\ValidateActivationTokenRequest;
-use App\Imports\ResidentsImport;
-use App\Jobs\SendOnboardingMagicLinkJob;
 use App\Models\AccountActivationToken;
-use App\Models\Rol;
 use App\Models\Urbanismo;
 use App\Models\User;
-use App\Services\UsernameGenerator;
+use App\Services\ResidentImportService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
+use RuntimeException;
 use Throwable;
 
 class OnboardingController extends Controller
 {
-    public function import(ImportResidentsRequest $request, Urbanismo $urbanismo): JsonResponse
-    {
+    public function import(
+        ImportResidentsRequest $request,
+        Urbanismo $urbanismo,
+        ResidentImportService $importService,
+    ): JsonResponse {
         try {
-            $rows = Excel::toCollection(new ResidentsImport, $request->file('file'))->first() ?? collect();
-        } catch (Throwable) {
-            return $this->returnFail(422, 'No se pudo leer el archivo. Verifica que sea un Excel o CSV válido.');
+            $summary = $importService->import($urbanismo, $request->file('file'));
+        } catch (RuntimeException $exception) {
+            return $this->returnFail(422, $exception->getMessage());
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return $this->returnFail(500, 'No se pudo procesar el archivo de residentes.');
         }
 
-        if ($rows->isEmpty()) {
-            return $this->returnFail(422, 'El archivo no contiene filas para procesar.');
-        }
+        return $this->returnSuccess(200, $summary);
+    }
 
-        $created = 0;
-        $skipped = 0;
-        $errors = [];
-        $candidates = [];
-
-        foreach ($rows as $index => $row) {
-            $data = $this->normalizeResidentRow($row);
-
-            $validator = Validator::make($data, [
-                'nombre' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'string', 'email', 'max:255'],
-                'unidad' => ['required', 'string', 'max:255'],
-                'dni' => ['nullable', 'string', 'max:10'],
-                'telefono' => ['nullable', 'string', 'max:20'],
-            ]);
-
-            if ($validator->fails()) {
-                $errors[] = [
-                    'fila' => $index + 2,
-                    'errores' => $validator->errors()->all(),
-                ];
-
-                continue;
-            }
-
-            $candidates[] = [
-                'fila' => $index + 2,
-                'data' => $validator->validated(),
-            ];
-        }
-
-        $emails = collect($candidates)->pluck('data.email')->filter()->unique()->values()->all();
-
-        $existingEmails = User::withTrashed()
-            ->whereIn('email', $emails)
-            ->pluck('email')
-            ->map(fn (string $email) => Str::lower($email))
-            ->flip()
-            ->all();
-
-        foreach ($candidates as $candidate) {
-            $data = $candidate['data'];
-            $email = Str::lower($data['email']);
-
-            if (isset($existingEmails[$email])) {
-                $skipped++;
-
-                continue;
-            }
-
-            try {
-                $user = DB::transaction(function () use ($data, $urbanismo, $email) {
-                    return User::create([
-                        'name' => $data['nombre'],
-                        'email' => $email,
-                        'username' => UsernameGenerator::fromEmail($email),
-                        'phone' => $data['telefono'] ?? null,
-                        'dni' => $data['dni'] ?? null,
-                        'password' => Str::password(40),
-                        'rol_id' => Rol::PROPIETARIO,
-                        'urbanismo_id' => $urbanismo->id,
-                        'unidad' => $data['unidad'],
-                        'estado_registro' => RegistrationStatus::Pendiente,
-                        'status' => 1,
-                    ]);
-                });
-
-                $existingEmails[$email] = true;
-                SendOnboardingMagicLinkJob::dispatch($user->id);
-                $created++;
-            } catch (Throwable $exception) {
-                $errors[] = [
-                    'fila' => $candidate['fila'],
-                    'errores' => [$exception->getMessage()],
-                ];
-            }
-        }
-
-        return $this->returnSuccess(200, [
-            'created' => $created,
-            'skipped' => $skipped,
-            'errors' => $errors,
-        ]);
+    public function importTemplate(Urbanismo $urbanismo)
+    {
+        return Excel::download(
+            new ResidentsImportTemplateExport,
+            'plantilla-residentes.xlsx'
+        );
     }
 
     public function validateActivation(ValidateActivationTokenRequest $request): JsonResponse
@@ -221,7 +146,8 @@ class OnboardingController extends Controller
     private function findUsableToken(string $plainToken, string $email, bool $lock = false): ?AccountActivationToken
     {
         $query = AccountActivationToken::with('user.urbanismo')
-            ->where('token_hash', hash('sha256', $plainToken));
+            ->where('token_hash', hash('sha256', $plainToken))
+            ->where('purpose', 'activation');
 
         if ($lock) {
             $query->lockForUpdate();
@@ -238,39 +164,5 @@ class OnboardingController extends Controller
         }
 
         return $token;
-    }
-
-    /**
-     * @return array{nombre: string, email: string, unidad: string, dni: ?string, telefono: ?string}
-     */
-    private function normalizeResidentRow(Collection $row): array
-    {
-        $data = $row->toArray();
-
-        $dni = $this->firstFilled($data, ['dni', 'documento']);
-        $phone = $this->firstFilled($data, ['telefono', 'phone', 'celular']);
-
-        return [
-            'nombre' => $this->firstFilled($data, ['nombre', 'name', 'nombre_completo']) ?? '',
-            'email' => Str::lower($this->firstFilled($data, ['email', 'correo', 'correo_electronico']) ?? ''),
-            'unidad' => $this->firstFilled($data, ['unidad', 'apartamento', 'departamento']) ?? '',
-            'dni' => $dni,
-            'telefono' => $phone,
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     * @param  list<string>  $keys
-     */
-    private function firstFilled(array $data, array $keys): ?string
-    {
-        foreach ($keys as $key) {
-            if (filled($data[$key] ?? null)) {
-                return trim((string) $data[$key]);
-            }
-        }
-
-        return null;
     }
 }

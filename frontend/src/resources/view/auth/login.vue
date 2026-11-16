@@ -258,7 +258,7 @@ onMounted(async () => {
     </div>
 
     <q-form class="flex flex-col" greedy @submit="authLogin">
-      <div class="mb-3">
+      <div class="mb-0">
         <label class="mb-[0.45rem] block text-[0.86rem] font-bold text-brand-ink" for="login-identifier">
           Correo electrónico
         </label>

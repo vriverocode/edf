@@ -107,6 +107,17 @@ export const useAuthStore = defineStore('auth', {
           })
       })
     },
+    async joinCommunity(payload) {
+      return await new Promise((resolve, reject) => {
+        ApiService.post('/api/register/community', payload)
+          .then(({ data }) => {
+            resolve(data)
+          })
+          .catch(({ response }) => {
+            reject(response)
+          })
+      })
+    },
     async validateActivation(payload) {
       return await new Promise((resolve, reject) => {
         ApiService.get('/api/onboarding/validate', '', { params: payload })

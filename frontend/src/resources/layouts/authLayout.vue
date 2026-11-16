@@ -7,6 +7,7 @@ const route = useRoute()
 const router = useRouter()
 
 const isAuthShell = computed(() => route.meta?.authShell === true)
+const showAuthTabs = computed(() => route.meta?.authTabs !== false)
 const authTab = computed(() => (route.path === '/register' ? 'register' : 'login'))
 const authTabs = [
   { label: 'Iniciar sesión', value: 'login', class: 'text-[0.9rem] font-bold text-brand-muted' },
@@ -164,7 +165,7 @@ onUnmounted(() => {
           <header
             class="relative isolate overflow-hidden rounded-b-[2rem] bg-brand-green px-6 pb-[5.75rem]
             pt-[calc(1.5rem_+_env(safe-area-inset-top,0px))]
-            text-white md:rounded-b-none md:rounded-t-[1.75rem] md:px-6 md:pb-[6.25rem] md:pt-9"
+            text-white md:rounded-b-none md:rounded-t-[1.75rem] md:px-6 md:pb-[4.8rem] md:pt-8"
           >
             <span
               class="pointer-events-none absolute -right-[60px] -top-[80px] -z-10 h-[210px] w-[210px] rounded-full bg-brand-sage/30"
@@ -226,6 +227,7 @@ onUnmounted(() => {
             class="relative z-[2] -mt-[5.5rem] mx-4 mb-4 rounded-3xl bg-white p-5 pt-8 shadow-[0_24px_48px_rgba(34,56,41,0.14)] md:mx-0 md:mt-[-4.75rem] md:p-6"
           >
             <q-btn-toggle
+              v-if="showAuthTabs"
               :model-value="authTab"
               :options="authTabs"
               no-caps

@@ -26,6 +26,11 @@ const form = ref({
 
 watch(() => props.dialog, (newValue) => {
   dialog.value = newValue
+
+  if (newValue) {
+    form.value.email = authStore.user?.email || ''
+    form.value.phone = authStore.user?.phone || ''
+  }
 })
 
 const isFormValid = () => {

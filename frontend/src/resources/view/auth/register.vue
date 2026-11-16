@@ -8,16 +8,12 @@ const router = useRouter()
 const authServices = useAuthStore()
 
 const form = reactive({
-  codigo_invitacion: '',
   name: '',
-  unidad: '',
   email: '',
   password: '',
-  password_confirmation: '',
 })
 
 const isPwd = ref(true)
-const isPwdConfirm = ref(true)
 const loading = ref(false)
 
 const passwordChecks = computed(() => [
@@ -32,9 +28,7 @@ const passwordIsStrong = computed(() => passwordChecks.value.every((check) => ch
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
 const rules = {
-  code: [(val) => (val && val.trim().length > 0) || 'Ingresa tu código de invitación'],
   name: [(val) => (val && val.trim().length > 0) || 'Ingresa tu nombre completo'],
-  unidad: [(val) => (val && val.trim().length > 0) || 'Ingresa tu unidad (ej: Torre A - Apto 4)'],
   email: [
     (val) => (val && val.length > 0) || 'Ingresa tu correo',
     (val) => isEmail(val) || 'Ingresa un correo válido',
@@ -43,17 +37,10 @@ const rules = {
     (val) => (val && val.length > 0) || 'Ingresa una contraseña',
     () => passwordIsStrong.value || 'La contraseña no cumple los requisitos',
   ],
-  confirm: [
-    (val) => (val && val.length > 0) || 'Confirma tu contraseña',
-    (val) => val === form.password || 'Las contraseñas no coinciden',
-  ],
 }
 
 const togglePwd = () => {
   isPwd.value = !isPwd.value
-}
-const togglePwdConfirm = () => {
-  isPwdConfirm.value = !isPwdConfirm.value
 }
 
 const onSubmit = async () => {
@@ -62,7 +49,11 @@ const onSubmit = async () => {
   loading.value = true
 
   try {
-    const response = await authServices.registerResident({ ...form, nombre: form.name })
+    const response = await authServices.registerResident({
+      nombre: form.name,
+      email: form.email,
+      password: form.password,
+    })
     const status = response?.code
 
     if (status !== 201) {
@@ -71,17 +62,20 @@ const onSubmit = async () => {
       return
     }
 
-    Notify.create({
-      color: 'positive',
-      message: response?.data?.message || 'Registro exitoso. Espera la aprobación de la administración.',
-      timeout: 4000,
-    })
-    setTimeout(() => router.push('/login'), 1800)
+    const registrationToken = response?.data?.registration_token
+
+    if (!registrationToken) {
+      Notify.create({ color: 'negative', message: 'No se pudo iniciar el registro', timeout: 3000 })
+      return
+    }
+
+    sessionStorage.setItem('registration_token', registrationToken)
+    router.push('/register/comunidad')
   } catch (error) {
     const message =
       error?.data?.error ||
       error?.data?.errors?.email?.[0] ||
-      error?.data?.errors?.codigo_invitacion?.[0] ||
+      error?.data?.errors?.nombre?.[0] ||
       error?.data?.message ||
       'No se pudo crear la cuenta'
 
@@ -118,30 +112,7 @@ const onSubmit = async () => {
     </div>
 
     <q-form class="flex flex-col" greedy @submit="onSubmit">
-      <div class="mb-3">
-        <label class="mb-[0.45rem] block text-[0.86rem] font-bold text-brand-ink" for="register-code">
-          Código de invitación
-        </label>
-        <q-input
-          id="register-code"
-          v-model="form.codigo_invitacion"
-          class="auth-field"
-          borderless
-          color="primary"
-          placeholder="Ej: EASY-1234"
-          autocomplete="off"
-          autocapitalize="characters"
-          input-class="text-[0.95rem] text-brand-ink placeholder:text-[#A7B0A6]"
-          :rules="rules.code"
-          :disable="loading"
-        >
-          <template v-slot:prepend>
-            <q-icon name="eva-keypad-outline" class="text-[1.15rem] text-brand-muted" />
-          </template>
-        </q-input>
-      </div>
-
-      <div class="mb-3">
+      <div class="mb-0">
         <label class="mb-[0.45rem] block text-[0.86rem] font-bold text-brand-ink" for="register-name">
           Nombre completo
         </label>
@@ -162,30 +133,7 @@ const onSubmit = async () => {
           </template>
         </q-input>
       </div>
-
-      <div class="mb-3">
-        <label class="mb-[0.45rem] block text-[0.86rem] font-bold text-brand-ink" for="register-unidad">
-          Unidad
-        </label>
-        <q-input
-          id="register-unidad"
-          v-model="form.unidad"
-          class="auth-field"
-          borderless
-          color="primary"
-          placeholder="Ej: Torre A - Apto 4"
-          autocomplete="off"
-          input-class="text-[0.95rem] text-brand-ink placeholder:text-[#A7B0A6]"
-          :rules="rules.unidad"
-          :disable="loading"
-        >
-          <template v-slot:prepend>
-            <q-icon name="eva-home-outline" class="text-[1.15rem] text-brand-muted" />
-          </template>
-        </q-input>
-      </div>
-
-      <div class="mb-3">
+      <div class="mb-0">
         <label class="mb-[0.45rem] block text-[0.86rem] font-bold text-brand-ink" for="register-email">
           Correo electrónico
         </label>
@@ -208,7 +156,7 @@ const onSubmit = async () => {
         </q-input>
       </div>
 
-      <div class="mb-3">
+      <div class="mb-0">
         <label class="mb-[0.45rem] block text-[0.86rem] font-bold text-brand-ink" for="register-password">
           Contraseña
         </label>
@@ -242,7 +190,7 @@ const onSubmit = async () => {
           </template>
         </q-input>
 
-        <ul class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+        <ul class="mb-2 ">
           <li
             v-for="check in passwordChecks"
             :key="check.label"
@@ -256,41 +204,6 @@ const onSubmit = async () => {
             <span>{{ check.label }}</span>
           </li>
         </ul>
-      </div>
-
-      <div class="mb-3">
-        <label class="mb-[0.45rem] block text-[0.86rem] font-bold text-brand-ink" for="register-confirm">
-          Confirmar contraseña
-        </label>
-        <q-input
-          id="register-confirm"
-          v-model="form.password_confirmation"
-          class="auth-field"
-          borderless
-          color="primary"
-          placeholder="••••••••"
-          :type="isPwdConfirm ? 'password' : 'text'"
-          autocomplete="new-password"
-          input-class="text-[0.95rem] text-brand-ink placeholder:text-[#A7B0A6]"
-          :rules="rules.confirm"
-          :disable="loading"
-        >
-          <template v-slot:prepend>
-            <q-icon name="eva-lock-outline" class="text-[1.15rem] text-brand-muted" />
-          </template>
-          <template v-slot:append>
-            <q-icon
-              :name="isPwdConfirm ? 'eva-eye-off-outline' : 'eva-eye-outline'"
-              class="cursor-pointer rounded-full text-[1.15rem] text-brand-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber"
-              role="button"
-              tabindex="0"
-              :aria-label="isPwdConfirm ? 'Mostrar contraseña' : 'Ocultar contraseña'"
-              @click="togglePwdConfirm"
-              @keydown.enter.prevent="togglePwdConfirm"
-              @keydown.space.prevent="togglePwdConfirm"
-            />
-          </template>
-        </q-input>
       </div>
 
       <q-btn

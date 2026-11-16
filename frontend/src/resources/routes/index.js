@@ -34,6 +34,22 @@ const routes = [
         },
       },
       {
+        path: '/register/comunidad',
+        component: () => import('@/view/auth/joinCommunity.vue'),
+        meta: {
+          title: 'Únete a tu comunidad',
+          authShell: true,
+          authTabs: false,
+        },
+        beforeEnter: (_to, _from, next) => {
+          if (sessionStorage.getItem('registration_token')) {
+            next()
+          } else {
+            next('/register')
+          }
+        },
+      },
+      {
         path: '/activar-cuenta',
         component: () => import('@/view/auth/activateAccount.vue'),
         meta: {

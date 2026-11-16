@@ -50,6 +50,7 @@ class SendOnboardingMagicLinkJob implements ShouldQueue
         $plainToken = Str::random(64);
 
         $user->activationTokens()->create([
+            'purpose' => 'activation',
             'token_hash' => hash('sha256', $plainToken),
             'expires_at' => now()->addDays(7),
         ]);

@@ -11,6 +11,7 @@ class AccountActivationToken extends Model
 {
     protected $fillable = [
         'user_id',
+        'purpose',
         'token_hash',
         'expires_at',
         'used_at',

@@ -48,6 +48,7 @@ Route::middleware('throttle:public')->group(function () {
 });
 
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:sensitive');
+Route::post('/register/community', [AuthController::class, 'joinCommunity'])->middleware('throttle:sensitive');
 Route::get('/onboarding/validate', [OnboardingController::class, 'validateActivation'])->middleware('throttle:sensitive');
 Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->middleware('throttle:sensitive');
 
@@ -65,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/logout', [AuthController::class, 'logout']);
 
     // ── Onboarding / Urbanismos ──────────────────────────────
+    Route::get('/urbanismos/{urbanismo}/residents/import/template', [OnboardingController::class, 'importTemplate'])
+        ->middleware('role:admin,super-admin', 'throttle:write');
     Route::post('/urbanismos/{urbanismo}/residents/import', [OnboardingController::class, 'import'])
         ->middleware('role:admin,super-admin', 'throttle:write');
     Route::post('/urbanismos/{urbanismo}/users/{user}/approve', [OnboardingController::class, 'approve'])

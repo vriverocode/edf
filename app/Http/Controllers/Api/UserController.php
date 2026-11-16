@@ -722,7 +722,7 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['required', 'string', 'min:7'],
         ], [
