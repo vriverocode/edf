@@ -258,7 +258,7 @@ onMounted(fetchData)
 }
 
 .col-num {
-  min-width: 110px;
+  min-width: 95px;
   text-align: right;
 }
 
