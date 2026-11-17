@@ -54,6 +54,7 @@
         }
         .header-center {
             text-align: center;
+            padding-left:8px!important;
             padding-top: 18px !important;
         }
         .header-center .building-name {
@@ -205,10 +206,10 @@
             padding-left: 2px !important;
         }
         .cbx {
-            width: 13px;
-            height: 13px;
+            width: 15px;
+            height: 15px;
             border: 1.5px solid #555;
-            background-color: #fff;
+            background-color: #414141ff;
         }
         .cbx-on {
             border: 1.5px solid #555;
@@ -293,9 +294,40 @@
             border-top: 1px solid #ddd;
             padding-top: 8px;
         }
+
+        /* ── Marca de agua (Pagada / No Pagada) ── */
+        .watermark {
+            position: fixed;
+            top: 32%;
+            left: 5%;
+            width: 90%;
+            text-align: center;
+            font-size: 72px;
+            font-weight: 900;
+            border-radius: 12px;
+            padding: 18px 24px;
+            letter-spacing: 12px;
+            transform: rotate(-28deg);
+            -webkit-transform: rotate(-28deg);
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+        }
+        .watermark-paid {
+            color: rgba(22, 163, 74, 0.16);
+            border: 7px solid rgba(22, 163, 74, 0.20);
+        }
+        .watermark-unpaid {
+            color: rgba(220, 38, 38, 0.16);
+            border: 7px solid rgba(220, 38, 38, 0.18);
+        }
     </style>
 </head>
 <body>
+    @if((int) ($quota->status ?? 0) === 3)
+    @else
+    <div class="watermark watermark-unpaid">NO PAGADA</div>
+    @endif
     <div class="invoice-container">
 
         {{-- ═══════════ HEADER ═══════════ --}}
@@ -317,6 +349,9 @@
                 </td>
             </tr>
         </table>
+        @if((int) ($quota->status ?? 0) === 3)
+            <div class="" style="text-align: center; font-size: 20px; font-weight: bold; color: #51b522ff;">PAGADA</div>
+        @endif
 
         {{-- ═══════════ POSEEDOR / PROPIETARIO / PERIODO ═══════════ --}}
         <table class="owner-table">
@@ -325,14 +360,15 @@
                 <th class="head-cell">NOMBRE O RAZON SOCIAL</th>
                 <th class="head-cell" style="width: 14%;">DNI O RUC</th>
                 <th class="head-cell" style="width: 11%;">PERIODO</th>
-                <td class="period-value" style="border: none;">{{ strtoupper($monthLabel) }}</td>
+                <td class="period-value" style="border: 1px solid black">{{ strtoupper($monthLabel) }}</td>
             </tr>
             <tr>
                 <td class="label-cell">POSEEDOR</td>
                 <td class="value-cell">{{ strtoupper($owner->name ?? 'N/A') }}</td>
                 <td class="value-cell center" style="text-align: center;">{{ $owner->document ?? '0' }}</td>
                 <td class="label-cell">EMISION</td>
-                <td class="date-value">{{ $emissionDate }}</td>
+                <td class="date-value">{{ $emissionQuotaDate }}</td>
+                {{-- <td class="date-value">{{ $emissionDate }}</td> --}}
             </tr>
             <tr>
                 <td class="label-cell">PROPIETARIO</td>
@@ -360,8 +396,8 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>CUOTA DE GASTOS COMUNES - {{ strtoupper($monthLabel) }} {{ $year }}</td>
-                    <td class="right">{{ number_format($maintenanceAmount, 2) }}</td>
+                    <td style="font-size:10.5px">CUOTA DE GASTOS COMUNES - {{ strtoupper($monthLabel) }} {{ $year }}</td>
+                    <td class="right" style="font-size:10.5px">S/ {{ number_format($maintenanceAmount, 2) }}</td>
                 </tr>
                 @if($waterAmount > 0)
                 <tr>
@@ -372,7 +408,7 @@
             </tbody>
         </table>
 
-        <div class="amount-words">
+        <div class="amount-words" style="font-size:10.5px">
             <strong>SON:</strong> {{ $amountInWords }} SOLES
         </div>
 
@@ -385,16 +421,18 @@
                 </td>
                 <td class="cbx-label" style="width: 10%;">TRADICIONAL</td>
                 <td style="width: 4%;">
-                    <table style="border-collapse: collapse;"><tr><td class="cbx-on">&nbsp;</td></tr></table>
+                    <table style="border-collapse: collapse;color:white">
+                        <tr><td class="cbx-on" style="font-size:18px; padding:0px 6px">X</td></tr>
+                    </table>
                 </td>
                 <td class="cbx-label" style="width: 10%;">MULTIBANCA</td>
                 <td class="collect-label" style="width: 14%;">PRESUPUESTO</td>
-                <td class="collect-value" style="width: 16%; padding-right: 8px; padding-left: 4px !important;">
-                    {{ number_format($totalMaintenanceBudget ?? ($monthlyBill->total_maintenance_budget ?? 0), 2) }}
+                <td class="collect-value" style="width: 16%; padding-right: 8px; padding-left: 4px !important; font-size:12px">
+                   S/ {{ number_format($totalMaintenanceBudget ?? ($monthlyBill->total_maintenance_budget ?? 0), 2) }}
                 </td>
                 <td class="collect-label" style="width: 12%;">CUOTA DEL MES</td>
-                <td class="collect-value" style="width: 12%; padding-right: 8px; padding-left: 4px !important;">
-                    {{ number_format($totalAmount, 2) }}
+                <td class="collect-value" style="width: 12%; padding-right: 8px; padding-left: 4px !important; font-size:12px">
+                   S/ {{ number_format($totalAmount, 2) }}
                 </td>
             </tr>
         </table>
@@ -413,12 +451,12 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>{{ number_format($initialBalance, 2) }}</td>
-                    <td>{{ number_format($monthlyPayments, 2) }}</td>
-                    <td>{{ number_format($totalAmount, 2) }}</td>
+                    <td>S/ {{ number_format($initialBalance, 2) }}</td>
+                    <td>S/ {{ number_format($monthlyPayments, 2) }}</td>
+                    <td>S/ {{ number_format($totalAmount, 2) }}</td>
                     <td>{{ $overdueQuotas }}</td>
                     <td>{{ $overdueDays }}</td>
-                    <td>{{ number_format($finalBalance, 2) }}</td>
+                    <td>S/ {{ number_format($finalBalance, 2) }}</td>
                 </tr>
             </tbody>
         </table>
@@ -516,6 +554,41 @@
                     <td class="right">{{ number_format($payment['total_paid'], 2) }}</td>
                 </tr>
                 @endforeach
+            </tbody>
+        </table>
+        @endif
+
+          {{-- ═══════════ DETALLE DE GASTOS COMUNES DEL MES ═══════════ --}}
+        @if(isset($expenses) && $expenses->count() > 0)
+        <div class="section-title">DETALLE DE GASTOS COMUNES DEL MES - {{ strtoupper($monthLabel) }} {{ $year }}</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 14%;">CATEGORÍA</th>
+                    <th style="width: 32%;">DESCRIPCIÓN</th>
+                    <th style="width: 18%;">PROVEEDOR</th>
+                    <th class="right" style="width: 14%;">PRESUPUESTO</th>
+                    <th class="right" style="width: 10%;">% PART.</th>
+                    <th class="right" style="width: 12%;">TU CUOTA</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($expenses as $expense)
+                <tr>
+                    <td>{{ strtoupper($expense->serviceCategory->name ?? 'SERVICIO') }}</td>
+                    <td>{{ $expense->description ?? $expense->serviceCategory->name ?? '' }}</td>
+                    <td>{{ $expense->provider->name ?? '-' }}</td>
+                    <td class="right">{{ number_format($expense->amount, 2) }}</td>
+                    <td class="right">{{ number_format($totalParticipation, 2) }}%</td>
+                    <td class="right">S/ {{ number_format($expense->amount * $totalParticipation / 100, 2) }}</td>
+                </tr>
+                @endforeach
+                <tr class="total">
+                    <td colspan="3"><strong>TOTAL GASTOS COMUNES</strong></td>
+                    <td class="right">{{ number_format($totalExpenses, 2) }}</td>
+                    <td class="right">{{ number_format($totalParticipation, 2) }}%</td>
+                    <td class="right">S/ {{ number_format($totalExpenses * $totalParticipation / 100, 2) }}</td>
+                </tr>
             </tbody>
         </table>
         @endif

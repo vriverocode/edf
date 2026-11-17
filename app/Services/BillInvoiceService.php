@@ -127,22 +127,80 @@ class BillInvoiceService
             ->latest('id')
             ->first();
 
+        $expenses = $monthlyBill
+            ? $monthlyBill->expenses()
+                ->with(['provider:id,name', 'serviceCategory:id,name'])
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+            : collect();
+        $totalExpenses = (float) $expenses->sum('amount');
+
         $units = Departament::where('user_id', $owner->id ?? 0)->get();
         $totalArea = $units->sum('area');
         $totalParticipation = $units->sum('participation_percentage');
 
-        $pays = $quota->pays->take(10);
-        $paymentHistory = $pays->map(function ($pay) {
-            return [
-                'date' => $pay->pay_date ? Carbon::parse($pay->pay_date)->format('d/m/Y') : 'N/A',
-                'description' => 'Recibo De Mantenimiento '.
-                    self::MONTH_NAMES[(int) Carbon::parse($pay->created_at)->format('m')].
-                    ' '.Carbon::parse($pay->created_at)->format('Y'),
-                'amount' => (float) $pay->amount,
-                'interest' => 0,
-                'total_paid' => (float) $pay->amount,
-            ];
-        })->toArray();
+        $pays = $quota->pays;
+
+        // Buscar las últimas 5 cuotas anteriores a esta para el mismo departamento (o responsable)
+        $previousQuotas = Quota::where('departament_id', $departament->id)
+            ->where(function ($q) use ($year, $month) {
+                $q->where(function ($sub) use ($year) {
+                    $sub->where(function ($yQuery) use ($year) {
+                        $yQuery->where('year', '<', $year)
+                            ->orWhere(function ($dueQuery) use ($year) {
+                                $dueQuery->whereNull('year')
+                                    ->whereYear('due_date', '<', $year);
+                            });
+                    });
+                })->orWhere(function ($sub) use ($year, $month) {
+                    $sub->where(function ($yQuery) use ($year) {
+                        $yQuery->where('year', $year)
+                            ->orWhere(function ($dueQuery) use ($year) {
+                                $dueQuery->whereNull('year')
+                                    ->whereYear('due_date', $year);
+                            });
+                    })->where('month', '<', $month);
+                });
+            })
+            ->whereNotNull('month')
+            ->where('month', '>', 0)
+            ->orderByRaw('COALESCE(`year`, YEAR(`due_date`)) DESC')
+            ->orderByDesc('month')
+            ->take(5)
+            ->with(['pays' => function ($query) {
+                $query->where('pays.status', 2)
+                    ->where('pays.type', 1)
+                    ->orderByDesc('pays.pay_date');
+            }])
+            ->get();
+
+        $paymentHistory = [];
+        foreach ($previousQuotas as $prevQuota) {
+            $quotaMonth = (int) $prevQuota->month;
+            $quotaYear = $prevQuota->resolvedYear();
+            $monthName = self::MONTH_NAMES[$quotaMonth] ?? '';
+            $desc = "Recibo De Mantenimiento {$monthName} {$quotaYear}";
+
+            $pay = $prevQuota->pays->first();
+            if ($pay) {
+                $paymentHistory[] = [
+                    'date' => $pay->pay_date ? Carbon::parse($pay->pay_date)->format('d/m/Y') : 'N/A',
+                    'description' => $desc,
+                    'amount' => (float) $pay->amount,
+                    'interest' => 0,
+                    'total_paid' => (float) $pay->amount,
+                ];
+            } else {
+                $paymentHistory[] = [
+                    'date' => 'Pendiente',
+                    'description' => $desc,
+                    'amount' => (float) $prevQuota->amount,
+                    'interest' => 0,
+                    'total_paid' => 0.0,
+                ];
+            }
+        }
 
         $initialBalance = Quota::where('departament_id', $departament->id)
             ->whereIn('status', [1, 4])
@@ -175,6 +233,8 @@ class BillInvoiceService
         $finalBalance = $initialBalance + $totalAmount - $monthlyPayments;
 
         $emissionDate = now()->format('d/m/Y');
+        $emissionQuotaDate = Carbon::parse($quota->created_at)->format('d/m/Y');
+
         $dueDateFormatted = $quota->due_date
             ? Carbon::parse($quota->due_date)->format('d/m/Y')
             : now()->addDays(15)->format('d/m/Y');
@@ -196,6 +256,7 @@ class BillInvoiceService
             'previousMonthLabel' => self::MONTH_NAMES[$previousMonth],
             'waterYear' => $waterYear,
             'emissionDate' => $emissionDate,
+            'emissionQuotaDate' => $emissionQuotaDate,
             'dueDate' => $dueDateFormatted,
             'amountInWords' => $this->numberToWords($totalAmount),
             'initialBalance' => $initialBalance,
@@ -208,6 +269,8 @@ class BillInvoiceService
             'totalParticipation' => $totalParticipation,
             'paymentHistory' => $paymentHistory,
             'monthlyBill' => $monthlyBill,
+            'expenses' => $expenses,
+            'totalExpenses' => $totalExpenses,
             'depositCode' => $departament->code_pay ?? '-',
             'receiptNumber' => '001 - '.str_pad((string) $quota->id, 6, '0', STR_PAD_LEFT),
             'totalMaintenanceBudget' => (float) ($monthlyBill->total_maintenance_budget ?? 0),

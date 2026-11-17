@@ -261,7 +261,7 @@ const toggleMultiMode = () => {
   selectedGroupIds.value = []
 }
 
-// Grupo mensual deudor más antiguo que impide seleccionar `group`: cualquier
+// Grupo mensual deudor más antiguo que impide seleccionar `group`: 
 // deuda (status 1 o 2) anterior al grupo y aún no seleccionada. Un status 2
 // nunca es seleccionable (pago en revisión), por eso bloquea a los posteriores.
 const blockingGroupFor = (group) => {

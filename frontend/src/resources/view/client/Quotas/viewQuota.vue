@@ -874,23 +874,34 @@ loadQuota(route.params.id || route.query.id)
               <span class="invoice-info-item__value">#{{ payData.reference ?? '—' }}</span>
             </div>
           </div>
-          <div class="flex flex-center justify-center mt-4 cursor-pointer" @click="showVoucherModal = true">
-            <span class="text-subtitle1 text-primary text-bold" style="text-decoration:dotted">Voucher de pago</span>
-          </div>
+          
         </div>
 
         <!-- ═══ Actions ═══ -->
-        <div class="invoice-section invoice-actions">
-          <q-btn
-            v-if="quotaData.status === 3"
-            outline
-            color="primary"
-            icon="eva-download-outline"
-            label="Descargar Recibo"
-            no-caps
-            class="invoice-actions__btn"
-            @click="downloadReceipt"
-          />
+        <div class="row">
+          <div class="col-md-6 col-12 px-2 ">
+            <div class="flex justify-start cursor-pointer " @click="showVoucherModal = true">
+              <div class="py-1 w-full flex flex-center"  style="border-radius: 0.8rem; border:1px solid darkblue">
+                <q-icon name="eva-camera-outline" color="primary" size="1.2rem" class="mr-1"/>
+                <span class="text-subtitle1 text-primary text-bold" style="text-decoration:dotted">Voucher de pago</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-12 px-2 mt-4 md:mt-0">
+            <div class="invoice-section invoice-actions ">
+              <q-btn
+                v-if="quotaData.status === 3"
+                outline
+                color="primary"
+                icon="eva-download-outline"
+                label="Descargar Recibo"
+                no-caps
+                class="invoice-actions__btn"
+                @click="downloadReceipt"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
