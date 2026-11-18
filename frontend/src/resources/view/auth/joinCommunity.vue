@@ -5,9 +5,11 @@ import { Notify } from 'quasar'
 import { Capacitor } from '@capacitor/core'
 import { BarcodeScanner, BarcodeFormat } from '@capacitor-mlkit/barcode-scanning'
 import { useAuthStore } from '@/services/store/auth.services'
+import iconsApp from '@/assets/icons/index'
 
 const router = useRouter()
 const authServices = useAuthStore()
+
 
 const isNative = Capacitor.isNativePlatform()
 
@@ -153,6 +155,9 @@ onMounted(() => {
         >
           <template v-slot:prepend>
             <q-icon name="eva-keypad-outline" class="text-[1.15rem] text-brand-muted" />
+          </template>
+          <template v-slot:append>
+            <div v-html="iconsApp.scan" class="h-5 w-5" @click="scanQr" />
           </template>
         </q-input>
       </div>

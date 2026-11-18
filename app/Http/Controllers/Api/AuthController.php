@@ -89,7 +89,7 @@ class AuthController extends Controller
                     'password' => $request->string('password')->toString(),
                     'rol_id' => Rol::PROPIETARIO,
                     'estado_registro' => RegistrationStatus::Pendiente,
-                    'status' => 1,
+                    'status' => 4,
                 ]);
             });
         }
