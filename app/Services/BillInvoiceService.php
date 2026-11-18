@@ -11,6 +11,7 @@ use App\Models\Pay;
 use App\Models\PayMethod;
 use App\Models\Quota;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -95,8 +96,9 @@ class BillInvoiceService
         return ['sent' => $sentCount, 'failed' => $failedCount];
     }
 
-    public function buildInvoiceData(Quota $quota): array
+    public function buildInvoiceData(Quota $quota, ?Collection $allQuotas = null): array
     {
+        $quotas = $allQuotas && $allQuotas->isNotEmpty() ? $allQuotas : collect([$quota]);
         $departament = $quota->departament;
         $owner = $departament->owner;
         $responsiblePivot = $quota->responsiblePivot;
@@ -106,10 +108,12 @@ class BillInvoiceService
         $month = (int) $quota->month;
         $year = $quota->due_date ? Carbon::parse($quota->due_date)->year : now()->year;
 
-        $maintenanceAmount = (float) $quota->maintenance_amount;
-        $waterAmount = (float) $quota->water_amount;
-        $totalAmount = (float) $quota->amount;
+        $maintenanceAmount = (float) $quotas->sum('maintenance_amount');
+        $waterAmount = (float) $quotas->sum('water_amount');
+        $totalAmount = (float) $quotas->sum('amount');
 
+        // Construir listado de lecturas de agua individuales por cada cuota/departamento
+        $waterReadings = $this->formatWaterReadingList($quotas);
         $waterConsumption = 0;
         $waterPricePerM3 = 0;
         if ($waterReading) {
@@ -127,22 +131,88 @@ class BillInvoiceService
             ->latest('id')
             ->first();
 
-        $units = Departament::where('user_id', $owner->id ?? 0)->get();
+        $expenses = $monthlyBill
+            ? $monthlyBill->expenses()
+                ->with(['provider:id,name', 'serviceCategory:id,name'])
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+            : collect();
+        $totalExpenses = (float) $expenses->sum('amount');
+
+        // Si se especificaron cuotas acumuladas/seleccionadas, mostrar SOLAMENTE las unidades de esas cuotas
+        if ($allQuotas && $allQuotas->isNotEmpty()) {
+            $units = $allQuotas->map(fn ($q) => $q->departament)->filter()->unique('id')->values();
+        } else {
+            $units = Departament::where('user_id', $owner->id ?? 0)->get();
+        }
         $totalArea = $units->sum('area');
         $totalParticipation = $units->sum('participation_percentage');
 
-        $pays = $quota->pays->take(10);
-        $paymentHistory = $pays->map(function ($pay) {
-            return [
-                'date' => $pay->pay_date ? Carbon::parse($pay->pay_date)->format('d/m/Y') : 'N/A',
-                'description' => 'Recibo De Mantenimiento '.
-                    self::MONTH_NAMES[(int) Carbon::parse($pay->created_at)->format('m')].
-                    ' '.Carbon::parse($pay->created_at)->format('Y'),
-                'amount' => (float) $pay->amount,
-                'interest' => 0,
-                'total_paid' => (float) $pay->amount,
-            ];
-        })->toArray();
+        $deptNumbers = $units->pluck('number')->filter()->implode(', ');
+        $departamentNumberDisplay = $deptNumbers ?: $departament->number;
+
+        $pays = $quota->pays;
+
+        // Buscar las últimas 5 cuotas anteriores a esta para el mismo departamento (o responsable)
+        $previousQuotas = Quota::where('departament_id', $departament->id)
+            ->where(function ($q) use ($year, $month) {
+                $q->where(function ($sub) use ($year) {
+                    $sub->where(function ($yQuery) use ($year) {
+                        $yQuery->where('year', '<', $year)
+                            ->orWhere(function ($dueQuery) use ($year) {
+                                $dueQuery->whereNull('year')
+                                    ->whereYear('due_date', '<', $year);
+                            });
+                    });
+                })->orWhere(function ($sub) use ($year, $month) {
+                    $sub->where(function ($yQuery) use ($year) {
+                        $yQuery->where('year', $year)
+                            ->orWhere(function ($dueQuery) use ($year) {
+                                $dueQuery->whereNull('year')
+                                    ->whereYear('due_date', $year);
+                            });
+                    })->where('month', '<', $month);
+                });
+            })
+            ->whereNotNull('month')
+            ->where('month', '>', 0)
+            ->orderByRaw('COALESCE(`year`, YEAR(`due_date`)) DESC')
+            ->orderByDesc('month')
+            ->take(5)
+            ->with(['pays' => function ($query) {
+                $query->where('pays.status', 2)
+                    ->where('pays.type', 1)
+                    ->orderByDesc('pays.pay_date');
+            }])
+            ->get();
+
+        $paymentHistory = [];
+        foreach ($previousQuotas as $prevQuota) {
+            $quotaMonth = (int) $prevQuota->month;
+            $quotaYear = $prevQuota->resolvedYear();
+            $monthName = self::MONTH_NAMES[$quotaMonth] ?? '';
+            $desc = "Recibo De Mantenimiento {$monthName} {$quotaYear}";
+
+            $pay = $prevQuota->pays->first();
+            if ($pay) {
+                $paymentHistory[] = [
+                    'date' => $pay->pay_date ? Carbon::parse($pay->pay_date)->format('d/m/Y') : 'N/A',
+                    'description' => $desc,
+                    'amount' => (float) $pay->amount,
+                    'interest' => 0,
+                    'total_paid' => (float) $pay->amount,
+                ];
+            } else {
+                $paymentHistory[] = [
+                    'date' => 'Pendiente',
+                    'description' => $desc,
+                    'amount' => (float) $prevQuota->amount,
+                    'interest' => 0,
+                    'total_paid' => 0.0,
+                ];
+            }
+        }
 
         $initialBalance = Quota::where('departament_id', $departament->id)
             ->whereIn('status', [1, 4])
@@ -175,15 +245,25 @@ class BillInvoiceService
         $finalBalance = $initialBalance + $totalAmount - $monthlyPayments;
 
         $emissionDate = now()->format('d/m/Y');
+        $emissionQuotaDate = Carbon::parse($quota->created_at)->format('d/m/Y');
+
         $dueDateFormatted = $quota->due_date
             ? Carbon::parse($quota->due_date)->format('d/m/Y')
             : now()->addDays(15)->format('d/m/Y');
+
+        $singlePhotoPaths = $waterReading
+            ? $this->resolvePhotoPaths($waterReading->photo ?? $waterReading->meter_photo ?? $waterReading->proof_photo ?? null)
+            : ['url' => null, 'src' => null];
 
         return [
             'quota' => $quota,
             'departament' => $departament,
             'owner' => $owner,
             'waterReading' => $waterReading,
+            'waterReadingPhotoUrl' => $singlePhotoPaths['url'],
+            'waterReadingPhotoSrc' => $singlePhotoPaths['src'],
+            'waterReadingsList' => $waterReadings['waterReadingsList'],
+            'totalWaterConsumption' => $waterReadings['totalWaterConsumption'],
             'monthLabel' => self::MONTH_NAMES[$month],
             'year' => $year,
             'maintenanceAmount' => $maintenanceAmount,
@@ -196,6 +276,7 @@ class BillInvoiceService
             'previousMonthLabel' => self::MONTH_NAMES[$previousMonth],
             'waterYear' => $waterYear,
             'emissionDate' => $emissionDate,
+            'emissionQuotaDate' => $emissionQuotaDate,
             'dueDate' => $dueDateFormatted,
             'amountInWords' => $this->numberToWords($totalAmount),
             'initialBalance' => $initialBalance,
@@ -208,6 +289,9 @@ class BillInvoiceService
             'totalParticipation' => $totalParticipation,
             'paymentHistory' => $paymentHistory,
             'monthlyBill' => $monthlyBill,
+            'expenses' => $expenses,
+            'totalExpenses' => $totalExpenses,
+            'departamentNumberDisplay' => $departamentNumberDisplay,
             'depositCode' => $departament->code_pay ?? '-',
             'receiptNumber' => '001 - '.str_pad((string) $quota->id, 6, '0', STR_PAD_LEFT),
             'totalMaintenanceBudget' => (float) ($monthlyBill->total_maintenance_budget ?? 0),
@@ -429,5 +513,91 @@ class BillInvoiceService
         }
 
         return $result;
+    }
+
+    private function formatWaterReadingList($quotas): array
+    {
+        $waterReadingsList = $quotas
+            ->filter(fn ($q) => $q->waterReading !== null)
+            ->map(function ($q) {
+                $wr = $q->waterReading;
+                $prev = (float) ($wr->previous_reading ?? 0);
+                $curr = (float) ($wr->current_reading ?? 0);
+                $consumption = max(0, $curr - $prev);
+                $pricePerM3 = (float) ($wr->m3_price ?? 0);
+                $amount = (float) $q->water_amount > 0 ? (float) $q->water_amount : round($consumption * $pricePerM3, 2);
+
+                $photoRaw = $wr->photo ?? null;
+                $photoPaths = $this->resolvePhotoPaths($photoRaw);
+
+                return [
+                    'departament_number' => $q->departament?->number ?? '',
+                    'previous_reading' => $prev,
+                    'current_reading' => $curr,
+                    'consumption' => $consumption,
+                    'price_per_m3' => $pricePerM3,
+                    'amount' => $amount,
+                    'photo' => $photoRaw,
+                    'photo_url' => $photoPaths['url'],
+                    'photo_src' => $photoPaths['src'],
+                ];
+            })
+            ->values();
+
+        $totalWaterConsumption = (float) $waterReadingsList->sum('consumption');
+
+        return [
+            'waterReadingsList' => $waterReadingsList,
+            'totalWaterConsumption' => $totalWaterConsumption,
+        ];
+    }
+
+    private function resolvePhotoPaths(?string $photo): array
+    {
+        if (empty($photo)) {
+            return ['url' => null, 'src' => null];
+        }
+
+        // Si ya es un data URI en base64
+        if (str_starts_with($photo, 'data:image')) {
+            return ['url' => $photo, 'src' => $photo];
+        }
+
+        // Si es una URL absoluta HTTP / HTTPS
+        if (str_starts_with($photo, 'http://') || str_starts_with($photo, 'https://')) {
+            return ['url' => $photo, 'src' => $photo];
+        }
+
+        $cleanPath = ltrim($photo, '/');
+        if (str_starts_with($cleanPath, 'public/')) {
+            $cleanPath = substr($cleanPath, 7);
+        }
+
+        $candidates = [
+            public_path($cleanPath),
+            public_path('storage/'.ltrim($cleanPath, 'storage/')),
+            base_path(ltrim($photo, '/')),
+            public_path($photo),
+        ];
+
+        foreach ($candidates as $filePath) {
+            if (file_exists($filePath) && is_file($filePath)) {
+                $mime = mime_content_type($filePath) ?: 'image/jpeg';
+                $base64 = 'data:'.$mime.';base64,'.base64_encode(file_get_contents($filePath));
+                $url = asset($cleanPath);
+
+                return [
+                    'url' => $url,
+                    'src' => $base64,
+                ];
+            }
+        }
+
+        $url = asset($cleanPath);
+
+        return [
+            'url' => $url,
+            'src' => $url,
+        ];
     }
 }

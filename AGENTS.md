@@ -176,6 +176,7 @@ Schedule::command('app:active-ordesactive-air-bnb-users')->everyMinute();
 - Layouts: `layout/authLayout.vue` (login/register), `layout/panelLayout.vue` (authenticated app)
 - Composables: `composables/usePaginationState.js` — pagination with URL query sync
 
+<<<<<<< HEAD
 ### Pinia Stores (`frontend/src/resources/services/store/`) — 28 stores
 `apartment`, `auth.services`, `booking`, `bookingInvitee`, `budget`, `comunArea`, `configApp`, `credit`, `departmentCharge`, `expense`, `familiar`, `financialAccount`, `guest`, `maintenance`, `monthlyBill`, `multa`, `notice`, `pay`, `payMethod`, `provider`, `quota`, `reports`, `rol`, `serviceCategory`, `transactionCategory`, `users`, `visit`, `waterReadings`
 
@@ -216,6 +217,11 @@ Schedule::command('app:active-ordesactive-air-bnb-users')->everyMinute();
 
 ### Database Schema (49 migrations)
 Key tables: `users`, `apartaments`, `comun_areas`, `bookings`, `booking_invitees`, `pays`, `pay_quota` (pivot), `quotas`, `notices`, `familiars`, `guests`, `visits`, `peoples_x_departments`, `multas`, `multa_categories`, `expenses`, `monthly_bills`, `providers`, `service_categories`, `water_readings`, `financial_accounts`, `transactions`, `transaction_categories`, `refunds`, `credit_transactions`, `annual_budgets`, `budget_lines`, `department_charges`, `security_codes`, `pay_methods`
+=======
+### Key env vars
+- **Root `.env`**: `DB_HOST`, `DB_DATABASE=edf_app`, `PUSHER_*`, `FIREBASE_CREDENTIALS`
+- **`frontend/.env`**: `VITE_LARAVEL_API_URL` (must point to backend, e.g. `http://192.168.1.56`), `VITE_SERVER_IP` (Vite HMR host), `VITE_LARAVEL_MEDIA_URL`
+>>>>>>> f755d194bc682c2e660fab4bd6c88c5eb8a4017c
 
 ## Conventions
 

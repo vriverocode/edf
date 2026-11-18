@@ -22,13 +22,15 @@ const routes = [
         meta: {
           title: 'Bienvenido',
           depth: -1,
+          authShell: true,
         },
       },
       {
         path: '/register',
-        component: () => import('@/view/auth/login.vue'),
+        component: () => import('@/view/auth/register.vue'),
         meta: {
           title: 'Bienvenido',
+          authShell: true,
         },
       },
 

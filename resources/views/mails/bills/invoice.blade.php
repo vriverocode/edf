@@ -187,7 +187,7 @@
                 </div>
 
                 <div style="text-align: center; margin-top: 25px;">
-                    <a href="{{ $downloadUrl }}" class="download-btn" target="_blank">
+                    <a href="#" class="download-btn" target="_blank">
                         &#128196; Descargar Recibo en PDF
                     </a>
                 </div>
