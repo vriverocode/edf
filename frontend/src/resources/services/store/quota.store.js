@@ -408,14 +408,24 @@ export const useQuotaStore = defineStore('Quota', {
         throw 'No se pudo descargar el estado de cuenta'
       }
     },
-    async downloadQuotaReceipt(quotaId) {
+    async downloadQuotaReceipt(quotaIdOrIds) {
       if (!ApiService.getToken()) throw ''
 
-      const url = import.meta.env.VITE_LARAVEL_API_URL +
-        '/api/bill-invoices/client-download/' + quotaId
+      let url = import.meta.env.VITE_LARAVEL_API_URL + '/api/bill-invoices/client-download'
+
+      if (Array.isArray(quotaIdOrIds)) {
+        const ids = quotaIdOrIds.map(Number).filter((id) => id > 0)
+        if (!ids.length) throw 'Debes seleccionar al menos una cuota.'
+        const params = new URLSearchParams()
+        ids.forEach((id) => params.append('quota_ids[]', String(id)))
+        url += '?' + params.toString()
+      } else {
+        url += '/' + quotaIdOrIds
+      }
 
       try {
-        return await downloadPdfFromUrl(url, 'recibo-cuota-' + quotaId + '.pdf')
+        const fileLabel = Array.isArray(quotaIdOrIds) ? quotaIdOrIds.join('-') : quotaIdOrIds
+        return await downloadPdfFromUrl(url, 'recibo-cuota-' + fileLabel + '.pdf')
       } catch (err) {
         console.error(err)
         throw 'No se pudo descargar el recibo'

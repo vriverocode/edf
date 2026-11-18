@@ -391,7 +391,7 @@ const downloadReceipt = async () => {
   }
 }
 
-const goToHome = () => {
+const goToHome = () => {  
   router.push('/client/quotas/list')
 }
 
@@ -563,7 +563,7 @@ loadQuota(route.params.id || route.query.id)
         </div>
 
         <!-- ═══ Desglose de cuotas del mes ═══ -->
-        <div class="invoice-section">
+        <div class="invoice-section" style="margin-bottom: 0px; padding-bottom: 0px;">
           <div class="invoice-section__title">Desglose de cuotas del mes</div>
 
           <!-- Unidades DPT / EST / DPO -->
@@ -630,7 +630,7 @@ loadQuota(route.params.id || route.query.id)
           </div>
 
           <!-- Mantenimiento consolidado -->
-          <div class="mb-4" v-if="hasConsolidation">
+          <!-- <div class="mb-4" v-if="hasConsolidation">
             <div class="invoice-section__title" style="margin-bottom: 0.5rem;">Mantenimiento</div>
             <div v-if="maintenanceBreakdown" class="text-xs text-gray-400 mb-2">
               Presupuesto total: {{ amountPrefix }} {{ maintenanceBreakdown.maintenance_budget_total }}
@@ -656,7 +656,7 @@ loadQuota(route.params.id || route.query.id)
               <span class="text-gray-900">Subtotal mantenimiento</span>
               <span class="text-primary">{{ amountPrefix }} {{ money(totalMaintenance) }}</span>
             </div>
-          </div>
+          </div> -->
 
           <!-- Consumo de agua consolidado -->
           <div v-if="hasConsolidation && allQuotasForBreakdown.some(q => q.has_water_reading)" class="mb-4">
@@ -685,7 +685,7 @@ loadQuota(route.params.id || route.query.id)
                 {{ amountPrefix }} {{ money(q.water_amount) }}
               </router-link>
             </div>
-            <div class="flex justify-between items-center py-1.5 text-sm font-bold border-t border-gray-300 mt-1">
+            <div class="flex justify-between items-center  text-sm font-bold border-t border-gray-300 mt-1">
               <span class="text-gray-900">Subtotal agua</span>
               <span class="text-primary">{{ amountPrefix }} {{ money(totalWater) }}</span>
             </div>
@@ -771,9 +771,9 @@ loadQuota(route.params.id || route.query.id)
               <div class="invoice-table__col invoice-table__col--amount">
                 {{ totalWaterConsumptionM3.toFixed(3) }}
               </div>
-              <div class="invoice-table__col invoice-table__col--amount">—</div>
+              <div class="invoice-table__col invoice-table__col--amount">{{ waterFactor.toFixed(2) }}</div>
               <div class="invoice-table__col invoice-table__col--total">
-                {{ amountPrefix }} {{ money(totalWaterReadingAmount) }}
+                {{ amountPrefix }} {{ money(totalWaterReadingAmount === 0 ? totalWaterConsumptionM3 * waterFactor : totalWaterReadingAmount) }}
               </div>
             </div>
           </div>

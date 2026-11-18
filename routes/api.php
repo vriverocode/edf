@@ -453,7 +453,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/test/list-paid', [BillInvoiceController::class, 'listPaidQuotas']);
         Route::post('/test/send/{quotaId}', [BillInvoiceController::class, 'testSend']);
     });
-    Route::get('/bill-invoices/client-download/{quotaId}', [BillInvoiceController::class, 'clientDownloadPdf'])->middleware('auth:sanctum', 'role_not:trabajador');
+    Route::get('/bill-invoices/client-download/{quotaId?}', [BillInvoiceController::class, 'clientDownloadPdf'])->middleware('auth:sanctum', 'role_not:trabajador');
     Route::get('/bill-invoices/client-statement', [BillInvoiceController::class, 'clientStatementPdf'])->middleware('auth:sanctum', 'role_not:trabajador');
 
     // ── Transaction Categories ───────────────────────────────

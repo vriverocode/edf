@@ -295,6 +295,30 @@
             padding-top: 8px;
         }
 
+        /* ── Salto de página para PDF y navegador ── */
+        .page-break {
+            page-break-before: always;
+            break-before: page;
+        }
+
+        @media screen {
+            .page-break {
+                margin-top: 35px;
+                padding-top: 25px;
+                border-top: 2px dashed #226fb5;
+            }
+        }
+
+        .page-header-secondary {
+            width: 100%;
+            border-bottom: 1.5px solid #226fb5;
+            margin-bottom: 10px;
+            padding-bottom: 4px;
+        }
+        .page-header-secondary td {
+            vertical-align: middle;
+        }
+
         /* ── Marca de agua (Pagada / No Pagada) ── */
         .watermark {
             position: fixed;
@@ -337,7 +361,9 @@
                     <div class="badge">CODIGO DEPOSITO</div>
                     <div class="badge-value">{{ $depositCode ?? '-' }}</div>
                     <div class="badge">UNIDAD INMOBILIARIA</div>
-                    <div class="badge-value">{{ $departament->number }}</div>
+                    <div class="badge-value" style="font-size: {{ strlen($departamentNumberDisplay ?? $departament->number) > 10 ? '14px' : '20px' }};">
+                        {{ strtoupper($departamentNumberDisplay ?? $departament->number) }}
+                    </div>
                 </td>
                 <td class="header-center" style="width: 48%;">
                     <div class="building-name">JUNTA DE PROPIETARIOS DEL EDIFICIO PACIFIK OCEAN TOWER</div>
@@ -382,7 +408,7 @@
                 <td style="border: none;">&nbsp;</td>
                 <td style="border: none;">&nbsp;</td>
                 <td class="label-cell">REF. INTERNA</td>
-                <td class="date-value">{{ $quota->id ?? '' }}</td>
+                <td class="date-value">#{{ $quota->id ?? '' }}</td>
             </tr>
         </table>
 
@@ -420,11 +446,17 @@
                     <table style="border-collapse: collapse;"><tr><td class="cbx">&nbsp;</td></tr></table>
                 </td>
                 <td class="cbx-label" style="width: 10%;">TRADICIONAL</td>
+                @if((int) ($quota->status ?? 0) === 3)
                 <td style="width: 4%;">
                     <table style="border-collapse: collapse;color:white">
                         <tr><td class="cbx-on" style="font-size:18px; padding:0px 6px">X</td></tr>
                     </table>
                 </td>
+                @else
+                <td style="width: 4%;">
+                    <table style="border-collapse: collapse;"><tr><td class="cbx">&nbsp;</td></tr></table>
+                </td>
+                @endif
                 <td class="cbx-label" style="width: 10%;">MULTIBANCA</td>
                 <td class="collect-label" style="width: 14%;">PRESUPUESTO</td>
                 <td class="collect-value" style="width: 16%; padding-right: 8px; padding-left: 4px !important; font-size:12px">
@@ -471,16 +503,20 @@
                     <th class="right" style="width: 18%;">AREA OCUPADA</th>
                     <th class="right" style="width: 18%;">PARTICIPACION</th>
                     <th class="right" style="width: 18%;">% CUOTA</th>
+                    <th class="right" style="width: 18%;">Monto a cancelar</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($units as $unit)
                 <tr>
-                    <td>{{ $unit->inter_number }}</td>
+                    <td>{{ strtoupper($unit->number) }}</td>
                     <td>{{ $unit->type_label }}</td>
                     <td class="right">{{ number_format($unit->area, 2) }}</td>
                     <td class="right">{{ number_format($unit->participation_percentage, 2) }}</td>
                     <td class="right">{{ number_format($unit->participation_percentage, 6) }}</td>
+                    <td class="right">S/ {{ number_format(($unit->participation_percentage * ($totalMaintenanceBudget ?? ($monthlyBill->total_maintenance_budget ?? 0)))/100, 2) }}</td>
+
+
                 </tr>
                 @endforeach
                 <tr class="total">
@@ -489,46 +525,110 @@
                     <td class="right">{{ number_format($totalArea, 2) }} M2</td>
                     <td class="right">{{ number_format($totalParticipation, 2) }}%</td>
                     <td class="right">{{ number_format($totalParticipation, 6) }}%</td>
+                    <td class="right">S/ {{ number_format(($totalParticipation * ($totalMaintenanceBudget ?? ($monthlyBill->total_maintenance_budget ?? 0)))/100, 2) }}</td>
+
                 </tr>
             </tbody>
         </table>
 
         {{-- ═══════════ CONSUMO INDIVIDUAL ═══════════ --}}
-        @if($waterReading)
-        <div class="section-title">CONSUMO INDIVIDUAL</div>
+        @php
+            $hasWater = (isset($waterReadingsList) && count($waterReadingsList) > 0) || !empty($waterReading);
+        @endphp
+        @if($hasWater)
+        <div class="section-title">CONSUMO INDIVIDUAL (AGUA Y DESAGÜE)</div>
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 20%;">CONCEPTO</th>
+                    <th style="width: 24%;">CONCEPTO</th>
                     <th class="center" style="width: 10%;">U. MEDIDA</th>
-                    <th class="right" style="width: 15%;">LECTURA ANTERIOR</th>
+                    <th class="right" style="width: 14%;">LECTURA ANTERIOR</th>
                     <th class="right" style="width: 14%;">LECTURA ACTUAL</th>
                     <th class="right" style="width: 12%;">CONSUMO</th>
-                    <th class="right" style="width: 13%;">COSTO UNITARIO</th>
-                    <th class="right" style="width: 16%;">MONTO TOTAL</th>
+                    <th class="right" style="width: 12%;">COSTO UNITARIO</th>
+                    <th class="right" style="width: 14%;">MONTO TOTAL</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Agua y Desague</td>
-                    <td class="center">M3</td>
-                    <td class="right">{{ number_format($waterReading->previous_reading, 2) }}</td>
-                    <td class="right">{{ number_format($waterReading->current_reading, 2) }}</td>
-                    <td class="right">{{ number_format($waterConsumption, 2) }}</td>
-                    <td class="right">{{ number_format($waterPricePerM3, 2) }}</td>
-                    <td class="right">{{ number_format($waterAmount, 2) }}</td>
-                </tr>
-                <tr>
-                    <td>Electricidad</td>
-                    <td class="center">KWH</td>
-                    <td class="right">0.00</td>
-                    <td class="right">0.00</td>
-                    <td class="right">0.00</td>
-                    <td class="right">1.800</td>
-                    <td class="right">&nbsp;</td>
-                </tr>
+                @if(isset($waterReadingsList) && count($waterReadingsList) > 0)
+                    @foreach($waterReadingsList as $wr)
+                    <tr>
+                        <td>Consumo de agua - {{ strtoupper($wr['departament_number']) }}</td>
+                        <td class="center">M3</td>
+                        <td class="right">{{ number_format($wr['previous_reading'], 2) }}</td>
+                        <td class="right">{{ number_format($wr['current_reading'], 2) }}</td>
+                        <td class="right">{{ number_format($wr['consumption'], 2) }}</td>
+                        <td class="right">S/ {{ number_format($wr['price_per_m3'], 2) }}</td>
+                        <td class="right">S/ {{ number_format($wr['amount'], 2) }}</td>
+                    </tr>
+                    @endforeach
+                    @if(count($waterReadingsList) > 1)
+                    <tr class="total">
+                        <td colspan="4"><strong>TOTAL AGUA Y DESAGÜE</strong></td>
+                        <td class="right"><strong>{{ number_format($totalWaterConsumption ?? 0, 2) }} M3</strong></td>
+                        <td>&nbsp;</td>
+                        <td class="right"><strong>S/ {{ number_format($waterAmount, 2) }}</strong></td>
+                    </tr>
+                    @endif
+                @elseif($waterReading)
+                    <tr>
+                        <td>Agua y Desagüe - Dpto {{ $departament->number }}</td>
+                        <td class="center">M3</td>
+                        <td class="right">{{ number_format($waterReading->previous_reading, 2) }}</td>
+                        <td class="right">{{ number_format($waterReading->current_reading, 2) }}</td>
+                        <td class="right">{{ number_format($waterConsumption, 2) }}</td>
+                        <td class="right">S/ {{ number_format($waterPricePerM3, 2) }}</td>
+                        <td class="right">S/ {{ number_format($waterAmount == 0 ? ($waterConsumption * $waterPricePerM3) : $waterAmount, 2) }}</td>
+                    </tr>
+                @endif
             </tbody>
         </table>
+
+        {{-- ═══════════ FOTOS DE CONTÓMETROS DE AGUA ═══════════ --}}
+        @php
+            $waterPhotos = collect($waterReadingsList ?? [])
+                ->filter(fn ($w) => !empty($w['photo_src']) || !empty($w['photo_url']))
+                ->values();
+
+            if ($waterPhotos->isEmpty() && (!empty($waterReadingPhotoSrc) || !empty($waterReadingPhotoUrl))) {
+                $waterPhotos = collect([[
+                    'departament_number' => $departament->number,
+                    'current_reading' => $waterReading->current_reading ?? null,
+                    'photo_src' => $waterReadingPhotoSrc ?? $waterReadingPhotoUrl,
+                    'photo_url' => $waterReadingPhotoUrl,
+                ]]);
+            }
+        @endphp
+
+        @if($waterPhotos->isNotEmpty())
+        <div style="margin-top: 10px; margin-bottom: 2px; page-break-inside: avoid;">
+            <div class="section-title" style="margin-bottom: 0px;">EVIDENCIA DE LECTURA DE CONTÓMETRO</div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    @foreach($waterPhotos as $pIndex => $pItem)
+                        <td style="width: {{ $waterPhotos->count() === 1 ? '100%' : '50%' }}; text-align: start; vertical-align: top; padding: 2px;">
+                            <div style="border: 1px solid #d6d6d6; background-color: #f9fbfd; border-radius: 4px; padding: 4px;">
+                                <div style="font-size: 8.5px; font-weight: bold; color: #226fb5; text-transform: uppercase; margin-bottom: 2px; margin-left: 2px;">
+                                    {{ $pItem['departament_number'] }}
+                                    @if(!empty($pItem['current_reading']))
+                                        &bull; {{ number_format($pItem['current_reading'], 2) }} m3
+                                    @endif
+                                </div>
+                                <div style="text-align: start;">
+                                    <img src="{{ $pItem['photo_src'] ?? $pItem['photo_url'] }}"
+                                         style="max-width: 100%; max-height: 155px; width: auto; height: auto; border-radius: 3px;"
+                                         alt="Foto contómetro {{ $pItem['departament_number'] }}" />
+                                </div>
+                            </div>
+                        </td>
+                        @if(($pIndex + 1) % 2 === 0 && ($pIndex + 1) < $waterPhotos->count())
+                            </tr><tr>
+                        @endif
+                    @endforeach
+                </tr>
+            </table>
+        </div>
+        @endif
         @endif
 
         {{-- ═══════════ ULTIMOS ABONOS ═══════════ --}}
@@ -558,39 +658,52 @@
         </table>
         @endif
 
-          {{-- ═══════════ DETALLE DE GASTOS COMUNES DEL MES ═══════════ --}}
+        {{-- ═══════════ DETALLE DE GASTOS COMUNES DEL MES (PÁGINA 2) ═══════════ --}}
         @if(isset($expenses) && $expenses->count() > 0)
-        <div class="section-title">DETALLE DE GASTOS COMUNES DEL MES - {{ strtoupper($monthLabel) }} {{ $year }}</div>
-        <table class="data-table">
-            <thead>
+        <div class="page-break">
+            <table class="page-header-secondary">
                 <tr>
-                    <th style="width: 14%;">CATEGORÍA</th>
-                    <th style="width: 32%;">DESCRIPCIÓN</th>
-                    <th style="width: 18%;">PROVEEDOR</th>
-                    <th class="right" style="width: 14%;">PRESUPUESTO</th>
-                    <th class="right" style="width: 10%;">% PART.</th>
-                    <th class="right" style="width: 12%;">TU CUOTA</th>
+                    <td style="font-size: 10px; font-weight: bold; color: #1a1a1a; text-transform: uppercase;">
+                        JUNTA DE PROPIETARIOS DEL EDIFICIO PACIFIK OCEAN TOWER &bull; ANEXO DE GASTOS COMUNES
+                    </td>
+                    <td style="text-align: right; font-size: 9.5px; color: #444;">
+                        {{ strtoupper($monthLabel) }} {{ $year }} &bull; UI: <strong>{{ $departamentNumberDisplay ?? $departament->number }}</strong>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach($expenses as $expense)
-                <tr>
-                    <td>{{ strtoupper($expense->serviceCategory->name ?? 'SERVICIO') }}</td>
-                    <td>{{ $expense->description ?? $expense->serviceCategory->name ?? '' }}</td>
-                    <td>{{ $expense->provider->name ?? '-' }}</td>
-                    <td class="right">{{ number_format($expense->amount, 2) }}</td>
-                    <td class="right">{{ number_format($totalParticipation, 2) }}%</td>
-                    <td class="right">S/ {{ number_format($expense->amount * $totalParticipation / 100, 2) }}</td>
-                </tr>
-                @endforeach
-                <tr class="total">
-                    <td colspan="3"><strong>TOTAL GASTOS COMUNES</strong></td>
-                    <td class="right">{{ number_format($totalExpenses, 2) }}</td>
-                    <td class="right">{{ number_format($totalParticipation, 2) }}%</td>
-                    <td class="right">S/ {{ number_format($totalExpenses * $totalParticipation / 100, 2) }}</td>
-                </tr>
-            </tbody>
-        </table>
+            </table>
+
+            <div class="section-title">DETALLE DE GASTOS COMUNES DEL MES - {{ strtoupper($monthLabel) }} {{ $year }}</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 14%;">CATEGORÍA</th>
+                        <th style="width: 32%;">DESCRIPCIÓN</th>
+                        <th style="width: 18%;">PROVEEDOR</th>
+                        <th class="right" style="width: 14%;">PRESUPUESTO</th>
+                        <th class="right" style="width: 10%;">% PART.</th>
+                        <th class="right" style="width: 12%;">TU CUOTA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($expenses as $expense)
+                    <tr>
+                        <td>{{ strtoupper($expense->serviceCategory->name ?? 'SERVICIO') }}</td>
+                        <td>{{ $expense->description ?? $expense->serviceCategory->name ?? '' }}</td>
+                        <td>{{ $expense->provider->name ?? '-' }}</td>
+                        <td class="right">{{ number_format($expense->amount, 2) }}</td>
+                        <td class="right">{{ number_format($totalParticipation, 2) }}%</td>
+                        <td class="right">S/ {{ number_format($expense->amount * $totalParticipation / 100, 2) }}</td>
+                    </tr>
+                    @endforeach
+                    <tr class="total">
+                        <td colspan="3"><strong>TOTAL GASTOS COMUNES</strong></td>
+                        <td class="right">{{ number_format($totalExpenses, 2) }}</td>
+                        <td class="right">{{ number_format($totalParticipation, 2) }}%</td>
+                        <td class="right">S/ {{ number_format($totalExpenses * $totalParticipation / 100, 2) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         @endif
 
         {{-- ═══════════ FOOTER ═══════════ --}}

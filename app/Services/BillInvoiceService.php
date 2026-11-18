@@ -11,6 +11,7 @@ use App\Models\Pay;
 use App\Models\PayMethod;
 use App\Models\Quota;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -95,8 +96,9 @@ class BillInvoiceService
         return ['sent' => $sentCount, 'failed' => $failedCount];
     }
 
-    public function buildInvoiceData(Quota $quota): array
+    public function buildInvoiceData(Quota $quota, ?Collection $allQuotas = null): array
     {
+        $quotas = $allQuotas && $allQuotas->isNotEmpty() ? $allQuotas : collect([$quota]);
         $departament = $quota->departament;
         $owner = $departament->owner;
         $responsiblePivot = $quota->responsiblePivot;
@@ -106,10 +108,12 @@ class BillInvoiceService
         $month = (int) $quota->month;
         $year = $quota->due_date ? Carbon::parse($quota->due_date)->year : now()->year;
 
-        $maintenanceAmount = (float) $quota->maintenance_amount;
-        $waterAmount = (float) $quota->water_amount;
-        $totalAmount = (float) $quota->amount;
+        $maintenanceAmount = (float) $quotas->sum('maintenance_amount');
+        $waterAmount = (float) $quotas->sum('water_amount');
+        $totalAmount = (float) $quotas->sum('amount');
 
+        // Construir listado de lecturas de agua individuales por cada cuota/departamento
+        $waterReadings = $this->formatWaterReadingList($quotas);
         $waterConsumption = 0;
         $waterPricePerM3 = 0;
         if ($waterReading) {
@@ -136,9 +140,17 @@ class BillInvoiceService
             : collect();
         $totalExpenses = (float) $expenses->sum('amount');
 
-        $units = Departament::where('user_id', $owner->id ?? 0)->get();
+        // Si se especificaron cuotas acumuladas/seleccionadas, mostrar SOLAMENTE las unidades de esas cuotas
+        if ($allQuotas && $allQuotas->isNotEmpty()) {
+            $units = $allQuotas->map(fn ($q) => $q->departament)->filter()->unique('id')->values();
+        } else {
+            $units = Departament::where('user_id', $owner->id ?? 0)->get();
+        }
         $totalArea = $units->sum('area');
         $totalParticipation = $units->sum('participation_percentage');
+
+        $deptNumbers = $units->pluck('number')->filter()->implode(', ');
+        $departamentNumberDisplay = $deptNumbers ?: $departament->number;
 
         $pays = $quota->pays;
 
@@ -239,11 +251,19 @@ class BillInvoiceService
             ? Carbon::parse($quota->due_date)->format('d/m/Y')
             : now()->addDays(15)->format('d/m/Y');
 
+        $singlePhotoPaths = $waterReading
+            ? $this->resolvePhotoPaths($waterReading->photo ?? $waterReading->meter_photo ?? $waterReading->proof_photo ?? null)
+            : ['url' => null, 'src' => null];
+
         return [
             'quota' => $quota,
             'departament' => $departament,
             'owner' => $owner,
             'waterReading' => $waterReading,
+            'waterReadingPhotoUrl' => $singlePhotoPaths['url'],
+            'waterReadingPhotoSrc' => $singlePhotoPaths['src'],
+            'waterReadingsList' => $waterReadings['waterReadingsList'],
+            'totalWaterConsumption' => $waterReadings['totalWaterConsumption'],
             'monthLabel' => self::MONTH_NAMES[$month],
             'year' => $year,
             'maintenanceAmount' => $maintenanceAmount,
@@ -271,6 +291,7 @@ class BillInvoiceService
             'monthlyBill' => $monthlyBill,
             'expenses' => $expenses,
             'totalExpenses' => $totalExpenses,
+            'departamentNumberDisplay' => $departamentNumberDisplay,
             'depositCode' => $departament->code_pay ?? '-',
             'receiptNumber' => '001 - '.str_pad((string) $quota->id, 6, '0', STR_PAD_LEFT),
             'totalMaintenanceBudget' => (float) ($monthlyBill->total_maintenance_budget ?? 0),
@@ -492,5 +513,91 @@ class BillInvoiceService
         }
 
         return $result;
+    }
+
+    private function formatWaterReadingList($quotas): array
+    {
+        $waterReadingsList = $quotas
+            ->filter(fn ($q) => $q->waterReading !== null)
+            ->map(function ($q) {
+                $wr = $q->waterReading;
+                $prev = (float) ($wr->previous_reading ?? 0);
+                $curr = (float) ($wr->current_reading ?? 0);
+                $consumption = max(0, $curr - $prev);
+                $pricePerM3 = (float) ($wr->m3_price ?? 0);
+                $amount = (float) $q->water_amount > 0 ? (float) $q->water_amount : round($consumption * $pricePerM3, 2);
+
+                $photoRaw = $wr->photo ?? null;
+                $photoPaths = $this->resolvePhotoPaths($photoRaw);
+
+                return [
+                    'departament_number' => $q->departament?->number ?? '',
+                    'previous_reading' => $prev,
+                    'current_reading' => $curr,
+                    'consumption' => $consumption,
+                    'price_per_m3' => $pricePerM3,
+                    'amount' => $amount,
+                    'photo' => $photoRaw,
+                    'photo_url' => $photoPaths['url'],
+                    'photo_src' => $photoPaths['src'],
+                ];
+            })
+            ->values();
+
+        $totalWaterConsumption = (float) $waterReadingsList->sum('consumption');
+
+        return [
+            'waterReadingsList' => $waterReadingsList,
+            'totalWaterConsumption' => $totalWaterConsumption,
+        ];
+    }
+
+    private function resolvePhotoPaths(?string $photo): array
+    {
+        if (empty($photo)) {
+            return ['url' => null, 'src' => null];
+        }
+
+        // Si ya es un data URI en base64
+        if (str_starts_with($photo, 'data:image')) {
+            return ['url' => $photo, 'src' => $photo];
+        }
+
+        // Si es una URL absoluta HTTP / HTTPS
+        if (str_starts_with($photo, 'http://') || str_starts_with($photo, 'https://')) {
+            return ['url' => $photo, 'src' => $photo];
+        }
+
+        $cleanPath = ltrim($photo, '/');
+        if (str_starts_with($cleanPath, 'public/')) {
+            $cleanPath = substr($cleanPath, 7);
+        }
+
+        $candidates = [
+            public_path($cleanPath),
+            public_path('storage/'.ltrim($cleanPath, 'storage/')),
+            base_path(ltrim($photo, '/')),
+            public_path($photo),
+        ];
+
+        foreach ($candidates as $filePath) {
+            if (file_exists($filePath) && is_file($filePath)) {
+                $mime = mime_content_type($filePath) ?: 'image/jpeg';
+                $base64 = 'data:'.$mime.';base64,'.base64_encode(file_get_contents($filePath));
+                $url = asset($cleanPath);
+
+                return [
+                    'url' => $url,
+                    'src' => $base64,
+                ];
+            }
+        }
+
+        $url = asset($cleanPath);
+
+        return [
+            'url' => $url,
+            'src' => $url,
+        ];
     }
 }

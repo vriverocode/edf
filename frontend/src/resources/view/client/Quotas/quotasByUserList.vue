@@ -116,14 +116,19 @@ const resolvePayId = (quota) => {
   return preferred ? preferred.id : null
 }
 
-const goTo = (quota) => {
-  if (quota.status == 2 || quota.status == 3) {
+const goToPayment = (quota) => {
+
+   if (quota.status == 2 || quota.status == 3) {
     const payId = resolvePayId(quota)
     if (payId) {
       router.push(`/client/pay/quotas/view/${payId}`)
     }
     return
   }
+  
+}
+const goTo = (quota) => {
+ 
   if (isBlockedByOlderMonth(quota)) {
     Notify.create({
       color: 'warning',
@@ -133,9 +138,6 @@ const goTo = (quota) => {
     })
     return
   }
-  // Solo cuotas realmente pendientes (status 1): un grupo consolidado puede
-  // mezclar unidades ya pagadas y enviarlas aqui provocaria un 409 en
-  // storePay (denyNonPending).
   const ids = quota.details
     ? quota.details.filter(d => Number(d.status) === 1).map(d => d.id)
     : [quota.id]
@@ -163,12 +165,12 @@ const downloadQuotaPdf = async (quota) => {
   if (!ids.length) return
   downloadingId.value = quota.id
   try {
-    await quotaStore.downloadQuotaStatement(ids)
+    await quotaStore.downloadQuotaReceipt(ids)
   } catch (message) {
     Notify.create({
       color: 'negative',
       icon: 'eva-alert-circle-outline',
-      message: typeof message === 'string' ? message : 'No se pudo descargar el estado de cuenta',
+      message: typeof message === 'string' ? message : 'No se pudo descargar el recibo',
       timeout: 3000
     })
   } finally {
@@ -503,16 +505,23 @@ onMounted(() => {
                   </div>
                 </div>
                 <!-- Lectura de agua vinculada a la cuota -->
-                <div v-if="waterQuotaId(quota)" class="mt-1">
+                <div v-if="waterQuotaId(quota)" class="mt-">
                   <q-btn dense flat no-caps icon="eva-droplet-outline" color="info" label="Ver lectura de agua"
                     class="text-caption" @click.stop="goToWaterReading(quota)" />
                 </div>
                 <!-- Estado de cuenta en PDF (cualquier estado, combinado por mes) -->
-                <div class="mt-1">
-                  <q-btn dense flat no-caps icon="eva-download-outline" color="primary"
-                    label="Descargar estado de cuenta" class="text-caption"
-                    :loading="downloadingId === quota.id" @click.stop="downloadQuotaPdf(quota)" />
-                </div>
+                 <div class="flex">
+                   <!-- <div class="mt-1">
+                     <q-btn dense flat no-caps icon="eva-eye-outline" color="primary"
+                       label="Ver pago resumido" class="text-caption"
+                       :loading="downloadingId === quota.id" @click.stop="goToPayment(quota)" />
+                   </div> -->
+                   <div class="mt-0">
+                     <q-btn dense flat no-caps icon="eva-download-outline" color="primary"
+                       label="Descargar estado de cuenta" class="text-caption px-0"
+                       :loading="downloadingId === quota.id" @click.stop="downloadQuotaPdf(quota)" />
+                   </div>
+                 </div>
               </div>
             </div>
             <!-- Modo selección múltiple: marcar el mes para el pago consolidado -->

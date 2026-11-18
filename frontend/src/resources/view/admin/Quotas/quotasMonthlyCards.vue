@@ -264,17 +264,16 @@ onMounted(() => {
       <div v-else class="px-4 pt-2 md:px-28 pb-12">
         <!-- Unidad seleccionada -->
         <div v-if="departamentNumber !== null" class="flex items-center text-weight-medium q-mb-sm md:px-8">
-          <span class="text-subtitle1 text-weight-medium">
+          <span class="text-subtitle1 text-weight-medium" style="text-transform: uppercase;">
             Cuotas — Unidad #{{ departamentNumber }}
-            <template v-if="isAdmin && scopeDeptIds.length > 1"> · {{ scopeDeptIds.length }} unidades del propietario</template>
-            <template v-else-if="!isAdmin"> · todas tus unidades</template>
+           
           </span>
         </div>
         <div v-if="filteredCards.length > 0" class="md:px-5 row">
           <div v-for="card in filteredCards" :key="`${card.year}-${card.month}`"
             class="col-md-4 col-12 md:px-2 mb-5 md:mb-4">
             <div class="bg-white rounded-xl shadow-md overflow-hidden h-full w-full  cursor-pointer"
-              style="border: 1px solid lightgrey" >
+              style="border: 1px solid lightgrey"  @click="goToMonth(card)">
 
               <div class="px-4 pb-0 pt-2 md:pt-4">
                 <div class="flex justify-between items-start mb-0 pb-1" style="border-bottom: 1px dashed #111827;">
@@ -293,8 +292,9 @@ onMounted(() => {
                       <span class="text-gray-500">Mantenimiento:</span>
                       <span class="font-medium ml-1">{{ formatMoney(card.maintenance_amount) }}</span>
                     </div>
-                    <div v-if="card.water_amount != null" class="flex items-center text-sm text-gray-700"
+                    <div v-if="card.water_amount != null" class="flex items-end md:items-center text-sm text-gray-700 column md:flex-row" 
                       :class="card.maintenance_amount != null ? 'col-6 justify-end' : 'col-6'">
+                      
                       <span class="text-gray-500">Agua:</span>
                       <a v-if="card.water_quota_id" :href="waterDetailHref(card)"
                         class="font-medium ml-1 text-primary" style="text-decoration: underline;"
@@ -305,7 +305,7 @@ onMounted(() => {
                     </div>
                   </div>
                   <!-- Total del mes -->
-                  <div class="flex items-center text-sm">
+                  <div class="flex items-center text-sm mt-2">
                     <span class="text-gray-500">Total del mes:</span>
                     <span class="font-bold text-gray-900 ml-1">{{ formatMoney(card.total_amount) }}</span>
                   </div>
@@ -314,7 +314,7 @@ onMounted(() => {
                       <q-icon name="eva-home-outline" size="1rem" class="q-mr-xs" />
                       {{ card.units_count }} unidad(es)
                     </span>
-                    <span v-if="card.due_date" class="ml-2">Fecha límite: {{ formatDate(card.due_date) }}</span>
+                    <span v-if="card.due_date" class="ml-1">Fecha límite: {{ formatDate(card.due_date) }}</span>
                   </div>
                   <div v-if="isAdmin" class="row items-center pt-2">
                     <div class="flex items-center text-sm col-6">
@@ -332,17 +332,13 @@ onMounted(() => {
               </div>
 
               <!-- Footer de estado + acción -->
-              <div class="px-4 py-2 md:py-3 border-t flex justify-between items-center cursor-pointer"
+              <div class="px-4 py-2 md:py-3 border-t flex justify-center items-center cursor-pointer"
                 :class="`bg-${cardStatus(card).color}`">
                 <div class="flex items-center">
                   <q-icon :name="cardStatus(card).icon" color="white" size="1.5rem" />
                   <span class="ml-1 text-sm font-medium text-white">
                     {{ cardStatus(card).label }} — Total {{ formatMoney(card.total_amount) }}
                   </span>
-                </div>
-                <div class="flex items-center text-white text-sm font-medium" @click="goToMonth(card)">
-                  <span>Ver cuotas</span>
-                  <q-icon name="eva-arrow-forward-outline" color="white" size="1.25rem" class="q-ml-xs" />
                 </div>
               </div>
             </div>

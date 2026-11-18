@@ -127,11 +127,29 @@ class BillInvoiceController extends Controller
         return $pdf->download($filename);
     }
 
-    public function clientDownloadPdf(Request $request, int $quotaId)
+    public function clientDownloadPdf(Request $request, $quotaId = null)
     {
         $user = request()->user();
 
-        $quota = Quota::with([
+        $rawIds = $request->input('quota_ids', []);
+        if (is_string($rawIds)) {
+            $rawIds = explode(',', $rawIds);
+        }
+
+        if (empty($rawIds) && $quotaId) {
+            $rawIds = [$quotaId];
+        }
+
+        $quotaIds = array_values(array_unique(array_filter(
+            array_map('intval', (array) $rawIds),
+            fn ($id) => $id > 0
+        )));
+
+        if (empty($quotaIds)) {
+            return $this->returnFail(404, 'Cuota no encontrada');
+        }
+
+        $quotas = Quota::with([
             'departament.owner',
             'responsiblePivot.user',
             'waterReading',
@@ -140,28 +158,28 @@ class BillInvoiceController extends Controller
                     ->where('type', 1)
                     ->orderByDesc('pay_date');
             },
-        ])->find($quotaId);
+        ])->whereIn('id', $quotaIds)->get();
 
-        if (! $quota) {
+        if ($quotas->isEmpty()) {
             return $this->returnFail(404, 'Cuota no encontrada');
         }
 
-        if ((int) $quota->status !== 3) {
-            return $this->returnFail(403, 'El recibo solo está disponible para cuotas pagadas');
+        foreach ($quotas as $q) {
+            if (! $this->canAccessQuota($q, $user)) {
+                return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
+            }
         }
 
-        if (! $this->canAccessQuota($quota, $user)) {
-            return response()->json(['code' => 403, 'error' => 'No autorizado'], 403);
-        }
-
-        $invoiceData = $this->billInvoiceService->buildInvoiceData($quota);
+        // Se toma la primera cuota como referencia principal y se le pasan todas las seleccionadas
+        $primaryQuota = $quotas->first();
+        $invoiceData = $this->billInvoiceService->buildInvoiceData($primaryQuota, $quotas);
 
         $pdf = Pdf::loadView('bills.invoice', $invoiceData)
             ->setPaper('letter')
             ->setOption('isRemoteEnabled', true);
 
-        $filename = 'recibo-'.
-            $invoiceData['departament']->number.
+        $filename = 'recibos-'.
+            str_replace([' ', '/'], '-', (string) ($invoiceData['departamentNumberDisplay'] ?? $invoiceData['departament']->number)).
             '-'.strtolower($invoiceData['monthLabel']).
             '-'.$invoiceData['year'].'.pdf';
 
